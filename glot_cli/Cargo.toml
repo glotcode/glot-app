@@ -1,0 +1,11 @@
+[package]
+name = "glot_cli"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+glot_core = { path = "../glot_core" }
+polyester = { git = "https://github.com/polyester-web/polyester-rs" }
+serde_json = "1.0.81"
