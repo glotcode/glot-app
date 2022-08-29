@@ -1,4 +1,5 @@
 use glot_core::home_page;
+use glot_core::snippet_page;
 use polyester::page::Page;
 use std::env;
 
@@ -9,6 +10,11 @@ fn main() {
     match args[1..] {
         ["home_page"] => {
             let page = home_page::HomePage {};
+            print_html(page);
+        }
+
+        ["snippet_page"] => {
+            let page = snippet_page::SnippetPage {};
             print_html(page);
         }
 

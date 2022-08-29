@@ -12,6 +12,9 @@ fi
 
 
 if [[ "$event" == "after_asset_hash" || "$env" == "dev" ]]; then
+    mkdir -p dist/snippet
+
     # Generate html
     ./target/$target/glot_cli home_page > dist/index.html
+    ./target/$target/glot_cli snippet_page > dist/snippet/index.html
 fi
