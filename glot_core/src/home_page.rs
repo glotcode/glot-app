@@ -1,8 +1,10 @@
 use maud::html;
+use maud::Markup;
 use polyester::browser;
 use polyester::browser::DomId;
 use polyester::browser::Effects;
 use polyester::browser::ToDomId;
+use polyester::page;
 use polyester::page::Page;
 use polyester::page::PageMarkup;
 use serde::{Deserialize, Serialize};
@@ -15,7 +17,7 @@ pub struct Model {
 
 pub struct HomePage {}
 
-impl Page<Model, Msg, AppEffect> for HomePage {
+impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     fn id(&self) -> DomId {
         DomId::new("glot")
     }
@@ -49,11 +51,19 @@ impl Page<Model, Msg, AppEffect> for HomePage {
         }
     }
 
-    fn view(&self, model: &Model) -> PageMarkup {
+    fn view(&self, model: &Model) -> PageMarkup<Markup> {
         PageMarkup {
             head: view_head(),
             body: view_body(&self.id(), model),
         }
+    }
+
+    fn render_partial(&self, markup: Markup) -> String {
+        markup.into_string()
+    }
+
+    fn render_page(&self, markup: PageMarkup<Markup>) -> String {
+        page::render_page_maud(markup)
     }
 }
 

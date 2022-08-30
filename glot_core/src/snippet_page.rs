@@ -1,8 +1,11 @@
+use crate::layout::app_layout;
 use maud::html;
+use maud::Markup;
 use polyester::browser;
 use polyester::browser::DomId;
 use polyester::browser::Effects;
 use polyester::browser::ToDomId;
+use polyester::page;
 use polyester::page::Page;
 use polyester::page::PageMarkup;
 use serde::{Deserialize, Serialize};
@@ -15,7 +18,7 @@ pub struct Model {
 
 pub struct SnippetPage {}
 
-impl Page<Model, Msg, AppEffect> for SnippetPage {
+impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     fn id(&self) -> DomId {
         DomId::new("glot")
     }
@@ -49,11 +52,19 @@ impl Page<Model, Msg, AppEffect> for SnippetPage {
         }
     }
 
-    fn view(&self, model: &Model) -> PageMarkup {
+    fn view(&self, model: &Model) -> PageMarkup<Markup> {
         PageMarkup {
             head: view_head(),
             body: view_body(&self.id(), model),
         }
+    }
+
+    fn render_partial(&self, markup: Markup) -> String {
+        markup.into_string()
+    }
+
+    fn render_page(&self, markup: PageMarkup<Markup>) -> String {
+        app_layout::render(markup)
     }
 }
 
@@ -86,17 +97,26 @@ fn view_head() -> maud::Markup {
 fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
     html! {
         div id=(page_id) {
-            div class="flex p-4" {
-                button id=(Id::Decrement) class="w-28 text-center items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" type="button" {
-                    "Decrement"
+            (app_layout::app_shell(view_content(model)))
+        }
+    }
+}
+
+fn view_content(model: &Model) -> Markup {
+    html! {
+        div class="py-6" {
+            div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" {
+                h1 class="text-2xl font-semibold text-gray-900" {
+                    "Dashboard"
                 }
-                div class="mx-4 w-28" {
-                    input value=(model.count) class="text-center shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" type="text" readonly;
-                }
-                button id=(Id::Increment) class="w-28 text-center items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" type="button" {
-                    "Increment"
+            }
+            div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
+                div class="py-4" {
+                    div class="border-4 border-dashed border-gray-200 rounded-lg h-96" {
+                    }
                 }
             }
         }
+
     }
 }

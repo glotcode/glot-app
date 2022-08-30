@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["../glot_core/**/*_page.rs"],
+  content: ["../glot_core/**/*.rs"],
   theme: {
     extend: {},
   },

@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 glot_core = { path = "../glot_core" }
-polyester = { git = "https://github.com/polyester-web/polyester-rs" }
+#polyester = { git = "https://github.com/polyester-web/polyester-rs" }
+polyester = { path = "../../polyester-rs/polyester" }
 serde_json = "1.0.81"

@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-polyester = { git = "https://github.com/polyester-web/polyester-rs" }
-polyester_macro = { git = "https://github.com/polyester-web/polyester-rs" }
+polyester = { path = "../../polyester-rs/polyester" }
+polyester_macro = { path = "../../polyester-rs/polyester_macro" }
+#polyester = { git = "https://github.com/polyester-web/polyester-rs" }
+#polyester_macro = { git = "https://github.com/polyester-web/polyester-rs" }
 maud = "0.23.0"
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"

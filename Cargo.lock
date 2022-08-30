@@ -98,7 +98,6 @@ checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
 [[package]]
 name = "polyester"
 version = "0.1.0"
-source = "git+https://github.com/polyester-web/polyester-rs#ae5c2a0f928b7a7ce5f3bb82bb26bd27577db377"
 dependencies = [
  "maud",
  "serde",
@@ -109,7 +108,6 @@ dependencies = [
 [[package]]
 name = "polyester_macro"
 version = "0.1.0"
-source = "git+https://github.com/polyester-web/polyester-rs#ae5c2a0f928b7a7ce5f3bb82bb26bd27577db377"
 dependencies = [
  "quote",
  "syn",
