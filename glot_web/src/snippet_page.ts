@@ -1,6 +1,6 @@
 import init from "../wasm/glot.js";
 import { snippetPage } from "../wasm/glot";
-import { Polyester } from "polyester";
+import { Polyester, rustEnum } from "polyester";
 import { defaultDebugConfig } from "polyester/src/logger";
 
 (async () => {
@@ -11,4 +11,16 @@ import { defaultDebugConfig } from "polyester/src/logger";
   });
 
   polyester.init();
+
+  const editor = initAce("editor-0");
+
+  editor.getSession().on("change", () => {
+    const msg = rustEnum.tuple("EditorContentChanged", [editor.getValue()]);
+    //polyester.send(msg);
+  });
 })();
+
+function initAce(elemId: string): any {
+  // @ts-ignore
+  return ace.edit(elemId);
+}
