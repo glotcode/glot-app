@@ -22,5 +22,7 @@ import { defaultDebugConfig } from "polyester/src/logger";
 
 function initAce(elemId: string): any {
   // @ts-ignore
-  return ace.edit(elemId);
+  const editor = ace.edit(elemId);
+
+  return editor;
 }
