@@ -1,3 +1,4 @@
+use crate::icons::heroicons;
 use crate::layout::app_layout;
 use maud::html;
 use maud::Markup;
@@ -174,22 +175,6 @@ fn view_tab_bar() -> Markup {
     }
 }
 
-fn view_action_bar() -> Markup {
-    html! {
-        div class="p-4 flex border border-gray-400 shadow" {
-            div {
-                (view_run_button())
-            }
-            div class="ml-4" {
-                (view_input_output_toggle())
-            }
-            div class="ml-4" {
-                (view_save_button())
-            }
-        }
-    }
-}
-
 fn view_run_button() -> Markup {
     html! {
         button class="h-9 inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-3 py-2 text-sm font-medium leading-4 text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
@@ -247,6 +232,27 @@ fn view_save_button() -> Markup {
     }
 }
 
+fn view_action_bar() -> Markup {
+    html! {
+        div class="h-9 flex border border-gray-400 shadow" {
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm" href="#" {
+                span class="w-5 h-5 mr-1" { (view_play()) }
+                span { "Run" }
+            }
+
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
+                span class="w-5 h-5 mr-1" { (view_cloud_arrow_up()) }
+                span { "Save" }
+            }
+
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
+                span class="w-5 h-5 mr-1" { (heroicons::command_line()) }
+                span { "Stdin" }
+            }
+        }
+    }
+}
+
 fn view_pencil_square() -> Markup {
     html! {
         svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" {
@@ -280,6 +286,15 @@ fn view_play() -> Markup {
     html! {
         svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" {
             path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" {
+            }
+        }
+    }
+}
+
+fn view_cloud_arrow_up() -> Markup {
+    html! {
+        svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" {
+            path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" {
             }
         }
     }
