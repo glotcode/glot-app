@@ -123,22 +123,30 @@ fn view_content(model: &Model) -> Markup {
 
             div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
                 div class="pt-4" {
-                    (view_editor_tabs())
+                    (view_tab_bar())
                 }
             }
 
             div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
                 div class="pt-3" {
                     div class="editor-container" style=(editor_style) {
-                        div #(editor_id(0)) class="editor border border-gray-400 shadow" unmanaged { (model.editorContent[0]) }
+                        div #(editor_id(0)) class="editor border border-gray-400 shadow" unmanaged {
+                            (model.editorContent[0])
+                        }
                     }
+                }
+            }
+
+            div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
+                div class="pt-4" {
+                    (view_action_bar())
                 }
             }
         }
     }
 }
 
-fn view_editor_tabs() -> Markup {
+fn view_tab_bar() -> Markup {
     html! {
         div class="flex border border-gray-400 shadow" {
             a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm" href="#" {
@@ -161,6 +169,79 @@ fn view_editor_tabs() -> Markup {
                     span class="w-5 h-5 ml-2 hover:text-red-400" { (view_x_circle()) }
                 }
                 span class="border-l border-gray-400" { }
+            }
+        }
+    }
+}
+
+fn view_action_bar() -> Markup {
+    html! {
+        div class="p-4 flex border border-gray-400 shadow" {
+            div {
+                (view_run_button())
+            }
+            div class="ml-4" {
+                (view_input_output_toggle())
+            }
+            div class="ml-4" {
+                (view_save_button())
+            }
+        }
+    }
+}
+
+fn view_run_button() -> Markup {
+    html! {
+        button class="h-9 inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-3 py-2 text-sm font-medium leading-4 text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+            span class="-ml-0.5 mr-2 h-4 w-4" {
+                (view_play())
+            }
+            span {
+                "Run"
+            }
+        }
+    }
+}
+
+fn view_input_output_toggle() -> Markup {
+    html! {
+        span class="h-9 relative z-0 inline-flex rounded-md shadow-sm" {
+            button class="relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" type="button" {
+                "Input"
+            }
+            button class="relative -ml-px inline-flex items-center rounded-r-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" type="button" {
+                "Output"
+            }
+        }
+    }
+}
+
+fn view_save_button() -> Markup {
+    html! {
+        div class="relative z-0 inline-flex rounded-md shadow-sm" {
+            button class="h-9 relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" type="button" {
+                "Save public"
+            }
+            div class="relative -ml-px block" {
+                button class="h-9 relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" type="button" {
+                    span class="sr-only" {
+                        "Open options"
+                    }
+                    svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" {
+                        path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" {
+                        }
+                    }
+                }
+                div class="hidden absolute right-0 mt-2 -mr-1 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="option-menu-button" tabindex="-1" {
+                    div class="py-1" role="none" {
+                        a id="option-menu-item-0" class="text-gray-700 block px-4 py-2 text-sm" href="#" role="menuitem" tabindex="-1" {
+                            "Save public"
+                        }
+                        a id="option-menu-item-2" class="text-gray-700 block px-4 py-2 text-sm" href="#" role="menuitem" tabindex="-1" {
+                            "Save secret"
+                        }
+                    }
+                }
             }
         }
     }
@@ -195,10 +276,10 @@ fn view_x_circle() -> Markup {
     }
 }
 
-fn view_x_mark() -> Markup {
+fn view_play() -> Markup {
     html! {
         svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" {
-            path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" {
+            path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" {
             }
         }
     }
