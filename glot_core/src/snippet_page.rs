@@ -103,7 +103,7 @@ fn view_head() -> maud::Markup {
 
 fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
     html! {
-        div id=(page_id) {
+        div id=(page_id) class="h-full" {
             (app_layout::app_shell(view_content(model)))
         }
     }
@@ -115,33 +115,97 @@ fn view_content(model: &Model) -> Markup {
     let editor_style = format!("height: {}px;", editor_height);
 
     html! {
-        div class="py-6" {
-            div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" {
-                h1 class="text-2xl font-semibold text-gray-900" {
-                    "Untitled"
+        div class="py-6 h-full flex flex-col" {
+            div {
+                div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" {
+                    h1 class="text-2xl font-semibold text-gray-900" {
+                        "Untitled"
+                    }
                 }
-            }
 
-            div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
-                div class="pt-3" {
-                    div class="border border-gray-400 shadow" {
-                        (view_tab_bar())
+                div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
+                    div class="pt-3" {
+                        div class="border border-gray-400 shadow" {
+                            (view_tab_bar())
 
-                        div class="editor-container" style=(editor_style) {
-                            div #(editor_id(0)) class="editor" unmanaged {
-                                (model.editorContent[0])
+                            div class="editor-container" style=(editor_style) {
+                                div #(editor_id(0)) class="editor" unmanaged {
+                                    (model.editorContent[0])
+                                }
                             }
-                        }
 
-                        (view_stdin_bar())
+                            (view_stdin_bar())
+                        }
+                    }
+                }
+
+                div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
+                    div class="pt-4" {
+                        (view_action_bar())
                     }
                 }
             }
 
-            div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
-                div class="pt-4" {
-                    (view_action_bar())
+            div class="overflow-hidden h-full w-full flex-1 max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
+                div class="h-full pt-4" {
+                    (view_output_panel())
                 }
+            }
+        }
+    }
+}
+
+fn view_output_panel() -> Markup {
+    html! {
+        div class="overflow-auto h-full border border-gray-400 shadow" {
+            dl {
+                // NOTE: first visible dt should not have top border
+                dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
+                    pre { "INFO" }
+                }
+                dd class="px-4 py-2" {
+                    pre {
+                        "READY."
+                    }
+                }
+
+                dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-green-400" {
+                    pre { "STDOUT" }
+                }
+                dd class="px-4 py-2" {
+                    pre {
+                        "Hello World\n"
+                        "Hello World\n"
+                        "Hello World\n"
+                        "Hello World\n"
+                        "Hello World\n"
+                        "Hello World\n"
+                        "Hello World\n"
+                        "Hello World\n"
+                        "Hello World\n"
+                        "Hello World\n"
+                        "Hello World\n"
+                    }
+                }
+
+                dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-yellow-400" {
+                    pre { "STDERR" }
+                }
+                dd class="px-4 py-2"{
+                    pre {
+                        "err"
+                    }
+                }
+
+                dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-red-400" {
+                    pre { "ERROR" }
+                }
+                dd class="px-4 py-2" {
+                    pre {
+                        "Exit code: 1"
+                    }
+                }
+
             }
         }
     }
@@ -190,22 +254,22 @@ fn view_action_bar() -> Markup {
     html! {
         div class="h-12 flex border border-gray-400 shadow" {
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm" href="#" {
-                span class="w-5 h-5 mr-1" { (heroicons::play()) }
+                span class="w-5 h-5 mr-2" { (heroicons::play()) }
                 span { "Run" }
             }
 
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
-                span class="w-5 h-5 mr-1" { (heroicons::cloud_arrow_up()) }
+                span class="w-5 h-5 mr-2" { (heroicons::cloud_arrow_up()) }
                 span { "Save" }
             }
 
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
-                span class="w-5 h-5 mr-1" { (heroicons::trash()) }
+                span class="w-5 h-5 mr-2" { (heroicons::trash()) }
                 span { "Delete" }
             }
 
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
-                span class="w-5 h-5 mr-1" { (heroicons::share()) }
+                span class="w-5 h-5 mr-2" { (heroicons::share()) }
                 span { "Share" }
             }
         }

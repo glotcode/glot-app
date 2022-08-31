@@ -20,7 +20,7 @@ pub fn render(markup: PageMarkup<Markup>) -> String {
 
 pub fn app_shell(content: Markup) -> Markup {
     html! {
-        div {
+        div class="h-full" {
             div class="relative z-40 md:hidden" role="dialog" aria-modal="true" {
                 div class="fixed inset-0 bg-gray-600 bg-opacity-75" {}
                 div class="fixed inset-0 flex z-40" {
@@ -87,7 +87,7 @@ pub fn app_shell(content: Markup) -> Markup {
                     }
                 }
             }
-            div class="md:pl-64 flex flex-col flex-1" {
+            div class="h-full md:pl-64 flex flex-col flex-1" {
                 div class="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-100" {
                     button class="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" type="button" {
                         span class="sr-only" {
@@ -100,7 +100,7 @@ pub fn app_shell(content: Markup) -> Markup {
                     }
                 }
 
-                main class="flex-1" {
+                main class="flex-1 h-full" {
                     (content)
                 }
             }
