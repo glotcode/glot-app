@@ -29,7 +29,7 @@ impl Default for File {
     fn default() -> Self {
         Self {
             name: "untitled".to_string(),
-            content: "".to_string(),
+            content: "Hello World!".to_string(),
         }
     }
 }
@@ -53,10 +53,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
-        vec![
-            browser::on_click(&Id::Increment, Msg::Increment),
-            browser::on_click(&Id::Decrement, Msg::Decrement),
-        ]
+        vec![browser::on_change_string(
+            &Id::Editor,
+            Msg::EditorContentChanged,
+        )]
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
@@ -120,7 +120,7 @@ pub enum AppEffect {}
 fn view_head() -> maud::Markup {
     html! {
         title { "Snippet Page" }
-        link rel="stylesheet" href="/app.css";
+        link id="app-styles" rel="stylesheet" href="/app.css";
         script defer nohash src="/vendor/ace/ace.js" {}
         script defer type="module" src="/snippet_page.js" {}
     }
@@ -137,7 +137,10 @@ fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
 fn view_content(model: &Model) -> Markup {
     let window_size_height = 600;
     let editor_height = max(i64::from(window_size_height) - 96, 500);
-    let editor_style = format!("height: {}px;", editor_height);
+    let inline_styles = format!("height: {}px;", editor_height);
+
+    let height = format!("{}px", editor_height);
+    let content = model.files.selected().content;
 
     html! {
         div class="py-6 h-full flex flex-col" {
@@ -153,10 +156,13 @@ fn view_content(model: &Model) -> Markup {
                         div class="border border-gray-400 shadow" {
                             (view_tab_bar())
 
-                            div class="w-full" style=(editor_style) {
-                                div id=(Id::Editor) class="w-full h-full text-base whitespace-pre font-mono" unmanaged {
-                                    (model.files.selected().content)
-                                }
+                            poly-ace-editor id=(Id::Editor)
+                                style=(inline_styles)
+                                class="block w-full text-base whitespace-pre font-mono"
+                                stylesheet-id="app-styles"
+                                height=(height)
+                            {
+                                (content)
                             }
 
                             (view_stdin_bar())
@@ -169,6 +175,7 @@ fn view_content(model: &Model) -> Markup {
                         (view_action_bar())
                     }
                 }
+
             }
 
             div class="overflow-hidden h-full w-full flex-1 max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
