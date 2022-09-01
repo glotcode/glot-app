@@ -128,8 +128,8 @@ fn view_content(model: &Model) -> Markup {
                         div class="border border-gray-400 shadow" {
                             (view_tab_bar())
 
-                            div class="editor-container" style=(editor_style) {
-                                div #(editor_id(0)) class="editor" unmanaged {
+                            div class="w-full" style=(editor_style) {
+                                div #(editor_id(0)) class="w-full h-full text-base whitespace-pre font-mono" unmanaged {
                                     (model.editorContent[0])
                                 }
                             }
