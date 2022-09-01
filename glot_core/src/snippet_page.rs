@@ -244,7 +244,7 @@ fn view_stdin_bar() -> Markup {
         div class="h-10 flex justify-center border-t border-gray-400" {
             a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm" href="#" {
                 span class="w-5 h-5 mr-1" { (heroicons::plus_circle()) }
-                span { "Stdin" }
+                span { "STDIN" }
             }
         }
     }
@@ -255,22 +255,22 @@ fn view_action_bar() -> Markup {
         div class="h-12 flex border border-gray-400 shadow" {
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::play()) }
-                span { "Run" }
+                span { "RUN" }
             }
 
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::cloud_arrow_up()) }
-                span { "Save" }
+                span { "SAVE" }
             }
 
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::trash()) }
-                span { "Delete" }
+                span { "DELETE" }
             }
 
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::share()) }
-                span { "Share" }
+                span { "SHARE" }
             }
         }
     }
