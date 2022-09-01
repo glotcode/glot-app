@@ -1,5 +1,6 @@
 use crate::icons::heroicons;
 use crate::layout::app_layout;
+use crate::util::zip_list::ZipList;
 use maud::html;
 use maud::Markup;
 use polyester::browser;
@@ -14,8 +15,23 @@ use std::cmp::max;
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
-    pub editorContent: [String; 10],
+    pub files: ZipList<File>,
     pub count: isize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct File {
+    pub name: String,
+    pub content: String,
+}
+
+impl Default for File {
+    fn default() -> Self {
+        Self {
+            name: "untitled".to_string(),
+            content: "".to_string(),
+        }
+    }
 }
 
 pub struct SnippetPage {}
@@ -28,7 +44,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     fn init(&self) -> (Model, Effects<Msg, AppEffect>) {
         let model = Model {
             count: 0,
-            editorContent: Default::default(),
+            files: ZipList::singleton(File::default()),
         };
 
         let effects = vec![];
@@ -45,6 +61,14 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
         match msg {
+            Msg::EditorContentChanged(content) => {
+                let mut file = model.files.selected();
+                file.content = content.clone();
+                model.files.replace_selected(file);
+
+                Ok(vec![])
+            }
+
             Msg::Increment => {
                 model.count += 1;
                 Ok(vec![])
@@ -82,8 +106,9 @@ enum Id {
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "PascalCase")]
 pub enum Msg {
+    EditorContentChanged(String),
     Increment,
     Decrement,
 }
@@ -129,8 +154,8 @@ fn view_content(model: &Model) -> Markup {
                             (view_tab_bar())
 
                             div class="w-full" style=(editor_style) {
-                                div #(editor_id(0)) class="w-full h-full text-base whitespace-pre font-mono" unmanaged {
-                                    (model.editorContent[0])
+                                div id=(Id::Editor) class="w-full h-full text-base whitespace-pre font-mono" unmanaged {
+                                    (model.files.selected().content)
                                 }
                             }
 
@@ -277,8 +302,4 @@ fn view_action_bar() -> Markup {
             }
         }
     }
-}
-
-fn editor_id(n: u8) -> DomId {
-    DomId::new(&format!("{}-{}", Id::Editor, n))
 }

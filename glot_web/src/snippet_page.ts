@@ -12,11 +12,11 @@ import { defaultDebugConfig } from "polyester/src/logger";
 
   polyester.init();
 
-  const editor = initAce("editor-0");
+  const editor = initAce("editor");
 
   editor.getSession().on("change", () => {
     const msg = rustEnum.tuple("EditorContentChanged", [editor.getValue()]);
-    //polyester.send(msg);
+    polyester.send(msg);
   });
 })();
 
