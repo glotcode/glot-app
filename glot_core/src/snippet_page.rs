@@ -214,26 +214,29 @@ fn view_output_panel() -> Markup {
 fn view_tab_bar() -> Markup {
     html! {
         div class="h-10 flex border-b border-gray-400" {
-            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm" href="#" {
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1" href="#" {
                 span class="w-6 h-6" {
                     (heroicons::cog_6_tooth())
                 }
             }
 
-            nav class="flex" aria-label="Tabs" {
-                a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
-                    span { "main.rs" }
-                    span class="w-4 h-4 ml-2 hover:text-emerald-500" { (heroicons::pencil_square()) }
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
+                span { "main.rs" }
+                span class="w-4 h-4 ml-2 hover:text-emerald-500" { (heroicons::pencil_square()) }
+            }
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
+                span { "foo.rs" }
+                span class="w-5 h-5 ml-2 hover:text-red-400" { (heroicons::x_circle()) }
+            }
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
+                span { "bar.rs" }
+                span class="w-5 h-5 ml-2 hover:text-red-400" { (heroicons::x_circle()) }
+            }
+
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
+                span class="w-5 h-5" {
+                    (heroicons::document_plus())
                 }
-                a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
-                    span { "foo.rs" }
-                    span class="w-5 h-5 ml-2 hover:text-red-400" { (heroicons::x_circle()) }
-                }
-                a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
-                    span { "bar.rs" }
-                    span class="w-5 h-5 ml-2 hover:text-red-400" { (heroicons::x_circle()) }
-                }
-                span class="border-l border-gray-400" { }
             }
         }
     }
@@ -242,7 +245,7 @@ fn view_tab_bar() -> Markup {
 fn view_stdin_bar() -> Markup {
     html! {
         div class="h-10 flex justify-center border-t border-gray-400" {
-            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm" href="#" {
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm" href="#" {
                 span class="w-5 h-5 mr-1" { (heroicons::plus_circle()) }
                 span { "STDIN" }
             }
@@ -253,22 +256,22 @@ fn view_stdin_bar() -> Markup {
 fn view_action_bar() -> Markup {
     html! {
         div class="h-12 flex border border-gray-400 shadow" {
-            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm" href="#" {
+            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::play()) }
                 span { "RUN" }
             }
 
-            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
+            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::cloud_arrow_up()) }
                 span { "SAVE" }
             }
 
-            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
+            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::trash()) }
                 span { "DELETE" }
             }
 
-            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-medium text-sm border-l border-gray-400" href="#" {
+            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::share()) }
                 span { "SHARE" }
             }
