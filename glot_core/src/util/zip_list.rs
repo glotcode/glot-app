@@ -1,6 +1,6 @@
+use core::cmp::min;
 use serde::Deserialize;
 use serde::Serialize;
-use std::cmp::max;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZipList<T> {
@@ -21,7 +21,7 @@ where
         }
     }
 
-    pub fn from_list(items: Vec<T>) -> Option<Self> {
+    pub fn from_vec(items: Vec<T>) -> Option<Self> {
         match &items[..] {
             [] => {
                 // fmt
@@ -62,9 +62,10 @@ where
     }
 
     pub fn select_index(&mut self, index: usize) {
-        let capped_index = max(index, self.before.len() - 1);
+        let items = self.to_vec();
+        let capped_index = min(index, items.len() - 1);
 
-        let mut before = self.to_vec();
+        let mut before = items;
         let mut after = before.split_off(capped_index);
         let current = after.remove(0);
 
@@ -75,7 +76,19 @@ where
         }
     }
 
-    pub fn replace_selected(&mut self, current: T) {
-        self.current = current;
+    pub fn update_selected<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut T),
+    {
+        f(&mut self.current);
+    }
+
+    pub fn push(&mut self, item: T) {
+        self.after.push(item);
+    }
+
+    pub fn select_last(&mut self) {
+        let count = self.to_vec().len();
+        self.select_index(count - 1);
     }
 }

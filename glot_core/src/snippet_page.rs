@@ -53,29 +53,28 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
-        vec![browser::on_change_string(
-            &Id::Editor,
-            Msg::EditorContentChanged,
-        )]
+        vec![
+            browser::on_change_string(&Id::Editor, Msg::EditorContentChanged),
+            browser::on_click_closest(&Id::AddFile, Msg::AddFileClicked),
+        ]
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
         match msg {
             Msg::EditorContentChanged(content) => {
-                let mut file = model.files.selected();
-                file.content = content.clone();
-                model.files.replace_selected(file);
+                model.files.update_selected(|file| {
+                    file.content = content.clone();
+                });
 
                 Ok(vec![])
             }
 
-            Msg::Increment => {
-                model.count += 1;
-                Ok(vec![])
-            }
+            Msg::AddFileClicked => {
+                // TODO: show modal with filename input
+                let file = File::default();
+                model.files.push(file);
+                model.files.select_last();
 
-            Msg::Decrement => {
-                model.count -= 1;
                 Ok(vec![])
             }
         }
@@ -101,16 +100,13 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Editor,
-    Increment,
-    Decrement,
+    AddFile,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "PascalCase")]
 pub enum Msg {
     EditorContentChanged(String),
-    Increment,
-    Decrement,
+    AddFileClicked,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -265,7 +261,7 @@ fn view_tab_bar() -> Markup {
                 span class="w-5 h-5 ml-2 hover:text-red-400" { (heroicons::x_circle()) }
             }
 
-            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
+            a id=(Id::AddFile) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5" {
                     (heroicons::document_plus())
                 }

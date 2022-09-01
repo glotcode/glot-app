@@ -7,7 +7,7 @@ import { defaultDebugConfig } from "polyester/src/logger";
   await init("/wasm/glot_bg.wasm");
 
   const polyester = new Polyester(snippetPage(), {
-    //loggerConfig: defaultDebugConfig(),
+    loggerConfig: defaultDebugConfig(),
   });
 
   polyester.init();
