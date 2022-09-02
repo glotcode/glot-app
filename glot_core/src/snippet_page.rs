@@ -28,7 +28,7 @@ pub struct File {
 impl Default for File {
     fn default() -> Self {
         Self {
-            name: "untitled".to_string(),
+            name: "main.rs".to_string(),
             content: "Hello World!".to_string(),
         }
     }
@@ -55,6 +55,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
         vec![
             browser::on_change_string(&Id::Editor, Msg::EditorContentChanged),
+            browser::on_radio_change_string(&Id::Files.to_string(), Msg::FileSelected),
             browser::on_click_closest(&Id::AddFile, Msg::AddFileClicked),
         ]
     }
@@ -69,9 +70,26 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
+            Msg::FileSelected(file_name) => {
+                model
+                    .files
+                    .to_vec()
+                    .iter()
+                    .enumerate()
+                    .find(|(_, file)| &file.name == file_name)
+                    .map(|(index, _)| {
+                        model.files.select_index(index);
+                    });
+
+                Ok(vec![])
+            }
+
             Msg::AddFileClicked => {
                 // TODO: show modal with filename input
-                let file = File::default();
+                let file = File {
+                    name: "foo.rs".to_string(),
+                    content: "".to_string(),
+                };
                 model.files.push(file);
                 model.files.select_last();
 
@@ -100,12 +118,14 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Editor,
+    Files,
     AddFile,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum Msg {
     EditorContentChanged(String),
+    FileSelected(String),
     AddFileClicked,
 }
 
@@ -150,7 +170,7 @@ fn view_content(model: &Model) -> Markup {
                 div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
                     div class="pt-3" {
                         div class="border border-gray-400 shadow" {
-                            (view_tab_bar())
+                            (view_tab_bar(model))
 
                             poly-ace-editor id=(Id::Editor)
                                 style=(inline_styles)
@@ -239,7 +259,9 @@ fn view_output_panel() -> Markup {
     }
 }
 
-fn view_tab_bar() -> Markup {
+fn view_tab_bar(model: &Model) -> Markup {
+    let files = model.files.to_vec();
+
     html! {
         div class="h-10 flex border-b border-gray-400" {
             a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1" href="#" {
@@ -248,23 +270,32 @@ fn view_tab_bar() -> Markup {
                 }
             }
 
-            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
-                span { "main.rs" }
-                span class="w-4 h-4 ml-2 hover:text-emerald-500" { (heroicons::pencil_square()) }
-            }
-            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
-                span { "foo.rs" }
-                span class="w-5 h-5 ml-2 hover:text-red-400" { (heroicons::x_circle()) }
-            }
-            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
-                span { "bar.rs" }
-                span class="w-5 h-5 ml-2 hover:text-red-400" { (heroicons::x_circle()) }
+            fieldset class="flex" {
+                @for file in &files {
+                    (view_file_tab(model, file))
+                }
             }
 
             a id=(Id::AddFile) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5" {
                     (heroicons::document_plus())
                 }
+            }
+        }
+    }
+}
+
+fn view_file_tab(model: &Model, file: &File) -> Markup {
+    let is_selected = model.files.selected().name == file.name;
+
+    html! {
+        label class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" {
+            input class="sr-only" type="radio" name=(Id::Files) value=(file.name) checked[is_selected];
+            span { (file.name) }
+            @if is_selected {
+                span class="w-4 h-4 ml-2 hover:text-emerald-500" { (heroicons::pencil_square()) }
+            } @else {
+                span class="w-5 h-5 ml-2 hover:text-red-400" { (heroicons::x_circle()) }
             }
         }
     }
