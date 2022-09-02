@@ -16,7 +16,17 @@ use std::cmp::max;
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub files: ZipList<File>,
-    pub count: isize,
+    pub active_modal: Modal,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Modal {
+    None,
+    File {
+        filename: String,
+        error: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,8 +38,8 @@ pub struct File {
 impl Default for File {
     fn default() -> Self {
         Self {
-            name: "main.rs".to_string(),
-            content: "Hello World!".to_string(),
+            name: "untitled".to_string(),
+            content: "".to_string(),
         }
     }
 }
@@ -42,9 +52,14 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn init(&self) -> (Model, Effects<Msg, AppEffect>) {
+        let file = File {
+            name: "main.rs".to_string(),
+            content: "Hello World!".to_string(),
+        };
+
         let model = Model {
-            count: 0,
-            files: ZipList::singleton(File::default()),
+            files: ZipList::singleton(file),
+            active_modal: Modal::None,
         };
 
         let effects = vec![];
@@ -57,6 +72,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_change_string(&Id::Editor, Msg::EditorContentChanged),
             browser::on_radio_change_string(&Id::Files.to_string(), Msg::FileSelected),
             browser::on_click_closest(&Id::AddFile, Msg::AddFileClicked),
+            browser::on_click(&Id::FileModalBackdrop, Msg::CloseModalTriggered),
+            browser::on_click(&Id::FileModalCancel, Msg::CloseModalTriggered),
+            browser::on_click(&Id::FileModalAdd, Msg::ConfirmAddFileClicked),
+            browser::on_input(&Id::Filename, Msg::FilenameChanged),
         ]
     }
 
@@ -85,14 +104,50 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::AddFileClicked => {
-                // TODO: show modal with filename input
-                let file = File {
-                    name: "foo.rs".to_string(),
-                    content: "".to_string(),
+                model.active_modal = Modal::File {
+                    filename: "".to_string(),
+                    error: None,
                 };
-                model.files.push(file);
-                model.files.select_last();
 
+                Ok(vec![])
+            }
+
+            Msg::FilenameChanged(filename) => {
+                model.active_modal = Modal::File {
+                    filename: filename.clone(),
+                    error: None,
+                };
+
+                Ok(vec![])
+            }
+
+            Msg::ConfirmAddFileClicked => {
+                if let Modal::File { filename, .. } = &model.active_modal {
+                    match validate_filename(&model.files, filename) {
+                        Ok(_) => {
+                            model.files.push(File {
+                                name: filename.clone(),
+                                content: "".to_string(),
+                            });
+
+                            model.files.select_last();
+                            model.active_modal = Modal::None;
+                        }
+
+                        Err(error) => {
+                            model.active_modal = Modal::File {
+                                filename: filename.clone(),
+                                error: Some(error),
+                            };
+                        }
+                    }
+                }
+
+                Ok(vec![])
+            }
+
+            Msg::CloseModalTriggered => {
+                model.active_modal = Modal::None;
                 Ok(vec![])
             }
         }
@@ -114,12 +169,32 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 }
 
+fn validate_filename(files: &ZipList<File>, filename: &str) -> Result<(), String> {
+    let is_duplicate = files
+        .to_vec()
+        .iter()
+        .map(|file| &file.name)
+        .any(|name| name == filename);
+
+    if filename.is_empty() {
+        Err("Filename cannot be empty".to_string())
+    } else if is_duplicate {
+        Err("Filename is already used by another file".to_string())
+    } else {
+        Ok(())
+    }
+}
+
 #[derive(strum_macros::Display, polyester_macro::ToDomId)]
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Editor,
     Files,
     AddFile,
+    FileModalBackdrop,
+    FileModalCancel,
+    FileModalAdd,
+    Filename,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -127,6 +202,9 @@ pub enum Msg {
     EditorContentChanged(String),
     FileSelected(String),
     AddFileClicked,
+    CloseModalTriggered,
+    ConfirmAddFileClicked,
+    FilenameChanged(String),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -146,6 +224,13 @@ fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
     html! {
         div id=(page_id) class="h-full" {
             (app_layout::app_shell(view_content(model)))
+
+            @match &model.active_modal {
+                Modal::None => {},
+                Modal::File{filename, error} => {
+                    (view_file_modal(model, filename, error))
+                },
+            }
         }
     }
 }
@@ -333,6 +418,69 @@ fn view_action_bar() -> Markup {
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::share()) }
                 span { "SHARE" }
+            }
+        }
+    }
+}
+
+fn view_file_modal(model: &Model, filename: &str, error: &Option<String>) -> maud::Markup {
+    html! {
+        div class="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true" {
+            div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" {}
+            div class="fixed z-10 inset-0 overflow-y-auto" {
+                div #(Id::FileModalBackdrop) class="flex items-end sm:items-center justify-center min-h-full p-4 text-center sm:p-0" {
+                    div class="relative bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-sm sm:w-full sm:p-6" {
+                        div {
+                            div class="text-center" {
+                                h3 class="text-lg leading-6 font-medium text-gray-900" {
+                                    "New File"
+                                }
+                            }
+                        }
+
+                        div class="mt-8" {
+                            label class="block text-sm font-medium text-gray-700" for=(Id::Filename) {
+                                "Filename"
+                            }
+                            @match error {
+                                Some(err) => {
+                                    div class="relative mt-1 rounded-md shadow-sm" {
+                                        input id=(Id::Filename) class="block w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm" type="text" placeholder="main.rs" aria-invalid="true" value=(filename);
+                                        div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" {
+                                            svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" {
+                                                path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" {
+                                                }
+                                            }
+                                        }
+                                    }
+                                    p class="mt-2 text-sm text-red-600" {
+                                        (err)
+                                    }
+                                }
+
+                                None => {
+                                    div class="mt-1" {
+                                        input id=(Id::Filename) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="text" placeholder="main.rs" value=(filename);
+                                    }
+                                }
+                            }
+                        }
+
+                        div class="flex mt-8" {
+                            div class="flex-1" {
+                                button id=(Id::FileModalCancel) class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                    "Cancel"
+                                }
+                            }
+
+                            div class="flex-1 ml-4" {
+                                button #(Id::FileModalAdd) class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                    "Add"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

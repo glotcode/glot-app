@@ -76,6 +76,14 @@ where
         }
     }
 
+    pub fn remove_selected(&mut self) {
+        let new_items = [self.before.clone(), self.after.clone()].concat();
+
+        if let Some(zip_list) = Self::from_vec(new_items) {
+            *self = zip_list;
+        }
+    }
+
     pub fn update_selected<F>(&mut self, f: F)
     where
         F: FnOnce(&mut T),

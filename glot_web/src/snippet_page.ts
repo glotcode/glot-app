@@ -58,6 +58,7 @@ class AceEditorElement extends HTMLElement {
       this.observer.observe(this, {
         characterData: true,
         subtree: true,
+        childList: true,
       });
     }
   }
@@ -69,9 +70,6 @@ class AceEditorElement extends HTMLElement {
   private setContent(content: string) {
     if (content !== this.value) {
       this.value = content;
-    }
-
-    if (this.editor.getValue() !== content) {
       this.editor.setValue(content, 1);
     }
   }
