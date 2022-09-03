@@ -311,16 +311,10 @@ fn view_content(model: &Model) -> Markup {
                             }
 
                             (view_stdin_bar())
+                            (view_action_bar())
                         }
                     }
                 }
-
-                div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
-                    div class="pt-4" {
-                        (view_action_bar())
-                    }
-                }
-
             }
 
             div class="overflow-hidden h-full w-full flex-1 max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
@@ -451,7 +445,7 @@ fn view_stdin_bar() -> Markup {
 
 fn view_action_bar() -> Markup {
     html! {
-        div class="h-12 flex border border-gray-400 shadow" {
+        div class="h-12 flex border-t border-gray-400" {
             a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm" href="#" {
                 span class="w-5 h-5 mr-2" { (heroicons::play()) }
                 span { "RUN" }
