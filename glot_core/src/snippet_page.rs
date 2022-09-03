@@ -23,10 +23,15 @@ pub struct Model {
 #[serde(rename_all = "camelCase")]
 pub enum Modal {
     None,
-    File {
-        filename: String,
-        error: Option<String>,
-    },
+    File(FileState),
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileState {
+    filename: String,
+    is_new: bool,
+    error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,6 +73,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
+        // TODO: add conditionals
         vec![
             browser::on_change_string(&Id::Editor, Msg::EditorContentChanged),
             browser::on_radio_change_string(&Id::Files.to_string(), Msg::FileSelected),
@@ -75,7 +81,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click(&Id::FileModalBackdrop, Msg::CloseModalTriggered),
             browser::on_click(&Id::FileModalCancel, Msg::CloseModalTriggered),
             browser::on_click(&Id::FileModalAdd, Msg::ConfirmAddFileClicked),
+            browser::on_click(&Id::FileModalUpdate, Msg::ConfirmUpdateFileClicked),
             browser::on_input(&Id::Filename, Msg::FilenameChanged),
+            browser::on_click_closest_data_string("edit-file", Msg::EditFileClicked),
         ]
     }
 
@@ -104,29 +112,30 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::AddFileClicked => {
-                model.active_modal = Modal::File {
+                model.active_modal = Modal::File(FileState {
                     filename: "".to_string(),
+                    is_new: true,
                     error: None,
-                };
+                });
 
                 Ok(vec![])
             }
 
             Msg::FilenameChanged(filename) => {
-                model.active_modal = Modal::File {
-                    filename: filename.clone(),
-                    error: None,
-                };
+                if let Modal::File(state) = &mut model.active_modal {
+                    state.filename = filename.clone();
+                    state.error = None;
+                }
 
                 Ok(vec![])
             }
 
             Msg::ConfirmAddFileClicked => {
-                if let Modal::File { filename, .. } = &model.active_modal {
-                    match validate_filename(&model.files, filename) {
+                if let Modal::File(state) = &mut model.active_modal {
+                    match validate_filename(&model.files, &state.filename, true) {
                         Ok(_) => {
                             model.files.push(File {
-                                name: filename.clone(),
+                                name: state.filename.clone(),
                                 content: "".to_string(),
                             });
 
@@ -134,11 +143,28 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                             model.active_modal = Modal::None;
                         }
 
-                        Err(error) => {
-                            model.active_modal = Modal::File {
-                                filename: filename.clone(),
-                                error: Some(error),
-                            };
+                        Err(err) => {
+                            state.error = Some(err);
+                        }
+                    }
+                }
+
+                Ok(vec![])
+            }
+
+            Msg::ConfirmUpdateFileClicked => {
+                if let Modal::File(state) = &mut model.active_modal {
+                    match validate_filename(&model.files, &state.filename, false) {
+                        Ok(_) => {
+                            model.files.update_selected(|file| {
+                                file.name = state.filename.clone();
+                            });
+
+                            model.active_modal = Modal::None;
+                        }
+
+                        Err(err) => {
+                            state.error = Some(err);
                         }
                     }
                 }
@@ -148,6 +174,16 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
             Msg::CloseModalTriggered => {
                 model.active_modal = Modal::None;
+                Ok(vec![])
+            }
+
+            Msg::EditFileClicked(filename) => {
+                model.active_modal = Modal::File(FileState {
+                    filename: filename.to_string(),
+                    is_new: false,
+                    error: None,
+                });
+
                 Ok(vec![])
             }
         }
@@ -169,16 +205,20 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 }
 
-fn validate_filename(files: &ZipList<File>, filename: &str) -> Result<(), String> {
+fn validate_filename(files: &ZipList<File>, filename: &str, is_new: bool) -> Result<(), String> {
     let is_duplicate = files
         .to_vec()
         .iter()
         .map(|file| &file.name)
         .any(|name| name == filename);
 
+    let is_duplicate_of_selected = filename == files.selected().name;
+
     if filename.is_empty() {
         Err("Filename cannot be empty".to_string())
-    } else if is_duplicate {
+    } else if is_new && is_duplicate {
+        Err("Filename is already used by another file".to_string())
+    } else if is_duplicate && !is_duplicate_of_selected {
         Err("Filename is already used by another file".to_string())
     } else {
         Ok(())
@@ -194,6 +234,7 @@ enum Id {
     FileModalBackdrop,
     FileModalCancel,
     FileModalAdd,
+    FileModalUpdate,
     Filename,
 }
 
@@ -204,7 +245,9 @@ pub enum Msg {
     AddFileClicked,
     CloseModalTriggered,
     ConfirmAddFileClicked,
+    ConfirmUpdateFileClicked,
     FilenameChanged(String),
+    EditFileClicked(String),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -227,8 +270,8 @@ fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
 
             @match &model.active_modal {
                 Modal::None => {},
-                Modal::File{filename, error} => {
-                    (view_file_modal(model, filename, error))
+                Modal::File(state) => {
+                    (view_file_modal(state))
                 },
             }
         }
@@ -349,7 +392,7 @@ fn view_tab_bar(model: &Model) -> Markup {
 
     html! {
         div class="h-10 flex border-b border-gray-400" {
-            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1" href="#" {
+            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3" href="#" {
                 span class="w-6 h-6" {
                     (heroicons::cog_6_tooth())
                 }
@@ -361,7 +404,7 @@ fn view_tab_bar(model: &Model) -> Markup {
                 }
             }
 
-            a id=(Id::AddFile) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
+            a id=(Id::AddFile) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 font-semibold text-sm border-l border-gray-400" href="#" {
                 span class="w-5 h-5" {
                     (heroicons::document_plus())
                 }
@@ -374,14 +417,22 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
     let is_selected = model.files.selected().name == file.name;
 
     html! {
-        label class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" {
-            input class="sr-only" type="radio" name=(Id::Files) value=(file.name) checked[is_selected];
-            span { (file.name) }
-            @if is_selected {
-                span class="w-4 h-4 ml-2 hover:text-emerald-500" { (heroicons::pencil_square()) }
-            } @else {
-                span class="w-5 h-5 ml-2 hover:text-red-400" { (heroicons::x_circle()) }
+        div class="border-l border-gray-400 cursor-pointer inline-flex items-center px-3" {
+            label class="cursor-pointer text-gray-500 hover:text-gray-700 font-semibold text-sm" {
+                input class="sr-only" type="radio" name=(Id::Files) value=(file.name) checked[is_selected];
+                (file.name)
             }
+
+            @if is_selected {
+                span data-edit-file=(file.name) class="w-4 h-4 ml-2 hover:text-emerald-500" {
+                    (heroicons::pencil_square())
+                }
+            } @else {
+                span class="w-5 h-5 ml-2 hover:text-red-400" {
+                    (heroicons::x_circle())
+                }
+            }
+
         }
     }
 }
@@ -423,7 +474,7 @@ fn view_action_bar() -> Markup {
     }
 }
 
-fn view_file_modal(model: &Model, filename: &str, error: &Option<String>) -> maud::Markup {
+fn view_file_modal(state: &FileState) -> maud::Markup {
     html! {
         div class="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true" {
             div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" {}
@@ -433,7 +484,11 @@ fn view_file_modal(model: &Model, filename: &str, error: &Option<String>) -> mau
                         div {
                             div class="text-center" {
                                 h3 class="text-lg leading-6 font-medium text-gray-900" {
-                                    "New File"
+                                    @if state.is_new {
+                                        "New File"
+                                    } @else {
+                                        "Edit File"
+                                    }
                                 }
                             }
                         }
@@ -442,10 +497,10 @@ fn view_file_modal(model: &Model, filename: &str, error: &Option<String>) -> mau
                             label class="block text-sm font-medium text-gray-700" for=(Id::Filename) {
                                 "Filename"
                             }
-                            @match error {
+                            @match &state.error {
                                 Some(err) => {
                                     div class="relative mt-1 rounded-md shadow-sm" {
-                                        input id=(Id::Filename) class="block w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm" type="text" placeholder="main.rs" aria-invalid="true" value=(filename);
+                                        input id=(Id::Filename) value=(state.filename) class="block w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm" type="text" placeholder="main.rs" aria-invalid="true";
                                         div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" {
                                             svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" {
                                                 path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" {
@@ -460,7 +515,7 @@ fn view_file_modal(model: &Model, filename: &str, error: &Option<String>) -> mau
 
                                 None => {
                                     div class="mt-1" {
-                                        input id=(Id::Filename) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="text" placeholder="main.rs" value=(filename);
+                                        input id=(Id::Filename) value=(state.filename) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="text" placeholder="main.rs";
                                     }
                                 }
                             }
@@ -474,8 +529,14 @@ fn view_file_modal(model: &Model, filename: &str, error: &Option<String>) -> mau
                             }
 
                             div class="flex-1 ml-4" {
-                                button #(Id::FileModalAdd) class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                                    "Add"
+                                @if state.is_new {
+                                    button #(Id::FileModalAdd) class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                        "Add"
+                                    }
+                                } @else {
+                                    button #(Id::FileModalUpdate) class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                        "Update"
+                                    }
                                 }
                             }
                         }
