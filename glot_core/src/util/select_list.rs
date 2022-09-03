@@ -3,13 +3,13 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ZipList<T> {
+pub struct SelectList<T> {
     before: Vec<T>,
     current: T,
     after: Vec<T>,
 }
 
-impl<T> ZipList<T>
+impl<T> SelectList<T>
 where
     T: Clone,
 {

@@ -1,6 +1,6 @@
 use crate::icons::heroicons;
 use crate::layout::app_layout;
-use crate::util::zip_list::ZipList;
+use crate::util::select_list::SelectList;
 use maud::html;
 use maud::Markup;
 use polyester::browser;
@@ -16,7 +16,7 @@ use std::cmp::max;
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
-    pub files: ZipList<File>,
+    pub files: SelectList<File>,
     pub active_modal: Modal,
 }
 
@@ -64,7 +64,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         };
 
         let model = Model {
-            files: ZipList::singleton(file),
+            files: SelectList::singleton(file),
             active_modal: Modal::None,
         };
 
@@ -206,7 +206,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 }
 
-fn validate_filename(files: &ZipList<File>, filename: &str, is_new: bool) -> Result<(), String> {
+fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> Result<(), String> {
     let is_duplicate = files
         .to_vec()
         .iter()
