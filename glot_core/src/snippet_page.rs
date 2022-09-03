@@ -4,6 +4,7 @@ use crate::util::zip_list::ZipList;
 use maud::html;
 use maud::Markup;
 use polyester::browser;
+use polyester::browser::effect::dom;
 use polyester::browser::DomId;
 use polyester::browser::Effects;
 use polyester::browser::ToDomId;
@@ -118,7 +119,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     error: None,
                 });
 
-                Ok(vec![])
+                Ok(vec![dom::focus_element(Id::Filename)])
             }
 
             Msg::FilenameChanged(filename) => {
@@ -184,7 +185,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     error: None,
                 });
 
-                Ok(vec![])
+                Ok(vec![dom::select_input_text(Id::Filename)])
             }
         }
     }
