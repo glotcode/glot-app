@@ -427,7 +427,7 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
     let id = is_selected.then_some(Id::SelectedFile);
 
     html! {
-        button id=[id] data-filename=(file.name) .file .relative ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected]  ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-800"[is_selected] ."hover:text-gray-800" ."text-sm" {
+        button id=[id] data-filename=(file.name) .file .relative ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected]  ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-800"[is_selected] ."hover:text-gray-800" ."text-sm" type="button" {
             span class {
                 (file.name)
             }
