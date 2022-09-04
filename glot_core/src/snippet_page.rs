@@ -482,11 +482,9 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
 
 fn view_stdin_bar() -> Markup {
     html! {
-        div class="h-10 flex justify-center border-t border-gray-400" {
-            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm" href="#" {
-                span class="w-5 h-5 mr-1" { (heroicons::plus_circle()) }
-                span { "STDIN" }
-            }
+        button class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" {
+            span class="w-5 h-5 mr-1" { (heroicons::plus_circle()) }
+            span { "STDIN" }
         }
     }
 }
@@ -494,22 +492,22 @@ fn view_stdin_bar() -> Markup {
 fn view_action_bar() -> Markup {
     html! {
         div class="h-12 flex border-t border-gray-400" {
-            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm" href="#" {
+            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm" {
                 span class="w-5 h-5 mr-2" { (heroicons::play()) }
                 span { "RUN" }
             }
 
-            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
+            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" {
                 span class="w-5 h-5 mr-2" { (heroicons::cloud_arrow_up()) }
                 span { "SAVE" }
             }
 
-            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
+            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" {
                 span class="w-5 h-5 mr-2" { (heroicons::trash()) }
                 span { "DELETE" }
             }
 
-            a class="w-full inline-flex items-center justify-center text-gray-500 hover:text-gray-700 px-3 py-1 font-semibold text-sm border-l border-gray-400" href="#" {
+            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" {
                 span class="w-5 h-5 mr-2" { (heroicons::share()) }
                 span { "SHARE" }
             }
