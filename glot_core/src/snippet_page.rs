@@ -81,10 +81,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest(&Id::AddFile, Msg::AddFileClicked),
             browser::on_click(&Id::FileModalBackdrop, Msg::CloseModalTriggered),
             browser::on_click(&Id::FileModalCancel, Msg::CloseModalTriggered),
-            browser::on_click(&Id::FileModalAdd, Msg::ConfirmAddFileClicked),
-            browser::on_click(&Id::FileModalUpdate, Msg::ConfirmUpdateFileClicked),
+            browser::on_click(&Id::FileModalAdd, Msg::ConfirmAddFile),
+            browser::on_click(&Id::FileModalUpdate, Msg::ConfirmUpdateFile),
             browser::on_input(&Id::Filename, Msg::FilenameChanged),
             browser::on_click_closest_data_string("edit-file", Msg::EditFileClicked),
+            browser::on_submit(&Id::NewFileForm, Msg::ConfirmAddFile),
+            browser::on_submit(&Id::EditFileForm, Msg::ConfirmUpdateFile),
         ]
     }
 
@@ -131,7 +133,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
-            Msg::ConfirmAddFileClicked => {
+            Msg::ConfirmAddFile => {
                 if let Modal::File(state) = &mut model.active_modal {
                     match validate_filename(&model.files, &state.filename, true) {
                         Ok(_) => {
@@ -153,7 +155,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
-            Msg::ConfirmUpdateFileClicked => {
+            Msg::ConfirmUpdateFile => {
                 if let Modal::File(state) = &mut model.active_modal {
                     match validate_filename(&model.files, &state.filename, false) {
                         Ok(_) => {
@@ -237,6 +239,8 @@ enum Id {
     FileModalAdd,
     FileModalUpdate,
     Filename,
+    NewFileForm,
+    EditFileForm,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -245,8 +249,8 @@ pub enum Msg {
     FileSelected(String),
     AddFileClicked,
     CloseModalTriggered,
-    ConfirmAddFileClicked,
-    ConfirmUpdateFileClicked,
+    ConfirmAddFile,
+    ConfirmUpdateFile,
     FilenameChanged(String),
     EditFileClicked(String),
 }
@@ -470,6 +474,12 @@ fn view_action_bar() -> Markup {
 }
 
 fn view_file_modal(state: &FileState) -> maud::Markup {
+    let form_id = if state.is_new {
+        Id::NewFileForm
+    } else {
+        Id::EditFileForm
+    };
+
     html! {
         div class="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true" {
             div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" {}
@@ -488,7 +498,7 @@ fn view_file_modal(state: &FileState) -> maud::Markup {
                             }
                         }
 
-                        div class="mt-8" {
+                        form id=(form_id) class="mt-8" {
                             label class="block text-sm font-medium text-gray-700" for=(Id::Filename) {
                                 "Filename"
                             }
