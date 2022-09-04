@@ -19,13 +19,14 @@ import { defaultDebugConfig } from "polyester/src/logger";
 class AceEditorElement extends HTMLElement {
   private editor: any;
   private observer: MutationObserver;
+  private editorElem: HTMLElement;
   public value: string = "";
 
   constructor() {
     super();
 
     const stylesheetElem = this.getStylesheetElement();
-    const editorElem = this.createEditorElement();
+    this.editorElem = this.createEditorElement();
 
     const shadow = this.attachShadow({ mode: "closed" });
 
@@ -33,10 +34,10 @@ class AceEditorElement extends HTMLElement {
       shadow.appendChild(stylesheetElem);
     }
 
-    shadow.appendChild(editorElem);
+    shadow.appendChild(this.editorElem);
 
     // @ts-ignore
-    this.editor = ace.edit(editorElem);
+    this.editor = ace.edit(this.editorElem);
     this.editor.renderer.attachToShadowRoot();
 
     this.setContent(this.textContent || "");
@@ -104,6 +105,22 @@ class AceEditorElement extends HTMLElement {
     }
 
     return editorElem;
+  }
+
+  static get observedAttributes() {
+    return ["height"];
+  }
+
+  public attributeChangedCallback(
+    name: string,
+    _oldValue: string,
+    newValue: string
+  ) {
+    switch (name) {
+      case "height":
+        this.editorElem.style.height = newValue;
+        break;
+    }
   }
 }
 
