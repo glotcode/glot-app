@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.file {
+    min-width: 5rem;
+}
+
+.file:hover .edit-overlay {
+    display: inline;
+}

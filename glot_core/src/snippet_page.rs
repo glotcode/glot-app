@@ -417,22 +417,20 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
     let is_selected = model.files.selected().name == file.name;
 
     html! {
-        div class="border-l border-gray-400 cursor-pointer inline-flex items-center px-3" {
-            label class="cursor-pointer text-gray-500 hover:text-gray-700 font-semibold text-sm" {
+        div .file .relative ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected] {
+            label ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-700"[is_selected] ."hover:text-gray-700" ."text-sm" {
                 input class="sr-only" type="radio" name=(Id::Files) value=(file.name) checked[is_selected];
-                (file.name)
-            }
-
-            @if is_selected {
-                span data-edit-file=(file.name) class="w-4 h-4 ml-2 hover:text-emerald-500" {
-                    (heroicons::pencil_square())
+                span class {
+                    (file.name)
                 }
-            } @else {
-                span class="w-5 h-5 ml-2 hover:text-red-400" {
-                    (heroicons::x_circle())
+                @if is_selected {
+                    span data-edit-file=(file.name) class="hidden edit-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-70" {
+                        span class="absolute z-20 inset-0 m-auto w-5 h-5 text-slate-50" {
+                            (heroicons::pencil_square_solid())
+                        }
+                    }
                 }
             }
-
         }
     }
 }
