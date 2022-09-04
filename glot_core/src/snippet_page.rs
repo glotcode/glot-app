@@ -84,7 +84,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click(&Id::FileModalAdd, Msg::ConfirmAddFile),
             browser::on_click(&Id::FileModalUpdate, Msg::ConfirmUpdateFile),
             browser::on_input(&Id::Filename, Msg::FilenameChanged),
-            browser::on_click_closest_data_string("edit-file", Msg::EditFileClicked),
+            browser::on_click_closest(&Id::SelectedFile, Msg::EditFileClicked),
             browser::on_submit(&Id::NewFileForm, Msg::ConfirmAddFile),
             browser::on_submit(&Id::EditFileForm, Msg::ConfirmUpdateFile),
             browser::on_keyup_document(browser::Key::Escape, Msg::CloseModalTriggered),
@@ -181,9 +181,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
-            Msg::EditFileClicked(filename) => {
+            Msg::EditFileClicked => {
                 model.active_modal = Modal::File(FileState {
-                    filename: filename.to_string(),
+                    filename: model.files.selected().name.clone(),
                     is_new: false,
                     error: None,
                 });
@@ -242,6 +242,7 @@ enum Id {
     Filename,
     NewFileForm,
     EditFileForm,
+    SelectedFile,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -253,7 +254,7 @@ pub enum Msg {
     ConfirmAddFile,
     ConfirmUpdateFile,
     FilenameChanged(String),
-    EditFileClicked(String),
+    EditFileClicked,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -417,17 +418,15 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
     let is_selected = model.files.selected().name == file.name;
 
     html! {
-        div .file .relative ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected] {
-            label ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-700"[is_selected] ."hover:text-gray-700" ."text-sm" {
-                input class="sr-only" type="radio" name=(Id::Files) value=(file.name) checked[is_selected];
-                span class {
-                    (file.name)
-                }
-                @if is_selected {
-                    span data-edit-file=(file.name) class="hidden edit-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-70" {
-                        span class="absolute z-20 inset-0 m-auto w-5 h-5 text-slate-50" {
-                            (heroicons::pencil_square_solid())
-                        }
+        label .file .relative ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected]  ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-800"[is_selected] ."hover:text-gray-800" ."text-sm" {
+            input class="sr-only" type="radio" name=(Id::Files) value=(file.name) checked[is_selected];
+            span class {
+                (file.name)
+            }
+            @if is_selected {
+                span id=(Id::SelectedFile) class="hidden edit-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-70" {
+                    span class="absolute z-20 inset-0 m-auto w-5 h-5 text-slate-50" {
+                        (heroicons::pencil_square_solid())
                     }
                 }
             }
