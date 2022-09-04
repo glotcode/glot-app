@@ -77,7 +77,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         // TODO: add conditionals
         vec![
             browser::on_change_string(&Id::Editor, Msg::EditorContentChanged),
-            browser::on_radio_change_string(&Id::Files.to_string(), Msg::FileSelected),
+            browser::on_click_closest_data_string("filename", Msg::FileSelected),
             browser::on_click_closest(&Id::AddFile, Msg::AddFileClicked),
             browser::on_click(&Id::FileModalBackdrop, Msg::CloseModalTriggered),
             browser::on_click(&Id::FileModalCancel, Msg::CloseModalTriggered),
@@ -101,13 +101,13 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
-            Msg::FileSelected(file_name) => {
+            Msg::FileSelected(filename) => {
                 model
                     .files
                     .to_vec()
                     .iter()
                     .enumerate()
-                    .find(|(_, file)| &file.name == file_name)
+                    .find(|(_, file)| &file.name == filename)
                     .map(|(index, _)| {
                         model.files.select_index(index);
                     });
@@ -233,7 +233,6 @@ fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> 
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Editor,
-    Files,
     AddFile,
     FileModalBackdrop,
     FileModalCancel,
@@ -399,7 +398,7 @@ fn view_tab_bar(model: &Model) -> Markup {
                 }
             }
 
-            fieldset class="flex" {
+            div class="flex" {
                 @for file in &files {
                     (view_file_tab(model, file))
                 }
@@ -416,15 +415,15 @@ fn view_tab_bar(model: &Model) -> Markup {
 
 fn view_file_tab(model: &Model, file: &File) -> Markup {
     let is_selected = model.files.selected().name == file.name;
+    let id = is_selected.then_some(Id::SelectedFile);
 
     html! {
-        label .file .relative ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected]  ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-800"[is_selected] ."hover:text-gray-800" ."text-sm" {
-            input class="sr-only" type="radio" name=(Id::Files) value=(file.name) checked[is_selected];
+        button id=[id] data-filename=(file.name) .file .relative ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected]  ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-800"[is_selected] ."hover:text-gray-800" ."text-sm" {
             span class {
                 (file.name)
             }
             @if is_selected {
-                span id=(Id::SelectedFile) class="hidden edit-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-70" {
+                span class="hidden edit-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-70" {
                     span class="absolute z-20 inset-0 m-auto w-5 h-5 text-slate-50" {
                         (heroicons::pencil_square_solid())
                     }
