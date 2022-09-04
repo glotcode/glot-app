@@ -86,6 +86,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_change_string(&Id::Editor, Msg::EditorContentChanged),
             browser::on_click_closest_data_string("filename", Msg::FileSelected),
             browser::on_click_closest(&Id::AddFile, Msg::AddFileClicked),
+            browser::on_click_closest(&Id::CloseModal, Msg::CloseModalTriggered),
             browser::on_click(&Id::FileModalBackdrop, Msg::CloseModalTriggered),
             browser::on_click(&Id::FileModalCancel, Msg::CloseModalTriggered),
             browser::on_click(&Id::FileModalAdd, Msg::ConfirmAddFile),
@@ -267,6 +268,7 @@ enum Id {
     NewFileForm,
     EditFileForm,
     SelectedFile,
+    CloseModal,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -530,6 +532,17 @@ fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
             div class="fixed z-10 inset-0 overflow-y-auto" {
                 div id=(Id::FileModalBackdrop) class="flex items-end sm:items-center justify-center min-h-full p-4 text-center sm:p-0" {
                     div class="relative bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-sm sm:w-full sm:p-6" {
+                        div class="absolute top-0 right-0 hidden pt-4 pr-4 sm:block" {
+                            button id=(Id::CloseModal) class="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                span class="sr-only" {
+                                    "Close"
+                                }
+                                span class="block h-6 w-6" {
+                                    (heroicons::x_mark())
+                                }
+                            }
+                        }
+
                         div {
                             div class="text-center" {
                                 h3 class="text-lg leading-6 font-medium text-gray-900" {
