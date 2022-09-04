@@ -87,6 +87,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest_data_string("edit-file", Msg::EditFileClicked),
             browser::on_submit(&Id::NewFileForm, Msg::ConfirmAddFile),
             browser::on_submit(&Id::EditFileForm, Msg::ConfirmUpdateFile),
+            browser::on_keyup_document(browser::Key::Escape, Msg::CloseModalTriggered),
         ]
     }
 
