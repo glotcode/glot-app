@@ -83,6 +83,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click(&Id::FileModalCancel, Msg::CloseModalTriggered),
             browser::on_click(&Id::FileModalAdd, Msg::ConfirmAddFile),
             browser::on_click(&Id::FileModalUpdate, Msg::ConfirmUpdateFile),
+            browser::on_click(&Id::FileModalDelete, Msg::ConfirmDeleteFile),
             browser::on_input(&Id::Filename, Msg::FilenameChanged),
             browser::on_click_closest(&Id::SelectedFile, Msg::EditFileClicked),
             browser::on_submit(&Id::NewFileForm, Msg::ConfirmAddFile),
@@ -176,6 +177,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
+            Msg::ConfirmDeleteFile => {
+                model.files.remove_selected();
+                model.active_modal = Modal::None;
+                Ok(vec![])
+            }
+
             Msg::CloseModalTriggered => {
                 model.active_modal = Modal::None;
                 Ok(vec![])
@@ -238,6 +245,7 @@ enum Id {
     FileModalCancel,
     FileModalAdd,
     FileModalUpdate,
+    FileModalDelete,
     Filename,
     NewFileForm,
     EditFileForm,
@@ -252,6 +260,7 @@ pub enum Msg {
     CloseModalTriggered,
     ConfirmAddFile,
     ConfirmUpdateFile,
+    ConfirmDeleteFile,
     FilenameChanged(String),
     EditFileClicked,
 }
@@ -277,7 +286,7 @@ fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
             @match &model.active_modal {
                 Modal::None => {},
                 Modal::File(state) => {
-                    (view_file_modal(state))
+                    (view_file_modal(model, state))
                 },
             }
         }
@@ -470,18 +479,20 @@ fn view_action_bar() -> Markup {
     }
 }
 
-fn view_file_modal(state: &FileState) -> maud::Markup {
+fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
     let form_id = if state.is_new {
         Id::NewFileForm
     } else {
         Id::EditFileForm
     };
 
+    let files_count = model.files.len();
+
     html! {
         div class="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true" {
             div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" {}
             div class="fixed z-10 inset-0 overflow-y-auto" {
-                div #(Id::FileModalBackdrop) class="flex items-end sm:items-center justify-center min-h-full p-4 text-center sm:p-0" {
+                div id=(Id::FileModalBackdrop) class="flex items-end sm:items-center justify-center min-h-full p-4 text-center sm:p-0" {
                     div class="relative bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-sm sm:w-full sm:p-6" {
                         div {
                             div class="text-center" {
@@ -523,22 +534,22 @@ fn view_file_modal(state: &FileState) -> maud::Markup {
                             }
                         }
 
-                        div class="flex mt-8" {
-                            div class="flex-1" {
-                                button id=(Id::FileModalCancel) class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                                    "Cancel"
+                        div class="flex mt-4" {
+                            @if state.is_new {
+                                button #(Id::FileModalAdd) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                    "Add file"
                                 }
-                            }
+                            } @else if files_count > 1 {
+                                button #(Id::FileModalDelete) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                    "Delete file"
+                                }
 
-                            div class="flex-1 ml-4" {
-                                @if state.is_new {
-                                    button #(Id::FileModalAdd) class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                                        "Add"
-                                    }
-                                } @else {
-                                    button #(Id::FileModalUpdate) class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                                        "Update"
-                                    }
+                                button #(Id::FileModalUpdate) class="flex-1 w-full ml-4 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                    "Update file"
+                                }
+                            } @else {
+                                button #(Id::FileModalUpdate) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                    "Update file"
                                 }
                             }
                         }

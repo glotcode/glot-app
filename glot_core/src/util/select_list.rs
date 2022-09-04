@@ -48,6 +48,10 @@ where
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.to_vec().len()
+    }
+
     pub fn selected(&self) -> T {
         self.current.clone()
     }
