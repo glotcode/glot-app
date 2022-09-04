@@ -439,7 +439,7 @@ fn view_tab_bar(model: &Model) -> Markup {
 
     html! {
         div class="h-10 flex border-b border-gray-400" {
-            a class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3" href="#" {
+            button class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3" type="button" {
                 span class="w-6 h-6" {
                     (heroicons::cog_6_tooth())
                 }
@@ -451,7 +451,7 @@ fn view_tab_bar(model: &Model) -> Markup {
                 }
             }
 
-            a id=(Id::AddFile) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 font-semibold text-sm border-l border-gray-400" href="#" {
+            button id=(Id::AddFile) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 font-semibold text-sm border-l border-gray-400" type="button"{
                 span class="w-5 h-5" {
                     (heroicons::document_plus())
                 }
@@ -482,7 +482,7 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
 
 fn view_stdin_bar() -> Markup {
     html! {
-        button class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" {
+        button class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" type="button" {
             span class="w-5 h-5 mr-1" { (heroicons::plus_circle()) }
             span { "STDIN" }
         }
@@ -492,22 +492,22 @@ fn view_stdin_bar() -> Markup {
 fn view_action_bar() -> Markup {
     html! {
         div class="h-12 flex border-t border-gray-400" {
-            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm" {
+            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons::play()) }
                 span { "RUN" }
             }
 
-            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" {
+            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons::cloud_arrow_up()) }
                 span { "SAVE" }
             }
 
-            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" {
+            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons::trash()) }
                 span { "DELETE" }
             }
 
-            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" {
+            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons::share()) }
                 span { "SHARE" }
             }
@@ -583,19 +583,19 @@ fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
 
                         div class="flex mt-4" {
                             @if state.is_new {
-                                button #(Id::FileModalAdd) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                button id=(Id::FileModalAdd) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
                                     "Add file"
                                 }
                             } @else if files_count > 1 {
-                                button #(Id::FileModalDelete) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                button id=(Id::FileModalDelete) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
                                     "Delete file"
                                 }
 
-                                button #(Id::FileModalUpdate) class="flex-1 w-full ml-4 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                button id=(Id::FileModalUpdate) class="flex-1 w-full ml-4 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
                                     "Update file"
                                 }
                             } @else {
-                                button #(Id::FileModalUpdate) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                                button id=(Id::FileModalUpdate) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
                                     "Update file"
                                 }
                             }
