@@ -14,7 +14,7 @@ fn main() {
         }
 
         ["snippet_page"] => {
-            let page = snippet_page::SnippetPage {};
+            let page = snippet_page::SnippetPage { window_size: None };
             print_html(page);
         }
 

@@ -1,12 +1,15 @@
 import init from "../wasm/glot.js";
 import { snippetPage } from "../wasm/glot";
-import { Polyester } from "polyester";
+import { BrowserWindow, Polyester } from "polyester";
 import { defaultDebugConfig } from "polyester/src/logger";
 
 (async () => {
   await init("/wasm/glot_bg.wasm");
 
-  const polyester = new Polyester(snippetPage(), {
+  const browserWindow = new BrowserWindow();
+  const windowSize = browserWindow.getSize();
+
+  const polyester = new Polyester(snippetPage(windowSize), {
     loggerConfig: defaultDebugConfig(),
   });
 

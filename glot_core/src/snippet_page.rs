@@ -8,14 +8,18 @@ use polyester::browser::effect::dom;
 use polyester::browser::DomId;
 use polyester::browser::Effects;
 use polyester::browser::ToDomId;
+use polyester::browser::WindowSize;
 use polyester::page::Page;
 use polyester::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
 
+const MIN_EDITOR_HEIGHT: i64 = 300;
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
+    pub window_size: Option<WindowSize>,
     pub files: SelectList<File>,
     pub active_modal: Modal,
 }
@@ -50,7 +54,9 @@ impl Default for File {
     }
 }
 
-pub struct SnippetPage {}
+pub struct SnippetPage {
+    pub window_size: Option<WindowSize>,
+}
 
 impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     fn id(&self) -> DomId {
@@ -64,6 +70,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         };
 
         let model = Model {
+            window_size: self.window_size.clone(),
             files: SelectList::singleton(file),
             active_modal: Modal::None,
         };
@@ -89,11 +96,21 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_submit(&Id::NewFileForm, Msg::ConfirmAddFile),
             browser::on_submit(&Id::EditFileForm, Msg::ConfirmUpdateFile),
             browser::on_keyup_document(browser::Key::Escape, Msg::CloseModalTriggered),
+            browser::on_window_resize(Msg::WindowSizeChanged),
         ]
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
         match msg {
+            Msg::WindowSizeChanged(value) => {
+                let window_size = value
+                    .parse()
+                    .map_err(|err| format!("Failed to parse window size: {}", err))?;
+
+                model.window_size = Some(window_size);
+                browser::no_effects()
+            }
+
             Msg::EditorContentChanged(content) => {
                 model.files.update_selected(|file| {
                     file.content = content.clone();
@@ -254,6 +271,7 @@ enum Id {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum Msg {
+    WindowSizeChanged(browser::Value),
     EditorContentChanged(String),
     FileSelected(String),
     AddFileClicked,
@@ -281,7 +299,15 @@ fn view_head() -> maud::Markup {
 fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
     html! {
         div id=(page_id) class="h-full" {
-            (app_layout::app_shell(view_content(model)))
+            @match &model.window_size {
+                Some(window_size) => {
+                    (app_layout::app_shell(view_content(model, window_size)))
+                }
+
+                None => {
+                    (app_layout::app_shell(view_spinner()))
+                }
+            }
 
             @match &model.active_modal {
                 Modal::None => {},
@@ -293,11 +319,21 @@ fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
     }
 }
 
-fn view_content(model: &Model) -> Markup {
-    let window_size_height = 600;
-    let editor_height = max(i64::from(window_size_height) - 96, 500);
-    let inline_styles = format!("height: {}px;", editor_height);
+fn view_spinner() -> maud::Markup {
+    html! {
+        div class="spinner" {
+            div class="rect1" {}
+            div class="rect2" {}
+            div class="rect3" {}
+            div class="rect4" {}
+            div class="rect5" {}
+        }
+    }
+}
 
+fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
+    let editor_height = max(i64::from(window_size.height) / 2, MIN_EDITOR_HEIGHT);
+    let inline_styles = format!("height: {}px;", editor_height);
     let height = format!("{}px", editor_height);
     let content = model.files.selected().content;
 
