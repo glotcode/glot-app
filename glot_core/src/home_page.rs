@@ -3,7 +3,6 @@ use maud::Markup;
 use polyester::browser;
 use polyester::browser::DomId;
 use polyester::browser::Effects;
-use polyester::browser::ToDomId;
 use polyester::page;
 use polyester::page::Page;
 use polyester::page::PageMarkup;
@@ -18,8 +17,8 @@ pub struct Model {
 pub struct HomePage {}
 
 impl Page<Model, Msg, AppEffect, Markup> for HomePage {
-    fn id(&self) -> DomId {
-        DomId::new("glot")
+    fn id(&self) -> Box<dyn DomId> {
+        Box::new(Id::Glot)
     }
 
     fn init(&self) -> (Model, Effects<Msg, AppEffect>) {
@@ -32,8 +31,8 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
         vec![
-            browser::on_click(&Id::Increment, Msg::Increment),
-            browser::on_click(&Id::Decrement, Msg::Decrement),
+            browser::on_click(Id::Increment, Msg::Increment),
+            browser::on_click(Id::Decrement, Msg::Decrement),
         ]
     }
 
@@ -54,7 +53,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     fn view(&self, model: &Model) -> PageMarkup<Markup> {
         PageMarkup {
             head: view_head(),
-            body: view_body(&self.id(), model),
+            body: view_body(model),
         }
     }
 
@@ -67,9 +66,10 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 }
 
-#[derive(strum_macros::Display, polyester_macro::ToDomId)]
+#[derive(strum_macros::Display, polyester_macro::DomId)]
 #[strum(serialize_all = "kebab-case")]
 enum Id {
+    Glot,
     Increment,
     Decrement,
 }
@@ -93,9 +93,9 @@ fn view_head() -> maud::Markup {
     }
 }
 
-fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
+fn view_body(model: &Model) -> maud::Markup {
     html! {
-        div id=(page_id) {
+        div id=(Id::Glot) {
             div class="flex p-4" {
                 button id=(Id::Decrement) class="w-28 text-center items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" type="button" {
                     "Decrement"

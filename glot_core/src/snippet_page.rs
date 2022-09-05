@@ -7,7 +7,6 @@ use polyester::browser;
 use polyester::browser::effect::dom;
 use polyester::browser::DomId;
 use polyester::browser::Effects;
-use polyester::browser::ToDomId;
 use polyester::browser::WindowSize;
 use polyester::page::Page;
 use polyester::page::PageMarkup;
@@ -59,8 +58,8 @@ pub struct SnippetPage {
 }
 
 impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
-    fn id(&self) -> DomId {
-        DomId::new("glot")
+    fn id(&self) -> Box<dyn DomId> {
+        Box::new(Id::Glot)
     }
 
     fn init(&self) -> (Model, Effects<Msg, AppEffect>) {
@@ -83,19 +82,19 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
         // TODO: add conditionals
         vec![
-            browser::on_change_string(&Id::Editor, Msg::EditorContentChanged),
+            browser::on_change_string(Id::Editor, Msg::EditorContentChanged),
             browser::on_click_closest_data_string("filename", Msg::FileSelected),
-            browser::on_click_closest(&Id::AddFile, Msg::AddFileClicked),
-            browser::on_click_closest(&Id::CloseModal, Msg::CloseModalTriggered),
-            browser::on_click(&Id::FileModalBackdrop, Msg::CloseModalTriggered),
-            browser::on_click(&Id::FileModalCancel, Msg::CloseModalTriggered),
-            browser::on_click(&Id::FileModalAdd, Msg::ConfirmAddFile),
-            browser::on_click(&Id::FileModalUpdate, Msg::ConfirmUpdateFile),
-            browser::on_click(&Id::FileModalDelete, Msg::ConfirmDeleteFile),
-            browser::on_input(&Id::Filename, Msg::FilenameChanged),
-            browser::on_click_closest(&Id::SelectedFile, Msg::EditFileClicked),
-            browser::on_submit(&Id::NewFileForm, Msg::ConfirmAddFile),
-            browser::on_submit(&Id::EditFileForm, Msg::ConfirmUpdateFile),
+            browser::on_click_closest(Id::AddFile, Msg::AddFileClicked),
+            browser::on_click_closest(Id::CloseModal, Msg::CloseModalTriggered),
+            browser::on_click(Id::FileModalBackdrop, Msg::CloseModalTriggered),
+            browser::on_click(Id::FileModalCancel, Msg::CloseModalTriggered),
+            browser::on_click(Id::FileModalAdd, Msg::ConfirmAddFile),
+            browser::on_click(Id::FileModalUpdate, Msg::ConfirmUpdateFile),
+            browser::on_click(Id::FileModalDelete, Msg::ConfirmDeleteFile),
+            browser::on_input(Id::Filename, Msg::FilenameChanged),
+            browser::on_click_closest(Id::SelectedFile, Msg::EditFileClicked),
+            browser::on_submit(Id::NewFileForm, Msg::ConfirmAddFile),
+            browser::on_submit(Id::EditFileForm, Msg::ConfirmUpdateFile),
             browser::on_keyup_document(browser::Key::Escape, Msg::CloseModalTriggered),
             browser::on_window_resize(Msg::WindowSizeChanged),
         ]
@@ -221,7 +220,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     fn view(&self, model: &Model) -> PageMarkup<Markup> {
         PageMarkup {
             head: view_head(),
-            body: view_body(&self.id(), model),
+            body: view_body(model),
         }
     }
 
@@ -254,9 +253,10 @@ fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> 
     }
 }
 
-#[derive(strum_macros::Display, polyester_macro::ToDomId)]
+#[derive(strum_macros::Display, polyester_macro::DomId)]
 #[strum(serialize_all = "kebab-case")]
 enum Id {
+    Glot,
     Editor,
     AddFile,
     FileModalBackdrop,
@@ -298,9 +298,9 @@ fn view_head() -> maud::Markup {
     }
 }
 
-fn view_body(page_id: &browser::DomId, model: &Model) -> maud::Markup {
+fn view_body(model: &Model) -> maud::Markup {
     html! {
-        div id=(page_id) class="h-full" {
+        div id=(Id::Glot) class="h-full" {
             @match &model.window_size {
                 Some(window_size) => {
                     (app_layout::app_shell(view_content(model, window_size)))
