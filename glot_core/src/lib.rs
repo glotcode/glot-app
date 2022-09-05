@@ -3,3 +3,4 @@ pub mod icons;
 pub mod layout;
 pub mod snippet_page;
 pub mod util;
+pub mod view;

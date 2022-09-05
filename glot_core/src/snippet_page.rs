@@ -1,6 +1,7 @@
 use crate::icons::heroicons;
 use crate::layout::app_layout;
 use crate::util::select_list::SelectList;
+use crate::view::modal;
 use maud::html;
 use maud::Markup;
 use polyester::browser;
@@ -314,7 +315,10 @@ fn view_body(model: &Model) -> maud::Markup {
             @match &model.active_modal {
                 Modal::None => {},
                 Modal::File(state) => {
-                    (view_file_modal(model, state))
+                    (modal::view(view_file_modal(model, state), &modal::Config{
+                        backdrop_id: Id::FileModalBackdrop,
+                        close_button_id: Id::CloseModal,
+                    }))
                 },
             }
         }
@@ -525,82 +529,62 @@ fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
     let files_count = model.files.len();
 
     html! {
-        div class="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true" {
-            div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" {}
-            div class="fixed z-10 inset-0 overflow-y-auto" {
-                div id=(Id::FileModalBackdrop) class="flex items-end sm:items-center justify-center min-h-full p-4 text-center sm:p-0" {
-                    div class="relative bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-sm sm:w-full sm:p-6" {
-                        div class="absolute top-0 right-0 hidden pt-4 pr-4 sm:block" {
-                            button id=(Id::CloseModal) class="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                                span class="sr-only" {
-                                    "Close"
-                                }
-                                span class="block h-6 w-6" {
-                                    (heroicons::x_mark())
-                                }
-                            }
-                        }
+        div {
+            div class="text-center" {
+                h3 class="text-lg leading-6 font-medium text-gray-900" {
+                    @if state.is_new {
+                        "New File"
+                    } @else {
+                        "Edit File"
+                    }
+                }
+            }
+        }
 
-                        div {
-                            div class="text-center" {
-                                h3 class="text-lg leading-6 font-medium text-gray-900" {
-                                    @if state.is_new {
-                                        "New File"
-                                    } @else {
-                                        "Edit File"
-                                    }
-                                }
-                            }
-                        }
-
-                        form id=(form_id) class="mt-8" {
-                            label class="block text-sm font-medium text-gray-700" for=(Id::Filename) {
-                                "Filename"
-                            }
-                            @match &state.error {
-                                Some(err) => {
-                                    div class="relative mt-1 rounded-md shadow-sm" {
-                                        input id=(Id::Filename) value=(state.filename) class="block w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm" type="text" placeholder="main.rs" aria-invalid="true";
-                                        div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" {
-                                            svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" {
-                                                path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" {
-                                                }
-                                            }
-                                        }
-                                    }
-                                    p class="mt-2 text-sm text-red-600" {
-                                        (err)
-                                    }
-                                }
-
-                                None => {
-                                    div class="mt-1" {
-                                        input id=(Id::Filename) value=(state.filename) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="text" placeholder="main.rs";
-                                    }
-                                }
-                            }
-                        }
-
-                        div class="flex mt-4" {
-                            @if state.is_new {
-                                button id=(Id::FileModalAdd) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                                    "Add file"
-                                }
-                            } @else if files_count > 1 {
-                                button id=(Id::FileModalDelete) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                                    "Delete file"
-                                }
-
-                                button id=(Id::FileModalUpdate) class="flex-1 w-full ml-4 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                                    "Update file"
-                                }
-                            } @else {
-                                button id=(Id::FileModalUpdate) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                                    "Update file"
+        form id=(form_id) class="mt-8" {
+            label class="block text-sm font-medium text-gray-700" for=(Id::Filename) {
+                "Filename"
+            }
+            @match &state.error {
+                Some(err) => {
+                    div class="relative mt-1 rounded-md shadow-sm" {
+                        input id=(Id::Filename) value=(state.filename) class="block w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm" type="text" placeholder="main.rs" aria-invalid="true";
+                        div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" {
+                            svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" {
+                                path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" {
                                 }
                             }
                         }
                     }
+                    p class="mt-2 text-sm text-red-600" {
+                        (err)
+                    }
+                }
+
+                None => {
+                    div class="mt-1" {
+                        input id=(Id::Filename) value=(state.filename) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="text" placeholder="main.rs";
+                    }
+                }
+            }
+        }
+
+        div class="flex mt-4" {
+            @if state.is_new {
+                button id=(Id::FileModalAdd) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                    "Add file"
+                }
+            } @else if files_count > 1 {
+                button id=(Id::FileModalDelete) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                    "Delete file"
+                }
+
+                button id=(Id::FileModalUpdate) class="flex-1 w-full ml-4 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                    "Update file"
+                }
+            } @else {
+                button id=(Id::FileModalUpdate) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                    "Update file"
                 }
             }
         }
