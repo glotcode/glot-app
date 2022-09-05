@@ -672,9 +672,9 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
         }
 
         (dropdown::view("Keyboard bindings", Id::KeyboardBindings, &model.keyboard_bindings, vec![
-            ("Default", &KeyboardBindings::Default),
-            ("Vim", &KeyboardBindings::Vim),
-            ("Emacs", &KeyboardBindings::Emacs),
+            (&KeyboardBindings::Default, "Default"),
+            (&KeyboardBindings::Vim, "Vim"),
+            (&KeyboardBindings::Emacs, "Emacs"),
         ]))
 
         div class="flex mt-4" {
