@@ -671,11 +671,16 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
             }
         }
 
-        (dropdown::view("Keyboard bindings", Id::KeyboardBindings, &model.keyboard_bindings, vec![
-            (&KeyboardBindings::Default, "Default"),
-            (&KeyboardBindings::Vim, "Vim"),
-            (&KeyboardBindings::Emacs, "Emacs"),
-        ]))
+        (dropdown::view(&dropdown::Config{
+            id: Id::KeyboardBindings,
+            title: "Keyboard Bindings",
+            selected_value: &model.keyboard_bindings,
+            options: vec![
+                (&KeyboardBindings::Default, "Default"),
+                (&KeyboardBindings::Vim, "Vim"),
+                (&KeyboardBindings::Emacs, "Emacs"),
+            ],
+        }))
 
         div class="flex mt-4" {
             button id=(Id::CloseSettings) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
