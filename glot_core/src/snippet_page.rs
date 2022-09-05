@@ -26,6 +26,7 @@ pub struct Model {
     pub files: SelectList<File>,
     pub active_modal: Modal,
     pub keyboard_bindings: KeyboardBindings,
+    pub editor_theme: EditorTheme,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -79,6 +80,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             files: SelectList::singleton(file),
             active_modal: Modal::None,
             keyboard_bindings: KeyboardBindings::Default,
+            editor_theme: EditorTheme::TextMate,
         };
 
         let effects = vec![load_settings_effect()];
@@ -106,6 +108,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_keyup_document(browser::Key::Escape, Msg::CloseModalTriggered),
             browser::on_window_resize(Msg::WindowSizeChanged),
             browser::on_change(Id::KeyboardBindings, Msg::KeyboardBindingsChanged),
+            browser::on_change(Id::EditorTheme, Msg::EditorThemeChanged),
         ]
     }
 
@@ -240,6 +243,16 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![save_settings_effect(&model)])
             }
 
+            Msg::EditorThemeChanged(value) => {
+                let editor_theme = value
+                    .parse()
+                    .map_err(|err| format!("Failed to parse keyboard bindings: {}", err))?;
+
+                model.editor_theme = editor_theme;
+
+                Ok(vec![save_settings_effect(&model)])
+            }
+
             Msg::GotSettings(value) => {
                 let maybe_settings: Option<LocalStorageSettings> = value
                     .parse()
@@ -247,6 +260,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 if let Some(settings) = maybe_settings {
                     model.keyboard_bindings = settings.keyboard_bindings;
+                    model.editor_theme = settings.editor_theme;
                 }
 
                 Ok(vec![])
@@ -307,6 +321,7 @@ enum Id {
     EditFileForm,
     SelectedFile,
     KeyboardBindings,
+    EditorTheme,
     CloseSettings,
 }
 
@@ -324,6 +339,7 @@ pub enum Msg {
     FilenameChanged(String),
     EditFileClicked,
     KeyboardBindingsChanged(browser::Value),
+    EditorThemeChanged(browser::Value),
     GotSettings(browser::Value),
 }
 
@@ -341,6 +357,121 @@ impl KeyboardBindings {
             KeyboardBindings::Default => "".into(),
             KeyboardBindings::Vim => "ace/keyboard/vim".into(),
             KeyboardBindings::Emacs => "ace/keyboard/emacs".into(),
+        }
+    }
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum EditorTheme {
+    // Bright themes
+    Chrome,
+    Clouds,
+    CrimsonEditor,
+    Dawn,
+    Dreamweaver,
+    Eclipse,
+    GitHub,
+    SolarizedLight,
+    TextMate,
+    Tomorrow,
+    XCode,
+    Kuroir,
+    KatzenMilch,
+    // Dark themes
+    Ambiance,
+    Chaos,
+    CloudsMidnight,
+    Cobalt,
+    IdleFingers,
+    KrTheme,
+    Merbivore,
+    MerbivoreSoft,
+    MonoIndustrial,
+    Monokai,
+    PastelOnDark,
+    SolarizedDark,
+    Terminal,
+    TomorrowNight,
+    TomorrowNightBlue,
+    TomorrowNightBright,
+    TomorrowNightEighties,
+    Twilight,
+    VibrantInk,
+}
+
+impl EditorTheme {
+    fn label(&self) -> String {
+        match self {
+            EditorTheme::Chrome => "Chrome".into(),
+            EditorTheme::Clouds => "Clouds".into(),
+            EditorTheme::CrimsonEditor => "Crimson Editor".into(),
+            EditorTheme::Dawn => "Dawn".into(),
+            EditorTheme::Dreamweaver => "Dreamweaver".into(),
+            EditorTheme::Eclipse => "Eclipse".into(),
+            EditorTheme::GitHub => "GitHub".into(),
+            EditorTheme::SolarizedLight => "Solarized Light".into(),
+            EditorTheme::TextMate => "TextMate".into(),
+            EditorTheme::Tomorrow => "Tomorrow".into(),
+            EditorTheme::XCode => "XCode".into(),
+            EditorTheme::Kuroir => "Kuroir".into(),
+            EditorTheme::KatzenMilch => "KatzenMilch".into(),
+            EditorTheme::Ambiance => "Ambiance".into(),
+            EditorTheme::Chaos => "Chaos".into(),
+            EditorTheme::CloudsMidnight => "Clouds Midnight".into(),
+            EditorTheme::Cobalt => "Cobalt".into(),
+            EditorTheme::IdleFingers => "Idle Fingers".into(),
+            EditorTheme::KrTheme => "krTheme".into(),
+            EditorTheme::Merbivore => "Merbivore".into(),
+            EditorTheme::MerbivoreSoft => "Merbivore Soft".into(),
+            EditorTheme::MonoIndustrial => "Mono Industrial".into(),
+            EditorTheme::Monokai => "Monokai".into(),
+            EditorTheme::PastelOnDark => "Pastel on dark".into(),
+            EditorTheme::SolarizedDark => "Solarized Dark".into(),
+            EditorTheme::Terminal => "Terminal".into(),
+            EditorTheme::TomorrowNight => "Tomorrow Night".into(),
+            EditorTheme::TomorrowNightBlue => "Tomorrow Night Blue".into(),
+            EditorTheme::TomorrowNightBright => "Tomorrow Night Bright".into(),
+            EditorTheme::TomorrowNightEighties => "Tomorrow Night 80s".into(),
+            EditorTheme::Twilight => "Twilight".into(),
+            EditorTheme::VibrantInk => "Vibrant Ink".into(),
+        }
+    }
+
+    fn ace_theme(&self) -> String {
+        match self {
+            EditorTheme::Chrome => "ace/theme/chrome".into(),
+            EditorTheme::Clouds => "ace/theme/clouds".into(),
+            EditorTheme::CrimsonEditor => "ace/theme/crimson_editor".into(),
+            EditorTheme::Dawn => "ace/theme/dawn".into(),
+            EditorTheme::Dreamweaver => "ace/theme/dreamweaver".into(),
+            EditorTheme::Eclipse => "ace/theme/eclipse".into(),
+            EditorTheme::GitHub => "ace/theme/github".into(),
+            EditorTheme::SolarizedLight => "ace/theme/solarized_light".into(),
+            EditorTheme::TextMate => "ace/theme/textmate".into(),
+            EditorTheme::Tomorrow => "ace/theme/tomorrow".into(),
+            EditorTheme::XCode => "ace/theme/xcode".into(),
+            EditorTheme::Kuroir => "ace/theme/kuroir".into(),
+            EditorTheme::KatzenMilch => "ace/theme/katzenmilch".into(),
+            EditorTheme::Ambiance => "ace/theme/ambiance".into(),
+            EditorTheme::Chaos => "ace/theme/chaos".into(),
+            EditorTheme::CloudsMidnight => "ace/theme/clouds_midnight".into(),
+            EditorTheme::Cobalt => "ace/theme/cobalt".into(),
+            EditorTheme::IdleFingers => "ace/theme/idle_fingers".into(),
+            EditorTheme::KrTheme => "ace/theme/kr_theme".into(),
+            EditorTheme::Merbivore => "ace/theme/merbivore".into(),
+            EditorTheme::MerbivoreSoft => "ace/theme/merbivore_soft".into(),
+            EditorTheme::MonoIndustrial => "ace/theme/mono_industrial".into(),
+            EditorTheme::Monokai => "ace/theme/monokai".into(),
+            EditorTheme::PastelOnDark => "ace/theme/pastel_on_dark".into(),
+            EditorTheme::SolarizedDark => "ace/theme/solarized_dark".into(),
+            EditorTheme::Terminal => "ace/theme/terminal".into(),
+            EditorTheme::TomorrowNight => "ace/theme/tomorrow_night".into(),
+            EditorTheme::TomorrowNightBlue => "ace/theme/tomorrow_night_blue".into(),
+            EditorTheme::TomorrowNightBright => "ace/theme/tomorrow_night_bright".into(),
+            EditorTheme::TomorrowNightEighties => "ace/theme/tomorrow_night_eighties".into(),
+            EditorTheme::Twilight => "ace/theme/twilight".into(),
+            EditorTheme::VibrantInk => "ace/theme/vibrant_ink".into(),
         }
     }
 }
@@ -430,6 +561,7 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
                                 stylesheet-id="app-styles"
                                 height=(height)
                                 keyboard-handler=(model.keyboard_bindings.ace_keyboard_handler())
+                                theme=(model.editor_theme.ace_theme())
                             {
                                 (content)
                             }
@@ -675,11 +807,61 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
             id: Id::KeyboardBindings,
             title: "Keyboard Bindings",
             selected_value: &model.keyboard_bindings,
-            options: vec![
+            options: dropdown::Options::Ungrouped(vec![
                 (&KeyboardBindings::Default, "Default"),
                 (&KeyboardBindings::Vim, "Vim"),
                 (&KeyboardBindings::Emacs, "Emacs"),
-            ],
+            ]),
+        }))
+
+        (dropdown::view(&dropdown::Config{
+            id: Id::EditorTheme,
+            title: "Theme",
+            selected_value: &model.editor_theme,
+            options: dropdown::Options::Grouped(vec![
+                dropdown::Group{
+                    label: "Bright",
+                    options: vec![
+                        (&EditorTheme::Chrome, &EditorTheme::Chrome.label()),
+                        (&EditorTheme::Clouds, &EditorTheme::Clouds.label()),
+                        (&EditorTheme::CrimsonEditor, &EditorTheme::CrimsonEditor.label()),
+                        (&EditorTheme::Dawn, &EditorTheme::Dawn.label()),
+                        (&EditorTheme::Dreamweaver, &EditorTheme::Dreamweaver.label()),
+                        (&EditorTheme::Eclipse, &EditorTheme::Eclipse.label()),
+                        (&EditorTheme::GitHub, &EditorTheme::GitHub.label()),
+                        (&EditorTheme::SolarizedLight, &EditorTheme::SolarizedLight.label()),
+                        (&EditorTheme::TextMate, &EditorTheme::TextMate.label()),
+                        (&EditorTheme::Tomorrow, &EditorTheme::Tomorrow.label()),
+                        (&EditorTheme::XCode, &EditorTheme::XCode.label()),
+                        (&EditorTheme::Kuroir, &EditorTheme::Kuroir.label()),
+                        (&EditorTheme::KatzenMilch, &EditorTheme::KatzenMilch.label()),
+                    ],
+                },
+                dropdown::Group{
+                    label: "Dark",
+                    options: vec![
+                        (&EditorTheme::Ambiance, &EditorTheme::Ambiance.label()),
+                        (&EditorTheme::Chaos, &EditorTheme::Chaos.label()),
+                        (&EditorTheme::CloudsMidnight, &EditorTheme::CloudsMidnight.label()),
+                        (&EditorTheme::Cobalt, &EditorTheme::Cobalt.label()),
+                        (&EditorTheme::IdleFingers, &EditorTheme::IdleFingers.label()),
+                        (&EditorTheme::KrTheme, &EditorTheme::KrTheme.label()),
+                        (&EditorTheme::Merbivore, &EditorTheme::Merbivore.label()),
+                        (&EditorTheme::MerbivoreSoft, &EditorTheme::MerbivoreSoft.label()),
+                        (&EditorTheme::MonoIndustrial, &EditorTheme::MonoIndustrial.label()),
+                        (&EditorTheme::Monokai, &EditorTheme::Monokai.label()),
+                        (&EditorTheme::PastelOnDark, &EditorTheme::PastelOnDark.label()),
+                        (&EditorTheme::SolarizedDark, &EditorTheme::SolarizedDark.label()),
+                        (&EditorTheme::Terminal, &EditorTheme::Terminal.label()),
+                        (&EditorTheme::TomorrowNight, &EditorTheme::TomorrowNight.label()),
+                        (&EditorTheme::TomorrowNightBlue, &EditorTheme::TomorrowNightBlue.label()),
+                        (&EditorTheme::TomorrowNightBright, &EditorTheme::TomorrowNightBright.label()),
+                        (&EditorTheme::TomorrowNightEighties, &EditorTheme::TomorrowNightEighties.label()),
+                        (&EditorTheme::Twilight, &EditorTheme::Twilight.label()),
+                        (&EditorTheme::VibrantInk, &EditorTheme::VibrantInk.label()),
+                    ],
+                }
+            ]),
         }))
 
         div class="flex mt-4" {
@@ -694,6 +876,7 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
 #[serde(rename_all = "camelCase")]
 pub struct LocalStorageSettings {
     pub keyboard_bindings: KeyboardBindings,
+    pub editor_theme: EditorTheme,
 }
 
 fn load_settings_effect() -> Effect<Msg, AppEffect> {
@@ -705,6 +888,7 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
         "settings",
         LocalStorageSettings {
             keyboard_bindings: model.keyboard_bindings.clone(),
+            editor_theme: model.editor_theme.clone(),
         },
     )
 }

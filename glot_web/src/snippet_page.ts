@@ -103,7 +103,7 @@ class AceEditorElement extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ["height", "keyboard-handler"];
+    return ["height", "keyboard-handler", "theme"];
   }
 
   public attributeChangedCallback(
@@ -118,6 +118,10 @@ class AceEditorElement extends HTMLElement {
 
       case "keyboard-handler":
         this.editor.setKeyboardHandler(newValue);
+        break;
+
+      case "theme":
+        this.editor.setTheme(newValue);
         break;
     }
   }
