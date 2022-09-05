@@ -99,16 +99,11 @@ class AceEditorElement extends HTMLElement {
     // Copy classes from the host element
     editorElem.classList.value = this.classList.value;
 
-    const height = this.getAttribute("height");
-    if (height !== null) {
-      editorElem.style.height = height;
-    }
-
     return editorElem;
   }
 
   static get observedAttributes() {
-    return ["height"];
+    return ["height", "keyboard-handler"];
   }
 
   public attributeChangedCallback(
@@ -119,6 +114,10 @@ class AceEditorElement extends HTMLElement {
     switch (name) {
       case "height":
         this.editorElem.style.height = newValue;
+        break;
+
+      case "keyboard-handler":
+        this.editor.setKeyboardHandler(newValue);
         break;
     }
   }

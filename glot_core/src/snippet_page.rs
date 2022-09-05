@@ -1,12 +1,15 @@
 use crate::icons::heroicons;
 use crate::layout::app_layout;
 use crate::util::select_list::SelectList;
+use crate::view::dropdown;
 use crate::view::modal;
 use maud::html;
 use maud::Markup;
 use polyester::browser;
 use polyester::browser::effect::dom;
+use polyester::browser::effect::local_storage;
 use polyester::browser::DomId;
+use polyester::browser::Effect;
 use polyester::browser::Effects;
 use polyester::browser::WindowSize;
 use polyester::page::Page;
@@ -22,6 +25,7 @@ pub struct Model {
     pub window_size: Option<WindowSize>,
     pub files: SelectList<File>,
     pub active_modal: Modal,
+    pub keyboard_bindings: KeyboardBindings,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,6 +33,7 @@ pub struct Model {
 pub enum Modal {
     None,
     File(FileState),
+    Settings,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -73,9 +78,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             window_size: self.window_size.clone(),
             files: SelectList::singleton(file),
             active_modal: Modal::None,
+            keyboard_bindings: KeyboardBindings::Default,
         };
 
-        let effects = vec![];
+        let effects = vec![load_settings_effect()];
 
         (model, effects)
     }
@@ -85,8 +91,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         vec![
             browser::on_change_string(Id::Editor, Msg::EditorContentChanged),
             browser::on_click_closest_data_string("filename", Msg::FileSelected),
-            browser::on_click_closest(Id::AddFile, Msg::AddFileClicked),
+            browser::on_click_closest(Id::ShowAddFileModal, Msg::ShowAddFileModalClicked),
+            browser::on_click_closest(Id::ShowSettingsModal, Msg::ShowSettingsModalClicked),
             browser::on_click_closest(Id::ModalClose, Msg::CloseModalTriggered),
+            browser::on_click(Id::CloseSettings, Msg::CloseModalTriggered),
             browser::on_click(Id::ModalBackdrop, Msg::CloseModalTriggered),
             browser::on_click(Id::AddFileConfirm, Msg::ConfirmAddFile),
             browser::on_click(Id::UpdateFileConfirm, Msg::ConfirmUpdateFile),
@@ -97,6 +105,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_submit(Id::EditFileForm, Msg::ConfirmUpdateFile),
             browser::on_keyup_document(browser::Key::Escape, Msg::CloseModalTriggered),
             browser::on_window_resize(Msg::WindowSizeChanged),
+            browser::on_change(Id::KeyboardBindings, Msg::KeyboardBindingsChanged),
         ]
     }
 
@@ -133,7 +142,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
-            Msg::AddFileClicked => {
+            Msg::ShowAddFileModalClicked => {
                 model.active_modal = Modal::File(FileState {
                     filename: "".to_string(),
                     is_new: true,
@@ -141,6 +150,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 });
 
                 Ok(vec![dom::focus_element(Id::Filename)])
+            }
+
+            Msg::ShowSettingsModalClicked => {
+                model.active_modal = Modal::Settings;
+
+                Ok(vec![dom::focus_element(Id::KeyboardBindings)])
             }
 
             Msg::FilenameChanged(filename) => {
@@ -214,6 +229,28 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 Ok(vec![dom::select_input_text(Id::Filename)])
             }
+
+            Msg::KeyboardBindingsChanged(value) => {
+                let keyboard_bindings = value
+                    .parse()
+                    .map_err(|err| format!("Failed to parse keyboard bindings: {}", err))?;
+
+                model.keyboard_bindings = keyboard_bindings;
+
+                Ok(vec![save_settings_effect(&model)])
+            }
+
+            Msg::GotSettings(value) => {
+                let maybe_settings: Option<LocalStorageSettings> = value
+                    .parse()
+                    .map_err(|err| format!("Failed to parse settings: {}", err))?;
+
+                if let Some(settings) = maybe_settings {
+                    model.keyboard_bindings = settings.keyboard_bindings;
+                }
+
+                Ok(vec![])
+            }
         }
     }
 
@@ -260,7 +297,8 @@ enum Id {
     Editor,
     ModalBackdrop,
     ModalClose,
-    AddFile,
+    ShowSettingsModal,
+    ShowAddFileModal,
     AddFileConfirm,
     UpdateFileConfirm,
     DeleteFileConfirm,
@@ -268,6 +306,8 @@ enum Id {
     NewFileForm,
     EditFileForm,
     SelectedFile,
+    KeyboardBindings,
+    CloseSettings,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -275,13 +315,34 @@ pub enum Msg {
     WindowSizeChanged(browser::Value),
     EditorContentChanged(String),
     FileSelected(String),
-    AddFileClicked,
+    ShowAddFileModalClicked,
+    ShowSettingsModalClicked,
     CloseModalTriggered,
     ConfirmAddFile,
     ConfirmUpdateFile,
     ConfirmDeleteFile,
     FilenameChanged(String),
     EditFileClicked,
+    KeyboardBindingsChanged(browser::Value),
+    GotSettings(browser::Value),
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum KeyboardBindings {
+    Default,
+    Vim,
+    Emacs,
+}
+
+impl KeyboardBindings {
+    fn ace_keyboard_handler(&self) -> String {
+        match self {
+            KeyboardBindings::Default => "".into(),
+            KeyboardBindings::Vim => "ace/keyboard/vim".into(),
+            KeyboardBindings::Emacs => "ace/keyboard/emacs".into(),
+        }
+    }
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -312,12 +373,20 @@ fn view_body(model: &Model) -> maud::Markup {
 
             @match &model.active_modal {
                 Modal::None => {},
+
                 Modal::File(state) => {
                     (modal::view(view_file_modal(model, state), &modal::Config{
                         backdrop_id: Id::ModalBackdrop,
                         close_button_id: Id::ModalClose,
                     }))
                 },
+
+                Modal::Settings => {
+                    (modal::view(view_settings_modal(model), &modal::Config{
+                        backdrop_id: Id::ModalBackdrop,
+                        close_button_id: Id::ModalClose,
+                    }))
+                }
             }
         }
     }
@@ -360,6 +429,7 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
                                 class="block w-full text-base whitespace-pre font-mono"
                                 stylesheet-id="app-styles"
                                 height=(height)
+                                keyboard-handler=(model.keyboard_bindings.ace_keyboard_handler())
                             {
                                 (content)
                             }
@@ -441,7 +511,7 @@ fn view_tab_bar(model: &Model) -> Markup {
 
     html! {
         div class="h-10 flex border-b border-gray-400" {
-            button class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3" type="button" {
+            button id=(Id::ShowSettingsModal) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3" type="button" {
                 span class="w-6 h-6" {
                     (heroicons::cog_6_tooth())
                 }
@@ -453,7 +523,7 @@ fn view_tab_bar(model: &Model) -> Markup {
                 }
             }
 
-            button id=(Id::AddFile) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 font-semibold text-sm border-l border-gray-400" type="button"{
+            button id=(Id::ShowAddFileModal) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 font-semibold text-sm border-l border-gray-400" type="button"{
                 span class="w-5 h-5" {
                     (heroicons::document_plus())
                 }
@@ -527,14 +597,12 @@ fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
     let files_count = model.files.len();
 
     html! {
-        div {
-            div class="text-center" {
-                h3 class="text-lg leading-6 font-medium text-gray-900" {
-                    @if state.is_new {
-                        "New File"
-                    } @else {
-                        "Edit File"
-                    }
+        div class="text-center" {
+            h3 class="text-lg leading-6 font-medium text-gray-900" {
+                @if state.is_new {
+                    "New File"
+                } @else {
+                    "Edit File"
                 }
             }
         }
@@ -587,4 +655,51 @@ fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
             }
         }
     }
+}
+
+fn view_settings_modal(model: &Model) -> maud::Markup {
+    html! {
+        div class="text-center" {
+            h3 class="text-lg leading-6 font-medium text-gray-900" {
+                "Settings"
+            }
+        }
+
+        div class="border-b border-gray-200 pb-5 mt-8" {
+            h3 class="text-lg font-medium leading-6 text-gray-900" {
+                "Editor Settings"
+            }
+        }
+
+        (dropdown::view("Keyboard bindings", Id::KeyboardBindings, &model.keyboard_bindings, vec![
+            ("Default", &KeyboardBindings::Default),
+            ("Vim", &KeyboardBindings::Vim),
+            ("Emacs", &KeyboardBindings::Emacs),
+        ]))
+
+        div class="flex mt-4" {
+            button id=(Id::CloseSettings) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                "Close"
+            }
+        }
+    }
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalStorageSettings {
+    pub keyboard_bindings: KeyboardBindings,
+}
+
+fn load_settings_effect() -> Effect<Msg, AppEffect> {
+    local_storage::get_item("settings", Msg::GotSettings)
+}
+
+fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
+    local_storage::set_item(
+        "settings",
+        LocalStorageSettings {
+            keyboard_bindings: model.keyboard_bindings.clone(),
+        },
+    )
 }
