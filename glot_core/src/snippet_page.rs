@@ -58,8 +58,8 @@ pub struct SnippetPage {
 }
 
 impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
-    fn id(&self) -> Box<dyn DomId> {
-        Box::new(Id::Glot)
+    fn id(&self) -> &'static dyn DomId {
+        &Id::Glot
     }
 
     fn init(&self) -> (Model, Effects<Msg, AppEffect>) {

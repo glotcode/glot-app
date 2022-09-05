@@ -17,8 +17,8 @@ pub struct Model {
 pub struct HomePage {}
 
 impl Page<Model, Msg, AppEffect, Markup> for HomePage {
-    fn id(&self) -> Box<dyn DomId> {
-        Box::new(Id::Glot)
+    fn id(&self) -> &'static dyn DomId {
+        &Id::Glot
     }
 
     fn init(&self) -> (Model, Effects<Msg, AppEffect>) {
