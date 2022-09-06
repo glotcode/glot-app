@@ -25,7 +25,7 @@ pub struct Model {
     pub window_size: Option<WindowSize>,
     pub files: SelectList<File>,
     pub active_modal: Modal,
-    pub keyboard_bindings: KeyboardBindings,
+    pub editor_keyboard_bindings: EditorKeyboardBindings,
     pub editor_theme: EditorTheme,
 }
 
@@ -45,7 +45,7 @@ enum Id {
     NewFileForm,
     EditFileForm,
     SelectedFile,
-    KeyboardBindings,
+    EditorKeyboardBindings,
     EditorTheme,
     CloseSettings,
 }
@@ -118,7 +118,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             window_size: self.window_size.clone(),
             files: SelectList::singleton(file),
             active_modal: Modal::None,
-            keyboard_bindings: KeyboardBindings::Default,
+            editor_keyboard_bindings: EditorKeyboardBindings::Default,
             editor_theme: EditorTheme::TextMate,
         };
 
@@ -146,7 +146,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_submit(Id::EditFileForm, Msg::ConfirmUpdateFile),
             browser::on_keyup_document(browser::Key::Escape, Msg::CloseModalTriggered),
             browser::on_window_resize(Msg::WindowSizeChanged),
-            browser::on_change(Id::KeyboardBindings, Msg::KeyboardBindingsChanged),
+            browser::on_change(Id::EditorKeyboardBindings, Msg::KeyboardBindingsChanged),
             browser::on_change(Id::EditorTheme, Msg::EditorThemeChanged),
         ]
     }
@@ -159,7 +159,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     .map_err(|err| format!("Failed to parse window size: {}", err))?;
 
                 model.window_size = Some(window_size);
-                browser::no_effects()
+                Ok(vec![])
             }
 
             Msg::EditorContentChanged(content) => {
@@ -197,7 +197,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::ShowSettingsModalClicked => {
                 model.active_modal = Modal::Settings;
 
-                Ok(vec![dom::focus_element(Id::KeyboardBindings)])
+                Ok(vec![dom::focus_element(Id::EditorKeyboardBindings)])
             }
 
             Msg::FilenameChanged(filename) => {
@@ -277,7 +277,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     .parse()
                     .map_err(|err| format!("Failed to parse keyboard bindings: {}", err))?;
 
-                model.keyboard_bindings = keyboard_bindings;
+                model.editor_keyboard_bindings = keyboard_bindings;
 
                 Ok(vec![save_settings_effect(&model)])
             }
@@ -298,7 +298,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     .map_err(|err| format!("Failed to parse settings: {}", err))?;
 
                 if let Some(settings) = maybe_settings {
-                    model.keyboard_bindings = settings.keyboard_bindings;
+                    model.editor_keyboard_bindings = settings.editor_keyboard_bindings;
                     model.editor_theme = settings.editor_theme;
                 }
 
@@ -345,26 +345,26 @@ fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> 
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub enum KeyboardBindings {
+pub enum EditorKeyboardBindings {
     Default,
     Vim,
     Emacs,
 }
 
-impl KeyboardBindings {
+impl EditorKeyboardBindings {
     fn ace_keyboard_handler(&self) -> String {
         match self {
-            KeyboardBindings::Default => "".into(),
-            KeyboardBindings::Vim => "ace/keyboard/vim".into(),
-            KeyboardBindings::Emacs => "ace/keyboard/emacs".into(),
+            EditorKeyboardBindings::Default => "".into(),
+            EditorKeyboardBindings::Vim => "ace/keyboard/vim".into(),
+            EditorKeyboardBindings::Emacs => "ace/keyboard/emacs".into(),
         }
     }
 
     fn label(&self) -> String {
         match self {
-            KeyboardBindings::Default => "Default".into(),
-            KeyboardBindings::Vim => "Vim".into(),
-            KeyboardBindings::Emacs => "Emacs".into(),
+            EditorKeyboardBindings::Default => "Default".into(),
+            EditorKeyboardBindings::Vim => "Vim".into(),
+            EditorKeyboardBindings::Emacs => "Emacs".into(),
         }
     }
 }
@@ -568,7 +568,7 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
                                 class="block w-full text-base whitespace-pre font-mono"
                                 stylesheet-id="app-styles"
                                 height=(height)
-                                keyboard-handler=(model.keyboard_bindings.ace_keyboard_handler())
+                                keyboard-handler=(model.editor_keyboard_bindings.ace_keyboard_handler())
                                 theme=(model.editor_theme.ace_theme())
                             {
                                 (content)
@@ -812,13 +812,13 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
         }
 
         (dropdown::view(&dropdown::Config{
-            id: Id::KeyboardBindings,
+            id: Id::EditorKeyboardBindings,
             title: "Keyboard Bindings",
-            selected_value: &model.keyboard_bindings,
+            selected_value: &model.editor_keyboard_bindings,
             options: dropdown::Options::Ungrouped(vec![
-                (&KeyboardBindings::Default, &KeyboardBindings::Default.label()),
-                (&KeyboardBindings::Vim, &KeyboardBindings::Vim.label()),
-                (&KeyboardBindings::Emacs, &KeyboardBindings::Emacs.label()),
+                (&EditorKeyboardBindings::Default, &EditorKeyboardBindings::Default.label()),
+                (&EditorKeyboardBindings::Vim, &EditorKeyboardBindings::Vim.label()),
+                (&EditorKeyboardBindings::Emacs, &EditorKeyboardBindings::Emacs.label()),
             ]),
         }))
 
@@ -883,7 +883,7 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalStorageSettings {
-    pub keyboard_bindings: KeyboardBindings,
+    pub editor_keyboard_bindings: EditorKeyboardBindings,
     pub editor_theme: EditorTheme,
 }
 
@@ -895,7 +895,7 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
     local_storage::set_item(
         "settings",
         LocalStorageSettings {
-            keyboard_bindings: model.keyboard_bindings.clone(),
+            editor_keyboard_bindings: model.editor_keyboard_bindings.clone(),
             editor_theme: model.editor_theme.clone(),
         },
     )
