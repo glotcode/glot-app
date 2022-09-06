@@ -359,6 +359,14 @@ impl KeyboardBindings {
             KeyboardBindings::Emacs => "ace/keyboard/emacs".into(),
         }
     }
+
+    fn label(&self) -> String {
+        match self {
+            KeyboardBindings::Default => "Default".into(),
+            KeyboardBindings::Vim => "Vim".into(),
+            KeyboardBindings::Emacs => "Emacs".into(),
+        }
+    }
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -808,9 +816,9 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
             title: "Keyboard Bindings",
             selected_value: &model.keyboard_bindings,
             options: dropdown::Options::Ungrouped(vec![
-                (&KeyboardBindings::Default, "Default"),
-                (&KeyboardBindings::Vim, "Vim"),
-                (&KeyboardBindings::Emacs, "Emacs"),
+                (&KeyboardBindings::Default, &KeyboardBindings::Default.label()),
+                (&KeyboardBindings::Vim, &KeyboardBindings::Vim.label()),
+                (&KeyboardBindings::Emacs, &KeyboardBindings::Emacs.label()),
             ]),
         }))
 
