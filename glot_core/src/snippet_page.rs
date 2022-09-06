@@ -29,6 +29,45 @@ pub struct Model {
     pub editor_theme: EditorTheme,
 }
 
+#[derive(strum_macros::Display, polyester_macro::DomId)]
+#[strum(serialize_all = "kebab-case")]
+enum Id {
+    Glot,
+    Editor,
+    ModalBackdrop,
+    ModalClose,
+    ShowSettingsModal,
+    ShowAddFileModal,
+    AddFileConfirm,
+    UpdateFileConfirm,
+    DeleteFileConfirm,
+    Filename,
+    NewFileForm,
+    EditFileForm,
+    SelectedFile,
+    KeyboardBindings,
+    EditorTheme,
+    CloseSettings,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub enum Msg {
+    WindowSizeChanged(browser::Value),
+    EditorContentChanged(String),
+    FileSelected(String),
+    ShowAddFileModalClicked,
+    ShowSettingsModalClicked,
+    CloseModalTriggered,
+    ConfirmAddFile,
+    ConfirmUpdateFile,
+    ConfirmDeleteFile,
+    FilenameChanged(String),
+    EditFileClicked,
+    KeyboardBindingsChanged(browser::Value),
+    EditorThemeChanged(browser::Value),
+    GotSettings(browser::Value),
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Modal {
@@ -302,45 +341,6 @@ fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> 
     } else {
         Ok(())
     }
-}
-
-#[derive(strum_macros::Display, polyester_macro::DomId)]
-#[strum(serialize_all = "kebab-case")]
-enum Id {
-    Glot,
-    Editor,
-    ModalBackdrop,
-    ModalClose,
-    ShowSettingsModal,
-    ShowAddFileModal,
-    AddFileConfirm,
-    UpdateFileConfirm,
-    DeleteFileConfirm,
-    Filename,
-    NewFileForm,
-    EditFileForm,
-    SelectedFile,
-    KeyboardBindings,
-    EditorTheme,
-    CloseSettings,
-}
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-pub enum Msg {
-    WindowSizeChanged(browser::Value),
-    EditorContentChanged(String),
-    FileSelected(String),
-    ShowAddFileModalClicked,
-    ShowSettingsModalClicked,
-    CloseModalTriggered,
-    ConfirmAddFile,
-    ConfirmUpdateFile,
-    ConfirmDeleteFile,
-    FilenameChanged(String),
-    EditFileClicked,
-    KeyboardBindingsChanged(browser::Value),
-    EditorThemeChanged(browser::Value),
-    GotSettings(browser::Value),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
