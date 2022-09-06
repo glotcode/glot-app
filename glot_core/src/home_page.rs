@@ -57,7 +57,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         }
     }
 
-    fn render_partial(&self, markup: Markup) -> String {
+    fn render(&self, markup: Markup) -> String {
         markup.into_string()
     }
 
