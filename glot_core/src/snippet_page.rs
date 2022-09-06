@@ -27,6 +27,7 @@ pub struct Model {
     pub active_modal: Modal,
     pub editor_keyboard_bindings: EditorKeyboardBindings,
     pub editor_theme: EditorTheme,
+    pub stdin: String,
 }
 
 #[derive(strum_macros::Display, polyester_macro::DomId)]
@@ -48,6 +49,11 @@ enum Id {
     EditorKeyboardBindings,
     EditorTheme,
     CloseSettings,
+    ShowStdinModal,
+    ShowStdinEditModal,
+    Stdin,
+    UpdateStdin,
+    ClearStdin,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -57,6 +63,7 @@ pub enum Msg {
     FileSelected(String),
     ShowAddFileModalClicked,
     ShowSettingsModalClicked,
+    ShowStdinModalClicked,
     CloseModalTriggered,
     ConfirmAddFile,
     ConfirmUpdateFile,
@@ -66,6 +73,9 @@ pub enum Msg {
     KeyboardBindingsChanged(browser::Value),
     EditorThemeChanged(browser::Value),
     GotSettings(browser::Value),
+    StdinChanged(String),
+    UpdateStdinClicked,
+    ClearStdinClicked,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -74,6 +84,7 @@ pub enum Modal {
     None,
     File(FileState),
     Settings,
+    Stdin(StdinState),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -82,6 +93,12 @@ pub struct FileState {
     filename: String,
     is_new: bool,
     error: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StdinState {
+    stdin: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,6 +137,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             active_modal: Modal::None,
             editor_keyboard_bindings: EditorKeyboardBindings::Default,
             editor_theme: EditorTheme::TextMate,
+            stdin: "".to_string(),
         };
 
         let effects = vec![load_settings_effect()];
@@ -134,6 +152,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest_data_string("filename", Msg::FileSelected),
             browser::on_click_closest(Id::ShowAddFileModal, Msg::ShowAddFileModalClicked),
             browser::on_click_closest(Id::ShowSettingsModal, Msg::ShowSettingsModalClicked),
+            browser::on_click_closest(Id::ShowStdinModal, Msg::ShowStdinModalClicked),
+            browser::on_click_closest(Id::ShowStdinEditModal, Msg::ShowStdinModalClicked),
             browser::on_click_closest(Id::ModalClose, Msg::CloseModalTriggered),
             browser::on_click(Id::CloseSettings, Msg::CloseModalTriggered),
             browser::on_click(Id::ModalBackdrop, Msg::CloseModalTriggered),
@@ -148,6 +168,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_window_resize(Msg::WindowSizeChanged),
             browser::on_change(Id::EditorKeyboardBindings, Msg::KeyboardBindingsChanged),
             browser::on_change(Id::EditorTheme, Msg::EditorThemeChanged),
+            browser::on_input(Id::Stdin, Msg::StdinChanged),
+            browser::on_click(Id::ClearStdin, Msg::ClearStdinClicked),
+            browser::on_click(Id::UpdateStdin, Msg::UpdateStdinClicked),
         ]
     }
 
@@ -198,6 +221,14 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 model.active_modal = Modal::Settings;
 
                 Ok(vec![dom::focus_element(Id::EditorKeyboardBindings)])
+            }
+
+            Msg::ShowStdinModalClicked => {
+                model.active_modal = Modal::Stdin(StdinState {
+                    stdin: model.stdin.clone(),
+                });
+
+                Ok(vec![dom::focus_element(Id::Stdin)])
             }
 
             Msg::FilenameChanged(filename) => {
@@ -301,6 +332,31 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     model.editor_keyboard_bindings = settings.editor_keyboard_bindings;
                     model.editor_theme = settings.editor_theme;
                 }
+
+                Ok(vec![])
+            }
+
+            Msg::StdinChanged(stdin) => {
+                if let Modal::Stdin(state) = &mut model.active_modal {
+                    state.stdin = stdin.clone();
+                }
+
+                Ok(vec![])
+            }
+
+            Msg::ClearStdinClicked => {
+                model.stdin.clear();
+                model.active_modal = Modal::None;
+
+                Ok(vec![])
+            }
+
+            Msg::UpdateStdinClicked => {
+                if let Modal::Stdin(state) = &mut model.active_modal {
+                    model.stdin = state.stdin.clone();
+                }
+
+                model.active_modal = Modal::None;
 
                 Ok(vec![])
             }
@@ -520,6 +576,13 @@ fn view_body(model: &Model) -> maud::Markup {
                     }))
                 },
 
+                Modal::Stdin(state) => {
+                    (modal::view(view_stdin_modal(state), &modal::Config{
+                        backdrop_id: Id::ModalBackdrop,
+                        close_button_id: Id::ModalClose,
+                    }))
+                }
+
                 Modal::Settings => {
                     (modal::view(view_settings_modal(model), &modal::Config{
                         backdrop_id: Id::ModalBackdrop,
@@ -574,7 +637,7 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
                                 (content)
                             }
 
-                            (view_stdin_bar())
+                            (view_stdin_bar(model))
                             (view_action_bar())
                         }
                     }
@@ -692,11 +755,30 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
     }
 }
 
-fn view_stdin_bar() -> Markup {
+fn view_stdin_bar(model: &Model) -> Markup {
     html! {
-        button class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" type="button" {
-            span class="w-5 h-5 mr-1" { (heroicons::plus_circle()) }
-            span { "STDIN" }
+        @if model.stdin.is_empty() {
+            button id=(Id::ShowStdinModal) class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" type="button" {
+                span class="w-5 h-5 mr-1" { (heroicons::plus_circle()) }
+                span { "STDIN" }
+            }
+        } @else {
+            div class="w-full h-24 border-t border-gray-400 overflow-hidden" {
+                dt class="px-4 py-1 border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
+                    pre { "STDIN" }
+                }
+                dd id=(Id::ShowStdinEditModal) class="h-full px-4 py-2 relative cursor-pointer stdin-preview" {
+                    pre {
+                        (model.stdin)
+                    }
+
+                    span class="hidden stdin-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-30" {
+                        span class="absolute z-20 inset-0 mt-5 mx-auto w-5 h-5 text-slate-50" {
+                            (heroicons::pencil_square_solid())
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -792,6 +874,36 @@ fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
                 button id=(Id::UpdateFileConfirm) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
                     "Update file"
                 }
+            }
+        }
+    }
+}
+
+fn view_stdin_modal(state: &StdinState) -> maud::Markup {
+    html! {
+        div class="text-center" {
+            h3 class="text-lg leading-6 font-medium text-gray-900" {
+                "Stdin Data"
+            }
+        }
+
+        form class="mt-8" {
+            label class="block text-sm font-medium text-gray-700" for=(Id::Stdin) {
+                "Data will be sent to stdin of the program"
+            }
+            div class="mt-1" {
+                textarea id=(Id::Stdin) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono" rows="8" {
+                    (state.stdin)
+                }
+            }
+        }
+
+        div class="flex mt-4" {
+            button id=(Id::ClearStdin) class="flex-1 w-full inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                "Clear"
+            }
+            button id=(Id::UpdateStdin) class="ml-4 flex-1 w-full w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                "Update"
             }
         }
     }
