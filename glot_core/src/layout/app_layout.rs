@@ -47,10 +47,55 @@ impl State {
     }
 }
 
+pub struct SidebarItem {
+    pub label: String,
+    pub icon: Markup,
+    pub is_selected: bool, // TODO: replace with route
+}
+
+impl SidebarItem {
+    fn view(&self) -> Markup {
+        html! {
+            @if self.is_selected {
+                a class="bg-gray-900 text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" href="#" {
+                    span class="text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
+                        (self.icon)
+                    }
+                    (self.label)
+                }
+            } @else {
+                a class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" href="#" {
+                    span class="text-gray-400 group-hover:text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
+                        (self.icon)
+                    }
+                    (self.label)
+                }
+            }
+        }
+    }
+}
+
+fn sidebar_items() -> Vec<SidebarItem> {
+    vec![
+        SidebarItem {
+            label: "Home".to_string(),
+            icon: heroicons_maud::home_solid(),
+            is_selected: false,
+        },
+        SidebarItem {
+            label: "New".to_string(),
+            icon: heroicons_maud::pencil_square_solid(),
+            is_selected: true,
+        },
+    ]
+}
+
 pub fn app_shell<Id>(content: Markup, config: &Config<Id>, state: &State) -> Markup
 where
     Id: DomId,
 {
+    let items = sidebar_items();
+
     html! {
         div class="h-full" {
             @if state.sidebar_is_open {
@@ -73,17 +118,8 @@ where
                                     img class="h-10 w-auto" src="/assets/logo-white.svg" alt="glot.io logo";
                                 }
                                 nav class="mt-5 px-2 space-y-1" {
-                                    a class="bg-gray-900 text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" href="#" {
-                                        span class="text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
-                                            (heroicons_maud::home_outline())
-                                        }
-                                        "Home"
-                                    }
-                                    a class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" href="#" {
-                                        span class="text-gray-400 group-hover:text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
-                                            (heroicons_maud::pencil_square_solid())
-                                        }
-                                        "New"
+                                    @for item in &items {
+                                        (item.view())
                                     }
                                 }
                             }
@@ -101,18 +137,8 @@ where
                             img class="h-10 w-auto" src="/assets/logo-white.svg" alt="glot.io logo";
                         }
                         nav class="mt-5 flex-1 px-2 space-y-1" {
-                            a class="text-gray-300 group flex items-center px-2 py-2 text-sm font-medium rounded-md" href="#" {
-                                span class="text-gray-300 mr-3 flex-shrink-0 h-6 w-6" {
-                                    (heroicons_maud::home_outline())
-                                }
-                                "Home"
-                            }
-                            a class="bg-gray-900 text-white text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md" href="#" {
-                                span class="text-gray-400 group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" {
-                                    (heroicons_maud::pencil_square_solid())
-                                }
-                                "New"
-
+                            @for item in &items {
+                                (item.view())
                             }
                         }
                     }
