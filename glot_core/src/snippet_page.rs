@@ -28,12 +28,15 @@ pub struct Model {
     pub editor_keyboard_bindings: EditorKeyboardBindings,
     pub editor_theme: EditorTheme,
     pub stdin: String,
+    pub layout_state: app_layout::State,
 }
 
 #[derive(strum_macros::Display, polyester_macro::DomId)]
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Glot,
+    OpenSidebar,
+    CloseSidebar,
     Editor,
     ModalBackdrop,
     ModalClose,
@@ -76,6 +79,8 @@ pub enum Msg {
     StdinChanged(String),
     UpdateStdinClicked,
     ClearStdinClicked,
+    OpenSidebarClicked,
+    CloseSidebarClicked,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -138,6 +143,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             editor_keyboard_bindings: EditorKeyboardBindings::Default,
             editor_theme: EditorTheme::TextMate,
             stdin: "".to_string(),
+            layout_state: app_layout::State::new(),
         };
 
         let effects = vec![load_settings_effect()];
@@ -171,11 +177,23 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_input(Id::Stdin, Msg::StdinChanged),
             browser::on_click(Id::ClearStdin, Msg::ClearStdinClicked),
             browser::on_click(Id::UpdateStdin, Msg::UpdateStdinClicked),
+            browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
+            browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
         ]
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
         match msg {
+            Msg::OpenSidebarClicked => {
+                model.layout_state.open_sidebar();
+                Ok(vec![])
+            }
+
+            Msg::CloseSidebarClicked => {
+                model.layout_state.close_sidebar();
+                Ok(vec![])
+            }
+
             Msg::WindowSizeChanged(value) => {
                 let window_size = value
                     .parse()
@@ -375,7 +393,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn render_page(&self, markup: PageMarkup<Markup>) -> String {
-        app_layout::render(markup)
+        app_layout::render_page(markup)
     }
 }
 
@@ -554,15 +572,28 @@ fn view_head() -> maud::Markup {
 }
 
 fn view_body(model: &Model) -> maud::Markup {
+    let layout_config = app_layout::Config {
+        open_sidebar_id: Id::OpenSidebar,
+        close_sidebar_id: Id::CloseSidebar,
+    };
+
     html! {
         div id=(Id::Glot) class="h-full" {
             @match &model.window_size {
                 Some(window_size) => {
-                    (app_layout::app_shell(view_content(model, window_size)))
+                    (app_layout::app_shell(
+                        view_content(model, window_size),
+                        &layout_config,
+                        &model.layout_state
+                    ))
                 }
 
                 None => {
-                    (app_layout::app_shell(view_spinner()))
+                    (app_layout::app_shell(
+                        view_spinner(),
+                        &layout_config,
+                        &model.layout_state
+                    ))
                 }
             }
 
