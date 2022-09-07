@@ -1,4 +1,3 @@
-use crate::icons::heroicons;
 use crate::layout::app_layout;
 use crate::util::select_list::SelectList;
 use crate::view::dropdown;
@@ -747,7 +746,7 @@ fn view_tab_bar(model: &Model) -> Markup {
         div class="h-10 flex border-b border-gray-400" {
             button id=(Id::ShowSettingsModal) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3" type="button" {
                 span class="w-6 h-6" {
-                    (heroicons::cog_6_tooth())
+                    (heroicons_maud::cog_6_tooth_outline())
                 }
             }
 
@@ -759,7 +758,7 @@ fn view_tab_bar(model: &Model) -> Markup {
 
             button id=(Id::ShowAddFileModal) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 font-semibold text-sm border-l border-gray-400" type="button"{
                 span class="w-5 h-5" {
-                    (heroicons::document_plus())
+                    (heroicons_maud::document_plus_outline())
                 }
             }
         }
@@ -778,7 +777,7 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
             @if is_selected {
                 span class="hidden edit-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-70" {
                     span class="absolute z-20 inset-0 m-auto w-5 h-5 text-slate-50" {
-                        (heroicons::pencil_square_solid())
+                        (heroicons_maud::pencil_square_solid())
                     }
                 }
             }
@@ -790,7 +789,7 @@ fn view_stdin_bar(model: &Model) -> Markup {
     html! {
         @if model.stdin.is_empty() {
             button id=(Id::ShowStdinModal) class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" type="button" {
-                span class="w-5 h-5 mr-1" { (heroicons::plus_circle()) }
+                span class="w-5 h-5 mr-1" { (heroicons_maud::plus_circle_outline()) }
                 span { "STDIN" }
             }
         } @else {
@@ -805,7 +804,7 @@ fn view_stdin_bar(model: &Model) -> Markup {
 
                     span class="hidden stdin-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-30" {
                         span class="absolute z-20 inset-0 mt-5 mx-auto w-5 h-5 text-slate-50" {
-                            (heroicons::pencil_square_solid())
+                            (heroicons_maud::pencil_square_solid())
                         }
                     }
                 }
@@ -818,22 +817,22 @@ fn view_action_bar() -> Markup {
     html! {
         div class="h-12 flex border-t border-gray-400" {
             button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm" type="button" {
-                span class="w-5 h-5 mr-2" { (heroicons::play()) }
+                span class="w-5 h-5 mr-2" { (heroicons_maud::play_outline()) }
                 span { "RUN" }
             }
 
             button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
-                span class="w-5 h-5 mr-2" { (heroicons::cloud_arrow_up()) }
+                span class="w-5 h-5 mr-2" { (heroicons_maud::cloud_arrow_up_outline()) }
                 span { "SAVE" }
             }
 
             button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
-                span class="w-5 h-5 mr-2" { (heroicons::trash()) }
+                span class="w-5 h-5 mr-2" { (heroicons_maud::trash_outline()) }
                 span { "DELETE" }
             }
 
             button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
-                span class="w-5 h-5 mr-2" { (heroicons::share()) }
+                span class="w-5 h-5 mr-2" { (heroicons_maud::share_outline()) }
                 span { "SHARE" }
             }
         }

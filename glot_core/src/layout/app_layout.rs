@@ -1,4 +1,3 @@
-use crate::icons::heroicons;
 use maud::html;
 use maud::Markup;
 use polyester::browser::DomId;
@@ -65,7 +64,7 @@ where
                                         "Close sidebar"
                                     }
                                     span class="h6 w-6 text-white" {
-                                        (heroicons::x_mark())
+                                        (heroicons_maud::x_mark_outline())
                                     }
                                 }
                             }
@@ -76,13 +75,13 @@ where
                                 nav class="mt-5 px-2 space-y-1" {
                                     a class="bg-gray-900 text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" href="#" {
                                         span class="text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
-                                            (heroicons::home())
+                                            (heroicons_maud::home_outline())
                                         }
                                         "Home"
                                     }
                                     a class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" href="#" {
                                         span class="text-gray-400 group-hover:text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
-                                            (heroicons::pencil_square_solid())
+                                            (heroicons_maud::pencil_square_solid())
                                         }
                                         "New"
                                     }
@@ -104,13 +103,13 @@ where
                         nav class="mt-5 flex-1 px-2 space-y-1" {
                             a class="text-gray-300 group flex items-center px-2 py-2 text-sm font-medium rounded-md" href="#" {
                                 span class="text-gray-300 mr-3 flex-shrink-0 h-6 w-6" {
-                                    (heroicons::home())
+                                    (heroicons_maud::home_outline())
                                 }
                                 "Home"
                             }
                             a class="bg-gray-900 text-white text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md" href="#" {
                                 span class="text-gray-400 group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" {
-                                    (heroicons::pencil_square_solid())
+                                    (heroicons_maud::pencil_square_solid())
                                 }
                                 "New"
 
@@ -126,7 +125,7 @@ where
                             "Open sidebar"
                         }
                         span class="h-6 w-6" {
-                            (heroicons::bars_3())
+                            (heroicons_maud::bars_3_outline())
                         }
                     }
                 }

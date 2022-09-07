@@ -27,6 +27,7 @@ dependencies = [
 name = "glot_core"
 version = "0.1.0"
 dependencies = [
+ "heroicons_maud",
  "maud",
  "polyester",
  "polyester_macro",
@@ -52,6 +53,14 @@ name = "heck"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2540771e65fc8cb83cd6e8a237f70c319bd5c29f78ed1084ba5d50eeac86f7f9"
+
+[[package]]
+name = "heroicons_maud"
+version = "0.1.0"
+source = "git+https://github.com/polyester-web/heroicons-maud#4b4c8ae3406fdf1d3a98ee68b6b5bae401a7849b"
+dependencies = [
+ "maud",
+]
 
 [[package]]
 name = "itoa"

@@ -1,4 +1,3 @@
-use crate::icons::heroicons;
 use maud::html;
 use maud::Markup;
 use polyester::browser::DomId;
@@ -21,7 +20,7 @@ pub fn view<Id: DomId>(content: Markup, config: &Config<Id>) -> Markup {
                                     "Close"
                                 }
                                 span class="block h-6 w-6" {
-                                    (heroicons::x_mark())
+                                    (heroicons_maud::x_mark_outline())
                                 }
                             }
                         }
