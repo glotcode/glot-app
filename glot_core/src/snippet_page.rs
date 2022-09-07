@@ -156,7 +156,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest(Id::ShowStdinEditModal, Msg::ShowStdinModalClicked),
             browser::on_click_closest(Id::ModalClose, Msg::CloseModalTriggered),
             browser::on_click(Id::CloseSettings, Msg::CloseModalTriggered),
-            browser::on_click(Id::ModalBackdrop, Msg::CloseModalTriggered),
+            browser::on_mouse_down(Id::ModalBackdrop, Msg::CloseModalTriggered),
             browser::on_click(Id::AddFileConfirm, Msg::ConfirmAddFile),
             browser::on_click(Id::UpdateFileConfirm, Msg::ConfirmUpdateFile),
             browser::on_click(Id::DeleteFileConfirm, Msg::ConfirmDeleteFile),
