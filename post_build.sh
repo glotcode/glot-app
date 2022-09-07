@@ -15,6 +15,11 @@ if [[ "$event" == "before_asset_hash" ]]; then
     # Copy vendor assets
     mkdir -p dist/vendor/ace
     cp glot_web/vendor/ace/*.js dist/vendor/ace/
+
+    # Copy assets
+    mkdir -p dist/assets
+    cp -rf glot_web/assets/* dist/assets/
+
 fi
 
 if [[ "$event" == "after_asset_hash" || "$env" == "dev" ]]; then
