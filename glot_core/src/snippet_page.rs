@@ -30,7 +30,6 @@ pub struct Model {
     pub editor_theme: EditorTheme,
     pub stdin: String,
     pub layout_state: app_layout::State,
-    pub current_url: Url,
     pub current_route: Route,
 }
 
@@ -150,7 +149,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             editor_theme: EditorTheme::TextMate,
             stdin: "".to_string(),
             layout_state: app_layout::State::new(),
-            current_url: self.current_url.clone(),
             current_route,
         };
 
