@@ -13,7 +13,7 @@ fn main() {
             print_html(page);
         }
 
-        ["snippet_page"] => {
+        ["new_rust_snippet"] => {
             let current_url = url::Url::parse("http://localhost/new/rust").unwrap();
 
             let page = snippet_page::SnippetPage {

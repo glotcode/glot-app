@@ -23,9 +23,9 @@ if [[ "$event" == "before_asset_hash" ]]; then
 fi
 
 if [[ "$event" == "after_asset_hash" || "$env" == "dev" ]]; then
-    mkdir -p dist/snippet
+    mkdir -p dist/new/rust
 
     # Generate html
     ./target/$target/glot_cli home_page > dist/index.html
-    ./target/$target/glot_cli snippet_page > dist/snippet/index.html
+    ./target/$target/glot_cli new_rust_snippet > dist/new/rust/index.html
 fi
