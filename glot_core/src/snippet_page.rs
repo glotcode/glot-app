@@ -10,6 +10,7 @@ use polyester::browser::effect::local_storage;
 use polyester::browser::DomId;
 use polyester::browser::Effect;
 use polyester::browser::Effects;
+use polyester::browser::EventTarget;
 use polyester::browser::WindowSize;
 use polyester::page::Page;
 use polyester::page::PageMarkup;
@@ -221,7 +222,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         model.files.select_index(index);
                     });
 
-                Ok(vec![])
+                Ok(vec![focus_editor_effect()])
             }
 
             Msg::ShowAddFileModalClicked => {
@@ -268,6 +269,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                             model.files.select_last();
                             model.active_modal = Modal::None;
+                            return Ok(vec![focus_editor_effect()]);
                         }
 
                         Err(err) => {
@@ -288,6 +290,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                             });
 
                             model.active_modal = Modal::None;
+                            return Ok(vec![focus_editor_effect()]);
                         }
 
                         Err(err) => {
@@ -302,7 +305,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::ConfirmDeleteFile => {
                 model.files.remove_selected();
                 model.active_modal = Modal::None;
-                Ok(vec![])
+                Ok(vec![focus_editor_effect()])
             }
 
             Msg::CloseModalTriggered => {
@@ -1041,4 +1044,8 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
             editor_theme: model.editor_theme.clone(),
         },
     )
+}
+
+fn focus_editor_effect() -> Effect<Msg, AppEffect> {
+    dom::dispatch_element_event(Id::Editor, "focus")
 }

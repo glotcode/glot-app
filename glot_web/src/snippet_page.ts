@@ -18,7 +18,8 @@ import { defaultDebugConfig } from "polyester/src/logger";
 
 class AceEditorElement extends HTMLElement {
   private editor: any;
-  private observer: MutationObserver;
+  private contentObserver: MutationObserver;
+  private focusListenerController: AbortController;
   private editorElem: HTMLElement;
   public value: string = "";
 
@@ -52,23 +53,23 @@ class AceEditorElement extends HTMLElement {
       this.dispatchEvent(event);
     });
 
-    this.observer = new MutationObserver(() => {
+    this.contentObserver = new MutationObserver(() => {
       this.setContent(this.textContent || "");
     });
+
+    this.focusListenerController = new AbortController();
   }
 
   public connectedCallback() {
     if (this.isConnected) {
-      this.observer.observe(this, {
-        characterData: true,
-        subtree: true,
-        childList: true,
-      });
+      this.startContentObserver();
+      this.startListenForFocusEvents();
     }
   }
 
   public disconnectedCallback() {
-    this.observer.disconnect();
+    this.stopContentObserver();
+    this.stopListenForFocusEvents();
   }
 
   private setContent(content: string) {
@@ -124,6 +125,35 @@ class AceEditorElement extends HTMLElement {
         this.editor.setTheme(newValue);
         break;
     }
+  }
+
+  private startContentObserver() {
+    this.contentObserver.observe(this, {
+      characterData: true,
+      subtree: true,
+      childList: true,
+    });
+  }
+
+  private stopContentObserver() {
+    this.contentObserver.disconnect();
+  }
+
+  private startListenForFocusEvents() {
+    this.addEventListener(
+      "focus",
+      (_event) => {
+        this.editor.focus();
+      },
+      {
+        signal: this.focusListenerController.signal,
+        passive: true,
+      }
+    );
+  }
+
+  private stopListenForFocusEvents() {
+    this.focusListenerController.abort();
   }
 }
 
