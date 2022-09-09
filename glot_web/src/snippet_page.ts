@@ -9,7 +9,7 @@ import { defaultDebugConfig } from "polyester/src/logger";
   const browserWindow = new BrowserWindow();
   const windowSize = browserWindow.getSize();
 
-  const polyester = new Polyester(snippetPage(windowSize), {
+  const polyester = new Polyester(snippetPage(windowSize, location.href), {
     loggerConfig: defaultDebugConfig(),
   });
 

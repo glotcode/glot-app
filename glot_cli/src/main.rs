@@ -14,7 +14,13 @@ fn main() {
         }
 
         ["snippet_page"] => {
-            let page = snippet_page::SnippetPage { window_size: None };
+            let current_url = url::Url::parse("http://localhost/new/rust").unwrap();
+
+            let page = snippet_page::SnippetPage {
+                window_size: None,
+                current_url,
+            };
+
             print_html(page);
         }
 

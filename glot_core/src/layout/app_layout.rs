@@ -1,3 +1,4 @@
+use crate::common::route::Route;
 use maud::html;
 use maud::Markup;
 use polyester::browser::DomId;
@@ -50,21 +51,21 @@ impl State {
 pub struct SidebarItem {
     pub label: String,
     pub icon: Markup,
-    pub is_selected: bool, // TODO: replace with route
+    pub route: Route,
 }
 
 impl SidebarItem {
-    fn view(&self) -> Markup {
+    fn view(&self, current_route: &Route) -> Markup {
         html! {
-            @if self.is_selected {
-                a class="bg-gray-900 text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" href="#" {
+            @if self.route.name() == current_route.name() {
+                a href=(self.route.to_path()) class="bg-gray-900 text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" {
                     span class="text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
                         (self.icon)
                     }
                     (self.label)
                 }
             } @else {
-                a class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" href="#" {
+                a href=(self.route.to_path()) class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" {
                     span class="text-gray-400 group-hover:text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
                         (self.icon)
                     }
@@ -80,17 +81,22 @@ fn sidebar_items() -> Vec<SidebarItem> {
         SidebarItem {
             label: "Home".to_string(),
             icon: heroicons_maud::home_solid(),
-            is_selected: false,
+            route: Route::Home,
         },
         SidebarItem {
             label: "New".to_string(),
             icon: heroicons_maud::pencil_square_solid(),
-            is_selected: true,
+            route: Route::NewSnippetEditor("rust".to_string()),
         },
     ]
 }
 
-pub fn app_shell<Id>(content: Markup, config: &Config<Id>, state: &State) -> Markup
+pub fn app_shell<Id>(
+    content: Markup,
+    config: &Config<Id>,
+    state: &State,
+    current_route: &Route,
+) -> Markup
 where
     Id: DomId,
 {
@@ -119,7 +125,7 @@ where
                                 }
                                 nav class="mt-5 px-2 space-y-1" {
                                     @for item in &items {
-                                        (item.view())
+                                        (item.view(current_route))
                                     }
                                 }
                             }
@@ -138,7 +144,7 @@ where
                         }
                         nav class="mt-5 flex-1 px-2 space-y-1" {
                             @for item in &items {
-                                (item.view())
+                                (item.view(current_route))
                             }
                         }
                     }

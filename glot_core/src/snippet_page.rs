@@ -1,3 +1,4 @@
+use crate::common::route::Route;
 use crate::layout::app_layout;
 use crate::util::select_list::SelectList;
 use crate::view::dropdown;
@@ -10,12 +11,12 @@ use polyester::browser::effect::local_storage;
 use polyester::browser::DomId;
 use polyester::browser::Effect;
 use polyester::browser::Effects;
-use polyester::browser::EventTarget;
 use polyester::browser::WindowSize;
 use polyester::page::Page;
 use polyester::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
+use url::Url;
 
 const MIN_EDITOR_HEIGHT: i64 = 300;
 
@@ -29,6 +30,8 @@ pub struct Model {
     pub editor_theme: EditorTheme,
     pub stdin: String,
     pub layout_state: app_layout::State,
+    pub current_url: Url,
+    pub current_route: Route,
 }
 
 #[derive(strum_macros::Display, polyester_macro::DomId)]
@@ -123,6 +126,7 @@ impl Default for File {
 
 pub struct SnippetPage {
     pub window_size: Option<WindowSize>,
+    pub current_url: Url,
 }
 
 impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
@@ -131,6 +135,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn init(&self) -> (Model, Effects<Msg, AppEffect>) {
+        let current_route = Route::from_path(self.current_url.path()).unwrap_or_default();
+
         let file = File {
             name: "main.rs".to_string(),
             content: "Hello World!".to_string(),
@@ -144,6 +150,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             editor_theme: EditorTheme::TextMate,
             stdin: "".to_string(),
             layout_state: app_layout::State::new(),
+            current_url: self.current_url.clone(),
+            current_route,
         };
 
         let effects = vec![load_settings_effect()];
@@ -586,7 +594,8 @@ fn view_body(model: &Model) -> maud::Markup {
                     (app_layout::app_shell(
                         view_content(model, window_size),
                         &layout_config,
-                        &model.layout_state
+                        &model.layout_state,
+                        &model.current_route,
                     ))
                 }
 
@@ -594,7 +603,8 @@ fn view_body(model: &Model) -> maud::Markup {
                     (app_layout::app_shell(
                         view_spinner(),
                         &layout_config,
-                        &model.layout_state
+                        &model.layout_state,
+                        &model.current_route,
                     ))
                 }
             }

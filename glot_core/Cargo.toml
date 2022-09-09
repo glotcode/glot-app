@@ -14,3 +14,4 @@ serde_json = "1.0.81"
 strum = { version = "0.24.1", features = ["derive"] }
 strum_macros = "0.24.3"
 heroicons_maud = { git = "https://github.com/polyester-web/heroicons-maud" }
+url = { version = "2.3.1", features = ["serde"] }
