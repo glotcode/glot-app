@@ -1,3 +1,5 @@
+use crate::common::route::Route;
+use crate::layout::app_layout;
 use maud::html;
 use maud::Markup;
 use polyester::browser;
@@ -7,14 +9,18 @@ use polyester::page;
 use polyester::page::Page;
 use polyester::page::PageMarkup;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
-    pub count: isize,
+    pub current_route: Route,
+    pub layout_state: app_layout::State,
 }
 
-pub struct HomePage {}
+pub struct HomePage {
+    pub current_url: Url,
+}
 
 impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     fn id(&self) -> &'static dyn DomId {
@@ -22,7 +28,10 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 
     fn init(&self) -> (Model, Effects<Msg, AppEffect>) {
-        let model = Model { count: 0 };
+        let model = Model {
+            layout_state: app_layout::State::new(),
+            current_route: Route::Home,
+        };
 
         let effects = vec![];
 
@@ -31,20 +40,20 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
         vec![
-            browser::on_click(Id::Increment, Msg::Increment),
-            browser::on_click(Id::Decrement, Msg::Decrement),
+            browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
+            browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
         ]
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
         match msg {
-            Msg::Increment => {
-                model.count += 1;
+            Msg::OpenSidebarClicked => {
+                model.layout_state.open_sidebar();
                 Ok(vec![])
             }
 
-            Msg::Decrement => {
-                model.count -= 1;
+            Msg::CloseSidebarClicked => {
+                model.layout_state.close_sidebar();
                 Ok(vec![])
             }
         }
@@ -70,15 +79,15 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Glot,
-    Increment,
-    Decrement,
+    OpenSidebar,
+    CloseSidebar,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Msg {
-    Increment,
-    Decrement,
+    OpenSidebarClicked,
+    CloseSidebarClicked,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -94,17 +103,46 @@ fn view_head() -> maud::Markup {
 }
 
 fn view_body(model: &Model) -> maud::Markup {
+    let layout_config = app_layout::Config {
+        open_sidebar_id: Id::OpenSidebar,
+        close_sidebar_id: Id::CloseSidebar,
+    };
+
     html! {
-        div id=(Id::Glot) {
-            div class="flex p-4" {
-                button id=(Id::Decrement) class="w-28 text-center items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" type="button" {
-                    "Decrement"
+        div id=(Id::Glot) class="h-full" {
+            (app_layout::app_shell(
+                view_content(model),
+                &layout_config,
+                &model.layout_state,
+                &model.current_route,
+            ))
+
+        }
+    }
+}
+
+fn view_content(model: &Model) -> Markup {
+    html! {
+        div {
+            div class="background-banner h-60" {
+                div class="flex flex-col h-full items-center justify-center" {
+                    img class="w-72" src="/assets/logo-white.svg" alt="glot.io logo" {}
+                    p class="mt-4 text-white" {
+                        span { "an " }
+                        a href="https://github.com/glotcode/glot" { "open source" }
+                        span { " code sandbox." }
+                    }
                 }
-                div class="mx-4 w-28" {
-                    input value=(model.count) class="text-center shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" type="text" readonly;
-                }
-                button id=(Id::Increment) class="w-28 text-center items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" type="button" {
-                    "Increment"
+            }
+        }
+
+        div class="py-6 h-full flex flex-col" {
+            div {
+
+                div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" {
+                    h1 class="text-2xl font-semibold text-gray-900" {
+                        "Hello"
+                    }
                 }
             }
         }

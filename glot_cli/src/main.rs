@@ -9,7 +9,8 @@ fn main() {
 
     match args[1..] {
         ["home_page"] => {
-            let page = home_page::HomePage {};
+            let current_url = url::Url::parse("http://localhost/").unwrap();
+            let page = home_page::HomePage { current_url };
             print_html(page);
         }
 
