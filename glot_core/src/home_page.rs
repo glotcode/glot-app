@@ -1,11 +1,12 @@
 use crate::common::route::Route;
 use crate::layout::app_layout;
+use crate::view::features;
+use crate::view::language_grid;
 use maud::html;
 use maud::Markup;
 use polyester::browser;
 use polyester::browser::DomId;
 use polyester::browser::Effects;
-use polyester::page;
 use polyester::page::Page;
 use polyester::page::PageMarkup;
 use serde::{Deserialize, Serialize};
@@ -71,7 +72,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 
     fn render_page(&self, markup: PageMarkup<Markup>) -> String {
-        page::render_page_maud(markup)
+        app_layout::render_page(markup)
     }
 }
 
@@ -123,7 +124,7 @@ fn view_body(model: &Model) -> maud::Markup {
 
 fn view_content(model: &Model) -> Markup {
     html! {
-        div {
+        div class="h-full flex flex-col bg-white" {
             div class="background-banner h-60" {
                 div class="flex flex-col h-full items-center justify-center" {
                     img class="w-72" src="/assets/logo-white.svg" alt="glot.io logo" {}
@@ -136,14 +137,45 @@ fn view_content(model: &Model) -> Markup {
                     }
                 }
             }
-        }
 
-        div class="py-6 h-full flex flex-col" {
             div {
+                (features::view(&features::Config{
+                    title: "Features",
+                    features: &[
+                        features::Feature {
+                            icon: heroicons_maud::play_outline(),
+                            title: "Run code",
+                            description: "Support for over 40 languages. If your favorite language or library is missing you can open an issue or pull request on GitHub to get it added.",
+                        },
+                        features::Feature {
+                            icon: heroicons_maud::share_outline(),
+                            title: "Share snippets",
+                            description: "Save your snippet to get a unique url you can share with your friends. As a registered user you can also edit your snippets.",
+                        },
+                        features::Feature {
+                            icon: heroicons_maud::key_outline(),
+                            title: "Key bindings",
+                            description: "The code editor supports Vim and Emacs key bindings.",
+                        },
+                        features::Feature {
+                            icon: heroicons_maud::globe_alt_outline(),
+                            title: "Open source",
+                            description: "Everything is open souce. Including the code for this page and the service that runs the code.",
+                        },
+                    ],
+                }))
+            }
 
+            div class="py-6" {
                 div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" {
-                    h1 class="text-2xl font-semibold text-gray-900" {
-                        "Hello"
+                    div class="border-b border-gray-200 pb-5 mt-8" {
+                        h3 class="text-lg font-medium leading-6 text-gray-900" {
+                            "Popular languages"
+                        }
+                    }
+
+                    div class="mt-4" {
+                        (language_grid::view())
                     }
                 }
             }
