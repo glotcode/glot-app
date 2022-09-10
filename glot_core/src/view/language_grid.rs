@@ -1,14 +1,31 @@
+use crate::common::route::Route;
 use maud::html;
 use maud::Markup;
 
-pub fn view() -> Markup {
+pub struct Language<'a> {
+    pub icon_path: &'a str,
+    pub name: &'a str,
+    pub route: Route,
+}
+
+pub fn view(languages: &[Language]) -> Markup {
     html! {
-        ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" role="list" {
-            li class="col-span-1 flex flex-col divide-y divide-gray-200 rounded-lg bg-white text-center shadow" {
-                div class="flex flex-1 flex-col px-8 py-4" {
-                    img class="mx-auto h-32 w-32 flex-shrink-0 rounded-full" src="/assets/language/rust.svg";
-                    h3 class="mt-4 text-2xl font-medium text-gray-900" {
-                        "Rust"
+        div {
+            ul class="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4" role="list" {
+                @for language in languages {
+                    li class="col-span-1 rounded-md shadow-sm border border-gray-200 bg-white" {
+                        a class="flex" href=(language.route.to_path()) {
+                            div class="p-2 flex-shrink-0 flex items-center justify-center w-16 h-16 text-white text-sm font-medium" {
+                                img class="mx-auto flex-shrink-0" src=(language.icon_path);
+                            }
+                            div class="flex flex-1 items-center justify-between border-l border-gray-200 truncate" {
+                                div class="flex-1 truncate px-4 py-2 text-2xl" {
+                                    p class="font-medium text-gray-900 hover:text-gray-600" {
+                                        (language.name)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -170,12 +170,68 @@ fn view_content(model: &Model) -> Markup {
                 div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" {
                     div class="border-b border-gray-200 pb-5 mt-8" {
                         h3 class="text-lg font-medium leading-6 text-gray-900" {
-                            "Popular languages"
+                            "Languages"
                         }
                     }
 
                     div class="mt-4" {
-                        (language_grid::view())
+                        (language_grid::view(&[
+                            language_grid::Language{
+                                name: "Assembly",
+                                icon_path: "/assets/language/generic.svg",
+                                route: Route::NewSnippetEditor("assembly".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "ATS",
+                                icon_path: "/assets/language/ats.svg",
+                                route: Route::NewSnippetEditor("ats".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "Bash",
+                                icon_path: "/assets/language/bash.svg",
+                                route: Route::NewSnippetEditor("bash".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "C",
+                                icon_path: "/assets/language/c.svg",
+                                route: Route::NewSnippetEditor("c".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "Clojure",
+                                icon_path: "/assets/language/clojure.svg",
+                                route: Route::NewSnippetEditor("clojure".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "Cobol",
+                                icon_path: "/assets/language/generic.svg",
+                                route: Route::NewSnippetEditor("cobol".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "CoffeeScript",
+                                icon_path: "/assets/language/coffeescript.svg",
+                                route: Route::NewSnippetEditor("coffeescript".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "C++",
+                                icon_path: "/assets/language/cpp.svg",
+                                route: Route::NewSnippetEditor("cpp".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "Crystal",
+                                icon_path: "/assets/language/crystal.svg",
+                                route: Route::NewSnippetEditor("crystal".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "D",
+                                icon_path: "/assets/language/d.svg",
+                                route: Route::NewSnippetEditor("d".to_string()),
+                            },
+                            language_grid::Language{
+                                name: "Rust",
+                                icon_path: "/assets/language/rust.svg",
+                                route: Route::NewSnippetEditor("rust".to_string()),
+                            }
+                        ]))
                     }
                 }
             }
