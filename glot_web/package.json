@@ -18,7 +18,8 @@
     },
     "homepage": "https://github.com/polyester-web/polyester-templates#readme",
     "dependencies": {
-      "polyester": "file:../../polyester-js"
+      "polyester": "file:../../polyester-js",
+      "poly-ace-editor": "git+https://github.com/polyester-web/poly-ace-editor.git"
     },
     "devDependencies": {
       "@tailwindcss/forms": "^0.5.2",
