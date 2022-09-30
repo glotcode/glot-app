@@ -669,7 +669,8 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
 
                             poly-ace-editor id=(Id::Editor)
                                 style=(inline_styles)
-                                class="block w-full text-base whitespace-pre font-mono"
+                                class="relative block w-full text-base whitespace-pre font-mono"
+                                editor-class="w-full text-base whitespace-pre font-mono"
                                 stylesheet-id="app-styles"
                                 height=(height)
                                 keyboard-handler=(model.editor_keyboard_bindings.ace_keyboard_handler())
