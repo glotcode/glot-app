@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-poly = { path = "../../poly-rs/poly" }
-poly_macro = { path = "../../poly-rs/poly_macro" }
+poly = { git = "https://github.com/glotlabs/poly-rs" }
+poly_macro = { git = "https://github.com/glotlabs/poly-rs" }
+heroicons_maud = { git = "https://github.com/glotlabs/heroicons-maud" }
 maud = "0.23.0"
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
 strum = { version = "0.24.1", features = ["derive"] }
 strum_macros = "0.24.3"
-heroicons_maud = { git = "https://github.com/glotlabs/heroicons-maud" }
 url = { version = "2.3.1", features = ["serde"] }

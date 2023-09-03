@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+poly = { git = "https://github.com/glotlabs/poly-rs" }
 glot_core = { path = "../glot_core" }
-poly = { path = "../../poly-rs/poly" }
 serde_json = "1.0.81"
 url = { version = "2.3.1", features = ["serde"] }
