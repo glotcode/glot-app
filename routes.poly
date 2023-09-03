@@ -1,1 +1,2 @@
 / => ./target/debug/glot_cli home_page
+/new/rust => ./target/debug/glot_cli new_rust_snippet
