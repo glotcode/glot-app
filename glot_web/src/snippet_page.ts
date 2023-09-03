@@ -1,7 +1,6 @@
-import init from "../wasm/glot.js";
-import { snippetPage } from "../wasm/glot";
-import { BrowserWindow, Polyester } from "polyester";
-import { defaultDebugConfig } from "polyester/src/logger";
+import init, { snippetPage } from "../wasm/glot";
+import { BrowserWindow, Poly } from "poly";
+import { defaultDebugConfig } from "poly/src/logger";
 import { AceEditorElement } from "poly-ace-editor";
 
 // poly-ace-editor is imported to make the custom element available
@@ -14,9 +13,9 @@ const _AceEditorElement = AceEditorElement;
   const browserWindow = new BrowserWindow();
   const windowSize = browserWindow.getSize();
 
-  const polyester = new Polyester(snippetPage(windowSize, location.href), {
+  const poly = new Poly(snippetPage(windowSize, location.href), {
     loggerConfig: defaultDebugConfig(),
   });
 
-  polyester.init();
+  poly.init();
 })();
