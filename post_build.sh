@@ -28,4 +28,7 @@ if [[ "$event" == "after_asset_hash" || "$env" == "dev" ]]; then
     # Generate html
     ./target/$target/glot_cli home_page > dist/index.html
     ./target/$target/glot_cli new_rust_snippet > dist/new/rust/index.html
+
+    # Disable cloudflare SPA mode
+    echo "Not found" > dist/404.html
 fi
