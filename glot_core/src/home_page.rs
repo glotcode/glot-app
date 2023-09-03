@@ -4,11 +4,11 @@ use crate::view::features;
 use crate::view::language_grid;
 use maud::html;
 use maud::Markup;
-use polyester::browser;
-use polyester::browser::DomId;
-use polyester::browser::Effects;
-use polyester::page::Page;
-use polyester::page::PageMarkup;
+use poly::browser;
+use poly::browser::DomId;
+use poly::browser::Effects;
+use poly::page::Page;
+use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -28,7 +28,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         &Id::Glot
     }
 
-    fn init(&self) -> (Model, Effects<Msg, AppEffect>) {
+    fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
         let model = Model {
             layout_state: app_layout::State::new(),
             current_route: Route::Home,
@@ -36,7 +36,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 
         let effects = vec![];
 
-        (model, effects)
+        Ok((model, effects))
     }
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
@@ -76,7 +76,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 }
 
-#[derive(strum_macros::Display, polyester_macro::DomId)]
+#[derive(strum_macros::Display, poly_macro::DomId)]
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Glot,

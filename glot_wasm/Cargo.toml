@@ -8,9 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 glot_core = { path = "../glot_core" }
-polyester = { path = "../../polyester-rs/polyester" }
-polyester_macro = { path = "../../polyester-rs/polyester_macro" }
-#polyester = { git = "https://github.com/polyester-web/polyester-rs" }
-#polyester_macro = { git = "https://github.com/polyester-web/polyester-rs" }
+poly = { path = "../../poly-rs/poly" }
+poly_macro = { path = "../../poly-rs/poly_macro" }
 serde = { version = "1.0.137", features = ["derive"] }
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }

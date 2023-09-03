@@ -1,6 +1,6 @@
 use maud::html;
 use maud::Markup;
-use polyester::browser::DomId;
+use poly::browser::DomId;
 
 pub struct Config<Id> {
     pub backdrop_id: Id,

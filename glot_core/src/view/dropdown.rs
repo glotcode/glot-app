@@ -1,6 +1,6 @@
 use maud::html;
 use maud::Markup;
-use polyester::browser::DomId;
+use poly::browser::DomId;
 use serde::Serialize;
 use serde_json::json;
 use std::fmt::Display;

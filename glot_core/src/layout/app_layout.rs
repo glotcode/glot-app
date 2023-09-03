@@ -1,8 +1,8 @@
 use crate::common::route::Route;
 use maud::html;
 use maud::Markup;
-use polyester::browser::DomId;
-use polyester::page::PageMarkup;
+use poly::browser::DomId;
+use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 
 pub fn render_page(markup: PageMarkup<Markup>) -> String {

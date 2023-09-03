@@ -5,15 +5,16 @@ use crate::view::dropdown;
 use crate::view::modal;
 use maud::html;
 use maud::Markup;
-use polyester::browser;
-use polyester::browser::effect::dom;
-use polyester::browser::effect::local_storage;
-use polyester::browser::DomId;
-use polyester::browser::Effect;
-use polyester::browser::Effects;
-use polyester::browser::WindowSize;
-use polyester::page::Page;
-use polyester::page::PageMarkup;
+use poly::browser;
+use poly::browser::effect::dom;
+use poly::browser::effect::local_storage;
+use poly::browser::Capture;
+use poly::browser::DomId;
+use poly::browser::Effect;
+use poly::browser::Effects;
+use poly::browser::WindowSize;
+use poly::page::Page;
+use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use url::Url;
@@ -33,7 +34,7 @@ pub struct Model {
     pub current_route: Route,
 }
 
-#[derive(strum_macros::Display, polyester_macro::DomId)]
+#[derive(strum_macros::Display, poly_macro::DomId)]
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Glot,
@@ -63,8 +64,8 @@ enum Id {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum Msg {
-    WindowSizeChanged(browser::Value),
-    EditorContentChanged(String),
+    WindowSizeChanged(Capture<browser::Value>),
+    EditorContentChanged(Capture<String>),
     FileSelected(String),
     ShowAddFileModalClicked,
     ShowSettingsModalClicked,
@@ -73,12 +74,13 @@ pub enum Msg {
     ConfirmAddFile,
     ConfirmUpdateFile,
     ConfirmDeleteFile,
-    FilenameChanged(String),
+    FilenameChanged(Capture<String>),
     EditFileClicked,
-    KeyboardBindingsChanged(browser::Value),
-    EditorThemeChanged(browser::Value),
-    GotSettings(browser::Value),
-    StdinChanged(String),
+    KeyboardBindingsChanged(Capture<browser::Value>),
+    EditorThemeChanged(Capture<browser::Value>),
+    GotSettings(Capture<browser::Value>),
+    SavedSettings(Capture<bool>),
+    StdinChanged(Capture<String>),
     UpdateStdinClicked,
     ClearStdinClicked,
     OpenSidebarClicked,
@@ -133,7 +135,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         &Id::Glot
     }
 
-    fn init(&self) -> (Model, Effects<Msg, AppEffect>) {
+    fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
         let current_route = Route::from_path(self.current_url.path()).unwrap_or_default();
 
         let file = File {
@@ -154,14 +156,14 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
         let effects = vec![load_settings_effect()];
 
-        (model, effects)
+        Ok((model, effects))
     }
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
         // TODO: add conditionals
         vec![
             browser::on_change_string(Id::Editor, Msg::EditorContentChanged),
-            browser::on_click_closest_data_string("filename", Msg::FileSelected),
+            //browser::on_click_closest_data_string("filename", Msg::FileSelected),
             browser::on_click_closest(Id::ShowAddFileModal, Msg::ShowAddFileModalClicked),
             browser::on_click_closest(Id::ShowSettingsModal, Msg::ShowSettingsModalClicked),
             browser::on_click_closest(Id::ShowStdinModal, Msg::ShowStdinModalClicked),
@@ -200,8 +202,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
-            Msg::WindowSizeChanged(value) => {
-                let window_size = value
+            Msg::WindowSizeChanged(captured) => {
+                let window_size = captured
+                    .value()
                     .parse()
                     .map_err(|err| format!("Failed to parse window size: {}", err))?;
 
@@ -209,9 +212,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
-            Msg::EditorContentChanged(content) => {
+            Msg::EditorContentChanged(captured) => {
                 model.files.update_selected(|file| {
-                    file.content = content.clone();
+                    file.content = captured.value();
                 });
 
                 Ok(vec![])
@@ -255,9 +258,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![dom::focus_element(Id::Stdin)])
             }
 
-            Msg::FilenameChanged(filename) => {
+            Msg::FilenameChanged(captured) => {
                 if let Modal::File(state) = &mut model.active_modal {
-                    state.filename = filename.clone();
+                    state.filename = captured.value();
                     state.error = None;
                 }
 
@@ -329,8 +332,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![dom::select_input_text(Id::Filename)])
             }
 
-            Msg::KeyboardBindingsChanged(value) => {
-                let keyboard_bindings = value
+            Msg::KeyboardBindingsChanged(captured) => {
+                let keyboard_bindings = captured
+                    .value()
                     .parse()
                     .map_err(|err| format!("Failed to parse keyboard bindings: {}", err))?;
 
@@ -339,8 +343,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![save_settings_effect(&model)])
             }
 
-            Msg::EditorThemeChanged(value) => {
-                let editor_theme = value
+            Msg::EditorThemeChanged(captured) => {
+                let editor_theme = captured
+                    .value()
                     .parse()
                     .map_err(|err| format!("Failed to parse keyboard bindings: {}", err))?;
 
@@ -349,8 +354,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![save_settings_effect(&model)])
             }
 
-            Msg::GotSettings(value) => {
-                let maybe_settings: Option<LocalStorageSettings> = value
+            Msg::GotSettings(captured) => {
+                let maybe_settings: Option<LocalStorageSettings> = captured
+                    .value()
                     .parse()
                     .map_err(|err| format!("Failed to parse settings: {}", err))?;
 
@@ -362,9 +368,11 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
-            Msg::StdinChanged(stdin) => {
+            Msg::SavedSettings(captured) => Ok(vec![]),
+
+            Msg::StdinChanged(captured) => {
                 if let Modal::Stdin(state) = &mut model.active_modal {
-                    state.stdin = stdin.clone();
+                    state.stdin = captured.value()
                 }
 
                 Ok(vec![])
@@ -1052,6 +1060,7 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
             editor_keyboard_bindings: model.editor_keyboard_bindings.clone(),
             editor_theme: model.editor_theme.clone(),
         },
+        Msg::SavedSettings,
     )
 }
 

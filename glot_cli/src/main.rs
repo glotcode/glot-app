@@ -1,6 +1,6 @@
 use glot_core::home_page;
 use glot_core::snippet_page;
-use polyester::page::Page;
+use poly::page::Page;
 use std::env;
 
 fn main() {
@@ -32,7 +32,7 @@ fn main() {
 }
 
 fn print_html<Model, Msg, AppEffect, Markup>(page: impl Page<Model, Msg, AppEffect, Markup>) {
-    let (model, _effects) = page.init();
+    let (model, _effects) = page.init().expect("Failed to init page");
     let markup = page.view(&model);
     println!("{}", page.render_page(markup));
 }
