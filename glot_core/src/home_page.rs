@@ -122,7 +122,7 @@ fn view_body(model: &Model) -> maud::Markup {
     }
 }
 
-fn view_content(model: &Model) -> Markup {
+fn view_content(_model: &Model) -> Markup {
     html! {
         div class="h-full flex flex-col bg-white" {
             div class="background-banner h-60" {
