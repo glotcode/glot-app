@@ -1,4 +1,4 @@
-import glot from "../../dist/wasm_backend/glot";
+import glot from "../dist_backend/wasm_backend/glot";
 
 export async function onRequest({ request }) {
   const page = glot.homePage("http://example.com");
