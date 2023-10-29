@@ -43,7 +43,7 @@ jobs:
 
       - name: Build project
         run: |
-          PATH="${PATH}:${HOME}/bin" poly build --release --hash-assets --script post_build.sh
+          PATH="${PATH}:${HOME}/bin" poly build --release --script post_build.sh
 
       - name: Prepare cloudflare functions for deploy
         run: |
