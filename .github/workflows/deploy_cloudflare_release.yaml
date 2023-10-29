@@ -5,8 +5,8 @@ on:
 
 env:
   PROJECT_NAME: glot
-  WASM_PACK_URL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.3/wasm-pack-v0.10.3-x86_64-unknown-linux-musl.tar.gz
-  POLY_CLI_URL: https://github.com/glotlabs/poly-cli/releases/download/0.1.0-alpha7/poly_linux-x64.tar.gz
+  WASM_PACK_URL: https://github.com/rustwasm/wasm-pack/releases/download/v0.12.1/wasm-pack-v0.12.1-x86_64-unknown-linux-musl.tar.gz
+  POLY_CLI_URL: https://github.com/glotlabs/poly-cli/releases/download/0.1.0-alpha8/poly_linux-x64.tar.gz
 
 jobs:
   deploy:
