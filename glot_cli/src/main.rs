@@ -1,5 +1,5 @@
-use glot_core::home_page;
-use glot_core::snippet_page;
+use glot_core::page::home_page;
+use glot_core::page::snippet_page;
 use poly::page::Page;
 use std::env;
 

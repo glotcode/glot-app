@@ -1,4 +1,4 @@
-use glot_core::home_page;
+use glot_core::page::home_page;
 use poly::page::wasm;
 use poly::page::Page;
 use poly_macro::impl_wasm_page;
