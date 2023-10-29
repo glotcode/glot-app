@@ -582,6 +582,7 @@ fn view_head() -> maud::Markup {
     html! {
         title { "Snippet Page" }
         link id="app-styles" rel="stylesheet" href="/app.css";
+        link rel="preload" href="/wasm/glot_bg.wasm" as="fetch"
         script defer nohash src="/vendor/ace/ace.js" {}
         script defer type="module" src="/snippet_page.js" {}
     }
