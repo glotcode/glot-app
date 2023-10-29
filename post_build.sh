@@ -23,11 +23,11 @@ if [[ "$event" == "before_asset_hash" ]]; then
 fi
 
 if [[ "$event" == "after_asset_hash" || "$env" == "dev" ]]; then
-    mkdir -p dist/new/rust
+    #mkdir -p dist/new/rust
 
-    # Generate html
-    ./target/$target/glot_cli home_page > dist/index.html
-    ./target/$target/glot_cli new_rust_snippet > dist/new/rust/index.html
+    ## Generate html
+    #./target/$target/glot_cli home_page > dist/index.html
+    #./target/$target/glot_cli new_rust_snippet > dist/new/rust/index.html
 
     # Disable cloudflare SPA mode
     echo "Not found" > dist/404.html
