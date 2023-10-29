@@ -1,12 +1,10 @@
-//import wasmModule from "../../pkg/distance.wasm";
-import init, { homePage } from "../wasm/glot";
+import glot from "../dist/wasm_backend/glot.js";
 
 export async function onRequest({ request }) {
-  await init("../wasm/glot");
+  const page = glot.homePage("http://example.com");
+  const { model, effects } = page.init();
 
-  //const moduleInstance = await WebAssembly.instantiate(wasmModule);
-  //const distance = await moduleInstance.exports.distance_between();
-  //console.log(moduleInstance.exports);
+  const html = page.view(model);
 
-  return new Response("Hello, world2!");
+  return new Response(html, { headers: { "content-type": "text/html" } });
 }
