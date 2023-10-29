@@ -99,6 +99,7 @@ fn view_head() -> maud::Markup {
     html! {
         title { "Home Page" }
         link rel="stylesheet" href="/app.css";
+        link rel="preload" href="/wasm/glot_bg.wasm" as="fetch"
         script defer type="module" src="/home_page.js" {}
     }
 }
