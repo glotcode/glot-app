@@ -4,6 +4,9 @@ pub mod bash;
 pub mod c;
 pub mod clisp;
 pub mod clojure;
+pub mod cobol;
+pub mod coffeescript;
+pub mod cpp;
 
 use std::fmt;
 use std::fmt::Display;
@@ -17,6 +20,9 @@ pub enum Language {
     C,
     Clisp,
     Clojure,
+    Cobol,
+    CoffeeScript,
+    Cpp,
 }
 
 impl Display for Language {
@@ -28,6 +34,9 @@ impl Display for Language {
             Self::Bash => write!(f, "bash"),
             Self::Clisp => write!(f, "clisp"),
             Self::Clojure => write!(f, "clojure"),
+            Self::Cobol => write!(f, "cobol"),
+            Self::CoffeeScript => write!(f, "coffeescript"),
+            Self::Cpp => write!(f, "cpp"),
         }
     }
 }
@@ -79,5 +88,8 @@ pub fn run_instructions(
         Language::Bash => bash::run_instructions(main_file, other_files),
         Language::Clisp => clisp::run_instructions(main_file, other_files),
         Language::Clojure => clojure::run_instructions(main_file, other_files),
+        Language::Cobol => cobol::run_instructions(main_file, other_files),
+        Language::CoffeeScript => coffeescript::run_instructions(main_file, other_files),
+        Language::Cpp => cpp::run_instructions(main_file, other_files),
     }
 }
