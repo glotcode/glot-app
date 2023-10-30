@@ -20,7 +20,7 @@ pub fn config() -> Config {
             mode: "ace/mode/sh".to_string(),
             use_soft_tabs: true,
             soft_tab_size: 4,
-            example_code: EXAMPLE_CODE.trim().to_string(),
+            example_code: EXAMPLE_CODE.trim_matches('\n').to_string(),
         },
         run_config: RunConfig {
             container_image: "glot/bash:latest".to_string(),
