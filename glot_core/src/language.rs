@@ -1,5 +1,9 @@
 pub mod assembly;
+pub mod ats;
+pub mod bash;
 pub mod c;
+pub mod clisp;
+pub mod clojure;
 
 use std::fmt;
 use std::fmt::Display;
@@ -8,7 +12,11 @@ use std::path::PathBuf;
 #[derive(Clone)]
 pub enum Language {
     Assembly,
+    Ats,
+    Bash,
     C,
+    Clisp,
+    Clojure,
 }
 
 impl Display for Language {
@@ -16,6 +24,10 @@ impl Display for Language {
         match self {
             Self::C => write!(f, "c"),
             Self::Assembly => write!(f, "assembly"),
+            Self::Ats => write!(f, "ats"),
+            Self::Bash => write!(f, "bash"),
+            Self::Clisp => write!(f, "clisp"),
+            Self::Clojure => write!(f, "clojure"),
         }
     }
 }
@@ -63,5 +75,9 @@ pub fn run_instructions(
     match id {
         Language::C => c::run_instructions(main_file, other_files),
         Language::Assembly => assembly::run_instructions(main_file, other_files),
+        Language::Ats => ats::run_instructions(main_file, other_files),
+        Language::Bash => bash::run_instructions(main_file, other_files),
+        Language::Clisp => clisp::run_instructions(main_file, other_files),
+        Language::Clojure => clojure::run_instructions(main_file, other_files),
     }
 }
