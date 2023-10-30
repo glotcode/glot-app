@@ -37,14 +37,13 @@ pub fn config() -> Config {
 }
 
 pub fn run_instructions(main_file: PathBuf, other_files: Vec<PathBuf>) -> RunInstructions {
-    let other_source_files =
-        file_util::join_files(file_util::filter_by_extension(other_files, "cob"));
+    let other_source_files = file_util::filter_by_extension(other_files, "cob");
 
     RunInstructions {
         build_commands: vec![format!(
             "cobc -x -o a.out {} {}",
             main_file.display(),
-            other_source_files
+            file_util::join_files(other_source_files)
         )],
         run_command: "./a.out".to_string(),
     }
