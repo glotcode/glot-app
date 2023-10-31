@@ -7,6 +7,15 @@ pub mod clojure;
 pub mod cobol;
 pub mod coffeescript;
 pub mod cpp;
+pub mod crystal;
+pub mod csharp;
+pub mod d;
+pub mod dart;
+pub mod elixir;
+pub mod elm;
+pub mod erlang;
+pub mod fsharp;
+pub mod go;
 
 use std::fmt;
 use std::fmt::Display;
@@ -23,6 +32,15 @@ pub enum Language {
     Cobol,
     CoffeeScript,
     Cpp,
+    Crystal,
+    Csharp,
+    D,
+    Dart,
+    Elixir,
+    Elm,
+    Erlang,
+    Fsharp,
+    Go,
 }
 
 impl Display for Language {
@@ -37,6 +55,15 @@ impl Display for Language {
             Self::Cobol => write!(f, "cobol"),
             Self::CoffeeScript => write!(f, "coffeescript"),
             Self::Cpp => write!(f, "cpp"),
+            Self::Crystal => write!(f, "crystal"),
+            Self::Csharp => write!(f, "csharp"),
+            Self::D => write!(f, "d"),
+            Self::Dart => write!(f, "dart"),
+            Self::Elixir => write!(f, "elixir"),
+            Self::Elm => write!(f, "elm"),
+            Self::Erlang => write!(f, "erlang"),
+            Self::Fsharp => write!(f, "fsharp"),
+            Self::Go => write!(f, "go"),
         }
     }
 }
@@ -91,5 +118,14 @@ pub fn run_instructions(
         Language::Cobol => cobol::run_instructions(main_file, other_files),
         Language::CoffeeScript => coffeescript::run_instructions(main_file, other_files),
         Language::Cpp => cpp::run_instructions(main_file, other_files),
+        Language::Crystal => crystal::run_instructions(main_file, other_files),
+        Language::Csharp => csharp::run_instructions(main_file, other_files),
+        Language::D => d::run_instructions(main_file, other_files),
+        Language::Dart => dart::run_instructions(main_file, other_files),
+        Language::Elixir => elixir::run_instructions(main_file, other_files),
+        Language::Elm => elm::run_instructions(main_file, other_files),
+        Language::Erlang => erlang::run_instructions(main_file, other_files),
+        Language::Fsharp => fsharp::run_instructions(main_file, other_files),
+        Language::Go => go::run_instructions(main_file, other_files),
     }
 }
