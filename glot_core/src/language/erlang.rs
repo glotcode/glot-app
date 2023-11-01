@@ -1,9 +1,9 @@
+use crate::language;
 use crate::language::Config;
 use crate::language::EditorConfig;
 use crate::language::Language;
 use crate::language::RunConfig;
 use crate::language::RunInstructions;
-use crate::util::file_util;
 use std::path::PathBuf;
 
 const EXAMPLE_CODE: &'static str = r#"
@@ -34,7 +34,7 @@ pub fn config() -> Config {
 }
 
 pub fn run_instructions(main_file: PathBuf, other_files: Vec<PathBuf>) -> RunInstructions {
-    let build_commands = file_util::filter_by_extension(other_files, "erl")
+    let build_commands = language::filter_by_extension(other_files, "erl")
         .iter()
         .map(|file| format!("erlc {}", file.to_string_lossy()))
         .collect();

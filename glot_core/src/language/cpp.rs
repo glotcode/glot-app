@@ -1,9 +1,9 @@
+use crate::language;
 use crate::language::Config;
 use crate::language::EditorConfig;
 use crate::language::Language;
 use crate::language::RunConfig;
 use crate::language::RunInstructions;
-use crate::util::file_util;
 use std::path::PathBuf;
 
 const EXAMPLE_CODE: &'static str = r#"
@@ -37,13 +37,13 @@ pub fn config() -> Config {
 }
 
 pub fn run_instructions(main_file: PathBuf, other_files: Vec<PathBuf>) -> RunInstructions {
-    let other_source_files = file_util::filter_by_extension(other_files, "cpp");
+    let other_source_files = language::filter_by_extension(other_files, "cpp");
 
     RunInstructions {
         build_commands: vec![format!(
             "clang++ -std=c++11 -o a.out {} {}",
             main_file.display(),
-            file_util::join_files(other_source_files)
+            language::join_files(other_source_files)
         )],
         run_command: "./a.out".to_string(),
     }
