@@ -16,6 +16,12 @@ pub mod elm;
 pub mod erlang;
 pub mod fsharp;
 pub mod go;
+pub mod groovy;
+pub mod guile;
+pub mod hare;
+pub mod haskell;
+pub mod idris;
+pub mod java;
 
 use std::fmt;
 use std::fmt::Display;
@@ -41,6 +47,12 @@ pub enum Language {
     Erlang,
     Fsharp,
     Go,
+    Groovy,
+    Guile,
+    Hare,
+    Haskell,
+    Idris,
+    Java,
 }
 
 impl Display for Language {
@@ -64,6 +76,12 @@ impl Display for Language {
             Self::Erlang => write!(f, "erlang"),
             Self::Fsharp => write!(f, "fsharp"),
             Self::Go => write!(f, "go"),
+            Self::Groovy => write!(f, "groovy"),
+            Self::Guile => write!(f, "guile"),
+            Self::Hare => write!(f, "hare"),
+            Self::Haskell => write!(f, "haskell"),
+            Self::Idris => write!(f, "idris"),
+            Self::Java => write!(f, "java"),
         }
     }
 }
@@ -127,5 +145,20 @@ pub fn run_instructions(
         Language::Erlang => erlang::run_instructions(main_file, other_files),
         Language::Fsharp => fsharp::run_instructions(main_file, other_files),
         Language::Go => go::run_instructions(main_file, other_files),
+        Language::Groovy => groovy::run_instructions(main_file, other_files),
+        Language::Guile => guile::run_instructions(main_file, other_files),
+        Language::Hare => hare::run_instructions(main_file, other_files),
+        Language::Haskell => haskell::run_instructions(main_file, other_files),
+        Language::Idris => idris::run_instructions(main_file, other_files),
+        Language::Java => java::run_instructions(main_file, other_files),
+    }
+}
+
+pub fn titlecase_ascii(s: &str) -> String {
+    if !s.is_ascii() || s.len() < 2 {
+        s.to_string()
+    } else {
+        let (head, tail) = s.split_at(1);
+        format!("{}{}", head.to_ascii_uppercase(), tail)
     }
 }
