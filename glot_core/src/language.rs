@@ -22,6 +22,9 @@ pub mod hare;
 pub mod haskell;
 pub mod idris;
 pub mod java;
+pub mod javascript;
+pub mod julia;
+pub mod kotlin;
 
 use std::fmt;
 use std::fmt::Display;
@@ -53,6 +56,9 @@ pub enum Language {
     Haskell,
     Idris,
     Java,
+    JavaScript,
+    Julia,
+    Kotlin,
 }
 
 impl Display for Language {
@@ -82,6 +88,9 @@ impl Display for Language {
             Self::Haskell => write!(f, "haskell"),
             Self::Idris => write!(f, "idris"),
             Self::Java => write!(f, "java"),
+            Self::JavaScript => write!(f, "javascript"),
+            Self::Julia => write!(f, "julia"),
+            Self::Kotlin => write!(f, "kotlin"),
         }
     }
 }
@@ -151,6 +160,9 @@ pub fn run_instructions(
         Language::Haskell => haskell::run_instructions(main_file, other_files),
         Language::Idris => idris::run_instructions(main_file, other_files),
         Language::Java => java::run_instructions(main_file, other_files),
+        Language::JavaScript => javascript::run_instructions(main_file, other_files),
+        Language::Julia => julia::run_instructions(main_file, other_files),
+        Language::Kotlin => kotlin::run_instructions(main_file, other_files),
     }
 }
 
