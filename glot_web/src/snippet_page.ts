@@ -5,7 +5,7 @@ import { AceEditorElement } from "poly-ace-editor";
 
 // poly-ace-editor is imported to make the custom element available
 // Assign to variable to prevent dead code elimination
-const _AceEditorElement = AceEditorElement;
+AceEditorElement.register();
 
 (async () => {
   await init("/wasm/glot_bg.wasm");
