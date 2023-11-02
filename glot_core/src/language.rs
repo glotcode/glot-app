@@ -25,6 +25,15 @@ pub mod java;
 pub mod javascript;
 pub mod julia;
 pub mod kotlin;
+pub mod lua;
+pub mod mercury;
+pub mod nim;
+pub mod nix;
+pub mod ocaml;
+pub mod pascal;
+pub mod perl;
+pub mod php;
+pub mod python;
 
 use std::fmt;
 use std::fmt::Display;
@@ -59,6 +68,15 @@ pub enum Language {
     JavaScript,
     Julia,
     Kotlin,
+    Lua,
+    Mercury,
+    Nim,
+    Nix,
+    Ocaml,
+    Pascal,
+    Perl,
+    Php,
+    Python,
 }
 
 impl Display for Language {
@@ -91,6 +109,15 @@ impl Display for Language {
             Self::JavaScript => write!(f, "javascript"),
             Self::Julia => write!(f, "julia"),
             Self::Kotlin => write!(f, "kotlin"),
+            Self::Lua => write!(f, "lua"),
+            Self::Mercury => write!(f, "mercury"),
+            Self::Nim => write!(f, "nim"),
+            Self::Nix => write!(f, "nix"),
+            Self::Ocaml => write!(f, "ocaml"),
+            Self::Pascal => write!(f, "pascal"),
+            Self::Perl => write!(f, "perl"),
+            Self::Php => write!(f, "php"),
+            Self::Python => write!(f, "python"),
         }
     }
 }
@@ -163,6 +190,15 @@ pub fn run_instructions(
         Language::JavaScript => javascript::run_instructions(main_file, other_files),
         Language::Julia => julia::run_instructions(main_file, other_files),
         Language::Kotlin => kotlin::run_instructions(main_file, other_files),
+        Language::Lua => lua::run_instructions(main_file, other_files),
+        Language::Mercury => mercury::run_instructions(main_file, other_files),
+        Language::Nim => nim::run_instructions(main_file, other_files),
+        Language::Nix => nix::run_instructions(main_file, other_files),
+        Language::Ocaml => ocaml::run_instructions(main_file, other_files),
+        Language::Pascal => pascal::run_instructions(main_file, other_files),
+        Language::Perl => perl::run_instructions(main_file, other_files),
+        Language::Php => php::run_instructions(main_file, other_files),
+        Language::Python => python::run_instructions(main_file, other_files),
     }
 }
 
