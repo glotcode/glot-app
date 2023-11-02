@@ -1,7 +1,7 @@
 import glot from "../dist_backend/wasm_backend/glot";
 
 export async function onRequest({ request }) {
-  const page = glot.homePage("http://example.com");
+  const page = glot.homePage(request.url);
   const { model, effects } = page.init();
 
   const html = page.view(model);

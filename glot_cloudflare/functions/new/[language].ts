@@ -1,7 +1,7 @@
 import glot from "../../dist_backend/wasm_backend/glot";
 
 export async function onRequest({ request }) {
-  const page = glot.snippetPage(null, "http://example.com/new/rust");
+  const page = glot.snippetPage(null, request.url);
 
   const { model, effects } = page.init();
   const html = page.view(model);

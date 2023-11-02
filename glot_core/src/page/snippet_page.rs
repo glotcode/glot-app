@@ -1,4 +1,5 @@
 use crate::common::route::Route;
+use crate::language;
 use crate::layout::app_layout;
 use crate::util::select_list::SelectList;
 use crate::view::dropdown;
@@ -25,6 +26,7 @@ const MIN_EDITOR_HEIGHT: i64 = 300;
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub window_size: Option<WindowSize>,
+    pub language: language::Config,
     pub files: SelectList<File>,
     pub active_modal: Modal,
     pub editor_keyboard_bindings: EditorKeyboardBindings,
@@ -136,15 +138,18 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
-        let current_route = Route::from_path(self.current_url.path()).unwrap_or_default();
+        let current_route = Route::from_path(self.current_url.path()).ok_or("Invalid route")?;
+        let language = language_from_route(&current_route).ok_or("Unknown language".to_string())?;
+        let language_config = language.config();
 
         let file = File {
-            name: "main.rs".to_string(),
-            content: "Hello World!".to_string(),
+            name: language_config.editor_config.default_filename.clone(),
+            content: language_config.editor_config.example_code.clone(),
         };
 
         let model = Model {
             window_size: self.window_size.clone(),
+            language: language_config,
             files: SelectList::singleton(file),
             active_modal: Modal::None,
             editor_keyboard_bindings: EditorKeyboardBindings::Default,
@@ -582,7 +587,7 @@ fn view_head() -> maud::Markup {
     html! {
         title { "Snippet Page" }
         link id="app-styles" rel="stylesheet" href="/app.css";
-        link rel="preload" href="/wasm/glot_bg.wasm" as="fetch";
+        link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
         script defer nohash src="/vendor/ace/ace.js" {}
         script defer type="module" src="/snippet_page.js" {}
     }
@@ -683,6 +688,9 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
                                 stylesheet-id="app-styles"
                                 height=(height)
                                 keyboard-handler=(model.editor_keyboard_bindings.ace_keyboard_handler())
+                                mode=(model.language.editor_config.mode)
+                                use-soft-tabs=(model.language.editor_config.use_soft_tabs)
+                                tab-size=(model.language.editor_config.soft_tab_size)
                                 theme=(model.editor_theme.ace_theme())
                             {
                                 (content)
@@ -1067,4 +1075,11 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
 
 fn focus_editor_effect() -> Effect<Msg, AppEffect> {
     dom::dispatch_element_event(Id::Editor, "focus")
+}
+
+fn language_from_route(route: &Route) -> Option<language::Language> {
+    match route {
+        Route::NewSnippetEditor(id) => id.parse().ok(),
+        _ => None,
+    }
 }

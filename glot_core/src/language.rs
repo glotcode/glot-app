@@ -35,11 +35,15 @@ pub mod perl;
 pub mod php;
 pub mod python;
 
+use serde::Deserialize;
+use serde::Serialize;
 use std::fmt;
 use std::fmt::Display;
 use std::path::PathBuf;
+use std::str::FromStr;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Language {
     Assembly,
     Ats,
@@ -77,6 +81,139 @@ pub enum Language {
     Perl,
     Php,
     Python,
+}
+
+impl Language {
+    pub fn list() -> Vec<Language> {
+        vec![
+            Language::Assembly,
+            Language::Ats,
+            Language::Bash,
+            Language::C,
+            Language::Clisp,
+            Language::Clojure,
+            Language::Cobol,
+            Language::CoffeeScript,
+            Language::Cpp,
+            Language::Crystal,
+            Language::Csharp,
+            Language::D,
+            Language::Dart,
+            Language::Elixir,
+            Language::Elm,
+            Language::Erlang,
+            Language::Fsharp,
+            Language::Go,
+            Language::Groovy,
+            Language::Guile,
+            Language::Hare,
+            Language::Haskell,
+            Language::Idris,
+            Language::Java,
+            Language::JavaScript,
+            Language::Julia,
+            Language::Kotlin,
+            Language::Lua,
+            Language::Mercury,
+            Language::Nim,
+            Language::Nix,
+            Language::Ocaml,
+            Language::Pascal,
+            Language::Perl,
+            Language::Php,
+            Language::Python,
+        ]
+    }
+
+    pub fn config(&self) -> Config {
+        match self {
+            Self::Assembly => assembly::config(),
+            Self::Ats => ats::config(),
+            Self::Bash => bash::config(),
+            Self::C => c::config(),
+            Self::Clisp => clisp::config(),
+            Self::Clojure => clojure::config(),
+            Self::Cobol => cobol::config(),
+            Self::CoffeeScript => coffeescript::config(),
+            Self::Cpp => cpp::config(),
+            Self::Crystal => crystal::config(),
+            Self::Csharp => csharp::config(),
+            Self::D => d::config(),
+            Self::Dart => dart::config(),
+            Self::Elixir => elixir::config(),
+            Self::Elm => elm::config(),
+            Self::Erlang => erlang::config(),
+            Self::Fsharp => fsharp::config(),
+            Self::Go => go::config(),
+            Self::Groovy => groovy::config(),
+            Self::Guile => guile::config(),
+            Self::Hare => hare::config(),
+            Self::Haskell => haskell::config(),
+            Self::Idris => idris::config(),
+            Self::Java => java::config(),
+            Self::JavaScript => javascript::config(),
+            Self::Julia => julia::config(),
+            Self::Kotlin => kotlin::config(),
+            Self::Lua => lua::config(),
+            Self::Mercury => mercury::config(),
+            Self::Nim => nim::config(),
+            Self::Nix => nix::config(),
+            Self::Ocaml => ocaml::config(),
+            Self::Pascal => pascal::config(),
+            Self::Perl => perl::config(),
+            Self::Php => php::config(),
+            Self::Python => python::config(),
+        }
+    }
+
+    pub fn run_instructions(
+        &self,
+        main_file: PathBuf,
+        other_files: Vec<PathBuf>,
+    ) -> RunInstructions {
+        self.run_instructions_fn()(main_file, other_files)
+    }
+
+    fn run_instructions_fn(&self) -> RunInstructionsFn {
+        match self {
+            Self::Assembly => assembly::run_instructions,
+            Self::Ats => ats::run_instructions,
+            Self::Bash => bash::run_instructions,
+            Self::C => c::run_instructions,
+            Self::Clisp => clisp::run_instructions,
+            Self::Clojure => clojure::run_instructions,
+            Self::Cobol => cobol::run_instructions,
+            Self::CoffeeScript => coffeescript::run_instructions,
+            Self::Cpp => cpp::run_instructions,
+            Self::Crystal => crystal::run_instructions,
+            Self::Csharp => csharp::run_instructions,
+            Self::D => d::run_instructions,
+            Self::Dart => dart::run_instructions,
+            Self::Elixir => elixir::run_instructions,
+            Self::Elm => elm::run_instructions,
+            Self::Erlang => erlang::run_instructions,
+            Self::Fsharp => fsharp::run_instructions,
+            Self::Go => go::run_instructions,
+            Self::Groovy => groovy::run_instructions,
+            Self::Guile => guile::run_instructions,
+            Self::Hare => hare::run_instructions,
+            Self::Haskell => haskell::run_instructions,
+            Self::Idris => idris::run_instructions,
+            Self::Java => java::run_instructions,
+            Self::JavaScript => javascript::run_instructions,
+            Self::Julia => julia::run_instructions,
+            Self::Kotlin => kotlin::run_instructions,
+            Self::Lua => lua::run_instructions,
+            Self::Mercury => mercury::run_instructions,
+            Self::Nim => nim::run_instructions,
+            Self::Nix => nix::run_instructions,
+            Self::Ocaml => ocaml::run_instructions,
+            Self::Pascal => pascal::run_instructions,
+            Self::Perl => perl::run_instructions,
+            Self::Php => php::run_instructions,
+            Self::Python => python::run_instructions,
+        }
+    }
 }
 
 impl Display for Language {
@@ -122,85 +259,57 @@ impl Display for Language {
     }
 }
 
-#[derive(Clone)]
+#[derive(PartialEq, Eq)]
+pub struct ParseIdError;
+
+impl FromStr for Language {
+    type Err = ParseIdError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Language::list()
+            .into_iter()
+            .filter(|language| s == language.config().id.to_string())
+            .next()
+            .ok_or(ParseIdError)
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
-    id: Language,
-    name: String,
-    logo_name: String,
-    file_extension: String,
-    editor_config: EditorConfig,
-    run_config: RunConfig,
+    pub id: Language,
+    pub name: String,
+    pub logo_name: String,
+    pub file_extension: String,
+    pub editor_config: EditorConfig,
+    pub run_config: RunConfig,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EditorConfig {
-    default_filename: String,
-    mode: String,
-    use_soft_tabs: bool,
-    soft_tab_size: u8,
-    example_code: String,
+    pub default_filename: String,
+    pub mode: String,
+    pub use_soft_tabs: bool,
+    pub soft_tab_size: u8,
+    pub example_code: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RunConfig {
-    container_image: String,
-    version_command: String,
+    pub container_image: String,
+    pub version_command: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RunInstructions {
     pub build_commands: Vec<String>,
     pub run_command: String,
 }
 
-pub fn languages() -> Vec<Config> {
-    vec![c::config(), assembly::config()]
-}
-
-pub fn run_instructions(
-    id: &Language,
-    main_file: PathBuf,
-    other_files: Vec<PathBuf>,
-) -> RunInstructions {
-    match id {
-        Language::C => c::run_instructions(main_file, other_files),
-        Language::Assembly => assembly::run_instructions(main_file, other_files),
-        Language::Ats => ats::run_instructions(main_file, other_files),
-        Language::Bash => bash::run_instructions(main_file, other_files),
-        Language::Clisp => clisp::run_instructions(main_file, other_files),
-        Language::Clojure => clojure::run_instructions(main_file, other_files),
-        Language::Cobol => cobol::run_instructions(main_file, other_files),
-        Language::CoffeeScript => coffeescript::run_instructions(main_file, other_files),
-        Language::Cpp => cpp::run_instructions(main_file, other_files),
-        Language::Crystal => crystal::run_instructions(main_file, other_files),
-        Language::Csharp => csharp::run_instructions(main_file, other_files),
-        Language::D => d::run_instructions(main_file, other_files),
-        Language::Dart => dart::run_instructions(main_file, other_files),
-        Language::Elixir => elixir::run_instructions(main_file, other_files),
-        Language::Elm => elm::run_instructions(main_file, other_files),
-        Language::Erlang => erlang::run_instructions(main_file, other_files),
-        Language::Fsharp => fsharp::run_instructions(main_file, other_files),
-        Language::Go => go::run_instructions(main_file, other_files),
-        Language::Groovy => groovy::run_instructions(main_file, other_files),
-        Language::Guile => guile::run_instructions(main_file, other_files),
-        Language::Hare => hare::run_instructions(main_file, other_files),
-        Language::Haskell => haskell::run_instructions(main_file, other_files),
-        Language::Idris => idris::run_instructions(main_file, other_files),
-        Language::Java => java::run_instructions(main_file, other_files),
-        Language::JavaScript => javascript::run_instructions(main_file, other_files),
-        Language::Julia => julia::run_instructions(main_file, other_files),
-        Language::Kotlin => kotlin::run_instructions(main_file, other_files),
-        Language::Lua => lua::run_instructions(main_file, other_files),
-        Language::Mercury => mercury::run_instructions(main_file, other_files),
-        Language::Nim => nim::run_instructions(main_file, other_files),
-        Language::Nix => nix::run_instructions(main_file, other_files),
-        Language::Ocaml => ocaml::run_instructions(main_file, other_files),
-        Language::Pascal => pascal::run_instructions(main_file, other_files),
-        Language::Perl => perl::run_instructions(main_file, other_files),
-        Language::Php => php::run_instructions(main_file, other_files),
-        Language::Python => python::run_instructions(main_file, other_files),
-    }
-}
+type RunInstructionsFn = fn(PathBuf, Vec<PathBuf>) -> RunInstructions;
 
 /* HELPER FUNCTIONS */
 

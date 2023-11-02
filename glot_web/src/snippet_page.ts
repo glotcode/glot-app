@@ -14,7 +14,7 @@ AceEditorElement.register();
   const windowSize = browserWindow.getSize();
 
   const poly = new Poly(snippetPage(windowSize, location.href), {
-    loggerConfig: defaultDebugConfig(),
+    //loggerConfig: defaultDebugConfig(),
   });
 
   poly.init();

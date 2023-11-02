@@ -14,8 +14,8 @@ fn main() {
             print_html(page);
         }
 
-        ["new_rust_snippet"] => {
-            let current_url = url::Url::parse("http://localhost/new/rust").unwrap();
+        ["new_python_snippet"] => {
+            let current_url = url::Url::parse("http://localhost/new/python").unwrap();
 
             let page = snippet_page::SnippetPage {
                 window_size: None,
