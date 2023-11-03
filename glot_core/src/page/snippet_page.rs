@@ -37,7 +37,7 @@ pub struct Model {
     pub stdin: String,
     pub layout_state: app_layout::State,
     pub current_route: Route,
-    pub run_response: RemoteData<String, RunResponse>,
+    pub run_result: RemoteData<String, RunResult>,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -163,7 +163,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             stdin: "".to_string(),
             layout_state: app_layout::State::new(),
             current_route,
-            run_response: RemoteData::NotAsked,
+            run_result: RemoteData::NotAsked,
         };
 
         let effects = vec![load_settings_effect()];
@@ -418,7 +418,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     },
                 };
 
-                model.run_response = RemoteData::Loading;
+                model.run_result = RemoteData::Loading;
 
                 Ok(vec![effect::app_effect(AppEffect::Run(config))])
             }
@@ -432,9 +432,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     ) -> Result<Effects<Msg, AppEffect>, String> {
         match msg.type_.as_ref() {
             "GotRunResponse" => {
-                let run_response: RunResponse = serde_json::from_value(msg.data)
+                let run_result: RunResult = serde_json::from_value(msg.data)
                     .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
-                model.run_response = RemoteData::Success(run_response);
+                model.run_result = RemoteData::Success(run_result);
                 Ok(vec![])
             }
 
@@ -639,10 +639,16 @@ pub struct RunRequest {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RunResponse {
+pub struct RunResult {
     pub stdout: String,
     pub stderr: String,
     pub error: String,
+}
+
+impl RunResult {
+    fn is_empty(&self) -> bool {
+        self.stdout.is_empty() && self.stderr.is_empty() && self.error.is_empty()
+    }
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -775,64 +781,86 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
 
             div class="overflow-hidden h-full w-full flex-1 max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
                 div class="h-full pt-4" {
-                    (view_output_panel())
+                    (view_output_panel(model))
                 }
             }
         }
     }
 }
 
-fn view_output_panel() -> Markup {
+fn view_output_panel(model: &Model) -> Markup {
     html! {
-        div class="overflow-auto h-full border border-gray-400 shadow" {
+        div class="overflow-auto h-full border-b border-x border-gray-400 shadow" {
             dl {
-                // NOTE: first visible dt should not have top border
-                dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
-                    pre { "INFO" }
-                }
-                dd class="px-4 py-2" {
-                    pre {
-                        "READY."
+                @match &model.run_result {
+                    RemoteData::NotAsked => {
+                        (view_info("READY"))
+                    }
+
+                    RemoteData::Loading => {
+                        (view_info("LOADING"))
+                    }
+
+                    RemoteData::Success(run_result) => {
+                        @if run_result.is_empty() {
+                            (view_info("EMPTY OUTPUT"))
+                        } @else {
+                            (view_run_result(run_result))
+                        }
+                    }
+
+                    RemoteData::Failure(err) => {
+                        (view_info(&format!("ERROR: {}", err)))
                     }
                 }
+            }
+        }
+    }
+}
 
-                dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-green-400" {
-                    pre { "STDOUT" }
-                }
-                dd class="px-4 py-2" {
-                    pre {
-                        "Hello World\n"
-                        "Hello World\n"
-                        "Hello World\n"
-                        "Hello World\n"
-                        "Hello World\n"
-                        "Hello World\n"
-                        "Hello World\n"
-                        "Hello World\n"
-                        "Hello World\n"
-                        "Hello World\n"
-                        "Hello World\n"
-                    }
-                }
+fn view_info(text: &str) -> Markup {
+    html! {
+        dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
+            pre { "INFO" }
+        }
+        dd class="px-4 py-2" {
+            pre { (text) }
+        }
+    }
+}
 
-                dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-yellow-400" {
-                    pre { "STDERR" }
+fn view_run_result(run_result: &RunResult) -> Markup {
+    html! {
+        @if !run_result.stdout.is_empty() {
+            dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-green-400" {
+                pre { "STDOUT" }
+            }
+            dd class="px-4 py-2" {
+                pre {
+                    (run_result.stdout)
                 }
-                dd class="px-4 py-2"{
-                    pre {
-                        "err"
-                    }
-                }
+            }
+        }
 
-                dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-red-400" {
-                    pre { "ERROR" }
+        @if !run_result.stderr.is_empty() {
+            dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-yellow-400" {
+                pre { "STDERR" }
+            }
+            dd class="px-4 py-2"{
+                pre {
+                    (run_result.stderr)
                 }
-                dd class="px-4 py-2" {
-                    pre {
-                        "Exit code: 1"
-                    }
-                }
+            }
+        }
 
+        @if !run_result.error.is_empty() {
+            dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-red-400" {
+                pre { "ERROR" }
+            }
+            dd class="px-4 py-2" {
+                pre {
+                    (run_result.error)
+                }
             }
         }
     }
