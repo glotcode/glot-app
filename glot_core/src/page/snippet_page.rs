@@ -24,6 +24,12 @@ use std::cmp::max;
 use url::Url;
 
 const MIN_EDITOR_HEIGHT: i64 = 300;
+const LOADING_TEXT: &'static str = r#"
+LOAD"*",8,1
+
+SEARCHING FOR *
+LOADING
+"#;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -799,7 +805,7 @@ fn view_output_panel(model: &Model) -> Markup {
                     }
 
                     RemoteData::Loading => {
-                        (view_info("LOADING"))
+                        (view_info(LOADING_TEXT))
                     }
 
                     RemoteData::Success(run_result) => {
