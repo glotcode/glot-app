@@ -662,6 +662,7 @@ pub struct RunRequestPayload {
 fn view_head() -> maud::Markup {
     html! {
         title { "Snippet Page" }
+        meta name="viewport" content="width=device-width, initial-scale=1";
         link id="app-styles" rel="stylesheet" href="/app.css";
         link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
         script defer nohash src="/vendor/ace/ace.js" {}

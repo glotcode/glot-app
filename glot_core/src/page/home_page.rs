@@ -107,6 +107,7 @@ pub enum AppEffect {}
 fn view_head() -> maud::Markup {
     html! {
         title { "Home Page" }
+        meta name="viewport" content="width=device-width, initial-scale=1";
         link rel="stylesheet" href="/app.css";
         link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
         script defer type="module" src="/home_page.js" {}
@@ -135,7 +136,7 @@ fn view_body(model: &Model) -> maud::Markup {
 fn view_content(model: &Model) -> Markup {
     html! {
         div class="h-full flex flex-col bg-white" {
-            div class="background-banner h-60" {
+            div class="background-banner h-60 min-h-[15rem]" {
                 div class="flex flex-col h-full items-center justify-center" {
                     img class="w-72" src="/assets/logo-white.svg" alt="glot.io logo" {}
                     p class="mt-4 text-white text-2xl" {

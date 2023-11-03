@@ -77,18 +77,11 @@ impl SidebarItem {
 }
 
 fn sidebar_items() -> Vec<SidebarItem> {
-    vec![
-        SidebarItem {
-            label: "Home".to_string(),
-            icon: heroicons_maud::home_solid(),
-            route: Route::Home,
-        },
-        SidebarItem {
-            label: "New".to_string(),
-            icon: heroicons_maud::pencil_square_solid(),
-            route: Route::NewSnippetEditor("rust".to_string()),
-        },
-    ]
+    vec![SidebarItem {
+        label: "Home".to_string(),
+        icon: heroicons_maud::home_solid(),
+        route: Route::Home,
+    }]
 }
 
 pub fn app_shell<Id>(
@@ -105,7 +98,7 @@ where
     html! {
         div class="h-full" {
             @if state.sidebar_is_open {
-                div class="relative z-40 md:hidden" role="dialog" aria-modal="true" {
+                div class="relative z-40 xl:hidden" role="dialog" aria-modal="true" {
                     div class="fixed inset-0 bg-gray-600 bg-opacity-75" {}
                     div class="fixed inset-0 flex z-40" {
                         div class="relative flex-1 flex flex-col max-w-xs w-full bg-gray-800" {
@@ -136,7 +129,7 @@ where
                 }
             }
 
-            div class="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0" {
+            div class="hidden xl:flex xl:w-60 xl:flex-col xl:fixed xl:inset-y-0" {
                 div class="flex-1 flex flex-col min-h-0 bg-gray-800" {
                     div class="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto" {
                         div class="flex items-center flex-shrink-0 px-4" {
@@ -150,8 +143,8 @@ where
                     }
                 }
             }
-            div class="h-full md:pl-60 flex flex-col flex-1" {
-                div class="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-100" {
+            div class="h-full xl:pl-60 flex flex-col flex-1" {
+                div class="sticky top-0 z-10 xl:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-100" {
                     button id=(config.open_sidebar_id) class="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" type="button" {
                         span class="sr-only" {
                             "Open sidebar"
