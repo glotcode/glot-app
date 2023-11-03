@@ -1,12 +1,14 @@
 use crate::common::route::Route;
 use crate::language;
 use crate::layout::app_layout;
+use crate::util::remote_data::RemoteData;
 use crate::util::select_list::SelectList;
 use crate::view::dropdown;
 use crate::view::modal;
 use maud::html;
 use maud::Markup;
 use poly::browser;
+use poly::browser::effect;
 use poly::browser::effect::dom;
 use poly::browser::effect::local_storage;
 use poly::browser::Capture;
@@ -14,6 +16,7 @@ use poly::browser::DomId;
 use poly::browser::Effect;
 use poly::browser::Effects;
 use poly::browser::WindowSize;
+use poly::page::JsMsg;
 use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
@@ -34,6 +37,7 @@ pub struct Model {
     pub stdin: String,
     pub layout_state: app_layout::State,
     pub current_route: Route,
+    pub run_response: RemoteData<String, RunResponse>,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -62,6 +66,7 @@ enum Id {
     Stdin,
     UpdateStdin,
     ClearStdin,
+    Run,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -87,6 +92,7 @@ pub enum Msg {
     ClearStdinClicked,
     OpenSidebarClicked,
     CloseSidebarClicked,
+    RunClicked,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -157,6 +163,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             stdin: "".to_string(),
             layout_state: app_layout::State::new(),
             current_route,
+            run_response: RemoteData::NotAsked,
         };
 
         let effects = vec![load_settings_effect()];
@@ -192,6 +199,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click(Id::UpdateStdin, Msg::UpdateStdinClicked),
             browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
             browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
+            browser::on_click_closest(Id::Run, Msg::RunClicked),
         ]
     }
 
@@ -399,6 +407,42 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 Ok(vec![])
             }
+
+            Msg::RunClicked => {
+                let config = RunRequest {
+                    image: model.language.run_config.container_image.clone(),
+                    payload: RunRequestPayload {
+                        language: model.language.id.clone(),
+                        files: model.files.to_vec(),
+                        stdin: model.stdin.clone(),
+                    },
+                };
+
+                model.run_response = RemoteData::Loading;
+
+                Ok(vec![effect::app_effect(AppEffect::Run(config))])
+            }
+        }
+    }
+
+    fn update_from_js(
+        &self,
+        msg: JsMsg,
+        model: &mut Model,
+    ) -> Result<Effects<Msg, AppEffect>, String> {
+        match msg.type_.as_ref() {
+            "GotRunResponse" => {
+                let run_response: RunResponse = serde_json::from_value(msg.data)
+                    .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
+                model.run_response = RemoteData::Success(run_response);
+                Ok(vec![])
+            }
+
+            _ => {
+                let log_effect =
+                    browser::console::log(&format!("Got unknown message from JS: {}", msg.type_));
+                Ok(vec![log_effect])
+            }
         }
     }
 
@@ -580,8 +624,34 @@ impl EditorTheme {
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type", content = "config")]
 #[serde(rename_all = "camelCase")]
-pub enum AppEffect {}
+pub enum AppEffect {
+    Run(RunRequest),
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunRequest {
+    pub image: String,
+    pub payload: RunRequestPayload,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunResponse {
+    pub stdout: String,
+    pub stderr: String,
+    pub error: String,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunRequestPayload {
+    pub language: language::Language,
+    pub files: Vec<File>,
+    pub stdin: String,
+}
 
 fn view_head() -> maud::Markup {
     html! {
@@ -845,7 +915,7 @@ fn view_stdin_bar(model: &Model) -> Markup {
 fn view_action_bar() -> Markup {
     html! {
         div class="h-12 flex border-t border-gray-400" {
-            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm" type="button" {
+            button id=(Id::Run) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons_maud::play_outline()) }
                 span { "RUN" }
             }

@@ -3,8 +3,6 @@ import { BrowserWindow, Poly } from "poly";
 import { defaultDebugConfig } from "poly/src/logger";
 import { AceEditorElement } from "poly-ace-editor";
 
-// poly-ace-editor is imported to make the custom element available
-// Assign to variable to prevent dead code elimination
 AceEditorElement.register();
 
 (async () => {
@@ -17,5 +15,27 @@ AceEditorElement.register();
     //loggerConfig: defaultDebugConfig(),
   });
 
+  poly.onAppEffect((msg) => {
+    switch (msg.type) {
+      case "run":
+        run(poly, msg.config);
+        break;
+    }
+  });
+
   poly.init();
 })();
+
+async function run(poly: Poly, data: any) {
+  const response = await fetch("/api/run", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  const runResponse = await response.json();
+
+  poly.sendMessage("GotRunResponse", runResponse);
+}
