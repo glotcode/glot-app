@@ -738,13 +738,13 @@ fn view_spinner() -> maud::Markup {
 }
 
 fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
-    let editor_height = max(i64::from(window_size.height) / 2, MIN_EDITOR_HEIGHT);
+    let editor_height = max((window_size.height as f64 * 0.6) as i64, MIN_EDITOR_HEIGHT);
     let inline_styles = format!("height: {}px;", editor_height);
     let height = format!("{}px", editor_height);
     let content = model.files.selected().content;
 
     html! {
-        div class="py-6 h-full flex flex-col" {
+        div class="pt-6 h-full flex flex-col" {
             div {
                 div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" {
                     h1 class="text-2xl font-semibold text-gray-900" {
@@ -754,7 +754,7 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
 
                 div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
                     div class="pt-3" {
-                        div class="border border-gray-400 shadow" {
+                        div class="border border-gray-400 shadow-lg" {
                             (view_tab_bar(model))
 
                             poly-ace-editor id=(Id::Editor)
@@ -779,7 +779,7 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
                 }
             }
 
-            div class="overflow-hidden h-full w-full flex-1 max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
+            div class="w-full flex-1 max-w-7xl mx-auto pb-4 px-4 sm:px-6 md:px-8" {
                 div class="h-full pt-4" {
                     (view_output_panel(model))
                 }
@@ -790,7 +790,7 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
 
 fn view_output_panel(model: &Model) -> Markup {
     html! {
-        div class="overflow-auto h-full border-b border-x border-gray-400 shadow" {
+        div class="overflow-auto h-full border-b border-x border-gray-400 shadow-lg" {
             dl {
                 @match &model.run_result {
                     RemoteData::NotAsked => {
