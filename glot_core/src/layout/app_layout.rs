@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub fn render_page(markup: PageMarkup<Markup>) -> String {
     (html! {
         (maud::DOCTYPE)
-        html class="h-full bg-gray-100" {
+        html class="h-full bg-white" {
             head {
                 meta charset="utf-8";
                 (markup.head)

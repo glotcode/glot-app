@@ -285,6 +285,12 @@ pub struct Config {
     pub run_config: RunConfig,
 }
 
+impl Config {
+    pub fn svg_icon_path(&self) -> String {
+        format!("/assets/language/{}.svg", self.logo_name)
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorConfig {

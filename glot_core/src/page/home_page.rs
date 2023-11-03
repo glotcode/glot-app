@@ -1,4 +1,6 @@
 use crate::common::route::Route;
+use crate::language;
+use crate::language::Language;
 use crate::layout::app_layout;
 use crate::view::features;
 use crate::view::language_grid;
@@ -17,6 +19,7 @@ use url::Url;
 pub struct Model {
     pub current_route: Route,
     pub layout_state: app_layout::State,
+    pub languages: Vec<language::Config>,
 }
 
 pub struct HomePage {
@@ -29,9 +32,15 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 
     fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
+        let languages: Vec<language::Config> = Language::list()
+            .iter()
+            .map(|language| language.config())
+            .collect();
+
         let model = Model {
             layout_state: app_layout::State::new(),
             current_route: Route::Home,
+            languages,
         };
 
         let effects = vec![];
@@ -123,7 +132,7 @@ fn view_body(model: &Model) -> maud::Markup {
     }
 }
 
-fn view_content(_model: &Model) -> Markup {
+fn view_content(model: &Model) -> Markup {
     html! {
         div class="h-full flex flex-col bg-white" {
             div class="background-banner h-60" {
@@ -146,7 +155,7 @@ fn view_content(_model: &Model) -> Markup {
                         features::Feature {
                             icon: heroicons_maud::play_outline(),
                             title: "Run code",
-                            description: "Support for over 40 languages. If your favorite language or library is missing you can open an issue or pull request on GitHub to get it added.",
+                            description: &format!("Support for {} different languages. If your favorite language or library is missing you can open an issue or pull request on GitHub to get it added.", model.languages.len()),
                         },
                         features::Feature {
                             icon: heroicons_maud::share_outline(),
@@ -176,66 +185,18 @@ fn view_content(_model: &Model) -> Markup {
                     }
 
                     div class="mt-4" {
-                        (language_grid::view(&[
-                            language_grid::Language{
-                                name: "Assembly",
-                                icon_path: "/assets/language/generic.svg",
-                                route: Route::NewSnippetEditor("assembly".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "ATS",
-                                icon_path: "/assets/language/ats.svg",
-                                route: Route::NewSnippetEditor("ats".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "Bash",
-                                icon_path: "/assets/language/bash.svg",
-                                route: Route::NewSnippetEditor("bash".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "C",
-                                icon_path: "/assets/language/c.svg",
-                                route: Route::NewSnippetEditor("c".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "Clojure",
-                                icon_path: "/assets/language/clojure.svg",
-                                route: Route::NewSnippetEditor("clojure".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "Cobol",
-                                icon_path: "/assets/language/generic.svg",
-                                route: Route::NewSnippetEditor("cobol".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "CoffeeScript",
-                                icon_path: "/assets/language/coffeescript.svg",
-                                route: Route::NewSnippetEditor("coffeescript".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "C++",
-                                icon_path: "/assets/language/cpp.svg",
-                                route: Route::NewSnippetEditor("cpp".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "Crystal",
-                                icon_path: "/assets/language/crystal.svg",
-                                route: Route::NewSnippetEditor("crystal".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "D",
-                                icon_path: "/assets/language/d.svg",
-                                route: Route::NewSnippetEditor("d".to_string()),
-                            },
-                            language_grid::Language{
-                                name: "Rust",
-                                icon_path: "/assets/language/rust.svg",
-                                route: Route::NewSnippetEditor("rust".to_string()),
-                            }
-                        ]))
+                        (language_grid::view(model.languages.iter().map(to_grid_language).collect::<Vec<_>>()))
                     }
                 }
             }
         }
+    }
+}
+
+fn to_grid_language(language: &language::Config) -> language_grid::Language {
+    language_grid::Language {
+        name: language.name.clone(),
+        icon_path: language.svg_icon_path(),
+        route: Route::NewSnippetEditor(language.id.to_string()),
     }
 }
