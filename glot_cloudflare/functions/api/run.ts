@@ -1,23 +1,16 @@
 export async function onRequestPost({ request, env }) {
   const envVars = parseEnvVars(env);
-  const runRequest = await request.json();
-  const response = await run(envVars, runRequest);
-
-  return new Response(response.body, {
-    headers: {
-      "content-type": "application/json",
-    },
-  });
+  return run(envVars, request.body);
 }
 
-async function run(env: EnvVars, runRequest) {
+function run(env: EnvVars, body) {
   return fetch(`${env.dockerRunBaseUrl}/run`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Access-Token": env.dockerRunAccessToken,
     },
-    body: JSON.stringify(runRequest),
+    body: body,
   });
 }
 
