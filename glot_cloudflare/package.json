@@ -5,10 +5,17 @@
   "main": "index.js",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231025.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "wrangler": "^3.15.0"
   },
   "scripts": {
-      "server": "wrangler pages dev ../dist"
+    "server": "wrangler pages dev ../dist",
+    "db:migrations:print": "tsc scripts/migrations.ts && node scripts/migrations.js && rm scripts/migrations.js",
+    "db:migrations:list": "wrangler d1 migrations list glot --local",
+    "db:migrations:create": "wrangler d1 migrations create glot",
+    "db:migrations:apply": "wrangler d1 migrations apply glot --local",
+    "db:tables:drop": "wrangler d1 execute glot --local --command \"DROP TABLE files; DROP TABLE snippets; DROP TABLE users;\"",
+    "db:tables:list": "wrangler d1 execute glot --local --command \"PRAGMA table_list\""
   },
   "author": "",
   "license": "ISC"
