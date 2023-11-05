@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use url::Url;
 
-const MIN_EDITOR_HEIGHT: i64 = 300;
+const MIN_EDITOR_HEIGHT: u64 = 300;
 const LOADING_TEXT: &'static str = r#"
 LOAD"*",8,1
 
@@ -745,7 +745,7 @@ fn view_spinner() -> maud::Markup {
 }
 
 fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
-    let editor_height = max((window_size.height as f64 * 0.6) as i64, MIN_EDITOR_HEIGHT);
+    let editor_height = calc_editor_height(window_size);
     let inline_styles = format!("height: {}px;", editor_height);
     let height = format!("{}px", editor_height);
     let content = model.files.selected().content;
@@ -1187,4 +1187,18 @@ fn language_from_route(route: &Route) -> Option<language::Language> {
         Route::NewSnippetEditor(id) => id.parse().ok(),
         _ => None,
     }
+}
+
+fn calc_editor_height(window_size: &WindowSize) -> u64 {
+    let height = if window_size.height < 800 {
+        (window_size.height as f64 * 0.4) as u64
+    } else if window_size.height < 1100 {
+        (window_size.height as f64 * 0.5) as u64
+    } else if window_size.height < 1400 {
+        (window_size.height as f64 * 0.6) as u64
+    } else {
+        (window_size.height as f64 * 0.7) as u64
+    };
+
+    max(height, MIN_EDITOR_HEIGHT)
 }

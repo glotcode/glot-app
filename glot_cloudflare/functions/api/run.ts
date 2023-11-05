@@ -4,7 +4,9 @@ export async function onRequestPost({ request, env }) {
 }
 
 function run(env: EnvVars, body) {
-  return fetch(`${env.dockerRunBaseUrl}/run`, {
+  const url = `${env.dockerRunBaseUrl}/run`;
+
+  return fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
