@@ -801,7 +801,7 @@ fn view_output_panel(model: &Model) -> Markup {
             dl {
                 @match &model.run_result {
                     RemoteData::NotAsked => {
-                        (view_info("READY"))
+                        (view_info("READY."))
                     }
 
                     RemoteData::Loading => {
