@@ -1,12 +1,15 @@
 use std::process::Command;
 
 fn main() {
-    let result = Command::new("git").args(&["rev-parse", "HEAD"]).output();
+    let commit_hash = get_commit_hash().unwrap_or_else(|| "unknown".to_string());
+    println!("cargo:rustc-env=GIT_HASH={}", commit_hash);
+}
 
-    let v = match result {
-        Ok(output) => String::from_utf8(output.stdout).unwrap(),
+fn get_commit_hash() -> Option<String> {
+    let output = Command::new("git")
+        .args(&["rev-parse", "HEAD"])
+        .output()
+        .ok()?;
 
-        Err(_) => "unknown".to_string(),
-    };
-    println!("cargo:rustc-env=GIT_HASH={}", v);
+    String::from_utf8(output.stdout).ok()
 }
