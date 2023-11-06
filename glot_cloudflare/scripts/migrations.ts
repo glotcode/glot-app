@@ -17,7 +17,7 @@ const usersIndexes: string = [
 
 const snippetsTable: string = createTable("snippets", [
   "id INTEGER PRIMARY KEY",
-  "user_id INTEGER NOT NULL",
+  "user_id INTEGER",
   "slug TEXT NOT NULL",
   "language TEXT NOT NULL",
   "title TEXT NOT NULL",
@@ -42,7 +42,7 @@ const snippetsIndexes: string = [
 const filesTable: string = createTable("files", [
   "id INTEGER PRIMARY KEY",
   "snippet_id INTEGER NOT NULL",
-  "user_id INTEGER NOT NULL",
+  "user_id INTEGER",
   "name TEXT NOT NULL",
   "content BLOB NOT NULL",
   "created_at TEXT NOT NULL",
