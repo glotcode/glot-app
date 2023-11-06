@@ -128,7 +128,6 @@ where
                                     a class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" href=(commit_url) {
                                         (&commit_hash[0..7])
                                     }
-
                                 }
                             }
                         }
@@ -147,6 +146,12 @@ where
                         nav class="mt-5 flex-1 px-2 space-y-1" {
                             @for item in &items {
                                 (item.view(current_route))
+                            }
+                        }
+                        div class="ml-4 text-white" {
+                            "Version: "
+                            a class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" href=(commit_url) {
+                                (&commit_hash[0..7])
                             }
                         }
                     }
