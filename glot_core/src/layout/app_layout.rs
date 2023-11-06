@@ -125,7 +125,7 @@ where
                                 }
                                 div class="ml-4 text-white" {
                                     "Version: "
-                                    a class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" href=(commit_url) {
+                                    a href=(commit_url) class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" target="_blank" {
                                         (&commit_hash[0..7])
                                     }
                                 }
@@ -150,7 +150,7 @@ where
                         }
                         div class="ml-4 text-white" {
                             "Version: "
-                            a class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" href=(commit_url) {
+                            a href=(commit_url) class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" target="_blank" {
                                 (&commit_hash[0..7])
                             }
                         }
