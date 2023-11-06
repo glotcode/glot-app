@@ -20,6 +20,9 @@ AceEditorElement.register();
       case "run":
         run(poly, msg.config);
         break;
+      case "createSnippet":
+        createSnippet(poly, msg.config);
+        break;
     }
   });
 
@@ -38,4 +41,18 @@ async function run(poly: Poly, data: any) {
   const runResponse = await response.json();
 
   poly.sendMessage("GotRunResponse", runResponse);
+}
+
+async function createSnippet(poly: Poly, data: any) {
+  const response = await fetch("/api/snippets", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  const snippet = await response.json();
+
+  poly.sendMessage("GotCreateSnippetResponse", snippet);
 }

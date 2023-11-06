@@ -1,6 +1,10 @@
 use crate::common::route::Route;
 use crate::language;
 use crate::layout::app_layout;
+use crate::snippet::Snippet;
+use crate::snippet::UnsavedFile;
+use crate::snippet::UnsavedSnippet;
+use crate::snippet::Visibility;
 use crate::util::remote_data::RemoteData;
 use crate::util::select_list::SelectList;
 use crate::view::dropdown;
@@ -36,7 +40,7 @@ LOADING
 pub struct Model {
     pub window_size: Option<WindowSize>,
     pub language: language::Config,
-    pub files: SelectList<File>,
+    pub files: SelectList<UnsavedFile>,
     pub active_modal: Modal,
     pub editor_keyboard_bindings: EditorKeyboardBindings,
     pub editor_theme: EditorTheme,
@@ -73,6 +77,7 @@ enum Id {
     UpdateStdin,
     ClearStdin,
     Run,
+    SaveSnippet,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -99,6 +104,7 @@ pub enum Msg {
     OpenSidebarClicked,
     CloseSidebarClicked,
     RunClicked,
+    SaveSnippetClicked,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -124,21 +130,6 @@ pub struct StdinState {
     stdin: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct File {
-    pub name: String,
-    pub content: String,
-}
-
-impl Default for File {
-    fn default() -> Self {
-        Self {
-            name: "untitled".to_string(),
-            content: "".to_string(),
-        }
-    }
-}
-
 pub struct SnippetPage {
     pub window_size: Option<WindowSize>,
     pub current_url: Url,
@@ -154,7 +145,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         let language = language_from_route(&current_route).ok_or("Unknown language".to_string())?;
         let language_config = language.config();
 
-        let file = File {
+        let file = UnsavedFile {
             name: language_config.editor_config.default_filename.clone(),
             content: language_config.editor_config.example_code.clone(),
         };
@@ -206,6 +197,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
             browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
             browser::on_click_closest(Id::Run, Msg::RunClicked),
+            browser::on_click_closest(Id::SaveSnippet, Msg::SaveSnippetClicked),
         ]
     }
 
@@ -290,7 +282,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 if let Modal::File(state) = &mut model.active_modal {
                     match validate_filename(&model.files, &state.filename, true) {
                         Ok(_) => {
-                            model.files.push(File {
+                            model.files.push(UnsavedFile {
                                 name: state.filename.clone(),
                                 content: "".to_string(),
                             });
@@ -428,6 +420,20 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 Ok(vec![effect::app_effect(AppEffect::Run(config))])
             }
+
+            Msg::SaveSnippetClicked => {
+                let snippet = UnsavedSnippet {
+                    language: model.language.id.to_string(),
+                    title: "TODO".to_string(),
+                    visibility: Visibility::Public,
+                    stdin: model.stdin.clone(),
+                    run_command: "".to_string(),
+                    files: model.files.to_vec(),
+                };
+
+                let create_snippet_effect = AppEffect::CreateSnippet(snippet);
+                Ok(vec![effect::app_effect(create_snippet_effect)])
+            }
         }
     }
 
@@ -442,6 +448,13 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
                 model.run_result = RemoteData::Success(run_result);
                 Ok(vec![])
+            }
+
+            "GotCreateSnippetResponse" => {
+                let snippet: Snippet = serde_json::from_value(msg.data)
+                    .map_err(|err| format!("Failed to decode snippet from js: {}", err))?;
+                let log_effect = browser::console::log(&format!("Got snippet: {}", snippet.slug));
+                Ok(vec![log_effect])
             }
 
             _ => {
@@ -468,7 +481,11 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 }
 
-fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> Result<(), String> {
+fn validate_filename(
+    files: &SelectList<UnsavedFile>,
+    filename: &str,
+    is_new: bool,
+) -> Result<(), String> {
     let is_duplicate = files
         .to_vec()
         .iter()
@@ -634,6 +651,7 @@ impl EditorTheme {
 #[serde(rename_all = "camelCase")]
 pub enum AppEffect {
     Run(RunRequest),
+    CreateSnippet(UnsavedSnippet),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -661,7 +679,7 @@ impl RunResult {
 #[serde(rename_all = "camelCase")]
 pub struct RunRequestPayload {
     pub language: language::Language,
-    pub files: Vec<File>,
+    pub files: Vec<UnsavedFile>,
     pub stdin: String,
 }
 
@@ -899,7 +917,7 @@ fn view_tab_bar(model: &Model) -> Markup {
     }
 }
 
-fn view_file_tab(model: &Model, file: &File) -> Markup {
+fn view_file_tab(model: &Model, file: &UnsavedFile) -> Markup {
     let is_selected = model.files.selected().name == file.name;
     let id = is_selected.then_some(Id::SelectedFile);
 
@@ -955,7 +973,7 @@ fn view_action_bar() -> Markup {
                 span { "RUN" }
             }
 
-            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
+            button id=(Id::SaveSnippet) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons_maud::cloud_arrow_up_outline()) }
                 span { "SAVE" }
             }
