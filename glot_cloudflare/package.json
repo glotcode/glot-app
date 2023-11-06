@@ -14,8 +14,16 @@
     "db:migrations:list": "wrangler d1 migrations list glot --local",
     "db:migrations:create": "wrangler d1 migrations create glot",
     "db:migrations:apply": "wrangler d1 migrations apply glot --local",
-    "db:tables:drop": "wrangler d1 execute glot --local --command \"DROP TABLE files; DROP TABLE snippets; DROP TABLE users;\"",
-    "db:tables:list": "wrangler d1 execute glot --local --command \"PRAGMA table_list\""
+    "db:tables:drop:users": "wrangler d1 execute glot --local --command \"DROP TABLE IF EXISTS users\"",
+    "db:tables:drop:snippets": "wrangler d1 execute glot --local --command \"DROP TABLE IF EXISTS snippets\"",
+    "db:tables:drop:files": "wrangler d1 execute glot --local --command \"DROP TABLE IF EXISTS files\"",
+    "db:tables:drop:migrations": "wrangler d1 execute glot --local --command \"DROP TABLE IF EXISTS d1_migrations\"",
+    "db:tables:drop:all": "npm run db:tables:drop:migrations && npm run db:tables:drop:snippets && npm run db:tables:drop:files && npm run db:tables:drop:users",
+    "db:tables:list": "wrangler d1 execute glot --local --command \"PRAGMA table_list\"",
+    "db:tables:info:users": "wrangler d1 execute glot --local --command \"PRAGMA table_info(users)\"",
+    "db:tables:info:snippets": "wrangler d1 execute glot --local --command \"PRAGMA table_info(snippets)\"",
+    "db:tables:info:files": "wrangler d1 execute glot --local --command \"PRAGMA table_info(files)\"",
+    "db:exec": "wrangler d1 execute glot --local --command"
   },
   "author": "",
   "license": "ISC"

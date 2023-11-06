@@ -3,7 +3,7 @@ const usersTable: string = createTable("users", [
   "email TEXT NOT NULL",
   "username TEXT NOT NULL",
   "name TEXT NOT NULL",
-  "password TEXT NOT NULL",
+  "password_hash TEXT NOT NULL",
   "created_at TEXT NOT NULL",
   "updated_at TEXT NOT NULL",
 ]);
@@ -27,7 +27,7 @@ const snippetsTable: string = createTable("snippets", [
   "suspected_spam INTEGER NOT NULL",
   "created_at TEXT NOT NULL",
   "updated_at TEXT NOT NULL",
-  "FOREIGN KEY(user_id) REFERENCES users(id)",
+  "FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE",
 ]);
 
 const snippetsIndexes: string = [
@@ -47,8 +47,8 @@ const filesTable: string = createTable("files", [
   "content BLOB NOT NULL",
   "created_at TEXT NOT NULL",
   "updated_at TEXT NOT NULL",
-  "FOREIGN KEY(snippet_id) REFERENCES snippets(id)",
-  "FOREIGN KEY(user_id) REFERENCES users(id)",
+  "FOREIGN KEY(snippet_id) REFERENCES snippets(id) ON UPDATE CASCADE ON DELETE CASCADE",
+  "FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE",
 ]);
 
 const filesIndexes: string = [
