@@ -1,5 +1,5 @@
 const usersTable: string = createTable("users", [
-  "id INTEGER PRIMARY KEY",
+  "id TEXT PRIMARY KEY NOT NULL",
   "email TEXT NOT NULL",
   "username TEXT NOT NULL",
   "name TEXT NOT NULL",
@@ -16,8 +16,8 @@ const usersIndexes: string = [
 ].join("\n");
 
 const snippetsTable: string = createTable("snippets", [
-  "id INTEGER PRIMARY KEY",
-  "user_id INTEGER",
+  "id TEXT PRIMARY KEY NOT NULL",
+  "user_id TEXT",
   "slug TEXT NOT NULL",
   "language TEXT NOT NULL",
   "title TEXT NOT NULL",
@@ -40,9 +40,9 @@ const snippetsIndexes: string = [
 ].join("\n");
 
 const filesTable: string = createTable("files", [
-  "id INTEGER PRIMARY KEY",
-  "snippet_id INTEGER NOT NULL",
-  "user_id INTEGER",
+  "id TEXT PRIMARY KEY NOT NULL",
+  "snippet_id TEXT NOT NULL",
+  "user_id TEXT",
   "name TEXT NOT NULL",
   "content BLOB NOT NULL",
   "created_at TEXT NOT NULL",
