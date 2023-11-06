@@ -94,6 +94,8 @@ where
     Id: DomId,
 {
     let items = sidebar_items();
+    let commit_hash = env!("GIT_HASH");
+    let commit_url = format!("https://github.com/glotlabs/glot/commit/{}", commit_hash);
 
     html! {
         div class="h-full" {
@@ -112,14 +114,21 @@ where
                                     }
                                 }
                             }
-                            div class="flex-1 h-0 pt-5 pb-4 overflow-y-auto" {
+                            div class="flex-1 h-0 pt-5 pb-4 overflow-y-auto flex flex-col" {
                                 div class="flex-shrink-0 flex items-center px-4" {
                                     img class="h-10 w-auto" src="/assets/logo-white.svg" alt="glot.io logo";
                                 }
-                                nav class="mt-5 px-2 space-y-1" {
+                                nav class="mt-5 px-2 space-y-1 flex-1" {
                                     @for item in &items {
                                         (item.view(current_route))
                                     }
+                                }
+                                div class="ml-4 text-white" {
+                                    "Version: "
+                                    a class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" href=(commit_url) {
+                                        (&commit_hash[0..7])
+                                    }
+
                                 }
                             }
                         }
