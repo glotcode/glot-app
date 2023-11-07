@@ -522,8 +522,14 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             "GotCreateSnippetResponse" => {
                 let snippet: Snippet = serde_json::from_value(msg.data)
                     .map_err(|err| format!("Failed to decode snippet from js: {}", err))?;
-                let log_effect = browser::console::log(&format!("Got snippet: {}", snippet.id));
-                Ok(vec![log_effect])
+
+                let route = Route::EditSnippet(snippet.id.clone());
+                let url_effect = browser::push_url(&route.to_path());
+
+                model.snippet = Some(snippet);
+                model.current_route = route;
+
+                Ok(vec![url_effect])
             }
 
             _ => {
