@@ -6,8 +6,7 @@ import { AceEditorElement } from "poly-ace-editor";
 AceEditorElement.register();
 
 (async () => {
-  const snippetId = snippetIdFromUrl(location.href);
-  const snippetPromise = fetchSnippet(snippetId);
+  const snippetPromise = getSnippet();
 
   await init("/wasm/glot_bg.wasm");
   const snippet = await snippetPromise;
@@ -67,7 +66,25 @@ async function fetchSnippet(snippetId: string): Promise<unknown> {
   return response.json();
 }
 
-function snippetIdFromUrl(url: string): string {
-  const parts = url.split("/");
+function getSnippet(): Promise<unknown> {
+  const snippetId = snippetIdFromPath(location.pathname);
+  if (snippetId) {
+    return fetchSnippet(snippetId);
+  }
+
+  return Promise.resolve(null);
+}
+
+function snippetIdFromPath(path: string): string | null {
+  const parts = path.slice(1).split("/");
+
+  if (parts.length != 2) {
+    return null;
+  }
+
+  if (parts[0] !== "snippets") {
+    return null;
+  }
+
   return parts.pop() as string;
 }
