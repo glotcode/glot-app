@@ -138,7 +138,7 @@ fn view_content(model: &Model) -> Markup {
         div class="h-full flex flex-col bg-white" {
             div class="background-banner h-60 min-h-[15rem]" {
                 div class="flex flex-col h-full items-center justify-center" {
-                    img class="w-72" src="/assets/logo-white.svg" alt="glot.io logo" {}
+                    img class="h-[100px]" src="/assets/logo-white.svg" alt="glot.io logo" {}
                     p class="mt-4 text-white text-2xl" {
                         span { "an " }
                         a href="https://github.com/glotcode/glot" class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" {
