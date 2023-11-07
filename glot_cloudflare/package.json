@@ -11,8 +11,8 @@
   "scripts": {
     "server": "wrangler pages dev ../dist",
     "db:migrations:print": "tsc scripts/migrations.ts && node scripts/migrations.js && rm scripts/migrations.js",
-    "db:migrations:list": "wrangler d1 migrations list glot --local",
     "db:migrations:create": "wrangler d1 migrations create glot",
+    "db:migrations:list": "wrangler d1 migrations list glot --local",
     "db:migrations:apply": "wrangler d1 migrations apply glot --local",
     "db:tables:drop:users": "wrangler d1 execute glot --local --command \"DROP TABLE IF EXISTS users\"",
     "db:tables:drop:snippets": "wrangler d1 execute glot --local --command \"DROP TABLE IF EXISTS snippets\"",
@@ -23,7 +23,19 @@
     "db:tables:info:users": "wrangler d1 execute glot --local --command \"PRAGMA table_info(users)\"",
     "db:tables:info:snippets": "wrangler d1 execute glot --local --command \"PRAGMA table_info(snippets)\"",
     "db:tables:info:files": "wrangler d1 execute glot --local --command \"PRAGMA table_info(files)\"",
-    "db:exec": "wrangler d1 execute glot --local --command"
+    "db:exec": "wrangler d1 execute glot --local --command",
+    "prod:db:migrations:list": "wrangler d1 migrations list glot",
+    "prod:db:migrations:apply": "wrangler d1 migrations apply glot",
+    "prod:db:tables:drop:users": "wrangler d1 execute glot --command \"DROP TABLE IF EXISTS users\"",
+    "prod:db:tables:drop:snippets": "wrangler d1 execute glot --command \"DROP TABLE IF EXISTS snippets\"",
+    "prod:db:tables:drop:files": "wrangler d1 execute glot --command \"DROP TABLE IF EXISTS files\"",
+    "prod:db:tables:drop:migrations": "wrangler d1 execute glot --command \"DROP TABLE IF EXISTS d1_migrations\"",
+    "prod:db:tables:drop:all": "npm run prod:db:tables:drop:migrations && npm run prod:db:tables:drop:snippets && npm run prod:db:tables:drop:files && npm run prod:db:tables:drop:users",
+    "prod:db:tables:list": "wrangler d1 execute glot --command \"PRAGMA table_list\"",
+    "prod:db:tables:info:users": "wrangler d1 execute glot --command \"PRAGMA table_info(users)\"",
+    "prod:db:tables:info:snippets": "wrangler d1 execute glot --command \"PRAGMA table_info(snippets)\"",
+    "prod:db:tables:info:files": "wrangler d1 execute glot --command \"PRAGMA table_info(files)\"",
+    "prod:db:exec": "wrangler d1 execute glot --command"
   },
   "author": "",
   "license": "ISC"
