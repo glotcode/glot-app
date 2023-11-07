@@ -96,7 +96,13 @@ function fileFromUnsaved(
   };
 }
 
+// Create a new slug, which is the base36 encoding of the microseconds since the epoch.
+// Since it's not possible to get microsecond precision in JS, we add a random number to reduce the chance of a collision.
 function newSlug(timestamp: number): string {
-  const microsecondsSinceEpoch = timestamp * 1000;
+  const microsecondsSinceEpoch = timestamp * 1000 + randomInt(0, 999);
   return microsecondsSinceEpoch.toString(36);
+}
+
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }
