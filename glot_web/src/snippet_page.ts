@@ -6,12 +6,16 @@ import { AceEditorElement } from "poly-ace-editor";
 AceEditorElement.register();
 
 (async () => {
+  const snippetId = snippetIdFromUrl(location.href);
+  const snippetPromise = fetchSnippet(snippetId);
+
   await init("/wasm/glot_bg.wasm");
+  const snippet = await snippetPromise;
 
   const browserWindow = new BrowserWindow();
   const windowSize = browserWindow.getSize();
 
-  const poly = new Poly(snippetPage(windowSize, location.href), {
+  const poly = new Poly(snippetPage(snippet, windowSize, location.href), {
     //loggerConfig: defaultDebugConfig(),
   });
 
@@ -55,4 +59,15 @@ async function createSnippet(poly: Poly, data: any) {
   const snippet = await response.json();
 
   poly.sendMessage("GotCreateSnippetResponse", snippet);
+}
+
+async function fetchSnippet(snippetId: string): Promise<unknown> {
+  const url = `/api/snippets/${snippetId}`;
+  const response = await fetch(url);
+  return response.json();
+}
+
+function snippetIdFromUrl(url: string): string {
+  const parts = url.split("/");
+  return parts.pop() as string;
 }

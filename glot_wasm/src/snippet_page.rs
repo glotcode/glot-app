@@ -1,4 +1,5 @@
 use glot_core::page::snippet_page;
+use glot_core::snippet::Snippet;
 use poly::browser;
 use poly::page::wasm;
 use poly::page::Page;
@@ -11,7 +12,14 @@ pub struct SnippetPage(snippet_page::SnippetPage);
 impl_wasm_page!(SnippetPage);
 
 #[wasm_bindgen(js_name = "snippetPage")]
-pub fn new(js_window_size: JsValue, js_current_url: JsValue) -> Result<SnippetPage, JsValue> {
+pub fn new(
+    js_snippet: JsValue,
+    js_window_size: JsValue,
+    js_current_url: JsValue,
+) -> Result<SnippetPage, JsValue> {
+    let snippet: Option<Snippet> = wasm::decode_js_value(js_snippet)
+        .map_err(|err| format!("Failed to decode snippet: {}", err))?;
+
     let window_size: Option<browser::WindowSize> = wasm::decode_js_value(js_window_size)
         .map_err(|err| format!("Failed to decode window size: {}", err))?;
 
@@ -19,6 +27,7 @@ pub fn new(js_window_size: JsValue, js_current_url: JsValue) -> Result<SnippetPa
         .map_err(|err| format!("Failed to decode URL: {}", err))?;
 
     Ok(SnippetPage(snippet_page::SnippetPage {
+        snippet,
         window_size,
         current_url,
     }))

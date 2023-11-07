@@ -18,7 +18,6 @@ const usersIndexes: string = [
 const snippetsTable: string = createTable("snippets", [
   "id TEXT PRIMARY KEY NOT NULL",
   "user_id TEXT",
-  "slug TEXT NOT NULL",
   "language TEXT NOT NULL",
   "title TEXT NOT NULL",
   "visibility TEXT NOT NULL",
@@ -31,7 +30,6 @@ const snippetsTable: string = createTable("snippets", [
 ]);
 
 const snippetsIndexes: string = [
-  createIndex("snippets", ["slug"], { unique: true }),
   createIndex("snippets", ["language"]),
   createIndex("snippets", ["visibility"]),
   createIndex("snippets", ["user_id"]),

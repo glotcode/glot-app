@@ -18,6 +18,7 @@ fn main() {
             let current_url = url::Url::parse("http://localhost/new/python").unwrap();
 
             let page = snippet_page::SnippetPage {
+                snippet: None,
                 window_size: None,
                 current_url,
             };

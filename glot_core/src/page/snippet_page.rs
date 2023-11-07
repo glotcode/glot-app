@@ -1,5 +1,6 @@
 use crate::common::route::Route;
 use crate::language;
+use crate::language::Language;
 use crate::layout::app_layout;
 use crate::snippet::Snippet;
 use crate::snippet::UnsavedFile;
@@ -48,6 +49,7 @@ pub struct Model {
     pub layout_state: app_layout::State,
     pub current_route: Route,
     pub run_result: RemoteData<String, RunResult>,
+    pub snippet: Option<Snippet>,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -131,18 +133,30 @@ pub struct StdinState {
 }
 
 pub struct SnippetPage {
+    pub snippet: Option<Snippet>,
     pub window_size: Option<WindowSize>,
     pub current_url: Url,
 }
 
-impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
-    fn id(&self) -> &'static dyn DomId {
-        &Id::Glot
+impl SnippetPage {
+    fn get_model(&self) -> Result<Model, String> {
+        let current_route = Route::from_path(self.current_url.path()).ok_or("Invalid route")?;
+
+        match &current_route {
+            Route::NewSnippet(language_id) => {
+                self.model_for_new_snippet(&current_route, language_id)
+            }
+
+            Route::EditSnippet(_) => self.model_for_existing_snippet(&current_route),
+
+            _ => Err("Invalid route".to_string()),
+        }
     }
 
-    fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
-        let current_route = Route::from_path(self.current_url.path()).ok_or("Invalid route")?;
-        let language = language_from_route(&current_route).ok_or("Unknown language".to_string())?;
+    fn model_for_new_snippet(&self, route: &Route, language_id: &str) -> Result<Model, String> {
+        let language: Language = language_id
+            .parse()
+            .map_err(|_| "Unknown language".to_string())?;
         let language_config = language.config();
 
         let file = UnsavedFile {
@@ -150,7 +164,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             content: language_config.editor_config.example_code.clone(),
         };
 
-        let model = Model {
+        Ok(Model {
             window_size: self.window_size.clone(),
             language: language_config,
             files: SelectList::singleton(file),
@@ -159,11 +173,66 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             editor_theme: EditorTheme::TextMate,
             stdin: "".to_string(),
             layout_state: app_layout::State::new(),
-            current_route,
+            current_route: route.clone(),
             run_result: RemoteData::NotAsked,
+            snippet: self.snippet.clone(),
+        })
+    }
+
+    fn model_for_existing_snippet(&self, route: &Route) -> Result<Model, String> {
+        let snippet = self
+            .snippet
+            .clone()
+            .ok_or_else(|| "Expected to get a provided snippet".to_string())?;
+
+        let language: Language = snippet
+            .language
+            .parse()
+            .map_err(|_| "Unknown language".to_string())?;
+
+        let language_config = language.config();
+
+        let default_file = UnsavedFile {
+            name: language_config.editor_config.default_filename.clone(),
+            content: language_config.editor_config.example_code.clone(),
         };
 
+        let snippet_files: Vec<UnsavedFile> = snippet
+            .files
+            .iter()
+            .map(|file| UnsavedFile {
+                name: file.name.clone(),
+                content: file.content.clone(),
+            })
+            .collect();
+
+        let files = SelectList::from_vec(snippet_files)
+            .unwrap_or_else(|| SelectList::singleton(default_file));
+
+        Ok(Model {
+            window_size: self.window_size.clone(),
+            language: language_config,
+            files,
+            active_modal: Modal::None,
+            editor_keyboard_bindings: EditorKeyboardBindings::Default,
+            editor_theme: EditorTheme::TextMate,
+            stdin: snippet.stdin.to_string(),
+            layout_state: app_layout::State::new(),
+            current_route: route.clone(),
+            run_result: RemoteData::NotAsked,
+            snippet: self.snippet.clone(),
+        })
+    }
+}
+
+impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
+    fn id(&self) -> &'static dyn DomId {
+        &Id::Glot
+    }
+
+    fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
         let effects = vec![load_settings_effect()];
+        let model = self.get_model()?;
 
         Ok((model, effects))
     }
@@ -453,7 +522,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             "GotCreateSnippetResponse" => {
                 let snippet: Snippet = serde_json::from_value(msg.data)
                     .map_err(|err| format!("Failed to decode snippet from js: {}", err))?;
-                let log_effect = browser::console::log(&format!("Got snippet: {}", snippet.slug));
+                let log_effect = browser::console::log(&format!("Got snippet: {}", snippet.id));
                 Ok(vec![log_effect])
             }
 
@@ -1202,7 +1271,7 @@ fn focus_editor_effect() -> Effect<Msg, AppEffect> {
 
 fn language_from_route(route: &Route) -> Option<language::Language> {
     match route {
-        Route::NewSnippetEditor(id) => id.parse().ok(),
+        Route::NewSnippet(language_id) => language_id.parse().ok(),
         _ => None,
     }
 }

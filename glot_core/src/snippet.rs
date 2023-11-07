@@ -5,7 +5,6 @@ use serde::Serialize;
 #[serde(rename_all = "snake_case")]
 pub struct Snippet {
     pub id: String,
-    pub slug: String,
     pub language: String,
     pub title: String,
     pub visibility: Visibility,

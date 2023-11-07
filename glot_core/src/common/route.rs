@@ -1,18 +1,18 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum RouteName {
     Home,
     NewSnippet,
-    NewSnippetEditor,
+    EditSnippet,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum Route {
     Home,
-    NewSnippet,
-    NewSnippetEditor(String),
+    NewSnippet(String),
+    EditSnippet(String),
 }
 
 impl Default for Route {
@@ -31,8 +31,8 @@ impl Route {
 
         match parts.as_slice() {
             [] => Some(Route::Home),
-            ["new"] => Some(Route::NewSnippet),
-            ["new", id] => Some(Route::NewSnippetEditor(id.to_string())),
+            ["new", language] => Some(Route::NewSnippet(language.to_string())),
+            ["snippets", id] => Some(Route::EditSnippet(id.to_string())),
             _ => None,
         }
     }
@@ -40,16 +40,16 @@ impl Route {
     pub fn to_path(&self) -> String {
         match self {
             Route::Home => format!("/"),
-            Route::NewSnippet => format!("/new"),
-            Route::NewSnippetEditor(language) => format!("/new/{}", language),
+            Route::NewSnippet(language) => format!("/new/{}", language),
+            Route::EditSnippet(id) => format!("/snippets/{}", id),
         }
     }
 
     pub fn name(&self) -> RouteName {
         match self {
             Route::Home => RouteName::Home,
-            Route::NewSnippet => RouteName::NewSnippet,
-            Route::NewSnippetEditor(_) => RouteName::NewSnippetEditor,
+            Route::NewSnippet(_) => RouteName::NewSnippet,
+            Route::EditSnippet(_) => RouteName::EditSnippet,
         }
     }
 }

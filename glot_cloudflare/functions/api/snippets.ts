@@ -46,12 +46,11 @@ export const onRequestPost: PagesFunction<Env & StringRecord> = async (
 function insertSnippet(db: D1Database, snippet: Snippet): D1PreparedStatement {
   return db
     .prepare(
-      "insert into snippets (id, user_id, slug, language, title, visibility, stdin, run_command, spam_classification, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning *"
+      "insert into snippets (id, user_id, language, title, visibility, stdin, run_command, spam_classification, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning *"
     )
     .bind(
       snippet.id,
       snippet.user_id,
-      snippet.slug,
       snippet.language,
       snippet.title,
       snippet.visibility,

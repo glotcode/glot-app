@@ -6,8 +6,7 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 CREATE INDEX IF NOT EXISTS idx_users_updated_at ON users(updated_at);
 
-CREATE TABLE IF NOT EXISTS snippets (id TEXT PRIMARY KEY NOT NULL, user_id TEXT, slug TEXT NOT NULL, language TEXT NOT NULL, title TEXT NOT NULL, visibility TEXT NOT NULL, stdin TEXT NOT NULL, run_command TEXT NOT NULL, spam_classification TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_snippets_slug ON snippets(slug);
+CREATE TABLE IF NOT EXISTS snippets (id TEXT PRIMARY KEY NOT NULL, user_id TEXT, language TEXT NOT NULL, title TEXT NOT NULL, visibility TEXT NOT NULL, stdin TEXT NOT NULL, run_command TEXT NOT NULL, spam_classification TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE);
 CREATE INDEX IF NOT EXISTS idx_snippets_language ON snippets(language);
 CREATE INDEX IF NOT EXISTS idx_snippets_visibility ON snippets(visibility);
 CREATE INDEX IF NOT EXISTS idx_snippets_user_id ON snippets(user_id);
