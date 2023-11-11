@@ -86,6 +86,7 @@ fn sidebar_items() -> Vec<SidebarItem> {
 
 pub fn app_shell<Id>(
     content: Markup,
+    topbar_content: Option<Markup>,
     config: &Config<Id>,
     state: &State,
     current_route: &Route,
@@ -158,14 +159,20 @@ where
                 }
             }
             div class="h-full xl:pl-60 flex flex-col flex-1" {
-                div class="sticky top-0 z-10 xl:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-100" {
-                    button id=(config.open_sidebar_id) class="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" type="button" {
+                div class="flex sticky top-0 z-10 xl:hidden pl-1 py-0.5 sm:pl-3 bg-gray-100" {
+                    button id=(config.open_sidebar_id) class="-ml-0.5 my-auto h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" type="button" {
                         span class="sr-only" {
                             "Open sidebar"
                         }
                         span class="h-6 w-6" {
                             (heroicons_maud::bars_3_outline())
                         }
+                    }
+                    @match topbar_content {
+                        Some(markup) => {
+                            (markup)
+                        }
+                        None => {}
                     }
                 }
 

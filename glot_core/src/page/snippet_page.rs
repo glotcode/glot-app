@@ -42,6 +42,7 @@ pub struct Model {
     pub window_size: Option<WindowSize>,
     pub language: language::Config,
     pub files: SelectList<UnsavedFile>,
+    pub title: String,
     pub active_modal: Modal,
     pub editor_keyboard_bindings: EditorKeyboardBindings,
     pub editor_theme: EditorTheme,
@@ -168,6 +169,7 @@ impl SnippetPage {
             window_size: self.window_size.clone(),
             language: language_config,
             files: SelectList::singleton(file),
+            title: "Untitled".to_string(),
             active_modal: Modal::None,
             editor_keyboard_bindings: EditorKeyboardBindings::Default,
             editor_theme: EditorTheme::TextMate,
@@ -213,6 +215,7 @@ impl SnippetPage {
             window_size: self.window_size.clone(),
             language: language_config,
             files,
+            title: snippet.title,
             active_modal: Modal::None,
             editor_keyboard_bindings: EditorKeyboardBindings::Default,
             editor_theme: EditorTheme::TextMate,
@@ -493,7 +496,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::SaveSnippetClicked => {
                 let snippet = UnsavedSnippet {
                     language: model.language.id.to_string(),
-                    title: "TODO".to_string(),
+                    title: model.title.clone(),
                     visibility: Visibility::Public,
                     stdin: model.stdin.clone(),
                     run_command: "".to_string(),
@@ -781,6 +784,7 @@ fn view_body(model: &Model) -> maud::Markup {
                 Some(window_size) => {
                     (app_layout::app_shell(
                         view_content(model, window_size),
+                        Some(view_topbar_title(model)),
                         &layout_config,
                         &model.layout_state,
                         &model.current_route,
@@ -790,6 +794,7 @@ fn view_body(model: &Model) -> maud::Markup {
                 None => {
                     (app_layout::app_shell(
                         view_spinner(),
+                        None,
                         &layout_config,
                         &model.layout_state,
                         &model.current_route,
@@ -837,6 +842,14 @@ fn view_spinner() -> maud::Markup {
     }
 }
 
+fn view_topbar_title(model: &Model) -> maud::Markup {
+    html! {
+        h1 class="my-auto ml-4 text-2xl font-semibold text-gray-900" {
+            (model.title)
+        }
+    }
+}
+
 fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
     let editor_height = calc_editor_height(window_size);
     let inline_styles = format!("height: {}px;", editor_height);
@@ -846,14 +859,16 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
     html! {
         div class="pt-6 h-full flex flex-col" {
             div {
-                div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" {
-                    h1 class="text-2xl font-semibold text-gray-900" {
-                        "Untitled"
+                @if window_size.width >= 1280 {
+                    div class="max-w-7xl mx-auto pb-3 px-4 sm:px-6 lg:px-8" {
+                        h1 class="text-2xl font-semibold text-gray-900" {
+                            (model.title)
+                        }
                     }
                 }
 
                 div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
-                    div class="pt-3" {
+                    div {
                         div class="border border-gray-400 shadow-lg" {
                             (view_tab_bar(model))
 

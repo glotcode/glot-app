@@ -124,6 +124,7 @@ fn view_body(model: &Model) -> maud::Markup {
         div id=(Id::Glot) class="h-full" {
             (app_layout::app_shell(
                 view_content(model),
+                None,
                 &layout_config,
                 &model.layout_state,
                 &model.current_route,
