@@ -3,59 +3,84 @@ const usersTable: string = createTable("users", [
   "email TEXT NOT NULL",
   "username TEXT NOT NULL",
   "name TEXT NOT NULL",
-  "password_hash TEXT NOT NULL",
-  "created_at TEXT NOT NULL",
-  "updated_at TEXT NOT NULL",
+  "createdAt TEXT NOT NULL",
+  "updatedAt TEXT NOT NULL",
 ]);
 
 const usersIndexes: string = [
   createIndex("users", ["email"], { unique: true }),
   createIndex("users", ["username"]),
-  createIndex("users", ["created_at"]),
-  createIndex("users", ["updated_at"]),
+  createIndex("users", ["createdAt"]),
+  createIndex("users", ["updatedAt"]),
 ].join("\n");
 
 const snippetsTable: string = createTable("snippets", [
   "id TEXT PRIMARY KEY NOT NULL",
-  "user_id TEXT",
+  "userId TEXT",
   "language TEXT NOT NULL",
   "title TEXT NOT NULL",
   "visibility TEXT NOT NULL",
   "stdin TEXT NOT NULL",
-  "run_command TEXT NOT NULL",
-  "spam_classification TEXT NOT NULL",
-  "created_at TEXT NOT NULL",
-  "updated_at TEXT NOT NULL",
-  "FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE",
+  "runCommand TEXT NOT NULL",
+  "spamClassification TEXT NOT NULL",
+  "createdAt TEXT NOT NULL",
+  "updatedAt TEXT NOT NULL",
+  "FOREIGN KEY(userId) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE",
 ]);
 
 const snippetsIndexes: string = [
   createIndex("snippets", ["language"]),
   createIndex("snippets", ["visibility"]),
-  createIndex("snippets", ["user_id"]),
-  createIndex("snippets", ["spam_classification"]),
-  createIndex("snippets", ["created_at"]),
-  createIndex("snippets", ["updated_at"]),
+  createIndex("snippets", ["userId"]),
+  createIndex("snippets", ["spamClassification"]),
+  createIndex("snippets", ["createdAt"]),
+  createIndex("snippets", ["updatedAt"]),
 ].join("\n");
 
 const filesTable: string = createTable("files", [
   "id TEXT PRIMARY KEY NOT NULL",
-  "snippet_id TEXT NOT NULL",
-  "user_id TEXT",
+  "snippetId TEXT NOT NULL",
+  "userId TEXT",
   "name TEXT NOT NULL",
   "content TEXT NOT NULL",
-  "created_at TEXT NOT NULL",
-  "updated_at TEXT NOT NULL",
-  "FOREIGN KEY(snippet_id) REFERENCES snippets(id) ON UPDATE CASCADE ON DELETE CASCADE",
-  "FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE",
+  "createdAt TEXT NOT NULL",
+  "updatedAt TEXT NOT NULL",
+  "FOREIGN KEY(snippetId) REFERENCES snippets(id) ON UPDATE CASCADE ON DELETE CASCADE",
+  "FOREIGN KEY(userId) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE",
 ]);
 
 const filesIndexes: string = [
-  createIndex("files", ["snippet_id", "name"], { unique: true }),
-  createIndex("files", ["snippet_id"]),
-  createIndex("files", ["user_id"]),
-  createIndex("files", ["created_at"]),
-  createIndex("files", ["updated_at"]),
+  createIndex("files", ["snippetId", "name"], { unique: true }),
+  createIndex("files", ["snippetId"]),
+  createIndex("files", ["userId"]),
+  createIndex("files", ["createdAt"]),
+  createIndex("files", ["updatedAt"]),
+].join("\n");
+
+const magicLinksTable: string = createTable("magic_links", [
+  "id TEXT PRIMARY KEY NOT NULL",
+  "email TEXT NOT NULL",
+  "status TEXT NOT NULL",
+  "createdAt TEXT NOT NULL",
+  "updatedAt TEXT NOT NULL",
+]);
+
+const magicLinksIndexes: string = [
+  createIndex("magic_links", ["email"]),
+  createIndex("magic_links", ["status"]),
+].join("\n");
+
+const sessionsTable: string = createTable("sessions", [
+  "id TEXT PRIMARY KEY NOT NULL",
+  "userId TEXT NOT NULL",
+  "createdAt TEXT NOT NULL",
+  "updatedAt TEXT NOT NULL",
+  "FOREIGN KEY(userId) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE",
+]);
+
+const sessionsIndexes: string = [
+  // fmt
+  createIndex("sessions", ["userId"]),
 ].join("\n");
 
 function createTable(name: string, fields: string[]): string {
@@ -87,10 +112,13 @@ const migrations = {
     snippetsIndexes,
     filesTable,
     filesIndexes,
+    magicLinksTable,
+    magicLinksIndexes,
+    sessionsTable,
+    sessionsIndexes,
   ].join("\n\n"),
 };
 
 Object.entries(migrations).forEach(([name, migration]) => {
-  console.log(`-- ${name} --`);
   console.log(migration);
 });

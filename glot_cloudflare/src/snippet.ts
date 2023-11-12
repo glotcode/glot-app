@@ -11,32 +11,32 @@ export {
 
 interface Snippet {
   id: string;
-  user_id: string | null;
+  userId: string | null;
   language: string;
   title: string;
   visibility: string;
   stdin: string;
-  run_command: string;
-  spam_classification: String;
+  runCommand: string;
+  spamClassification: String;
   files: SnippetFile[];
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 enum SpamClassification {
-  NotSpam = "not_spam",
+  NotSpam = "notSpam",
   Suspected = "suspected",
   Spam = "spam",
 }
 
 interface SnippetFile {
   id: string;
-  snippet_id: string;
-  user_id: string | null;
+  snippetId: string;
+  userId: string | null;
   name: string;
   content: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface UnsavedSnippet {
@@ -44,7 +44,7 @@ interface UnsavedSnippet {
   title: string;
   visibility: string;
   stdin: string;
-  run_command: string;
+  runCommand: string;
   files: UnsavedFile[];
 }
 
@@ -56,53 +56,50 @@ interface UnsavedFile {
 function snippetFromUnsaved(
   unsavedSnippet: UnsavedSnippet,
   timestamp: number,
-  user_id: string
+  userId: string
 ): Snippet {
   const id = newSnippetId(timestamp);
   const date = new Date(timestamp);
 
   return {
     id,
-    user_id: user_id,
+    userId: userId,
     language: unsavedSnippet.language,
     title: unsavedSnippet.title,
     visibility: unsavedSnippet.visibility,
     stdin: unsavedSnippet.stdin,
-    run_command: unsavedSnippet.run_command,
-    spam_classification: SpamClassification.NotSpam.toString(),
+    runCommand: unsavedSnippet.runCommand,
+    spamClassification: SpamClassification.NotSpam.toString(),
     files: unsavedSnippet.files.map((file) =>
-      fileFromUnsaved(file, id, user_id, date)
+      fileFromUnsaved(file, id, userId, date)
     ),
-    created_at: date.toISOString(),
-    updated_at: date.toISOString(),
+    createdAt: date.toISOString(),
+    updatedAt: date.toISOString(),
   };
 }
 
 function fileFromUnsaved(
   unsavedFile: UnsavedFile,
-  snippet_id: string,
-  user_id: string,
+  snippetId: string,
+  userId: string,
   date: Date
 ): SnippetFile {
   return {
     id: crypto.randomUUID(),
-    snippet_id: snippet_id,
-    user_id: user_id,
+    snippetId,
+    userId,
     name: unsavedFile.name,
     content: unsavedFile.content,
-    created_at: date.toISOString(),
-    updated_at: date.toISOString(),
+    createdAt: date.toISOString(),
+    updatedAt: date.toISOString(),
   };
 }
 
-async function getSnippet(
-  db: D1Database,
-  snippet_id: string
-): Promise<Snippet> {
+async function getSnippet(db: D1Database, snippetId: string): Promise<Snippet> {
   const rows = await db.batch([
     db.prepare("PRAGMA foreign_keys = ON"),
-    selectSnippet(db, snippet_id),
-    selectFiles(db, snippet_id),
+    selectSnippet(db, snippetId),
+    selectFiles(db, snippetId),
   ]);
 
   rows.shift(); // ignore pragma result
@@ -116,10 +113,8 @@ function selectSnippet(db: D1Database, id: string): D1PreparedStatement {
   return db.prepare("select * from snippets where id = ?").bind(id);
 }
 
-function selectFiles(db: D1Database, snippet_id: string): D1PreparedStatement {
-  return db
-    .prepare("select * from files where snippet_id = ?")
-    .bind(snippet_id);
+function selectFiles(db: D1Database, snippetId: string): D1PreparedStatement {
+  return db.prepare("select * from files where snippetId = ?").bind(snippetId);
 }
 
 // Create a new snippet id, which is the base36 encoding of the microseconds since the epoch.

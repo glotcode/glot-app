@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub struct Snippet {
     pub id: String,
     pub language: String,
@@ -17,7 +17,7 @@ pub struct Snippet {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub struct File {
     pub id: String,
     pub snippet_id: String,
@@ -28,7 +28,7 @@ pub struct File {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub struct UnsavedSnippet {
     pub language: String,
     pub title: String,
@@ -39,21 +39,21 @@ pub struct UnsavedSnippet {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub struct UnsavedFile {
     pub name: String,
     pub content: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum Visibility {
     Public,
     NeedLink,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum SpamClassification {
     NotSpam,
     Suspected,

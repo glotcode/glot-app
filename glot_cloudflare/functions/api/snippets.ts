@@ -18,25 +18,21 @@ export const onRequestPost: PagesFunction<Env & StringRecord> = async (
   const now = Date.now();
 
   const unsavedSnippet = (await context.request.json()) as UnsavedSnippet;
-  const user_id = null;
-  const snippet = snippetFromUnsaved(unsavedSnippet, now, user_id);
+  const userId = null;
+  const snippet = snippetFromUnsaved(unsavedSnippet, now, userId);
 
   const insertSnippetStatement = insertSnippet(db, snippet);
   const insertFileStatements = snippet.files.map((file) =>
     insertFile(db, file)
   );
 
-  const rows = await db.batch([
+  await db.batch([
     db.prepare("PRAGMA foreign_keys = ON"),
     insertSnippetStatement,
     ...insertFileStatements,
   ]);
 
-  rows.shift(); // ignore pragma result
-  const snippetRow = rows.shift().results[0] as Snippet;
-  snippetRow.files = rows.map((row) => row.results[0] as SnippetFile);
-
-  return new Response(JSON.stringify(snippetRow), {
+  return new Response(JSON.stringify(snippet), {
     headers: {
       "Content-Type": "application/json",
     },
@@ -46,34 +42,34 @@ export const onRequestPost: PagesFunction<Env & StringRecord> = async (
 function insertSnippet(db: D1Database, snippet: Snippet): D1PreparedStatement {
   return db
     .prepare(
-      "insert into snippets (id, user_id, language, title, visibility, stdin, run_command, spam_classification, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning *"
+      "insert into snippets (id, userId, language, title, visibility, stdin, runCommand, spamClassification, createdAt, updatedAt) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(
       snippet.id,
-      snippet.user_id,
+      snippet.userId,
       snippet.language,
       snippet.title,
       snippet.visibility,
       snippet.stdin,
-      snippet.run_command,
-      snippet.spam_classification,
-      snippet.created_at,
-      snippet.updated_at
+      snippet.runCommand,
+      snippet.spamClassification,
+      snippet.createdAt,
+      snippet.updatedAt
     );
 }
 
 function insertFile(db: D1Database, file: SnippetFile): D1PreparedStatement {
   return db
     .prepare(
-      "insert into files (id, snippet_id, user_id, name, content, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?) returning *"
+      "insert into files (id, snippetId, userId, name, content, createdAt, updatedAt) values (?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(
       file.id,
-      file.snippet_id,
-      file.user_id,
+      file.snippetId,
+      file.userId,
       file.name,
       file.content,
-      file.created_at,
-      file.updated_at
+      file.createdAt,
+      file.updatedAt
     );
 }
