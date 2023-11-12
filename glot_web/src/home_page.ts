@@ -6,7 +6,7 @@ import { defaultDebugConfig } from "poly/src/logger";
   await init("/wasm/glot_bg.wasm");
 
   const poly = new Poly(homePage(location.href), {
-    loggerConfig: defaultDebugConfig(),
+    //loggerConfig: defaultDebugConfig(),
   });
 
   poly.init();

@@ -1,5 +1,5 @@
 {
-  "exclude": ["glot_cloudflare/functions/**/*"],
+  "exclude": ["glot_cloudflare/**/*"],
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 
