@@ -2,7 +2,6 @@ const usersTable: string = createTable("users", [
   "id TEXT PRIMARY KEY NOT NULL",
   "email TEXT NOT NULL",
   "username TEXT NOT NULL",
-  "name TEXT NOT NULL",
   "createdAt TEXT NOT NULL",
   "updatedAt TEXT NOT NULL",
 ]);

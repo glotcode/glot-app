@@ -1,3 +1,5 @@
+import { randomInt } from "./random";
+
 export {
   Snippet,
   SnippetFile,
@@ -122,8 +124,4 @@ function selectFiles(db: D1Database, snippetId: string): D1PreparedStatement {
 function newSnippetId(timestamp: number): string {
   const microsecondsSinceEpoch = timestamp * 1000 + randomInt(0, 999);
   return microsecondsSinceEpoch.toString(36);
-}
-
-function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1) + min);
 }
