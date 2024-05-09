@@ -77,11 +77,18 @@ impl SidebarItem {
 }
 
 fn sidebar_items() -> Vec<SidebarItem> {
-    vec![SidebarItem {
-        label: "Home".to_string(),
-        icon: heroicons_maud::home_solid(),
-        route: Route::Home,
-    }]
+    vec![
+        SidebarItem {
+            label: "Home".to_string(),
+            icon: heroicons_maud::home_solid(),
+            route: Route::Home,
+        },
+        SidebarItem {
+            label: "Account".to_string(),
+            icon: heroicons_maud::user_circle_solid(),
+            route: Route::Login,
+        },
+    ]
 }
 
 pub fn app_shell<Id>(

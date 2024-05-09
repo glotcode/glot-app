@@ -23,12 +23,6 @@ if [[ "$event" == "before_asset_hash" ]]; then
 fi
 
 if [[ "$event" == "after_asset_hash" || "$env" == "dev" ]]; then
-    mkdir -p dist/new/python
-
-    ## Generate html
-    ./target/$target/glot_cli home_page > dist/index.html
-    ./target/$target/glot_cli new_python_snippet > dist/new/python/index.html
-
     # Disable cloudflare SPA mode
     echo "Not found" > dist/404.html
 fi

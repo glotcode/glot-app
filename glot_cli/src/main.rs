@@ -1,4 +1,5 @@
 use glot_core::page::home_page;
+use glot_core::page::login_page;
 use glot_core::page::snippet_page;
 use poly::page::Page;
 use std::env;
@@ -11,6 +12,12 @@ fn main() {
         ["home_page"] => {
             let current_url = url::Url::parse("http://localhost/").unwrap();
             let page = home_page::HomePage { current_url };
+            print_html(page);
+        }
+
+        ["login_page"] => {
+            let current_url = url::Url::parse("http://localhost/").unwrap();
+            let page = login_page::LoginPage { current_url };
             print_html(page);
         }
 

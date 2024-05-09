@@ -4,6 +4,7 @@ use serde::Serialize;
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum RouteName {
     Home,
+    Login,
     NewSnippet,
     EditSnippet,
 }
@@ -11,6 +12,7 @@ pub enum RouteName {
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum Route {
     Home,
+    Login,
     NewSnippet(String),
     EditSnippet(String),
 }
@@ -40,6 +42,7 @@ impl Route {
     pub fn to_path(&self) -> String {
         match self {
             Route::Home => format!("/"),
+            Route::Login => format!("/account/login"),
             Route::NewSnippet(language) => format!("/new/{}", language),
             Route::EditSnippet(id) => format!("/snippets/{}", id),
         }
@@ -48,6 +51,7 @@ impl Route {
     pub fn name(&self) -> RouteName {
         match self {
             Route::Home => RouteName::Home,
+            Route::Login => RouteName::Login,
             Route::NewSnippet(_) => RouteName::NewSnippet,
             Route::EditSnippet(_) => RouteName::EditSnippet,
         }

@@ -1,2 +1,3 @@
 / => ./target/debug/glot_cli home_page
-/new/rust => ./target/debug/glot_cli new_rust_snippet
+/account/login => ./target/debug/glot_cli login_page
+/new/python => ./target/debug/glot_cli new_python_snippet
