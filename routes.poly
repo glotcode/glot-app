@@ -1,3 +1,3 @@
-/ => ./target/debug/glot_cli home_page
-/account/login => ./target/debug/glot_cli login_page
-/new/python => ./target/debug/glot_cli new_python_snippet
+/ => ./target/debug/glot_cli
+/account/login => ./target/debug/glot_cli
+/new/python => ./target/debug/glot_cli

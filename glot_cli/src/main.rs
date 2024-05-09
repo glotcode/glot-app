@@ -3,20 +3,30 @@ use glot_core::page::login_page;
 use glot_core::page::snippet_page;
 use poly::page::Page;
 use std::env;
+use url::Url;
 
 fn main() {
     let args_: Vec<String> = env::args().collect();
-    let args: Vec<&str> = args_.iter().map(|s| s.as_ref()).collect();
+    let mut args: Vec<&str> = args_.iter().map(|s| s.as_ref()).collect();
 
-    match args[1..] {
-        ["home_page"] => {
-            let current_url = url::Url::parse("http://localhost/").unwrap();
+    if let Some(url_path) = args.pop() {
+        let url = Url::parse(&format!("http://localhost{}", url_path)).unwrap();
+        handle_url(url)
+    } else {
+        println!("Expected path as first argument")
+    }
+}
+
+fn handle_url(current_url: Url) {
+    let parts: Vec<&str> = current_url.path().split("/").collect();
+
+    match parts[1..] {
+        [""] => {
             let page = home_page::HomePage { current_url };
             print_html(page);
         }
 
-        ["login_page"] => {
-            let current_url = url::Url::parse("http://localhost/account/login").unwrap();
+        ["account", "login"] => {
             let page = login_page::LoginPage {
                 current_url,
                 window_size: None,
@@ -24,9 +34,7 @@ fn main() {
             print_html(page);
         }
 
-        ["new_python_snippet"] => {
-            let current_url = url::Url::parse("http://localhost/new/python").unwrap();
-
+        ["new", _language] => {
             let page = snippet_page::SnippetPage {
                 snippet: None,
                 window_size: None,
@@ -37,7 +45,7 @@ fn main() {
         }
 
         _ => {
-            println!("Invalid command");
+            println!("Invalid path: {}", current_url.path());
         }
     }
 }
