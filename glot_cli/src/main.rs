@@ -16,8 +16,11 @@ fn main() {
         }
 
         ["login_page"] => {
-            let current_url = url::Url::parse("http://localhost/").unwrap();
-            let page = login_page::LoginPage { current_url };
+            let current_url = url::Url::parse("http://localhost/account/login").unwrap();
+            let page = login_page::LoginPage {
+                current_url,
+                window_size: None,
+            };
             print_html(page);
         }
 

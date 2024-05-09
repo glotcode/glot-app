@@ -35,6 +35,7 @@ impl Route {
             [] => Some(Route::Home),
             ["new", language] => Some(Route::NewSnippet(language.to_string())),
             ["snippets", id] => Some(Route::EditSnippet(id.to_string())),
+            ["account", "login"] => Some(Route::Login),
             _ => None,
         }
     }

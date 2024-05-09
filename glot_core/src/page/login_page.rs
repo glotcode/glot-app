@@ -1,23 +1,27 @@
+use crate::common::route::Route;
+use crate::layout::app_layout;
 use maud::html;
 use maud::Markup;
 use poly::browser;
 use poly::browser::DomId;
 use poly::browser::Effects;
+use poly::browser::WindowSize;
 use poly::page;
 use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::layout::app_layout;
-
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub window_size: Option<WindowSize>,
+    pub layout_state: app_layout::State,
+    pub current_route: Route,
 }
 
 pub struct LoginPage {
+    pub window_size: Option<WindowSize>,
     pub current_url: Url,
 }
 
@@ -27,7 +31,13 @@ impl Page<Model, Msg, AppEffect, Markup> for LoginPage {
     }
 
     fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
-        let model = Model { count: 0 };
+        let current_route = Route::from_path(self.current_url.path()).ok_or("Invalid route")?;
+
+        let model = Model {
+            window_size: self.window_size.clone(),
+            layout_state: app_layout::State::new(),
+            current_route,
+        };
 
         let effects = vec![];
 
@@ -36,22 +46,14 @@ impl Page<Model, Msg, AppEffect, Markup> for LoginPage {
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
         vec![
-            browser::on_click(Id::Increment, Msg::Increment),
-            browser::on_click(Id::Decrement, Msg::Decrement),
+            //browser::on_click(Id::Increment, Msg::Increment),
+            //browser::on_click(Id::Decrement, Msg::Decrement),
         ]
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
         match msg {
-            Msg::Increment => {
-                model.count += 1;
-                Ok(vec![])
-            }
-
-            Msg::Decrement => {
-                model.count -= 1;
-                Ok(vec![])
-            }
+            Msg::NoOp => Ok(vec![]),
         }
     }
 
@@ -82,8 +84,7 @@ enum Id {
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Msg {
-    Increment,
-    Decrement,
+    NoOp,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -160,6 +161,18 @@ fn view_content(model: &Model) -> maud::Markup {
                     }
                 }
             }
+        }
+    }
+}
+
+fn view_spinner() -> maud::Markup {
+    html! {
+        div class="spinner" {
+            div class="rect1" {}
+            div class="rect2" {}
+            div class="rect3" {}
+            div class="rect4" {}
+            div class="rect5" {}
         }
     }
 }
