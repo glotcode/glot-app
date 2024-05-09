@@ -3,31 +3,32 @@
     "version": "1.0.0",
     "description": "",
     "scripts": {
-      "build-dev": "npm run compile-ts && npm run build-js-dev && npm run build-css-dev",
-      "build-release": "npm run compile-ts && npm run build-js-release && npm run build-css-release",
-      "compile-ts": "tsc --noEmit --project .",
-      "build-js-dev": "esbuild src/*_page.ts --bundle --format=esm --target=es2020 --outdir=../dist/",
-      "build-js-release": "esbuild --minify src/*_page.ts --bundle --format=esm --target=es2020 --outdir=../dist/",
-      "build-css-dev": "tailwindcss -i css/app.css -o ../dist/app.css",
-      "build-css-release": "tailwindcss --minify -i css/app.css -o ../dist/app.css"
+        "build-dev": "npm run compile-ts && npm run build-js-dev && npm run build-css-dev",
+        "build-release": "npm run compile-ts && npm run build-js-release && npm run build-css-release",
+        "compile-ts": "tsc --noEmit --project .",
+        "build-js-dev": "esbuild src/*_page.ts --bundle --format=esm --target=es2020 --outdir=../dist/",
+        "build-js-release": "esbuild --minify src/*_page.ts --bundle --format=esm --target=es2020 --outdir=../dist/",
+        "build-css-dev": "tailwindcss -i css/app.css -o ../dist/app.css",
+        "build-css-release": "tailwindcss --minify -i css/app.css -o ../dist/app.css"
     },
     "repository": {
-      "type": "git",
-      "url": "git+https://github.com/polyester-web/polyester-templates.git"
+        "type": "git",
+        "url": "git+https://github.com/polyester-web/polyester-templates.git"
     },
     "author": "",
     "license": "ISC",
     "bugs": {
-      "url": "https://github.com/polyester-web/polyester-templates/issues"
+        "url": "https://github.com/polyester-web/polyester-templates/issues"
     },
     "homepage": "https://github.com/polyester-web/polyester-templates#readme",
     "dependencies": {
-      "poly": "git+https://github.com/glotlabs/poly-js.git",
-      "poly-ace-editor": "git+https://github.com/glotlabs/poly-ace-editor.git"
+        "poly": "git+https://github.com/glotlabs/poly-js.git",
+        "poly-ace-editor": "git+https://github.com/glotlabs/poly-ace-editor.git",
+        "typescript": "^5.4.5"
     },
     "devDependencies": {
-      "@tailwindcss/forms": "^0.5.2",
-      "esbuild": "^0.14.49",
-      "tailwindcss": "^3.1.6"
+        "@tailwindcss/forms": "^0.5.2",
+        "esbuild": "^0.14.49",
+        "tailwindcss": "^3.1.6"
     }
-  }
+}
