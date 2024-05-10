@@ -1,12 +1,16 @@
 use crate::common::route::Route;
 use crate::layout::app_layout;
+use crate::util::remote_data::RemoteData;
 use maud::html;
 use maud::Markup;
 use poly::browser;
+use poly::browser::effect;
+use poly::browser::Capture;
 use poly::browser::DomId;
 use poly::browser::Effects;
 use poly::browser::WindowSize;
 use poly::page;
+use poly::page::JsMsg;
 use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
@@ -18,6 +22,8 @@ pub struct Model {
     pub window_size: Option<WindowSize>,
     pub layout_state: app_layout::State,
     pub current_route: Route,
+    pub email: String,
+    pub send_link_result: RemoteData<String, ()>,
 }
 
 pub struct LoginPage {
@@ -37,6 +43,8 @@ impl Page<Model, Msg, AppEffect, Markup> for LoginPage {
             window_size: self.window_size.clone(),
             layout_state: app_layout::State::new(),
             current_route,
+            email: "".to_string(),
+            send_link_result: RemoteData::NotAsked,
         };
 
         let effects = vec![];
@@ -46,14 +54,57 @@ impl Page<Model, Msg, AppEffect, Markup> for LoginPage {
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
         vec![
-            //browser::on_click(Id::Increment, Msg::Increment),
-            //browser::on_click(Id::Decrement, Msg::Decrement),
+            browser::on_input(Id::Email, Msg::EmailChanged),
+            browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
+            browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
+            browser::on_click_closest(Id::SendMagicLink, Msg::SendMagicLinkClicked),
         ]
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
         match msg {
-            Msg::NoOp => Ok(vec![]),
+            Msg::OpenSidebarClicked => {
+                model.layout_state.open_sidebar();
+                Ok(vec![])
+            }
+
+            Msg::CloseSidebarClicked => {
+                model.layout_state.close_sidebar();
+                Ok(vec![])
+            }
+
+            Msg::EmailChanged(captured) => {
+                model.email = captured.value();
+
+                Ok(vec![])
+            }
+
+            Msg::SendMagicLinkClicked => {
+                model.send_link_result = RemoteData::Loading;
+
+                Ok(vec![effect::app_effect(AppEffect::SendMagicLink(
+                    model.email.clone(),
+                ))])
+            }
+        }
+    }
+
+    fn update_from_js(
+        &self,
+        msg: JsMsg,
+        model: &mut Model,
+    ) -> Result<Effects<Msg, AppEffect>, String> {
+        match msg.type_.as_ref() {
+            "MagicLinkSent" => {
+                model.send_link_result = RemoteData::Success(());
+                Ok(vec![])
+            }
+
+            _ => {
+                let log_effect =
+                    browser::console::log(&format!("Got unknown message from JS: {}", msg.type_));
+                Ok(vec![log_effect])
+            }
         }
     }
 
@@ -79,17 +130,25 @@ enum Id {
     Glot,
     OpenSidebar,
     CloseSidebar,
+    Email,
+    SendMagicLink,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Msg {
-    NoOp,
+    OpenSidebarClicked,
+    CloseSidebarClicked,
+    EmailChanged(Capture<String>),
+    SendMagicLinkClicked,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum AppEffect {}
+#[serde(tag = "type", content = "config")]
+pub enum AppEffect {
+    SendMagicLink(String),
+}
 
 fn view_head() -> maud::Markup {
     html! {
@@ -146,15 +205,15 @@ fn view_content(model: &Model) -> maud::Markup {
                 div class="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12" {
                     form class="space-y-6" action="#" method="POST" {
                         div {
-                            label class="block text-sm font-medium leading-6 text-gray-900" for="email" {
+                            label class="block text-sm font-medium leading-6 text-gray-900" for=(Id::Email) {
                                 "Email address"
                             }
                             div class="mt-2" {
-                                input id="email" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" name="email" type="email" autocomplete="email" required;
+                                input id=(Id::Email) value=(model.email) class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" name="email" type="email" autocomplete="email" required;
                             }
                         }
                         div {
-                            button class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" type="submit" {
+                            button id=(Id::SendMagicLink) class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" type="button" {
                                 "Send magic link"
                             }
                         }
