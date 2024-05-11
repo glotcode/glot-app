@@ -1,12 +1,12 @@
 import init, { snippetPage } from "../wasm/glot";
 import { BrowserWindow, Poly } from "poly";
-import { defaultDebugConfig } from "poly/src/logger";
 import { AceEditorElement } from "poly-ace-editor";
+import { createSnippet, getSnippet, run } from "./api";
 
 AceEditorElement.register();
 
 (async () => {
-  const snippetPromise = getSnippet();
+  const snippetPromise = getSnippetMaybe();
 
   await init("/wasm/glot_bg.wasm");
   const snippet = await snippetPromise;
@@ -18,13 +18,15 @@ AceEditorElement.register();
     //loggerConfig: defaultDebugConfig(),
   });
 
-  poly.onAppEffect((msg) => {
+  poly.onAppEffect(async (msg) => {
     switch (msg.type) {
       case "run":
-        run(poly, msg.config);
+        const runResponse = await run(msg.config);
+        poly.sendMessage("GotRunResponse", runResponse);
         break;
       case "createSnippet":
-        createSnippet(poly, msg.config);
+        const snippet = await createSnippet(msg.config);
+        poly.sendMessage("GotCreateSnippetResponse", snippet);
         break;
     }
   });
@@ -32,47 +34,13 @@ AceEditorElement.register();
   poly.init();
 })();
 
-async function run(poly: Poly, data: any) {
-  const response = await fetch("/api/run", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  const runResponse = await response.json();
-
-  poly.sendMessage("GotRunResponse", runResponse);
-}
-
-async function createSnippet(poly: Poly, data: any) {
-  const response = await fetch("/api/snippets", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  const snippet = await response.json();
-
-  poly.sendMessage("GotCreateSnippetResponse", snippet);
-}
-
-async function fetchSnippet(snippetId: string): Promise<unknown> {
-  const url = `/api/snippets/${snippetId}`;
-  const response = await fetch(url);
-  return response.json();
-}
-
-function getSnippet(): Promise<unknown> {
+function getSnippetMaybe(): Promise<unknown> {
   const snippetId = snippetIdFromPath(location.pathname);
-  if (snippetId) {
-    return fetchSnippet(snippetId);
+  if (!snippetId) {
+    return Promise.resolve(null);
   }
 
-  return Promise.resolve(null);
+  return getSnippet(snippetId);
 }
 
 function snippetIdFromPath(path: string): string | null {
