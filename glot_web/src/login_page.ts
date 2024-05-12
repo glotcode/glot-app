@@ -14,7 +14,6 @@ import { defaultDebugConfig } from "poly/src/logger";
   });
 
   poly.onAppEffect(async (msg) => {
-    console.log("msg", msg);
     switch (msg.type) {
       case "sendMagicLink":
         await sendMagicLink(msg.config);

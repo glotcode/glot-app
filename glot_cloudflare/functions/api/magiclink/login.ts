@@ -22,12 +22,12 @@ interface Env {
 }
 
 export const onRequestPost: PagesFunction<Env & StringRecord> = async (
-  context
+  context,
 ) => {
   const payload = (await context.request.json()) as Payload;
   const magicLinkId = await decryptMagicLink(
     context.env.ENCRYPTION_KEY,
-    payload.magicLink
+    payload.token,
   );
   const magicLink = await getMagicLink(context.env.DB, magicLinkId);
 
@@ -42,23 +42,34 @@ export const onRequestPost: PagesFunction<Env & StringRecord> = async (
   await saveSession(context.env.DB, session);
   const sessionString = await encryptSession(
     context.env.ENCRYPTION_KEY,
-    session
+    session,
   );
 
   const usedMagicLink = markMagicLinkAsUsed(magicLink);
   await updateMagicLink(context.env.DB, usedMagicLink);
   const expirationDate = getCookieExpirationDate();
 
+  // TODO: pass environment flag
+  const secureFlag = getSecureFlag(false);
+
   return new Response(JSON.stringify(user), {
     headers: {
-      "Set-Cookie": `session=${sessionString}; HttpOnly; Secure; SameSite=Lax; Expires=${expirationDate.toUTCString()}`,
+      "Set-Cookie": `session=${sessionString}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Expires=${expirationDate.toUTCString()}`,
     },
   });
 };
 
+function getSecureFlag(isProduction: boolean): string {
+  if (isProduction) {
+    return " Secure;";
+  }
+
+  return "";
+}
+
 async function getOrRegisterUser(
   db: D1Database,
-  magicLink: MagicLink
+  magicLink: MagicLink,
 ): Promise<User> {
   const user = await getUserByEmail(db, magicLink.email);
   if (user) {
@@ -70,7 +81,7 @@ async function getOrRegisterUser(
 
 async function registerNewUser(
   db: D1Database,
-  magicLink: MagicLink
+  magicLink: MagicLink,
 ): Promise<User> {
   const username = randomUsername();
   const user = newUser(magicLink.email, username);
@@ -80,7 +91,7 @@ async function registerNewUser(
 }
 
 interface Payload {
-  magicLink: string;
+  token: string;
 }
 
 function errorResponse(status: number, msg: string) {
