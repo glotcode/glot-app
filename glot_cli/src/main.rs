@@ -1,5 +1,4 @@
 use glot_core::page::home_page;
-use glot_core::page::login_page;
 use glot_core::page::snippet_page;
 use poly::page::Page;
 use std::env;
@@ -23,14 +22,6 @@ fn handle_url(current_url: Url) {
     match parts[1..] {
         [""] => {
             let page = home_page::HomePage { current_url };
-            print_html(page);
-        }
-
-        ["account", "login"] => {
-            let page = login_page::LoginPage {
-                current_url,
-                window_size: None,
-            };
             print_html(page);
         }
 
