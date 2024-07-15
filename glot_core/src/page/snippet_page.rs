@@ -86,7 +86,7 @@ enum Id {
 pub enum Msg {
     WindowSizeChanged(Capture<browser::Value>),
     EditorContentChanged(Capture<String>),
-    FileSelected(String),
+    FileSelected(Capture<String>),
     ShowAddFileModalClicked,
     ShowSettingsModalClicked,
     ShowStdinModalClicked,
@@ -243,7 +243,11 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         // TODO: add conditionals
         vec![
             browser::on_change_string(Id::Editor, Msg::EditorContentChanged),
-            //browser::on_click_closest_data_string("filename", Msg::FileSelected),
+            browser::on_click_selector_closest(
+                browser::Selector::data("filename"),
+                browser::dom::get_target_data_string_value("filename"),
+                Msg::FileSelected,
+            ),
             browser::on_click_closest(Id::ShowAddFileModal, Msg::ShowAddFileModalClicked),
             browser::on_click_closest(Id::ShowSettingsModal, Msg::ShowSettingsModalClicked),
             browser::on_click_closest(Id::ShowStdinModal, Msg::ShowStdinModalClicked),
@@ -301,13 +305,15 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![])
             }
 
-            Msg::FileSelected(filename) => {
+            Msg::FileSelected(captured) => {
+                let filename = captured.value();
+
                 model
                     .files
                     .to_vec()
                     .iter()
                     .enumerate()
-                    .find(|(_, file)| &file.name == filename)
+                    .find(|(_, file)| file.name == filename)
                     .map(|(index, _)| {
                         model.files.select_index(index);
                     });
