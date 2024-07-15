@@ -2,8 +2,8 @@ use crate::common::route::Route;
 use crate::language;
 use crate::language::Language;
 use crate::layout::app_layout;
-use crate::snippet::UnsavedFile;
-use crate::snippet::UnsavedSnippet;
+use crate::snippet::File;
+use crate::snippet::Snippet;
 use crate::util::remote_data::RemoteData;
 use crate::util::select_list::SelectList;
 use crate::view::dropdown;
@@ -39,7 +39,7 @@ LOADING
 pub struct Model {
     pub window_size: Option<WindowSize>,
     pub language: language::Config,
-    pub files: SelectList<UnsavedFile>,
+    pub files: SelectList<File>,
     pub title: String,
     pub active_modal: Modal,
     pub editor_keyboard_bindings: EditorKeyboardBindings,
@@ -48,7 +48,7 @@ pub struct Model {
     pub layout_state: app_layout::State,
     pub current_route: Route,
     pub run_result: RemoteData<String, RunResult>,
-    pub snippet: Option<UnsavedSnippet>,
+    pub snippet: Option<Snippet>,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -159,7 +159,7 @@ impl SnippetPage {
             .map_err(|_| "Unknown language".to_string())?;
         let language_config = language.config();
 
-        let file = UnsavedFile {
+        let file = File {
             name: language_config.editor_config.default_filename.clone(),
             content: language_config.editor_config.example_code.clone(),
         };
@@ -185,7 +185,7 @@ impl SnippetPage {
         route: &Route,
         encoded_snippet: &str,
     ) -> Result<Model, String> {
-        let snippet = UnsavedSnippet::from_encoded_string(encoded_snippet)
+        let snippet = Snippet::from_encoded_string(encoded_snippet)
             .map_err(|err| format!("Failed to decode snippet: {}", err))?;
 
         let snippet_clone = snippet.clone();
@@ -197,15 +197,15 @@ impl SnippetPage {
 
         let language_config = language.config();
 
-        let default_file = UnsavedFile {
+        let default_file = File {
             name: language_config.editor_config.default_filename.clone(),
             content: language_config.editor_config.example_code.clone(),
         };
 
-        let snippet_files: Vec<UnsavedFile> = snippet
+        let snippet_files: Vec<File> = snippet
             .files
             .iter()
-            .map(|file| UnsavedFile {
+            .map(|file| File {
                 name: file.name.clone(),
                 content: file.content.clone(),
             })
@@ -363,7 +363,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 if let Modal::File(state) = &mut model.active_modal {
                     match validate_filename(&model.files, &state.filename, true) {
                         Ok(_) => {
-                            model.files.push(UnsavedFile {
+                            model.files.push(File {
                                 name: state.filename.clone(),
                                 content: "".to_string(),
                             });
@@ -503,7 +503,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::ShareClicked => {
-                let snippet = UnsavedSnippet {
+                let snippet = Snippet {
                     language: model.language.id.to_string(),
                     title: model.title.clone(),
                     stdin: model.stdin.clone(),
@@ -561,11 +561,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 }
 
-fn validate_filename(
-    files: &SelectList<UnsavedFile>,
-    filename: &str,
-    is_new: bool,
-) -> Result<(), String> {
+fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> Result<(), String> {
     let is_duplicate = files
         .to_vec()
         .iter()
@@ -731,7 +727,7 @@ impl EditorTheme {
 #[serde(rename_all = "camelCase")]
 pub enum AppEffect {
     Run(RunRequest),
-    CreateSnippet(UnsavedSnippet),
+    CreateSnippet(Snippet),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -759,7 +755,7 @@ impl RunResult {
 #[serde(rename_all = "camelCase")]
 pub struct RunRequestPayload {
     pub language: language::Language,
-    pub files: Vec<UnsavedFile>,
+    pub files: Vec<File>,
     pub stdin: String,
 }
 
@@ -1017,7 +1013,7 @@ fn view_tab_bar(model: &Model) -> Markup {
     }
 }
 
-fn view_file_tab(model: &Model, file: &UnsavedFile) -> Markup {
+fn view_file_tab(model: &Model, file: &File) -> Markup {
     let is_selected = model.files.selected().name == file.name;
     let id = is_selected.then_some(Id::SelectedFile);
 

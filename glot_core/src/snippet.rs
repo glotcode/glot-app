@@ -7,14 +7,14 @@ use serde::Serialize;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UnsavedSnippet {
+pub struct Snippet {
     pub language: String,
     pub title: String,
     pub stdin: String,
-    pub files: Vec<UnsavedFile>,
+    pub files: Vec<File>,
 }
 
-impl UnsavedSnippet {
+impl Snippet {
     pub fn to_encoded_string(&self) -> Result<String, String> {
         let json =
             serde_json::to_vec(self).map_err(|err| format!("Failed to serialize: {}", err))?;
@@ -30,7 +30,7 @@ impl UnsavedSnippet {
         Ok(base62::encode(&compressed))
     }
 
-    pub fn from_encoded_string(encoded: &str) -> Result<UnsavedSnippet, String> {
+    pub fn from_encoded_string(encoded: &str) -> Result<Snippet, String> {
         let compressed =
             base62::decode(encoded).map_err(|err| format!("Failed to decode: {}", err))?;
 
@@ -44,7 +44,7 @@ impl UnsavedSnippet {
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UnsavedFile {
+pub struct File {
     pub name: String,
     pub content: String,
 }
