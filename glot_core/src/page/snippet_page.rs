@@ -795,7 +795,7 @@ fn view_body(model: &Model) -> maud::Markup {
 
                 None => {
                     (app_layout::app_shell(
-                        view_spinner(),
+                        view_spinner(model),
                         None,
                         &layout_config,
                         &model.layout_state,
@@ -832,7 +832,12 @@ fn view_body(model: &Model) -> maud::Markup {
     }
 }
 
-fn view_spinner() -> maud::Markup {
+fn view_spinner(model: &Model) -> maud::Markup {
+    let window_size = WindowSize {
+        width: 0,
+        height: 0,
+    };
+
     html! {
         div class="spinner" {
             div class="rect1" {}
@@ -840,6 +845,9 @@ fn view_spinner() -> maud::Markup {
             div class="rect3" {}
             div class="rect4" {}
             div class="rect5" {}
+        }
+        div class="hidden" {
+            (view_content(model, &window_size))
         }
     }
 }

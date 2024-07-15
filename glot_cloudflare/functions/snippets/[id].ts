@@ -1,5 +1,4 @@
 import * as glot from "../../dist_backend/wasm_backend/glot";
-import { getSnippet } from "../../src/snippet";
 
 interface Env {
   DB: D1Database;
