@@ -80,7 +80,6 @@ enum Id {
     UpdateStdin,
     ClearStdin,
     Run,
-    SaveSnippet,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -269,7 +268,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
             browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
             browser::on_click_closest(Id::Run, Msg::RunClicked),
-            browser::on_click_closest(Id::SaveSnippet, Msg::SaveSnippetClicked),
         ]
     }
 
@@ -1061,16 +1059,6 @@ fn view_action_bar() -> Markup {
             button id=(Id::Run) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons_maud::play_outline()) }
                 span { "RUN" }
-            }
-
-            button id=(Id::SaveSnippet) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
-                span class="w-5 h-5 mr-2" { (heroicons_maud::cloud_arrow_up_outline()) }
-                span { "SAVE" }
-            }
-
-            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
-                span class="w-5 h-5 mr-2" { (heroicons_maud::trash_outline()) }
-                span { "DELETE" }
             }
 
             button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
