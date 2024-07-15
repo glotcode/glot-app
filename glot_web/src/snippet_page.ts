@@ -7,12 +7,10 @@ AceEditorElement.register();
 
 (async () => {
   await init("/wasm/glot_bg.wasm");
-  const snippet = null;
-
   const browserWindow = new BrowserWindow();
   const windowSize = browserWindow.getSize();
 
-  const poly = new Poly(snippetPage(snippet, windowSize, location.href), {
+  const poly = new Poly(snippetPage(windowSize, location.href), {
     //loggerConfig: defaultDebugConfig(),
   });
 

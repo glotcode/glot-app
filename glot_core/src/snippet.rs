@@ -1,41 +1,47 @@
+use base64::{engine::general_purpose::URL_SAFE, Engine as _};
+use brotli::enc::BrotliEncoderParams;
+use brotli::BrotliCompress;
+use brotli::BrotliDecompress;
 use serde::Deserialize;
 use serde::Serialize;
-
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Snippet {
-    pub id: String,
-    pub language: String,
-    pub title: String,
-    pub visibility: Visibility,
-    pub stdin: String,
-    pub run_command: String,
-    pub spam_classification: SpamClassification,
-    pub files: Vec<File>,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct File {
-    pub id: String,
-    pub snippet_id: String,
-    pub name: String,
-    pub content: String,
-    pub created_at: String,
-    pub updated_at: String,
-}
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnsavedSnippet {
     pub language: String,
     pub title: String,
-    pub visibility: Visibility,
     pub stdin: String,
-    pub run_command: String,
     pub files: Vec<UnsavedFile>,
+}
+
+impl UnsavedSnippet {
+    pub fn to_encoded_string(&self) -> Result<String, String> {
+        let json =
+            serde_json::to_vec(self).map_err(|err| format!("Failed to serialize: {}", err))?;
+
+        let mut compressed = vec![];
+        BrotliCompress(
+            &mut &*json,
+            &mut compressed,
+            &BrotliEncoderParams::default(),
+        )
+        .map_err(|err| format!("Failed to compress: {}", err))?;
+
+        let encoded = URL_SAFE.encode(&compressed);
+        Ok(encoded)
+    }
+
+    pub fn from_encoded_string(encoded: &str) -> Result<UnsavedSnippet, String> {
+        let compressed = URL_SAFE
+            .decode(encoded)
+            .map_err(|err| format!("Failed to decode: {}", err))?;
+
+        let mut json = vec![];
+        BrotliDecompress(&mut &*compressed, &mut json)
+            .map_err(|err| format!("Failed to decompress: {}", err))?;
+
+        serde_json::from_slice(&json).map_err(|err| format!("Failed to deserialize: {}", err))
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -43,19 +49,4 @@ pub struct UnsavedSnippet {
 pub struct UnsavedFile {
     pub name: String,
     pub content: String,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Visibility {
-    Public,
-    NeedLink,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum SpamClassification {
-    NotSpam,
-    Suspected,
-    Spam,
 }

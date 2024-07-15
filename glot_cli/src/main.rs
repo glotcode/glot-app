@@ -27,7 +27,6 @@ fn handle_url(current_url: Url) {
 
         ["new", _language] => {
             let page = snippet_page::SnippetPage {
-                snippet: None,
                 window_size: None,
                 current_url,
             };

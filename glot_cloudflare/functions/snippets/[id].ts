@@ -6,10 +6,7 @@ interface Env {
 }
 
 export const onRequest: PagesFunction<Env> = async (context) => {
-  const snippet_id = context.params.id as string;
-  const snippet = await getSnippet(context.env.DB, snippet_id);
-
-  const page = glot.snippetPage(snippet, null, context.request.url);
+  const page = glot.snippetPage(null, context.request.url);
 
   const { model, effects } = page.init();
   const html = page.view(model);

@@ -2,10 +2,8 @@ use crate::common::route::Route;
 use crate::language;
 use crate::language::Language;
 use crate::layout::app_layout;
-use crate::snippet::Snippet;
 use crate::snippet::UnsavedFile;
 use crate::snippet::UnsavedSnippet;
-use crate::snippet::Visibility;
 use crate::util::remote_data::RemoteData;
 use crate::util::select_list::SelectList;
 use crate::view::dropdown;
@@ -50,7 +48,7 @@ pub struct Model {
     pub layout_state: app_layout::State,
     pub current_route: Route,
     pub run_result: RemoteData<String, RunResult>,
-    pub snippet: Option<Snippet>,
+    pub snippet: Option<UnsavedSnippet>,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -80,6 +78,7 @@ enum Id {
     UpdateStdin,
     ClearStdin,
     Run,
+    Share,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -106,7 +105,7 @@ pub enum Msg {
     OpenSidebarClicked,
     CloseSidebarClicked,
     RunClicked,
-    SaveSnippetClicked,
+    ShareClicked,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -133,7 +132,6 @@ pub struct StdinState {
 }
 
 pub struct SnippetPage {
-    pub snippet: Option<Snippet>,
     pub window_size: Option<WindowSize>,
     pub current_url: Url,
 }
@@ -147,7 +145,9 @@ impl SnippetPage {
                 self.model_for_new_snippet(&current_route, language_id)
             }
 
-            Route::EditSnippet(_) => self.model_for_existing_snippet(&current_route),
+            Route::EditSnippet(encoded_snippet) => {
+                self.model_for_existing_snippet(&current_route, encoded_snippet)
+            }
 
             _ => Err("Invalid route".to_string()),
         }
@@ -176,15 +176,19 @@ impl SnippetPage {
             layout_state: app_layout::State::new(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
-            snippet: self.snippet.clone(),
+            snippet: None,
         })
     }
 
-    fn model_for_existing_snippet(&self, route: &Route) -> Result<Model, String> {
-        let snippet = self
-            .snippet
-            .clone()
-            .ok_or_else(|| "Expected to get a provided snippet".to_string())?;
+    fn model_for_existing_snippet(
+        &self,
+        route: &Route,
+        encoded_snippet: &str,
+    ) -> Result<Model, String> {
+        let snippet = UnsavedSnippet::from_encoded_string(encoded_snippet)
+            .map_err(|err| format!("Failed to decode snippet: {}", err))?;
+
+        let snippet_clone = snippet.clone();
 
         let language: Language = snippet
             .language
@@ -222,7 +226,7 @@ impl SnippetPage {
             layout_state: app_layout::State::new(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
-            snippet: self.snippet.clone(),
+            snippet: Some(snippet_clone),
         })
     }
 }
@@ -272,6 +276,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
             browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
             browser::on_click_closest(Id::Run, Msg::RunClicked),
+            browser::on_click_closest(Id::Share, Msg::ShareClicked),
         ]
     }
 
@@ -497,18 +502,24 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(vec![effect::app_effect(AppEffect::Run(config))])
             }
 
-            Msg::SaveSnippetClicked => {
+            Msg::ShareClicked => {
                 let snippet = UnsavedSnippet {
                     language: model.language.id.to_string(),
                     title: model.title.clone(),
-                    visibility: Visibility::Public,
                     stdin: model.stdin.clone(),
-                    run_command: "".to_string(),
                     files: model.files.to_vec(),
                 };
 
-                let create_snippet_effect = AppEffect::CreateSnippet(snippet);
-                Ok(vec![effect::app_effect(create_snippet_effect)])
+                let encoded_snippet = snippet
+                    .to_encoded_string()
+                    .map_err(|err| format!("Failed to encode snippet: {}", err))?;
+
+                let route = Route::EditSnippet(encoded_snippet);
+                let url_effect = browser::push_url(&route.to_path());
+
+                model.current_route = route;
+
+                Ok(vec![url_effect])
             }
         }
     }
@@ -524,19 +535,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
                 model.run_result = RemoteData::Success(run_result);
                 Ok(vec![])
-            }
-
-            "GotCreateSnippetResponse" => {
-                let snippet: Snippet = serde_json::from_value(msg.data)
-                    .map_err(|err| format!("Failed to decode snippet from js: {}", err))?;
-
-                let route = Route::EditSnippet(snippet.id.clone());
-                let url_effect = browser::push_url(&route.to_path());
-
-                model.snippet = Some(snippet);
-                model.current_route = route;
-
-                Ok(vec![url_effect])
             }
 
             _ => {
@@ -1067,7 +1065,7 @@ fn view_action_bar() -> Markup {
                 span { "RUN" }
             }
 
-            button class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
+            button id=(Id::Share) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons_maud::share_outline()) }
                 span { "SHARE" }
             }
