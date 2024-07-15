@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::URL_SAFE, Engine as _};
+use base_62::base62;
 use brotli::enc::BrotliEncoderParams;
 use brotli::BrotliCompress;
 use brotli::BrotliDecompress;
@@ -27,14 +27,12 @@ impl UnsavedSnippet {
         )
         .map_err(|err| format!("Failed to compress: {}", err))?;
 
-        let encoded = URL_SAFE.encode(&compressed);
-        Ok(encoded)
+        Ok(base62::encode(&compressed))
     }
 
     pub fn from_encoded_string(encoded: &str) -> Result<UnsavedSnippet, String> {
-        let compressed = URL_SAFE
-            .decode(encoded)
-            .map_err(|err| format!("Failed to decode: {}", err))?;
+        let compressed =
+            base62::decode(encoded).map_err(|err| format!("Failed to decode: {}", err))?;
 
         let mut json = vec![];
         BrotliDecompress(&mut &*compressed, &mut json)
