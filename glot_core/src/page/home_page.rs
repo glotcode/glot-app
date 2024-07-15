@@ -157,22 +157,22 @@ fn view_content(model: &Model) -> Markup {
                         features::Feature {
                             icon: heroicons_maud::play_outline(),
                             title: "Run code",
-                            description: &format!("Support for {} different languages. If your favorite language or library is missing you can open an issue or pull request on GitHub to get it added.", model.languages.len()),
+                            description: &format!("Support for {} different languages. The code is executed in a transient docker container without network.", model.languages.len()),
                         },
                         features::Feature {
                             icon: heroicons_maud::share_outline(),
                             title: "Share snippets",
-                            description: "Save your snippet to get a unique url you can share with your friends. As a registered user you can also edit your snippets.",
+                            description: "The code will be encoded in the URL so you can easily share it with others.",
                         },
                         features::Feature {
-                            icon: heroicons_maud::key_outline(),
+                            icon: heroicons_maud::cog_6_tooth_outline(),
                             title: "Key bindings",
-                            description: "The code editor supports Vim and Emacs key bindings.",
+                            description: "The editor supports Vim and Emacs key bindings.",
                         },
                         features::Feature {
                             icon: heroicons_maud::globe_alt_outline(),
                             title: "Open source",
-                            description: "Everything is open souce. Including the code for this page and the service that runs the code.",
+                            description: "If your favorite language or library is missing you can open an issue or pull request on GitHub to get it added.",
                         },
                     ],
                 }))
