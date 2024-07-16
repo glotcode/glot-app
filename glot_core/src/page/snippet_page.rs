@@ -1306,6 +1306,8 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
 }
 
 fn view_sharing_modal(state: &SharingState) -> maud::Markup {
+    let url_max_length = 16000;
+
     html! {
         div class="text-center" {
             h3 class="text-lg leading-6 font-medium text-gray-900" {
@@ -1328,9 +1330,25 @@ fn view_sharing_modal(state: &SharingState) -> maud::Markup {
                     "Copy"
                 }
             }
+            p class="mt-2 text-sm text-gray-500" {
+                "The snippet is embeded in the url using brotli compression and base62 encoding."
+            }
+            @match state.snippet_url.len() {
+                length if length > url_max_length => {
+                    p class="mt-2 text-sm text-red-500" {
+                        (format!("{} / {}", length, url_max_length))
+                    }
+                }
+
+                length => {
+                    p class="mt-2 text-sm text-gray-500" {
+                        (format!("{} / {}", length, url_max_length))
+                    }
+                }
+            }
         }
 
-        div class="flex mt-4" {
+        div class="flex mt-6" {
             button id=(Id::CloseSharingModal) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
                 "Close"
             }
