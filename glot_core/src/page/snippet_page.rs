@@ -47,6 +47,7 @@ pub struct Model {
     pub stdin: String,
     pub layout_state: app_layout::State,
     pub current_route: Route,
+    pub current_url: Url,
     pub run_result: RemoteData<String, RunResult>,
     pub snippet: Option<Snippet>,
 }
@@ -174,6 +175,7 @@ impl SnippetPage {
             editor_theme: EditorTheme::TextMate,
             stdin: "".to_string(),
             layout_state: app_layout::State::new(),
+            current_url: self.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
             snippet: None,
@@ -224,6 +226,7 @@ impl SnippetPage {
             editor_theme: EditorTheme::TextMate,
             stdin: snippet.stdin.to_string(),
             layout_state: app_layout::State::new(),
+            current_url: self.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
             snippet: Some(snippet_clone),
@@ -514,12 +517,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     .to_encoded_string()
                     .map_err(|err| format!("Failed to encode snippet: {}", err))?;
 
-                let route = Route::EditSnippet(encoded_snippet);
-                let url_effect = browser::push_url(&route.to_path());
+                let route = Route::EditSnippet(encoded_snippet.clone());
+                let share_url = route.to_absolute_path(&model.current_url);
 
-                model.current_route = route;
+                let copy_effect = browser::effect::clipboard::write_text(&share_url);
 
-                Ok(vec![url_effect])
+                Ok(vec![copy_effect])
             }
         }
     }

@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use serde::Serialize;
+use url::Url;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum RouteName {
@@ -43,6 +44,12 @@ impl Route {
             Route::NewSnippet(language) => format!("/new/{}", language),
             Route::EditSnippet(id) => format!("/snippets/{}", id),
         }
+    }
+
+    pub fn to_absolute_path(&self, current_url: &Url) -> String {
+        let mut url = current_url.clone();
+        url.set_path(&self.to_path());
+        url.to_string()
     }
 
     pub fn name(&self) -> RouteName {
