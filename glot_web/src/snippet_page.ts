@@ -2,6 +2,7 @@ import init, { snippetPage } from "../wasm/glot";
 import { BrowserWindow, Poly } from "poly";
 import { AceEditorElement } from "poly-ace-editor";
 import { run } from "./api";
+import { defaultDebugConfig } from "poly/src/logger";
 
 AceEditorElement.register();
 
@@ -11,7 +12,7 @@ AceEditorElement.register();
   const windowSize = browserWindow.getSize();
 
   const poly = new Poly(snippetPage(windowSize, location.href), {
-    //loggerConfig: defaultDebugConfig(),
+    loggerConfig: defaultDebugConfig(),
   });
 
   poly.onAppEffect(async (msg) => {

@@ -80,6 +80,9 @@ enum Id {
     ClearStdin,
     Run,
     Share,
+    CloseSharingModal,
+    SnippetUrl,
+    CopyUrl,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -107,6 +110,7 @@ pub enum Msg {
     CloseSidebarClicked,
     RunClicked,
     ShareClicked,
+    CopyUrlClicked,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -116,6 +120,7 @@ pub enum Modal {
     File(FileState),
     Settings,
     Stdin(StdinState),
+    Sharing(SharingState),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -130,6 +135,13 @@ pub struct FileState {
 #[serde(rename_all = "camelCase")]
 pub struct StdinState {
     stdin: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SharingState {
+    snippet_url: String,
+    copied: bool,
 }
 
 pub struct SnippetPage {
@@ -280,6 +292,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
             browser::on_click_closest(Id::Run, Msg::RunClicked),
             browser::on_click_closest(Id::Share, Msg::ShareClicked),
+            browser::on_click_closest(Id::CopyUrl, Msg::CopyUrlClicked),
+            browser::on_click(Id::CloseSharingModal, Msg::CloseModalTriggered),
         ]
     }
 
@@ -506,23 +520,27 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::ShareClicked => {
-                let snippet = Snippet {
-                    language: model.language.id.to_string(),
-                    title: model.title.clone(),
-                    stdin: model.stdin.clone(),
-                    files: model.files.to_vec(),
+                let snippet_url = get_snippet_url(model)?;
+
+                let state = SharingState {
+                    snippet_url,
+                    copied: false,
                 };
 
-                let encoded_snippet = snippet
-                    .to_encoded_string()
-                    .map_err(|err| format!("Failed to encode snippet: {}", err))?;
+                model.active_modal = Modal::Sharing(state);
 
-                let route = Route::EditSnippet(encoded_snippet.clone());
-                let share_url = route.to_absolute_path(&model.current_url);
+                Ok(vec![])
+            }
 
-                let copy_effect = browser::effect::clipboard::write_text(&share_url);
-
-                Ok(vec![copy_effect])
+            Msg::CopyUrlClicked => {
+                if let Modal::Sharing(state) = &mut model.active_modal {
+                    Ok(vec![browser::effect::clipboard::write_text(
+                        &state.snippet_url,
+                        "GotCopyUrlResult",
+                    )])
+                } else {
+                    Ok(vec![])
+                }
             }
         }
     }
@@ -537,6 +555,18 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 let run_result: RunResult = serde_json::from_value(msg.data)
                     .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
                 model.run_result = RemoteData::Success(run_result);
+                Ok(vec![])
+            }
+
+            "GotCopyUrlResult" => {
+                let result: CopyUrlResult = serde_json::from_value(msg.data)
+                    .map_err(|err| format!("Failed to decode copy url result: {}", err))?;
+
+                if let Modal::Sharing(state) = &mut model.active_modal {
+                    state.copied = result.success;
+                }
+
+                // TODO: setTimeout clear result
                 Ok(vec![])
             }
 
@@ -562,6 +592,11 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     fn render_page(&self, markup: PageMarkup<Markup>) -> String {
         app_layout::render_page(markup)
     }
+}
+
+#[derive(Clone, serde::Deserialize)]
+struct CopyUrlResult {
+    success: bool,
 }
 
 fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> Result<(), String> {
@@ -822,6 +857,13 @@ fn view_body(model: &Model) -> maud::Markup {
 
                 Modal::Settings => {
                     (modal::view(view_settings_modal(model), &modal::Config{
+                        backdrop_id: Id::ModalBackdrop,
+                        close_button_id: Id::ModalClose,
+                    }))
+                }
+
+                Modal::Sharing(state) => {
+                    (modal::view(view_sharing_modal(state), &modal::Config{
                         backdrop_id: Id::ModalBackdrop,
                         close_button_id: Id::ModalClose,
                     }))
@@ -1263,6 +1305,39 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
     }
 }
 
+fn view_sharing_modal(state: &SharingState) -> maud::Markup {
+    html! {
+        div class="text-center" {
+            h3 class="text-lg leading-6 font-medium text-gray-900" {
+                "Share snippet"
+            }
+        }
+
+        div class="mt-4" {
+            label class="block text-sm font-medium leading-6 text-gray-900" for=(Id::SnippetUrl) {
+                "Snippet url"
+            }
+            div class="mt-2 flex rounded-md shadow-sm" {
+                div class="relative flex flex-grow items-stretch focus-within:z-10" {
+                    input id=(Id::SnippetUrl) value=(state.snippet_url) readonly class="block w-full rounded-none rounded-l-md border-0 py-1.5 px-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6";
+                }
+                button id=(Id::CopyUrl) class="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" type="button" {
+                    span class="w-4 h-4" {
+                        (heroicons_maud::clipboard_outline())
+                    }
+                    "Copy"
+                }
+            }
+        }
+
+        div class="flex mt-4" {
+            button id=(Id::CloseSharingModal) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                "Close"
+            }
+        }
+    }
+}
+
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalStorageSettings {
@@ -1308,4 +1383,20 @@ fn calc_editor_height(window_size: &WindowSize) -> u64 {
     };
 
     max(height, MIN_EDITOR_HEIGHT)
+}
+
+fn get_snippet_url(model: &Model) -> Result<String, String> {
+    let snippet = Snippet {
+        language: model.language.id.to_string(),
+        title: model.title.clone(),
+        stdin: model.stdin.clone(),
+        files: model.files.to_vec(),
+    };
+
+    let encoded_snippet = snippet
+        .to_encoded_string()
+        .map_err(|err| format!("Failed to encode snippet: {}", err))?;
+
+    let route = Route::EditSnippet(encoded_snippet.clone());
+    Ok(route.to_absolute_path(&model.current_url))
 }
