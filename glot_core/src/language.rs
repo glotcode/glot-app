@@ -42,7 +42,7 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     Assembly,
@@ -259,7 +259,7 @@ impl Display for Language {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct ParseIdError;
 
 impl FromStr for Language {

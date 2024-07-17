@@ -158,9 +158,7 @@ impl SnippetPage {
         let current_route = Route::from_path(self.current_url.path()).ok_or("Invalid route")?;
 
         match &current_route {
-            Route::NewSnippet(language_id) => {
-                self.model_for_new_snippet(&current_route, language_id)
-            }
+            Route::NewSnippet(language) => self.model_for_new_snippet(&current_route, language),
 
             Route::EditSnippet(encoded_snippet) => {
                 self.model_for_existing_snippet(&current_route, encoded_snippet)
@@ -170,10 +168,7 @@ impl SnippetPage {
         }
     }
 
-    fn model_for_new_snippet(&self, route: &Route, language_id: &str) -> Result<Model, String> {
-        let language: Language = language_id
-            .parse()
-            .map_err(|_| "Unknown language".to_string())?;
+    fn model_for_new_snippet(&self, route: &Route, language: &Language) -> Result<Model, String> {
         let language_config = language.config();
 
         let file = File {
@@ -1441,13 +1436,6 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
 
 fn focus_editor_effect() -> Effect<Msg, AppEffect> {
     dom::dispatch_element_event(Id::Editor, "focus")
-}
-
-fn language_from_route(route: &Route) -> Option<language::Language> {
-    match route {
-        Route::NewSnippet(language_id) => language_id.parse().ok(),
-        _ => None,
-    }
 }
 
 fn calc_editor_height(window_size: &WindowSize) -> u64 {

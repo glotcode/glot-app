@@ -1,3 +1,4 @@
+use crate::language::Language;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -12,7 +13,7 @@ pub enum RouteName {
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum Route {
     Home,
-    NewSnippet(String),
+    NewSnippet(Language),
     EditSnippet(String),
 }
 
@@ -20,6 +21,10 @@ impl Default for Route {
     fn default() -> Self {
         Self::Home
     }
+}
+
+fn is_language(input: &str) -> bool {
+    input.parse::<Language>().is_ok()
 }
 
 impl Route {
@@ -32,7 +37,9 @@ impl Route {
 
         match parts.as_slice() {
             [] => Some(Route::Home),
-            ["new", language] => Some(Route::NewSnippet(language.to_string())),
+            ["new", language] if is_language(language) => {
+                Some(Route::NewSnippet(language.parse().unwrap()))
+            }
             ["snippets", id] => Some(Route::EditSnippet(id.to_string())),
             _ => None,
         }
