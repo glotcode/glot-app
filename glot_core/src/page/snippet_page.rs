@@ -113,6 +113,7 @@ pub enum Msg {
     ShareClicked,
     CopyUrlClicked,
     GotCopyUrlResult(Capture<WriteTextResult>),
+    ClearCopyStateTimeout,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -556,7 +557,17 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     }
                 }
 
-                // TODO: setTimeout clear result
+                Ok(vec![browser::effect::browser::set_timeout(
+                    3000,
+                    Msg::ClearCopyStateTimeout,
+                )])
+            }
+
+            Msg::ClearCopyStateTimeout => {
+                if let Modal::Sharing(state) = &mut model.active_modal {
+                    state.copy_state = RemoteData::NotAsked
+                }
+
                 Ok(vec![])
             }
         }
