@@ -50,7 +50,7 @@ pub struct Model {
     pub layout_state: app_layout::State,
     pub current_route: Route,
     pub current_url: Url,
-    pub run_result: RemoteData<String, RunResult>,
+    pub run_result: RemoteData<FailedRunResult, RunResult>,
     pub snippet: Option<Snippet>,
 }
 
@@ -586,9 +586,19 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     ) -> Result<Effects<Msg, AppEffect>, String> {
         match msg.type_.as_ref() {
             "GotRunResponse" => {
-                let run_result: RunResult = serde_json::from_value(msg.data)
+                let outcome = RunOutcome::from_value(msg.data)
                     .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
-                model.run_result = RemoteData::Success(run_result);
+
+                match outcome {
+                    RunOutcome::Success(run_result) => {
+                        model.run_result = RemoteData::Success(run_result);
+                    }
+
+                    RunOutcome::Failure(err) => {
+                        model.run_result = RemoteData::Failure(err);
+                    }
+                }
+
                 Ok(vec![])
             }
 
@@ -808,6 +818,25 @@ impl RunResult {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct FailedRunResult {
+    message: String,
+}
+
+pub enum RunOutcome {
+    Success(RunResult),
+    Failure(FailedRunResult),
+}
+
+impl RunOutcome {
+    fn from_value(value: serde_json::Value) -> Result<Self, serde_json::error::Error> {
+        serde_json::from_value(value.clone())
+            .map(Self::Success)
+            .or_else(|_| serde_json::from_value(value).map(Self::Failure))
+    }
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RunRequestPayload {
     pub language: language::Language,
     pub files: Vec<File>,
@@ -993,7 +1022,7 @@ fn view_output_panel(model: &Model) -> Markup {
                     }
 
                     RemoteData::Failure(err) => {
-                        (view_info(&format!("ERROR: {}", err)))
+                        (view_info(&format!("ERROR: {}", err.message)))
                     }
                 }
             }
