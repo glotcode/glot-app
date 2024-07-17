@@ -199,6 +199,6 @@ fn to_grid_language(language: &language::Config) -> language_grid::Language {
     language_grid::Language {
         name: language.name.clone(),
         icon_path: language.svg_icon_path(),
-        route: Route::NewSnippet(language.id.to_string()),
+        route: Route::NewSnippet(language.id.clone()),
     }
 }

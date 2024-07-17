@@ -23,10 +23,6 @@ impl Default for Route {
     }
 }
 
-fn is_language(input: &str) -> bool {
-    input.parse::<Language>().is_ok()
-}
-
 impl Route {
     pub fn from_path(path: &str) -> Option<Route> {
         let parts = path
@@ -37,7 +33,7 @@ impl Route {
 
         match parts.as_slice() {
             [] => Some(Route::Home),
-            ["new", language] if is_language(language) => {
+            ["new", language] if is_valid_language(language) => {
                 Some(Route::NewSnippet(language.parse().unwrap()))
             }
             ["snippets", id] => Some(Route::EditSnippet(id.to_string())),
@@ -66,4 +62,8 @@ impl Route {
             Route::EditSnippet(_) => RouteName::EditSnippet,
         }
     }
+}
+
+fn is_valid_language(input: &str) -> bool {
+    input.parse::<Language>().is_ok()
 }
