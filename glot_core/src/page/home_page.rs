@@ -110,7 +110,7 @@ fn view_head() -> maud::Markup {
         meta name="viewport" content="width=device-width, initial-scale=1";
         link rel="stylesheet" href="/app.css";
         link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
-        script defer type="module" src="/home_page.js" {}
+        script defer type="module" src="/app.js" {}
     }
 }
 

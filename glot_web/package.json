@@ -6,8 +6,8 @@
         "build-dev": "npm run compile-ts && npm run build-js-dev && npm run build-css-dev",
         "build-release": "npm run compile-ts && npm run build-js-release && npm run build-css-release",
         "compile-ts": "tsc --noEmit --project .",
-        "build-js-dev": "esbuild src/*_page.ts --bundle --format=esm --target=es2020 --outdir=../dist/",
-        "build-js-release": "esbuild --minify src/*_page.ts --bundle --format=esm --target=es2020 --outdir=../dist/",
+        "build-js-dev": "esbuild src/app.ts --bundle --format=esm --target=es2020 --outdir=../dist/",
+        "build-js-release": "esbuild --minify src/app.ts --bundle --format=esm --target=es2020 --outdir=../dist/",
         "build-css-dev": "tailwindcss -i css/app.css -o ../dist/app.css",
         "build-css-release": "tailwindcss --minify -i css/app.css -o ../dist/app.css"
     },

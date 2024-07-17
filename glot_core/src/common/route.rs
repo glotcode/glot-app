@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::language::Language;
 use serde::Deserialize;
 use serde::Serialize;
@@ -5,13 +7,26 @@ use url::Url;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum RouteName {
+    NotFound,
     Home,
     NewSnippet,
     EditSnippet,
 }
 
+impl fmt::Display for RouteName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            RouteName::NotFound => write!(f, "NotFound"),
+            RouteName::Home => write!(f, "Home"),
+            RouteName::NewSnippet => write!(f, "NewSnippet"),
+            RouteName::EditSnippet => write!(f, "EditSnippet"),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum Route {
+    NotFound,
     Home,
     NewSnippet(Language),
     EditSnippet(String),
@@ -24,7 +39,7 @@ impl Default for Route {
 }
 
 impl Route {
-    pub fn from_path(path: &str) -> Option<Route> {
+    pub fn from_path(path: &str) -> Route {
         let parts = path
             .trim_start_matches("/")
             .trim_end_matches("/")
@@ -32,17 +47,18 @@ impl Route {
             .collect::<Vec<&str>>();
 
         match parts.as_slice() {
-            [] => Some(Route::Home),
+            [""] => Route::Home,
             ["new", language] if is_valid_language(language) => {
-                Some(Route::NewSnippet(language.parse().unwrap()))
+                Route::NewSnippet(language.parse().unwrap())
             }
-            ["snippets", id] => Some(Route::EditSnippet(id.to_string())),
-            _ => None,
+            ["snippets", id] => Route::EditSnippet(id.to_string()),
+            _ => Route::NotFound,
         }
     }
 
     pub fn to_path(&self) -> String {
         match self {
+            Route::NotFound => format!("/not-found"),
             Route::Home => format!("/"),
             Route::NewSnippet(language) => format!("/new/{}", language),
             Route::EditSnippet(id) => format!("/snippets/{}", id),
@@ -57,6 +73,7 @@ impl Route {
 
     pub fn name(&self) -> RouteName {
         match self {
+            Route::NotFound => RouteName::NotFound,
             Route::Home => RouteName::Home,
             Route::NewSnippet(_) => RouteName::NewSnippet,
             Route::EditSnippet(_) => RouteName::EditSnippet,

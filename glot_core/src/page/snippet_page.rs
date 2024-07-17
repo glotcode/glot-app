@@ -155,7 +155,7 @@ pub struct SnippetPage {
 
 impl SnippetPage {
     fn get_model(&self) -> Result<Model, String> {
-        let current_route = Route::from_path(self.current_url.path()).ok_or("Invalid route")?;
+        let current_route = Route::from_path(self.current_url.path());
 
         match &current_route {
             Route::NewSnippet(language) => self.model_for_new_snippet(&current_route, language),
@@ -845,7 +845,7 @@ fn view_head() -> maud::Markup {
         link id="app-styles" rel="stylesheet" href="/app.css";
         link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
         script defer nohash src="/vendor/ace/ace.js" {}
-        script defer type="module" src="/snippet_page.js" {}
+        script defer type="module" src="/app.js" {}
     }
 }
 
