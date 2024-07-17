@@ -25,6 +25,7 @@ use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
+use std::time::Duration;
 use url::Url;
 
 const MIN_EDITOR_HEIGHT: u64 = 300;
@@ -552,15 +553,20 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 if let Modal::Sharing(state) = &mut model.active_modal {
                     if result.success {
                         state.copy_state = RemoteData::Success(());
+                        Ok(vec![browser::effect::browser::set_timeout(
+                            Duration::from_secs(3),
+                            Msg::ClearCopyStateTimeout,
+                        )])
                     } else {
                         state.copy_state = RemoteData::Failure(result.error.unwrap_or_default());
+                        Ok(vec![browser::effect::browser::set_timeout(
+                            Duration::from_secs(5),
+                            Msg::ClearCopyStateTimeout,
+                        )])
                     }
+                } else {
+                    Ok(vec![])
                 }
-
-                Ok(vec![browser::effect::browser::set_timeout(
-                    3000,
-                    Msg::ClearCopyStateTimeout,
-                )])
             }
 
             Msg::ClearCopyStateTimeout => {
@@ -1335,13 +1341,13 @@ fn view_sharing_modal(state: &SharingState) -> maud::Markup {
                     input id=(Id::SnippetUrl) value=(state.snippet_url) readonly class="block w-full rounded-none rounded-l-md border-0 py-1.5 px-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6";
                     @match state.copy_state {
                         RemoteData::Success(_) => {
-                            div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" {
+                            div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 text-grey-900" {
                                 "Copied to clipboard!"
                             }
                         }
 
                         RemoteData::Failure(_) => {
-                            div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" {
+                            div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 text-red-900" {
                                 "Failed to copy url"
                             }
                         }
