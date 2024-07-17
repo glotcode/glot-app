@@ -11,6 +11,7 @@ use crate::view::modal;
 use maud::html;
 use maud::Markup;
 use poly::browser;
+use poly::browser::clipboard::WriteTextResult;
 use poly::browser::effect;
 use poly::browser::effect::dom;
 use poly::browser::effect::local_storage;
@@ -111,6 +112,7 @@ pub enum Msg {
     RunClicked,
     ShareClicked,
     CopyUrlClicked,
+    GotCopyUrlResult(Capture<WriteTextResult>),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -141,7 +143,7 @@ pub struct StdinState {
 #[serde(rename_all = "camelCase")]
 pub struct SharingState {
     snippet_url: String,
-    copied: bool,
+    copy_state: RemoteData<String, ()>,
 }
 
 pub struct SnippetPage {
@@ -524,7 +526,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 let state = SharingState {
                     snippet_url,
-                    copied: false,
+                    copy_state: RemoteData::NotAsked,
                 };
 
                 model.active_modal = Modal::Sharing(state);
@@ -536,11 +538,26 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 if let Modal::Sharing(state) = &mut model.active_modal {
                     Ok(vec![browser::effect::clipboard::write_text(
                         &state.snippet_url,
-                        "GotCopyUrlResult",
+                        Msg::GotCopyUrlResult,
                     )])
                 } else {
                     Ok(vec![])
                 }
+            }
+
+            Msg::GotCopyUrlResult(captured) => {
+                let result = captured.value();
+
+                if let Modal::Sharing(state) = &mut model.active_modal {
+                    if result.success {
+                        state.copy_state = RemoteData::Success(());
+                    } else {
+                        state.copy_state = RemoteData::Failure(result.error.unwrap_or_default());
+                    }
+                }
+
+                // TODO: setTimeout clear result
+                Ok(vec![])
             }
         }
     }
@@ -555,18 +572,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 let run_result: RunResult = serde_json::from_value(msg.data)
                     .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
                 model.run_result = RemoteData::Success(run_result);
-                Ok(vec![])
-            }
-
-            "GotCopyUrlResult" => {
-                let result: CopyUrlResult = serde_json::from_value(msg.data)
-                    .map_err(|err| format!("Failed to decode copy url result: {}", err))?;
-
-                if let Modal::Sharing(state) = &mut model.active_modal {
-                    state.copied = result.success;
-                }
-
-                // TODO: setTimeout clear result
                 Ok(vec![])
             }
 
@@ -592,11 +597,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     fn render_page(&self, markup: PageMarkup<Markup>) -> String {
         app_layout::render_page(markup)
     }
-}
-
-#[derive(Clone, serde::Deserialize)]
-struct CopyUrlResult {
-    success: bool,
 }
 
 fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> Result<(), String> {
@@ -1321,7 +1321,22 @@ fn view_sharing_modal(state: &SharingState) -> maud::Markup {
             }
             div class="mt-2 flex rounded-md shadow-sm" {
                 div class="relative flex flex-grow items-stretch focus-within:z-10" {
-                    input id=(Id::SnippetUrl) value=(state.snippet_url) readonly class="block w-full rounded-none rounded-l-md border-0 py-1.5 px-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6";
+                    input id=(Id::SnippetUrl) value=(state.snippet_url) readonly class="block w-full rounded-none rounded-l-md border-0 py-1.5 px-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6";
+                    @match state.copy_state {
+                        RemoteData::Success(_) => {
+                            div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" {
+                                "Copied to clipboard!"
+                            }
+                        }
+
+                        RemoteData::Failure(_) => {
+                            div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" {
+                                "Failed to copy url"
+                            }
+                        }
+
+                        _ => {}
+                    }
                 }
                 button id=(Id::CopyUrl) class="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" type="button" {
                     span class="w-4 h-4" {
