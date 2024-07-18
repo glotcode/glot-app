@@ -35,6 +35,7 @@ pub mod perl;
 pub mod php;
 pub mod python;
 pub mod raku;
+pub mod ruby;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -83,6 +84,7 @@ pub enum Language {
     Php,
     Python,
     Raku,
+    Ruby,
 }
 
 impl Language {
@@ -125,6 +127,7 @@ impl Language {
             Language::Php,
             Language::Python,
             Language::Raku,
+            Language::Ruby,
         ]
     }
 
@@ -167,6 +170,7 @@ impl Language {
             Self::Php => php::config(),
             Self::Python => python::config(),
             Self::Raku => raku::config(),
+            Self::Ruby => ruby::config(),
         }
     }
 
@@ -217,6 +221,7 @@ impl Language {
             Self::Php => php::run_instructions,
             Self::Python => python::run_instructions,
             Self::Raku => raku::run_instructions,
+            Self::Ruby => ruby::run_instructions,
         }
     }
 }
@@ -261,6 +266,7 @@ impl Display for Language {
             Self::Php => write!(f, "php"),
             Self::Python => write!(f, "python"),
             Self::Raku => write!(f, "raku"),
+            Self::Ruby => write!(f, "ruby"),
         }
     }
 }
