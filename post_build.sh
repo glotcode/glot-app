@@ -26,7 +26,5 @@ if [[ "$event" == "before_asset_hash" ]]; then
 
 fi
 
-if [[ "$event" == "after_asset_hash" || "$env" == "dev" ]]; then
-    # Cloudflare SPA routing
-    cp glot_cloudflare/_routes.json dist/
-fi
+# Cloudflare SPA routing
+cp glot_cloudflare/_routes.json dist/
