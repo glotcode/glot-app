@@ -15,7 +15,7 @@
 }
 
 .background-banner {
-    background: url(/static/assets/home-banner.jpg) center center no-repeat;
+    background: url(/static/assets/home-banner.jpg?hash=checksum) center center no-repeat;
     background-size: cover;
 }
 

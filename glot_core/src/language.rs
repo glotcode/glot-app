@@ -287,7 +287,10 @@ pub struct Config {
 
 impl Config {
     pub fn svg_icon_path(&self) -> String {
-        format!("/static/assets/language/{}.svg", self.logo_name)
+        format!(
+            "/static/assets/language/{}.svg?hash=checksum",
+            self.logo_name
+        )
     }
 }
 

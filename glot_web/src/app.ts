@@ -7,7 +7,7 @@ import { defaultDebugConfig } from "poly/src/logger";
 AceEditorElement.register();
 
 (async () => {
-    await init("/wasm/glot_bg.wasm");
+    await init("/wasm/glot_bg.wasm?hash=checksum");
 
     const route = getRouteName(location.href);
     const page = pageFromRoute(route)

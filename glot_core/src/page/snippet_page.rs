@@ -838,10 +838,10 @@ fn view_head(model: &Model) -> maud::Markup {
     html! {
         title { (model.title) " - " (model.language.name) " snippet" }
         meta name="viewport" content="width=device-width, initial-scale=1";
-        link id="app-styles" rel="stylesheet" href="/static/app.css";
-        link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
-        script defer nohash src="/static/vendor/ace/ace.js" {}
-        script defer type="module" src="/static/app.js" {}
+        link id="app-styles" rel="stylesheet" href="/static/app.css?hash=checksum";
+        link rel="preload" href="/wasm/glot_bg.wasm?hash=checksum" as="fetch" crossorigin="anonymous";
+        script defer nohash src="/static/vendor/ace/ace.js?hash=checksum" {}
+        script defer type="module" src="/static/app.js?hash=checksum" {}
     }
 }
 

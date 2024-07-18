@@ -97,9 +97,9 @@ fn view_head() -> maud::Markup {
     html! {
         title { "Page not found" }
         meta name="viewport" content="width=device-width, initial-scale=1";
-        link rel="stylesheet" href="/static/app.css";
-        link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
-        script defer type="module" src="/static/app.js" {}
+        link rel="stylesheet" href="/static/app.css?hash=checksum";
+        link rel="preload" href="/wasm/glot_bg.wasm?hash=checksum" as="fetch" crossorigin="anonymous";
+        script defer type="module" src="/static/app.js?hash=checksum" {}
     }
 }
 
