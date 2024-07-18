@@ -39,6 +39,7 @@ pub mod ruby;
 pub mod rust;
 pub mod sac;
 pub mod scala;
+pub mod swift;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -91,6 +92,7 @@ pub enum Language {
     Rust,
     Sac,
     Scala,
+    Swift,
 }
 
 impl Language {
@@ -137,6 +139,7 @@ impl Language {
             Language::Rust,
             Language::Sac,
             Language::Scala,
+            Language::Swift,
         ]
     }
 
@@ -183,6 +186,7 @@ impl Language {
             Self::Rust => rust::config(),
             Self::Sac => sac::config(),
             Self::Scala => scala::config(),
+            Self::Swift => swift::config(),
         }
     }
 
@@ -237,6 +241,7 @@ impl Language {
             Self::Rust => rust::run_instructions,
             Self::Sac => sac::run_instructions,
             Self::Scala => scala::run_instructions,
+            Self::Swift => swift::run_instructions,
         }
     }
 }
@@ -285,6 +290,7 @@ impl Display for Language {
             Self::Rust => write!(f, "rust"),
             Self::Sac => write!(f, "sac"),
             Self::Scala => write!(f, "scala"),
+            Self::Swift => write!(f, "swift"),
         }
     }
 }
