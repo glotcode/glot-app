@@ -603,7 +603,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
     fn view(&self, model: &Model) -> PageMarkup<Markup> {
         PageMarkup {
-            head: view_head(),
+            head: view_head(model),
             body: view_body(model),
         }
     }
@@ -834,9 +834,9 @@ pub struct RunRequestPayload {
     pub stdin: String,
 }
 
-fn view_head() -> maud::Markup {
+fn view_head(model: &Model) -> maud::Markup {
     html! {
-        title { "Snippet Page" }
+        title { (model.title) " - " (model.language.name) " snippet" }
         meta name="viewport" content="width=device-width, initial-scale=1";
         link id="app-styles" rel="stylesheet" href="/static/app.css";
         link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
