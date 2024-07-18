@@ -29,7 +29,7 @@ pub enum Route {
     NotFound,
     Home,
     NewSnippet(Language),
-    EditSnippet(String),
+    EditSnippet(Language, String),
 }
 
 impl Default for Route {
@@ -48,10 +48,12 @@ impl Route {
 
         match parts.as_slice() {
             [""] => Route::Home,
-            ["new", language] if is_valid_language(language) => {
+            [language] if is_valid_language(language) => {
                 Route::NewSnippet(language.parse().unwrap())
             }
-            ["snippets", id] => Route::EditSnippet(id.to_string()),
+            [language, id] if is_valid_language(language) => {
+                Route::EditSnippet(language.parse().unwrap(), id.to_string())
+            }
             _ => Route::NotFound,
         }
     }
@@ -60,8 +62,8 @@ impl Route {
         match self {
             Route::NotFound => format!("/not-found"),
             Route::Home => format!("/"),
-            Route::NewSnippet(language) => format!("/new/{}", language),
-            Route::EditSnippet(id) => format!("/snippets/{}", id),
+            Route::NewSnippet(language) => format!("/{}", language),
+            Route::EditSnippet(language, id) => format!("/{}/{}", language, id),
         }
     }
 
@@ -76,7 +78,7 @@ impl Route {
             Route::NotFound => RouteName::NotFound,
             Route::Home => RouteName::Home,
             Route::NewSnippet(_) => RouteName::NewSnippet,
-            Route::EditSnippet(_) => RouteName::EditSnippet,
+            Route::EditSnippet(_, _) => RouteName::EditSnippet,
         }
     }
 }

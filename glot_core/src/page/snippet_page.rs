@@ -160,8 +160,8 @@ impl SnippetPage {
         match &current_route {
             Route::NewSnippet(language) => self.model_for_new_snippet(&current_route, language),
 
-            Route::EditSnippet(encoded_snippet) => {
-                self.model_for_existing_snippet(&current_route, encoded_snippet)
+            Route::EditSnippet(language, encoded_snippet) => {
+                self.model_for_existing_snippet(&current_route, language, encoded_snippet)
             }
 
             _ => Err("Invalid route".to_string()),
@@ -196,17 +196,13 @@ impl SnippetPage {
     fn model_for_existing_snippet(
         &self,
         route: &Route,
+        language: &Language,
         encoded_snippet: &str,
     ) -> Result<Model, String> {
         let snippet = Snippet::from_encoded_string(encoded_snippet)
             .map_err(|err| format!("Failed to decode snippet: {}", err))?;
 
         let snippet_clone = snippet.clone();
-
-        let language: Language = snippet
-            .language
-            .parse()
-            .map_err(|_| "Unknown language".to_string())?;
 
         let language_config = language.config();
 
@@ -1464,6 +1460,6 @@ fn get_snippet_url(model: &Model) -> Result<String, String> {
         .to_encoded_string()
         .map_err(|err| format!("Failed to encode snippet: {}", err))?;
 
-    let route = Route::EditSnippet(encoded_snippet.clone());
+    let route = Route::EditSnippet(model.language.id.clone(), encoded_snippet.clone());
     Ok(route.to_absolute_path(&model.current_url))
 }
