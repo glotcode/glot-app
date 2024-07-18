@@ -38,6 +38,7 @@ pub mod raku;
 pub mod ruby;
 pub mod rust;
 pub mod sac;
+pub mod scala;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -89,6 +90,7 @@ pub enum Language {
     Ruby,
     Rust,
     Sac,
+    Scala,
 }
 
 impl Language {
@@ -134,6 +136,7 @@ impl Language {
             Language::Ruby,
             Language::Rust,
             Language::Sac,
+            Language::Scala,
         ]
     }
 
@@ -179,6 +182,7 @@ impl Language {
             Self::Ruby => ruby::config(),
             Self::Rust => rust::config(),
             Self::Sac => sac::config(),
+            Self::Scala => scala::config(),
         }
     }
 
@@ -232,6 +236,7 @@ impl Language {
             Self::Ruby => ruby::run_instructions,
             Self::Rust => rust::run_instructions,
             Self::Sac => sac::run_instructions,
+            Self::Scala => scala::run_instructions,
         }
     }
 }
@@ -279,6 +284,7 @@ impl Display for Language {
             Self::Ruby => write!(f, "ruby"),
             Self::Rust => write!(f, "rust"),
             Self::Sac => write!(f, "sac"),
+            Self::Scala => write!(f, "scala"),
         }
     }
 }
