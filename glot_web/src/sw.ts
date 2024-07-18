@@ -34,10 +34,13 @@ registerRoute(({ url }) => {
 }));
 
 
-// Cache all requests that does not have an hash parameter and are not API requests
+// Cache all requests that meet the following criteria:
+// - does not have an hash parameter
+// - is not an API request
+// - is not the service worker itself
 registerRoute(
     ({ url }) => {
-        return !hasHashParam(url) && !isApiRequest(url);
+        return !hasHashParam(url) && !isApiRequest(url) && !isServiceWorker(url);
     },
     new NetworkFirst({
         cacheName: "offline-fallback"
@@ -45,10 +48,13 @@ registerRoute(
 );
 
 
+function isServiceWorker(url: URL) {
+    return url.pathname === "/sw.js";
+}
+
 function isApiRequest(url: URL) {
     return url.pathname.startsWith("/api");
 }
-
 
 function hasHashParam(url: URL) {
     const hash = url.searchParams.get("hash");
