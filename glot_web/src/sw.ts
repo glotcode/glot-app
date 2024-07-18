@@ -1,5 +1,5 @@
 import { registerRoute } from 'workbox-routing';
-import { CacheFirst } from 'workbox-strategies';
+import { CacheFirst, NetworkFirst } from 'workbox-strategies';
 import { WorkboxPlugin, CacheDidUpdateCallbackParam } from 'workbox-core/types.js';
 
 
@@ -32,6 +32,22 @@ registerRoute(({ url }) => {
     cacheName: "hashed-files",
     plugins: [new EvictStaleHashedFilesPlugin()]
 }));
+
+
+// Cache all requests that does not have an hash parameter and are not API requests
+registerRoute(
+    ({ url }) => {
+        return !hasHashParam(url) && !isApiRequest(url);
+    },
+    new NetworkFirst({
+        cacheName: "offline-fallback"
+    })
+);
+
+
+function isApiRequest(url: URL) {
+    return url.pathname.startsWith("/api");
+}
 
 
 function hasHashParam(url: URL) {
