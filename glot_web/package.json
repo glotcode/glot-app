@@ -4,13 +4,14 @@
     "description": "",
     "scripts": {
         "build-dev": "npm run compile-ts && npm run build-js-dev && npm run build-css-dev && npm run build-sw-dev",
-        "build-release": "npm run compile-ts && npm run build-js-release && npm run build-css-release",
+        "build-release": "npm run compile-ts && npm run build-js-release && npm run build-css-release && npm run build-sw-release",
         "compile-ts": "tsc --noEmit --project .",
         "build-js-dev": "esbuild src/app.ts --bundle --format=esm --target=es2020 --outdir=../dist/static/",
         "build-js-release": "esbuild --minify src/app.ts --bundle --format=esm --target=es2020 --outdir=../dist/static/",
         "build-css-dev": "tailwindcss -i css/app.css -o ../dist/static/app.css",
         "build-css-release": "tailwindcss --minify -i css/app.css -o ../dist/static/app.css",
-        "build-sw-dev": "esbuild src/sw.ts --bundle --format=esm --target=es2020 --outdir=../dist/"
+        "build-sw-dev": "esbuild src/sw.ts --bundle --format=esm --target=es2020 --outdir=../dist/",
+        "build-sw-release": "esbuild --minify src/sw.ts --bundle --format=esm --target=es2020 --outdir=../dist/"
     },
     "repository": {
         "type": "git",
