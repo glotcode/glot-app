@@ -3,13 +3,14 @@
     "version": "1.0.0",
     "description": "",
     "scripts": {
-        "build-dev": "npm run compile-ts && npm run build-js-dev && npm run build-css-dev",
+        "build-dev": "npm run compile-ts && npm run build-js-dev && npm run build-css-dev && npm run build-sw-dev",
         "build-release": "npm run compile-ts && npm run build-js-release && npm run build-css-release",
         "compile-ts": "tsc --noEmit --project .",
         "build-js-dev": "esbuild src/app.ts --bundle --format=esm --target=es2020 --outdir=../dist/static/",
         "build-js-release": "esbuild --minify src/app.ts --bundle --format=esm --target=es2020 --outdir=../dist/static/",
         "build-css-dev": "tailwindcss -i css/app.css -o ../dist/static/app.css",
-        "build-css-release": "tailwindcss --minify -i css/app.css -o ../dist/static/app.css"
+        "build-css-release": "tailwindcss --minify -i css/app.css -o ../dist/static/app.css",
+        "build-sw-dev": "esbuild src/sw.ts --bundle --format=esm --target=es2020 --outdir=../dist/"
     },
     "repository": {
         "type": "git",
@@ -29,6 +30,8 @@
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",
         "esbuild": "^0.14.49",
-        "tailwindcss": "^3.1.6"
+        "tailwindcss": "^3.1.6",
+        "workbox-routing": "^7.1.0",
+        "workbox-strategies": "^7.1.0"
     }
 }

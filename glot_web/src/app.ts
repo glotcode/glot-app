@@ -7,6 +7,8 @@ import { defaultDebugConfig } from "poly/src/logger";
 AceEditorElement.register();
 
 (async () => {
+    registerServiceWorker();
+
     await init("/wasm/glot_bg.wasm?hash=checksum");
 
     const route = getRouteName(location.href);
@@ -54,3 +56,35 @@ function pageFromRoute(route: string): Page {
 
 
 
+
+async function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+        return
+    }
+
+    await waitForIdle();
+
+    requestIdleCallback(() => {
+        navigator.serviceWorker.register("/sw.js")
+            .catch(err => {
+                console.error("Service worker registration failed", err);
+            });
+
+    });
+}
+
+function waitForIdle(): Promise<void> {
+    if ("requestIdleCallback" in window) {
+        return new Promise(resolve => {
+            window.requestIdleCallback(() => {
+                resolve();
+            })
+        });
+    } else {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, 200);
+        })
+    }
+}

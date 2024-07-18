@@ -841,6 +841,7 @@ fn view_head(model: &Model) -> maud::Markup {
         link id="app-styles" rel="stylesheet" href="/static/app.css?hash=checksum";
         link rel="preload" href="/wasm/glot_bg.wasm?hash=checksum" as="fetch" crossorigin="anonymous";
         script defer nohash src="/static/vendor/ace/ace.js?hash=checksum" {}
+        script defer type="module" src="/sw.js" {}
         script defer type="module" src="/static/app.js?hash=checksum" {}
     }
 }

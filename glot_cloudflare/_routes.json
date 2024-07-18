@@ -4,6 +4,7 @@
     "/*"
   ],
   "exclude": [
+    "/sw.js",
     "/static/*",
     "/wasm/*",
     "/new/*"
