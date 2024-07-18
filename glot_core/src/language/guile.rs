@@ -13,7 +13,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Guile,
         name: "Guile".to_string(),
-        logo_name: "guile".to_string(),
+        logo_svg_path: "/static/assets/language/guile.svg?hash=checksum".to_string(),
         file_extension: "scm".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.scm".to_string(),

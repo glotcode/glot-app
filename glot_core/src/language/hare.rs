@@ -17,7 +17,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Guile,
         name: "Hare".to_string(),
-        logo_name: "hare".to_string(),
+        logo_svg_path: "/static/assets/language/hare.svg?hash=checksum".to_string(),
         file_extension: "ha".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.ha".to_string(),

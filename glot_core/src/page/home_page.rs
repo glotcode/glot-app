@@ -198,7 +198,7 @@ fn view_content(model: &Model) -> Markup {
 fn to_grid_language(language: &language::Config) -> language_grid::Language {
     language_grid::Language {
         name: language.name.clone(),
-        icon_path: language.svg_icon_path(),
+        icon_path: language.logo_svg_path.to_string(),
         route: Route::NewSnippet(language.id.clone()),
     }
 }

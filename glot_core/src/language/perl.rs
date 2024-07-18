@@ -13,7 +13,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Perl,
         name: "Perl".to_string(),
-        logo_name: "perl".to_string(),
+        logo_svg_path: "/static/assets/language/perl.svg?hash=checksum".to_string(),
         file_extension: "pl".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.pl".to_string(),

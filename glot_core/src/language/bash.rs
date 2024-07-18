@@ -13,7 +13,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Bash,
         name: "Bash".to_string(),
-        logo_name: "bash".to_string(),
+        logo_svg_path: "/static/assets/language/bash.svg?hash=checksum".to_string(),
         file_extension: "sh".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.sh".to_string(),

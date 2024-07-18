@@ -13,7 +13,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Groovy,
         name: "Groovy".to_string(),
-        logo_name: "groovy".to_string(),
+        logo_svg_path: "/static/assets/language/groovy.svg?hash=checksum".to_string(),
         file_extension: "groovy".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.groovy".to_string(),

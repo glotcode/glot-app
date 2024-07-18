@@ -16,7 +16,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Idris,
         name: "Idris".to_string(),
-        logo_name: "idris".to_string(),
+        logo_svg_path: "/static/assets/language/idris.svg?hash=checksum".to_string(),
         file_extension: "idr".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.idr".to_string(),

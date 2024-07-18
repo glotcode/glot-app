@@ -21,7 +21,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Go,
         name: "Go".to_string(),
-        logo_name: "go".to_string(),
+        logo_svg_path: "/static/assets/language/go.svg?hash=checksum".to_string(),
         file_extension: "go".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.go".to_string(),

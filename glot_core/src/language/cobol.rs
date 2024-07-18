@@ -20,7 +20,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Cobol,
         name: "Cobol".to_string(),
-        logo_name: "generic".to_string(),
+        logo_svg_path: "/static/assets/language/generic.svg?hash=checksum".to_string(),
         file_extension: "cob".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.cob".to_string(),

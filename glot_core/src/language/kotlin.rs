@@ -16,7 +16,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Julia,
         name: "Kotlin".to_string(),
-        logo_name: "kotlin".to_string(),
+        logo_svg_path: "/static/assets/language/kotlin.svg?hash=checksum".to_string(),
         file_extension: "kt".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.kt".to_string(),

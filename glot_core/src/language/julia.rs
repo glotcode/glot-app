@@ -13,7 +13,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Julia,
         name: "Julia".to_string(),
-        logo_name: "julia".to_string(),
+        logo_svg_path: "/static/assets/language/julia.svg?hash=checksum".to_string(),
         file_extension: "jl".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.jl".to_string(),

@@ -13,7 +13,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Clisp,
         name: "Common Lisp".to_string(),
-        logo_name: "clisp".to_string(),
+        logo_svg_path: "/static/assets/language/clisp.svg?hash=checksum".to_string(),
         file_extension: "lsp".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.lsp".to_string(),

@@ -13,7 +13,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Nim,
         name: "Nim".to_string(),
-        logo_name: "nim".to_string(),
+        logo_svg_path: "/static/assets/language/nim.svg?hash=checksum".to_string(),
         file_extension: "nim".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.nim".to_string(),

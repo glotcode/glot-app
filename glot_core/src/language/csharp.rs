@@ -22,7 +22,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Csharp,
         name: "C#".to_string(),
-        logo_name: "csharp".to_string(),
+        logo_svg_path: "/static/assets/language/csharp.svg?hash=checksum".to_string(),
         file_extension: "cs".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.cs".to_string(),

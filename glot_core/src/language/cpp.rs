@@ -20,7 +20,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Cpp,
         name: "C++".to_string(),
-        logo_name: "cpp".to_string(),
+        logo_svg_path: "/static/assets/language/cpp.svg?hash=checksum".to_string(),
         file_extension: "cpp".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.cpp".to_string(),

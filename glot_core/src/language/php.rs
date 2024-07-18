@@ -15,7 +15,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Php,
         name: "PHP".to_string(),
-        logo_name: "php".to_string(),
+        logo_svg_path: "/static/assets/language/php.svg?hash=checksum".to_string(),
         file_extension: "php".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.php".to_string(),

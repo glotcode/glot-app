@@ -19,7 +19,7 @@ pub fn config() -> Config {
     Config {
         id: Language::C,
         name: "C".to_string(),
-        logo_name: "c".to_string(),
+        logo_svg_path: "/static/assets/language/c.svg?hash=checksum".to_string(),
         file_extension: "c".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.c".to_string(),

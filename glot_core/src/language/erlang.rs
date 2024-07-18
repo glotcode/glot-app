@@ -17,7 +17,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Erlang,
         name: "Erlang".to_string(),
-        logo_name: "erlang".to_string(),
+        logo_svg_path: "/static/assets/language/erlang.svg?hash=checksum".to_string(),
         file_extension: "erl".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.erl".to_string(),

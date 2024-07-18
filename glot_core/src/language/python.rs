@@ -13,7 +13,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Python,
         name: "Python".to_string(),
-        logo_name: "python".to_string(),
+        logo_svg_path: "/static/assets/language/python.svg?hash=checksum".to_string(),
         file_extension: "py".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.py".to_string(),

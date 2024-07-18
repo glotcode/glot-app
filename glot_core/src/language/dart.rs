@@ -15,7 +15,7 @@ pub fn config() -> Config {
     Config {
         id: Language::Dart,
         name: "Dart".to_string(),
-        logo_name: "dart".to_string(),
+        logo_svg_path: "/static/assets/language/dart.svg?hash=checksum".to_string(),
         file_extension: "dart".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.dart".to_string(),

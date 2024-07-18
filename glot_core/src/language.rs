@@ -279,19 +279,10 @@ impl FromStr for Language {
 pub struct Config {
     pub id: Language,
     pub name: String,
-    pub logo_name: String,
+    pub logo_svg_path: String,
     pub file_extension: String,
     pub editor_config: EditorConfig,
     pub run_config: RunConfig,
-}
-
-impl Config {
-    pub fn svg_icon_path(&self) -> String {
-        format!(
-            "/static/assets/language/{}.svg?hash=checksum",
-            self.logo_name
-        )
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
