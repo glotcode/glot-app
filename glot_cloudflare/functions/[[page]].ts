@@ -7,12 +7,13 @@ export async function onRequest({ request }) {
     const { model, effects } = page.init();
     const html = page.view(model);
 
-
-    // TODO: add cache preventing headers
     return new Response(html, {
         status,
         headers: {
-            "content-type": "text/html"
+            "content-type": "text/html",
+            "cache-control": "no-store",
+            "pragma": "no-cache",
+            "expires": "0",
         },
     });
 }
