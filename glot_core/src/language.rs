@@ -41,6 +41,7 @@ pub mod sac;
 pub mod scala;
 pub mod swift;
 pub mod typescript;
+pub mod zig;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -95,6 +96,7 @@ pub enum Language {
     Scala,
     Swift,
     TypeScript,
+    Zig,
 }
 
 impl Language {
@@ -143,6 +145,7 @@ impl Language {
             Language::Scala,
             Language::Swift,
             Language::TypeScript,
+            Language::Zig,
         ]
     }
 
@@ -191,6 +194,7 @@ impl Language {
             Self::Scala => scala::config(),
             Self::Swift => swift::config(),
             Self::TypeScript => typescript::config(),
+            Self::Zig => zig::config(),
         }
     }
 
@@ -247,6 +251,7 @@ impl Language {
             Self::Scala => scala::run_instructions,
             Self::Swift => swift::run_instructions,
             Self::TypeScript => typescript::run_instructions,
+            Self::Zig => zig::run_instructions,
         }
     }
 }
@@ -297,6 +302,7 @@ impl Display for Language {
             Self::Scala => write!(f, "scala"),
             Self::Swift => write!(f, "swift"),
             Self::TypeScript => write!(f, "typescript"),
+            Self::Zig => write!(f, "zig"),
         }
     }
 }
