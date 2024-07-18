@@ -842,10 +842,10 @@ fn view_head() -> maud::Markup {
     html! {
         title { "Snippet Page" }
         meta name="viewport" content="width=device-width, initial-scale=1";
-        link id="app-styles" rel="stylesheet" href="/app.css";
+        link id="app-styles" rel="stylesheet" href="/static/app.css";
         link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
-        script defer nohash src="/vendor/ace/ace.js" {}
-        script defer type="module" src="/app.js" {}
+        script defer nohash src="/static/vendor/ace/ace.js" {}
+        script defer type="module" src="/static/app.js" {}
     }
 }
 

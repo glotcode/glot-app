@@ -108,9 +108,9 @@ fn view_head() -> maud::Markup {
     html! {
         title { "Home Page" }
         meta name="viewport" content="width=device-width, initial-scale=1";
-        link rel="stylesheet" href="/app.css";
+        link rel="stylesheet" href="/static/app.css";
         link rel="preload" href="/wasm/glot_bg.wasm" as="fetch" crossorigin="anonymous";
-        script defer type="module" src="/app.js" {}
+        script defer type="module" src="/static/app.js" {}
     }
 }
 
@@ -139,7 +139,7 @@ fn view_content(model: &Model) -> Markup {
         div class="h-full flex flex-col bg-white" {
             div class="background-banner h-60 min-h-[15rem]" {
                 div class="flex flex-col h-full items-center justify-center" {
-                    img class="h-[100px]" src="/assets/logo-white.svg" alt="glot.io logo" {}
+                    img class="h-[100px]" src="/static/assets/logo-white.svg" alt="glot.io logo" {}
                     p class="mt-4 text-white text-2xl" {
                         span { "an " }
                         a href="https://github.com/glotcode/glot" class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" {

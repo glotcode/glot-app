@@ -5,6 +5,8 @@ env="$1"
 event="$2"
 target="debug"
 
+static_base="dist/static"
+
 
 if [[ "$env" == "release" ]]; then
     target="release"
@@ -12,17 +14,19 @@ fi
 
 
 if [[ "$event" == "before_asset_hash" ]]; then
+    mkdir -p "$static_base"
+
     # Copy vendor assets
-    mkdir -p dist/vendor/ace
-    cp glot_web/vendor/ace/*.js dist/vendor/ace/
+    mkdir -p "$static_base/vendor/ace"
+    cp glot_web/vendor/ace/*.js "$static_base/vendor/ace/"
 
     # Copy assets
-    mkdir -p dist/assets
-    cp -rf glot_web/assets/* dist/assets/
+    mkdir -p "$static_base/assets"
+    cp -rf glot_web/assets/* "$static_base/assets/"
 
 fi
 
 if [[ "$event" == "after_asset_hash" || "$env" == "dev" ]]; then
-    # Disable cloudflare SPA mode
-    echo "Not found" > dist/404.html
+    # Cloudflare SPA routing
+    cp glot_cloudflare/_routes.json dist/
 fi

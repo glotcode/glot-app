@@ -15,7 +15,7 @@
 }
 
 .background-banner {
-    background: url(/assets/home-banner.jpg) center center no-repeat;
+    background: url(/static/assets/home-banner.jpg) center center no-repeat;
     background-size: cover;
 }
 
@@ -63,6 +63,7 @@
 }
 
 @-webkit-keyframes sk-stretchdelay {
+
     0%,
     40%,
     100% {
@@ -75,6 +76,7 @@
 }
 
 @keyframes sk-stretchdelay {
+
     0%,
     40%,
     100% {
