@@ -39,7 +39,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 
         let model = Model {
             layout_state: app_layout::State::new(),
-            current_route: Route::Home,
+            current_route: Route::from_path(self.current_url.path()),
             languages,
         };
 

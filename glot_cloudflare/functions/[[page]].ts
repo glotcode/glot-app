@@ -15,6 +15,9 @@ function pageFromRoute(route: string, url: any): any {
     const windowSize = null;
 
     switch (route) {
+        case "NotFound":
+            return glot.notFoundPage(url)
+
         case "Home":
             return glot.homePage(url)
 

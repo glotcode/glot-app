@@ -1,4 +1,4 @@
-import init, { getRouteName, homePage, snippetPage } from "../wasm/glot";
+import init, { getRouteName, notFoundPage, homePage, snippetPage } from "../wasm/glot";
 import { BrowserWindow, Page, Poly } from "poly";
 import { AceEditorElement } from "poly-ace-editor";
 import { run } from "./api";
@@ -36,6 +36,9 @@ function pageFromRoute(route: string): Page {
     const windowSize = browserWindow.getSize();
 
     switch (route) {
+        case "NotFound":
+            return notFoundPage(location.href)
+
         case "Home":
             return homePage(location.href)
 
