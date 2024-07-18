@@ -2,30 +2,53 @@ import * as glot from "../dist_backend/wasm_backend/glot";
 
 export async function onRequest({ request }) {
     const route = glot.getRouteName(request.url);
-    const page = pageFromRoute(route, request.url);
+    const { page, status } = getPageConfig(route, request.url);
 
     const { model, effects } = page.init();
-
     const html = page.view(model);
 
-    return new Response(html, { headers: { "content-type": "text/html" } });
+
+    // TODO: add cache preventing headers
+    return new Response(html, {
+        status,
+        headers: {
+            "content-type": "text/html"
+        },
+    });
 }
 
-function pageFromRoute(route: string, url: any): any {
+interface PageConfig {
+    page: any;
+    status: number;
+}
+
+function getPageConfig(route: string, url: any): PageConfig {
     const windowSize = null;
 
     switch (route) {
         case "NotFound":
-            return glot.notFoundPage(url)
+            return {
+                page: glot.notFoundPage(url),
+                status: 404,
+            }
 
         case "Home":
-            return glot.homePage(url)
+            return {
+                page: glot.homePage(url),
+                status: 200,
+            }
 
         case "NewSnippet":
-            return glot.snippetPage(windowSize, url)
+            return {
+                page: glot.snippetPage(windowSize, url),
+                status: 200,
+            }
 
         case "EditSnippet":
-            return glot.snippetPage(windowSize, url)
+            return {
+                page: glot.snippetPage(windowSize, url),
+                status: 200,
+            }
     }
 
     throw new Error(`Unhandled route: ${route}`);
