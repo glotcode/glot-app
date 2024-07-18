@@ -1,5 +1,11 @@
 {
   "version": 1,
-  "include": ["/*"],
-  "exclude": ["/static/*", "/wasm/*"]
+  "include": [
+    "/*"
+  ],
+  "exclude": [
+    "/static/*",
+    "/wasm/*",
+    "/new/*"
+  ]
 }

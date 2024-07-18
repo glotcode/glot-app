@@ -26,5 +26,8 @@ if [[ "$event" == "before_asset_hash" ]]; then
 
 fi
 
-# Cloudflare SPA routing
+# Copy Cloudflare SPA routing config
 cp glot_cloudflare/_routes.json dist/
+
+# Copy Cloudflare redirects config
+cp glot_cloudflare/_redirects dist/
