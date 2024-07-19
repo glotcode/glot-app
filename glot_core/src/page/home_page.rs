@@ -106,7 +106,7 @@ pub enum AppEffect {}
 
 fn view_head() -> maud::Markup {
     html! {
-        title { "Home Page" }
+        title { "glot.io - code sandbox" }
         meta name="viewport" content="width=device-width, initial-scale=1";
         link rel="stylesheet" href="/static/app.css?hash=checksum";
         script defer type="module" src="/sw.js" {}
