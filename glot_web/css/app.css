@@ -6,6 +6,10 @@
     display: inline;
 }
 
+.title:hover .edit-overlay {
+    display: inline;
+}
+
 .stdin-preview:hover .stdin-overlay {
     display: inline;
 }

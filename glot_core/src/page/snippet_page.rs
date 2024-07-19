@@ -90,6 +90,12 @@ enum Id {
     CloseSharingModal,
     SnippetUrl,
     CopyUrl,
+    // Title
+    Title,
+    TopBarTitle,
+    TitleForm,
+    TitleInput,
+    UpdateTitleConfirm,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -120,6 +126,10 @@ pub enum Msg {
     CopyUrlClicked,
     GotCopyUrlResult(Capture<WriteTextResult>),
     ClearCopyStateTimeout,
+    // Title
+    EditTitleClicked,
+    TitleChanged(Capture<String>),
+    ConfirmUpdateTitle,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -130,6 +140,7 @@ pub enum Modal {
     Settings,
     Stdin(StdinState),
     Sharing(SharingState),
+    Title(TitleState),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -137,6 +148,13 @@ pub enum Modal {
 pub struct FileState {
     filename: String,
     is_new: bool,
+    error: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TitleState {
+    title: String,
     error: Option<String>,
 }
 
@@ -187,7 +205,7 @@ impl SnippetPage {
             user_agent: self.user_agent.clone(),
             language: language_config,
             files: SelectList::singleton(file),
-            title: "Untitled".to_string(),
+            title: "Hello World".to_string(),
             active_modal: Modal::None,
             editor_keyboard_bindings: EditorKeyboardBindings::Default,
             editor_theme: EditorTheme::TextMate,
@@ -300,6 +318,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest(Id::Share, Msg::ShareClicked),
             browser::on_click_closest(Id::CopyUrl, Msg::CopyUrlClicked),
             browser::on_click(Id::CloseSharingModal, Msg::CloseModalTriggered),
+            // Title
+            browser::on_click_closest(Id::Title, Msg::EditTitleClicked),
+            browser::on_click_closest(Id::TopBarTitle, Msg::EditTitleClicked),
+            browser::on_input(Id::TitleInput, Msg::TitleChanged),
+            browser::on_click(Id::UpdateTitleConfirm, Msg::ConfirmUpdateTitle),
+            browser::on_submit(Id::TitleForm, Msg::ConfirmUpdateTitle),
         ]
     }
 
@@ -578,6 +602,42 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 Ok(vec![])
             }
+
+            Msg::EditTitleClicked => {
+                model.active_modal = Modal::Title(TitleState {
+                    title: model.title.clone(),
+                    error: None,
+                });
+
+                Ok(vec![dom::select_input_text(Id::TitleInput)])
+            }
+
+            Msg::TitleChanged(captured) => {
+                if let Modal::Title(state) = &mut model.active_modal {
+                    state.title = captured.value();
+                    state.error = None;
+                }
+
+                Ok(vec![])
+            }
+
+            Msg::ConfirmUpdateTitle => {
+                if let Modal::Title(state) = &mut model.active_modal {
+                    match validate_title(&state.title) {
+                        Ok(_) => {
+                            model.title = state.title.clone();
+                            model.active_modal = Modal::None;
+                            return Ok(vec![focus_editor_effect()]);
+                        }
+
+                        Err(err) => {
+                            state.error = Some(err);
+                        }
+                    }
+                }
+
+                Ok(vec![])
+            }
         }
     }
 
@@ -625,6 +685,21 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
     fn render_page(&self, markup: PageMarkup<Markup>) -> String {
         app_layout::render_page(markup)
+    }
+}
+
+fn validate_title(title: &str) -> Result<(), String> {
+    let max_length = 50;
+
+    if title.is_empty() {
+        Err("Title cannot be empty".to_string())
+    } else if title.len() > max_length {
+        Err(format!(
+            "Title is {} character(s) too long",
+            title.len() - max_length
+        ))
+    } else {
+        Ok(())
     }
 }
 
@@ -911,6 +986,13 @@ fn view_body(model: &Model) -> maud::Markup {
                         close_button_id: Id::ModalClose,
                     }))
                 }
+
+                Modal::Title(state) => {
+                    (modal::view(view_title_modal(state), &modal::Config{
+                        backdrop_id: Id::ModalBackdrop,
+                        close_button_id: Id::ModalClose,
+                    }))
+                }
             }
         }
     }
@@ -918,8 +1000,16 @@ fn view_body(model: &Model) -> maud::Markup {
 
 fn view_topbar_title(model: &Model) -> maud::Markup {
     html! {
-        h1 class="my-auto ml-4 text-2xl font-semibold text-gray-900" {
-            (model.title)
+        h1 class="title my-auto ml-4 text-2xl font-semibold text-gray-900 relative" {
+            button id=(Id::TopBarTitle) {
+                (model.title)
+            }
+
+            span class="hidden edit-overlay absolute z-10 w-[30px] top-1/2 bottom-1/2 translate-y-1/2" {
+                span class="absolute z-20 inset-0 m-auto w-5 h-5 text-black" {
+                    (heroicons_maud::pencil_square_solid())
+                }
+            }
         }
     }
 }
@@ -935,8 +1025,15 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
             div {
                 @if window_size.width >= 1280 {
                     div class="max-w-7xl mx-auto pb-3 px-4 sm:px-6 lg:px-8" {
-                        h1 class="text-2xl font-semibold text-gray-900" {
-                            (model.title)
+                        h1 class="title text-2xl font-semibold text-gray-900 relative" {
+                            button id=(Id::Title) {
+                                (model.title)
+                            }
+                            span class="hidden edit-overlay absolute z-10 w-[30px] top-1/2 bottom-1/2 translate-y-1/2" {
+                                span class="absolute z-20 inset-0 m-auto w-5 h-5 text-black" {
+                                    (heroicons_maud::pencil_square_solid())
+                                }
+                            }
                         }
                     }
                 }
@@ -1145,6 +1242,49 @@ fn view_action_bar() -> Markup {
     }
 }
 
+fn view_title_modal(state: &TitleState) -> maud::Markup {
+    html! {
+        div class="text-center" {
+            h3 class="text-lg leading-6 font-medium text-gray-900" {
+                "Edit Title"
+            }
+        }
+
+        form id=(Id::TitleForm) class="mt-8" {
+            label class="block text-sm font-medium text-gray-700" for=(Id::TitleInput) {
+                "Title"
+            }
+            @match &state.error {
+                Some(err) => {
+                    div class="relative mt-1 rounded-md shadow-sm" {
+                        input id=(Id::TitleInput) value=(state.title) class="block w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm" type="text" placeholder="Hello World" aria-invalid="true";
+                        div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" {
+                            span class="h-5 w-5 text-red-500" {
+                                (heroicons_maud::exclamation_circle_solid())
+                            }
+                        }
+                    }
+                    p class="mt-2 text-sm text-red-600" {
+                        (err)
+                    }
+                }
+
+                None => {
+                    div class="mt-1" {
+                        input id=(Id::TitleInput) value=(state.title) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="text" placeholder="Hello World";
+                    }
+                }
+            }
+        }
+
+        div class="flex mt-4" {
+            button id=(Id::UpdateTitleConfirm) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
+                "Update title"
+            }
+        }
+    }
+}
+
 fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
     let form_id = if state.is_new {
         Id::NewFileForm
@@ -1174,9 +1314,8 @@ fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
                     div class="relative mt-1 rounded-md shadow-sm" {
                         input id=(Id::Filename) value=(state.filename) class="block w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm" type="text" placeholder="main.rs" aria-invalid="true";
                         div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" {
-                            svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" {
-                                path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" {
-                                }
+                            span class="h-5 w-5 text-red-500" {
+                                (heroicons_maud::exclamation_circle_solid())
                             }
                         }
                     }
