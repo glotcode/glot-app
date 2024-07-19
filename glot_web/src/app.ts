@@ -21,8 +21,14 @@ AceEditorElement.register();
     poly.onAppEffect(async (msg) => {
         switch (msg.type) {
             case "run":
-                const runResponse = await run(msg.config);
-                poly.sendMessage("GotRunResponse", runResponse);
+                try {
+                    const runResponse = await run(msg.config);
+                    poly.sendMessage("GotRunResponse", runResponse);
+                } catch (err: any) {
+                    poly.sendMessage("GotRunResponse", {
+                        message: err.message,
+                    });
+                }
                 break;
 
             default:
