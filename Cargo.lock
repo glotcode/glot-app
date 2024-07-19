@@ -142,16 +142,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40ecd4077b5ae9fd2e9e169b102c6c330d0605168eb0e8bf79952b256dbefffd"
 
 [[package]]
-name = "glot_cli"
-version = "0.1.0"
-dependencies = [
- "glot_core",
- "poly",
- "serde_json",
- "url",
-]
-
-[[package]]
 name = "glot_core"
 version = "0.1.0"
 dependencies = [

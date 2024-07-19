@@ -1,7 +1,6 @@
 [workspace]
 
 members = [
-    "glot_cli",
     "glot_core",
     "glot_wasm",
 ]
