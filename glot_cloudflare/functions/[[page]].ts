@@ -41,13 +41,13 @@ function getPageConfig(route: string, url: any): PageConfig {
 
         case "NewSnippet":
             return {
-                page: glot.snippetPage(windowSize, url),
+                page: glot.snippetPage(windowSize, "cloudflare", url),
                 status: 200,
             }
 
         case "EditSnippet":
             return {
-                page: glot.snippetPage(windowSize, url),
+                page: glot.snippetPage(windowSize, "cloudflare", url),
                 status: 200,
             }
     }

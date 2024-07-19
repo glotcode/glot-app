@@ -6,6 +6,8 @@ use crate::snippet::File;
 use crate::snippet::Snippet;
 use crate::util::remote_data::RemoteData;
 use crate::util::select_list::SelectList;
+use crate::util::user_agent::OperatingSystem;
+use crate::util::user_agent::UserAgent;
 use crate::view::dropdown;
 use crate::view::modal;
 use maud::html;
@@ -19,6 +21,8 @@ use poly::browser::Capture;
 use poly::browser::DomId;
 use poly::browser::Effect;
 use poly::browser::Effects;
+use poly::browser::Key;
+use poly::browser::ModifierKey;
 use poly::browser::WindowSize;
 use poly::page::JsMsg;
 use poly::page::Page;
@@ -40,6 +44,7 @@ LOADING
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub window_size: Option<WindowSize>,
+    pub user_agent: UserAgent,
     pub language: language::Config,
     pub files: SelectList<File>,
     pub title: String,
@@ -150,6 +155,7 @@ pub struct SharingState {
 
 pub struct SnippetPage {
     pub window_size: Option<WindowSize>,
+    pub user_agent: UserAgent,
     pub current_url: Url,
 }
 
@@ -178,6 +184,7 @@ impl SnippetPage {
 
         Ok(Model {
             window_size: self.window_size.clone(),
+            user_agent: self.user_agent.clone(),
             language: language_config,
             files: SelectList::singleton(file),
             title: "Untitled".to_string(),
@@ -225,6 +232,7 @@ impl SnippetPage {
 
         Ok(Model {
             window_size: self.window_size.clone(),
+            user_agent: self.user_agent.clone(),
             language: language_config,
             files,
             title: snippet.title,
@@ -253,7 +261,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         Ok((model, effects))
     }
 
-    fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
+    fn subscriptions(&self, model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
+        let modifier_key = get_modifier_key(&model.user_agent);
+
         // TODO: add conditionals
         vec![
             browser::on_change_string(Id::Editor, Msg::EditorContentChanged),
@@ -276,7 +286,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_click_closest(Id::SelectedFile, Msg::EditFileClicked),
             browser::on_submit(Id::NewFileForm, Msg::ConfirmAddFile),
             browser::on_submit(Id::EditFileForm, Msg::ConfirmUpdateFile),
-            browser::on_keyup_document(browser::Key::Escape, Msg::CloseModalTriggered),
+            browser::on_keyup(Key::Escape, Msg::CloseModalTriggered),
+            browser::on_keydown(Key::Enter, modifier_key, Msg::RunClicked),
             browser::on_window_resize(Msg::WindowSizeChanged),
             browser::on_change(Id::EditorKeyboardBindings, Msg::KeyboardBindingsChanged),
             browser::on_change(Id::EditorTheme, Msg::EditorThemeChanged),
@@ -1462,4 +1473,11 @@ fn get_snippet_url(model: &Model) -> Result<String, String> {
 
     let route = Route::EditSnippet(model.language.id.clone(), encoded_snippet.clone());
     Ok(route.to_absolute_path(&model.current_url))
+}
+
+fn get_modifier_key(user_agent: &UserAgent) -> ModifierKey {
+    match user_agent.os {
+        OperatingSystem::Mac => ModifierKey::Meta,
+        _ => ModifierKey::Ctrl,
+    }
 }

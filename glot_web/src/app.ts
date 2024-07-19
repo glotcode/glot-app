@@ -51,10 +51,10 @@ function pageFromRoute(route: string): Page {
             return homePage(location.href)
 
         case "NewSnippet":
-            return snippetPage(windowSize, location.href)
+            return snippetPage(windowSize, navigator.userAgent, location.href)
 
         case "EditSnippet":
-            return snippetPage(windowSize, location.href)
+            return snippetPage(windowSize, navigator.userAgent, location.href)
     }
 
     throw new Error(`Unhandled route: ${route}`);
