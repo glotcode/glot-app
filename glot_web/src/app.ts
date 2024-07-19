@@ -70,13 +70,11 @@ async function registerServiceWorker() {
 
     await waitForIdle();
 
-    requestIdleCallback(() => {
-        navigator.serviceWorker.register("/sw.js")
-            .catch(err => {
-                console.error("Service worker registration failed", err);
-            });
+    navigator.serviceWorker.register("/sw.js")
+        .catch(err => {
+            console.error("Service worker registration failed", err);
+        });
 
-    });
 }
 
 function waitForIdle(): Promise<void> {
