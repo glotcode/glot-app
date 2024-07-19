@@ -1017,7 +1017,7 @@ fn view_content(model: &Model) -> Markup {
         div class="pt-6 h-full flex flex-col" {
             div {
                 div class="max-w-7xl mx-auto pb-3 px-4 sm:px-6 lg:px-8 hidden xl:block" {
-                    h1 class="title text-2xl font-semibold text-gray-900 relative" {
+                    h1 class="title text-2xl font-semibold text-gray-900 relative inline" {
                         button id=(Id::Title) {
                             (model.title)
                         }
