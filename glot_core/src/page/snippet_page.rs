@@ -862,29 +862,24 @@ fn view_body(model: &Model) -> maud::Markup {
         close_sidebar_id: Id::CloseSidebar,
     };
 
-    html! {
-        div id=(Id::Glot) class="h-full" {
-            @match &model.window_size {
-                Some(window_size) => {
-                    (app_layout::app_shell(
-                        view_content(model, window_size),
-                        Some(view_topbar_title(model)),
-                        &layout_config,
-                        &model.layout_state,
-                        &model.current_route,
-                    ))
-                }
+    let has_real_window_size = model.window_size.is_some();
+    let window_size = model.window_size.clone().unwrap_or_default();
 
-                None => {
-                    (app_layout::app_shell(
-                        view_spinner(model),
-                        None,
-                        &layout_config,
-                        &model.layout_state,
-                        &model.current_route,
-                    ))
-                }
-            }
+    let content = html! {
+        div .h-full .hidden[!has_real_window_size] {
+            (view_content(model, &window_size))
+        }
+    };
+
+    html! {
+        div id=(Id::Glot) .h-full {
+            (app_layout::app_shell(
+                content,
+                Some(view_topbar_title(model)),
+                &layout_config,
+                &model.layout_state,
+                &model.current_route,
+            ))
 
             @match &model.active_modal {
                 Modal::None => {},
@@ -917,26 +912,6 @@ fn view_body(model: &Model) -> maud::Markup {
                     }))
                 }
             }
-        }
-    }
-}
-
-fn view_spinner(model: &Model) -> maud::Markup {
-    let window_size = WindowSize {
-        width: 0,
-        height: 0,
-    };
-
-    html! {
-        div class="spinner" {
-            div class="rect1" {}
-            div class="rect2" {}
-            div class="rect3" {}
-            div class="rect4" {}
-            div class="rect5" {}
-        }
-        div class="hidden" {
-            (view_content(model, &window_size))
         }
     }
 }
@@ -1111,7 +1086,7 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
     let id = is_selected.then_some(Id::SelectedFile);
 
     html! {
-        button id=[id] data-filename=(file.name) .file .relative ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected]  ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-800"[is_selected] ."hover:text-gray-800" ."text-sm" type="button" {
+        button id=[id] data-filename=(file.name) .file .relative ."[min-width:5rem]" ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected]  ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-800"[is_selected] ."hover:text-gray-800" ."text-sm" type="button" {
             span class {
                 (file.name)
             }
