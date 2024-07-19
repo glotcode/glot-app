@@ -1,6 +1,17 @@
 type StringRecord = Record<string, string>;
 
+
 export const onRequestPost: PagesFunction<StringRecord> = async (context) => {
+  if (!isAllowed(context.request)) {
+    const body = JSON.stringify({ message: "Forbidden" })
+    return new Response(body, {
+      status: 403,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+  }
+
   const envVars = parseEnvVars(context.env);
   return run(envVars, context.request.body);
 };
@@ -24,8 +35,8 @@ interface EnvVars {
 }
 
 function parseEnvVars(env: StringRecord): EnvVars {
-  ensure_not_empty(env, "DOCKER_RUN_BASE_URL");
-  ensure_not_empty(env, "DOCKER_RUN_ACCESS_TOKEN");
+  ensureNotEmpty(env, "DOCKER_RUN_BASE_URL");
+  ensureNotEmpty(env, "DOCKER_RUN_ACCESS_TOKEN");
 
   return {
     dockerRunBaseUrl: env.DOCKER_RUN_BASE_URL,
@@ -33,8 +44,53 @@ function parseEnvVars(env: StringRecord): EnvVars {
   };
 }
 
-function ensure_not_empty(env: StringRecord, field: string) {
+function ensureNotEmpty(env: StringRecord, field: string) {
   if (!(field in env) || env[field] === "") {
     throw new Error(`Missing env var ${field}`);
   }
+}
+
+
+
+function isAllowed(request: Request): boolean {
+  return hasAllowedOrigin(request) && hasAllowedReferer(request) && supportsBrotli(request);
+}
+
+function hasAllowedOrigin(request: Request): boolean {
+  const origin = request.headers.get("Origin")
+  if (!origin) {
+    return false
+  }
+
+  return hasAllowedHostname(origin)
+}
+
+function hasAllowedReferer(request: Request): boolean {
+  const referer = request.headers.get("Referer")
+  if (!referer) {
+    return false
+  }
+
+  return hasAllowedHostname(referer)
+}
+
+function hasAllowedHostname(host: string) {
+  const allowed = ["glot.io", "glot.pages.dev", "localhost"]
+
+  try {
+    const url = new URL(host)
+    return allowed.includes(url.hostname)
+  } catch (e) {
+    return false
+  }
+}
+
+function supportsBrotli(request: Request): boolean {
+  const acceptEncoding = request.headers.get("Accept-Encoding")
+  if (!acceptEncoding) {
+    return false
+  }
+
+  const encodings = acceptEncoding.split(", ")
+  return encodings.includes("br") || encodings.some((enc) => enc.startsWith("br;"))
 }
