@@ -937,19 +937,10 @@ fn view_body(model: &Model) -> maud::Markup {
         close_sidebar_id: Id::CloseSidebar,
     };
 
-    let has_real_window_size = model.window_size.is_some();
-    let window_size = model.window_size.clone().unwrap_or_default();
-
-    let content = html! {
-        div .h-full .hidden[!has_real_window_size] {
-            (view_content(model, &window_size))
-        }
-    };
-
     html! {
         div id=(Id::Glot) .h-full {
             (app_layout::app_shell(
-                content,
+                view_content(model),
                 Some(view_topbar_title(model)),
                 &layout_config,
                 &model.layout_state,
@@ -1014,8 +1005,10 @@ fn view_topbar_title(model: &Model) -> maud::Markup {
     }
 }
 
-fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
-    let editor_height = calc_editor_height(window_size);
+fn view_content(model: &Model) -> Markup {
+    let has_real_window_size = model.window_size.is_some();
+    let window_size = model.window_size.clone().unwrap_or_default();
+    let editor_height = calc_editor_height(&window_size);
     let inline_styles = format!("height: {}px;", editor_height);
     let height = format!("{}px", editor_height);
     let content = model.files.selected().content;
@@ -1023,23 +1016,21 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
     html! {
         div class="pt-6 h-full flex flex-col" {
             div {
-                @if window_size.width >= 1280 {
-                    div class="max-w-7xl mx-auto pb-3 px-4 sm:px-6 lg:px-8" {
-                        h1 class="title text-2xl font-semibold text-gray-900 relative" {
-                            button id=(Id::Title) {
-                                (model.title)
-                            }
-                            span class="hidden edit-overlay absolute z-10 w-[30px] top-1/2 bottom-1/2 translate-y-1/2" {
-                                span class="absolute z-20 inset-0 m-auto w-5 h-5 text-black" {
-                                    (heroicons_maud::pencil_square_solid())
-                                }
+                div class="max-w-7xl mx-auto pb-3 px-4 sm:px-6 lg:px-8 hidden xl:block" {
+                    h1 class="title text-2xl font-semibold text-gray-900 relative" {
+                        button id=(Id::Title) {
+                            (model.title)
+                        }
+                        span class="hidden edit-overlay absolute z-10 w-[30px] top-1/2 bottom-1/2 translate-y-1/2" {
+                            span class="absolute z-20 inset-0 m-auto w-5 h-5 text-black" {
+                                (heroicons_maud::pencil_square_solid())
                             }
                         }
                     }
                 }
 
                 div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8" {
-                    div {
+                    div .hidden[!has_real_window_size] {
                         div class="border border-gray-400 shadow-lg" {
                             (view_tab_bar(model))
 
@@ -1066,7 +1057,7 @@ fn view_content(model: &Model, window_size: &WindowSize) -> Markup {
             }
 
             div class="w-full flex-1 max-w-7xl mx-auto pb-4 px-4 sm:px-6 md:px-8" {
-                div class="h-full pt-4" {
+                div ."h-full" ."pt-4" .hidden[!has_real_window_size] {
                     (view_output_panel(model))
                 }
             }
