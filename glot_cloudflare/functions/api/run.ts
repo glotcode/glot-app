@@ -75,7 +75,7 @@ function hasAllowedReferer(request: Request): boolean {
 }
 
 function hasAllowedHostname(host: string) {
-  const allowed = ["glot.io", "glot.pages.dev", "localhost"]
+  const allowed = ["glot.io", "beta.glot.io", "glot.pages.dev", "localhost"]
 
   try {
     const url = new URL(host)
