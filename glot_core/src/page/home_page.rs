@@ -162,7 +162,7 @@ fn view_content(model: &Model) -> Markup {
                         features::Feature {
                             icon: heroicons_maud::share_outline(),
                             title: "Share snippets",
-                            description: "The code will be encoded in the URL so you can easily share it with others.",
+                            description: "Snippets can be embedded into the URL so that they can be easily shared.",
                         },
                         features::Feature {
                             icon: heroicons_maud::cog_6_tooth_outline(),

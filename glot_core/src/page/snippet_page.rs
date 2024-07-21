@@ -1499,7 +1499,7 @@ fn view_sharing_modal(state: &SharingState) -> maud::Markup {
                 }
             }
             p class="mt-2 text-sm text-gray-500" {
-                "The snippet is embeded in the url using brotli compression and base62 encoding."
+                "The snippet is embedded in the url using brotli compression and base62 encoding."
             }
             @match state.snippet_url.len() {
                 length if length > url_max_length => {
