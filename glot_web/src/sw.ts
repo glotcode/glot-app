@@ -38,9 +38,10 @@ registerRoute(({ url }) => {
 // - does not have an hash parameter
 // - is not an API request
 // - is not the service worker itself
+// - is not an ignored url
 registerRoute(
     ({ url }) => {
-        return !hasHashParam(url) && !isApiRequest(url) && !isServiceWorker(url);
+        return !hasHashParam(url) && !isApiRequest(url) && !isServiceWorker(url) && !isIgnored(url);
     },
     new NetworkFirst({
         cacheName: "offline-fallback"
@@ -59,4 +60,8 @@ function isApiRequest(url: URL) {
 function hasHashParam(url: URL) {
     const hash = url.searchParams.get("hash");
     return hash !== null && hash !== "checksum";
+}
+
+function isIgnored(url: URL) {
+    return url.hostname.includes("cloudflareinsights")
 }
