@@ -19,7 +19,8 @@ export const onRequestPost: PagesFunction<Env & StringRecord> = async (context) 
 
   const id = context.env.RATE_LIMITER.idFromName(ip);
   const stub = context.env.RATE_LIMITER.get(id);
-  const stats = stub.increment({ maxRequests: 10, periodDuration: 60 * 1000 });
+  const response = await stub.fetch(context.request);
+  const stats = await response.text();
 
   console.log(stats)
 

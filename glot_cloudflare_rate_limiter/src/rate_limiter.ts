@@ -16,6 +16,11 @@ export class RateLimiter extends DurableObject {
     private startTimestamp: number = 0;
     private requestCount: number = 0;
 
+    async fetch(request: Request): Promise<Response> {
+        const stats = await this.increment({ maxRequests: 10, periodDuration: 60 * 1000 });
+        return new Response(JSON.stringify(stats), { status: 200 });
+    }
+
     async increment(config: RateLimitConfig): Promise<RateLimitStats> {
         const now = Date.now();
         const elapsedTime = now - this.startTimestamp;
