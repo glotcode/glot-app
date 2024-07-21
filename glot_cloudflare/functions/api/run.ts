@@ -1,16 +1,27 @@
+import { RateLimiter } from "../../../glot_cloudflare_rate_limiter/src/rate_limiter";
+
 type StringRecord = Record<string, string>;
 
+interface Env {
+  RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
+}
 
-export const onRequestPost: PagesFunction<StringRecord> = async (context) => {
+
+export const onRequestPost: PagesFunction<Env & StringRecord> = async (context) => {
   if (!isAllowed(context.request)) {
-    const body = JSON.stringify({ message: "Forbidden" })
-    return new Response(body, {
-      status: 403,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
+    return errorResponse(403, "Forbidden");
   }
+
+  const ip = context.request.headers.get("CF-Connecting-IP");
+  if (ip === null) {
+    return errorResponse(400, "Could not determine client IP");
+  }
+
+  const id = context.env.RATE_LIMITER.idFromName(ip);
+  const stub = context.env.RATE_LIMITER.get(id);
+  const stats = stub.increment({ maxRequests: 10, periodDuration: 60 * 1000 });
+
+  console.log(stats)
 
   const envVars = parseEnvVars(context.env);
   return run(envVars, context.request.body);
@@ -93,4 +104,13 @@ function supportsBrotli(request: Request): boolean {
 
   const encodings = acceptEncoding.split(", ")
   return encodings.includes("br") || encodings.some((enc) => enc.startsWith("br;"))
+}
+
+function errorResponse(status: number, message: string): Response {
+  return new Response(JSON.stringify({ message }), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 }
