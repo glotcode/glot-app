@@ -1,2 +1,3 @@
 wasm/
 node_modules/
+static/vendor/ace/snippets/

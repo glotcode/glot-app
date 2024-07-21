@@ -16,14 +16,9 @@ fi
 if [[ "$event" == "before_asset_hash" ]]; then
     mkdir -p "$static_base"
 
-    # Copy vendor assets
-    mkdir -p "$static_base/vendor/ace"
-    cp glot_web/vendor/ace/*.js "$static_base/vendor/ace/"
-
-    # Copy assets
+    # Copy static assets
     mkdir -p "$static_base/assets"
-    cp -rf glot_web/assets/* "$static_base/assets/"
-
+    cp -rf glot_web/static/* "$static_base/"
 fi
 
 # Copy Cloudflare SPA routing config
