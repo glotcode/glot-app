@@ -19,7 +19,7 @@ export const onRequestPost: PagesFunction<Env & StringRecord> = async (context) 
 
   const id = context.env.RATE_LIMITER.idFromName(ip);
   const stub = context.env.RATE_LIMITER.get(id);
-  const response = await stub.fetch(context.request);
+  const response = await stub.fetch(context.request.clone());
   const stats = await response.text();
 
   console.log(stats)
