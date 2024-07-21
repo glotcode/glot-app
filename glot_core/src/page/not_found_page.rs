@@ -98,7 +98,7 @@ fn view_head() -> maud::Markup {
         title { "Page not found" }
         meta name="viewport" content="width=device-width, initial-scale=1";
         link rel="stylesheet" href="/static/app.css?hash=checksum";
-        script defer type="module" src="/sw.js" {}
+        script defer type="module" src="/sw.js?hash=checksum" {}
         script defer type="module" src="/static/app.js?hash=checksum" {}
     }
 }

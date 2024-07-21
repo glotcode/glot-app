@@ -926,7 +926,7 @@ fn view_head(model: &Model) -> maud::Markup {
         meta name="viewport" content="width=device-width, initial-scale=1";
         link id="app-styles" rel="stylesheet" href="/static/app.css?hash=checksum";
         script defer src="/static/vendor/ace/ace.js?hash=checksum" {}
-        script defer type="module" src="/sw.js" {}
+        script defer type="module" src="/sw.js?hash=checksum" {}
         script defer type="module" src="/static/app.js?hash=checksum" {}
     }
 }

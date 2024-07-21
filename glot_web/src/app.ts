@@ -70,7 +70,7 @@ async function registerServiceWorker() {
 
     await waitForIdle();
 
-    navigator.serviceWorker.register("/sw.js")
+    navigator.serviceWorker.register("/sw.js?hash=checksum")
         .catch(err => {
             console.error("Service worker registration failed", err);
         });
