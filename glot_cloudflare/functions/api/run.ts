@@ -1,32 +1,52 @@
-import { RateLimiter } from "../../../glot_cloudflare_rate_limiter/src/rate_limiter";
+import { RequestCounter, RequestStats } from "../../../glot_cloudflare_request_counter/src/request_counter";
 
 type StringRecord = Record<string, string>;
 
 interface Env {
-  RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
+  REQUEST_COUNTER: DurableObjectNamespace<RequestCounter>;
 }
 
 
 export const onRequestPost: PagesFunction<Env & StringRecord> = async (context) => {
+  const envVars = parseEnvVars(context.env);
+
   if (!isAllowed(context.request)) {
     return errorResponse(403, "Forbidden");
   }
 
-  const ip = context.request.headers.get("CF-Connecting-IP");
-  if (ip === null) {
-    return errorResponse(400, "Could not determine client IP");
+  try {
+    const ip = getRequestIp(context.request);
+    const requestStats = await incrementRequestCount(context.env, context.request.clone(), ip);
+    if (isRatedLimited(envVars, requestStats)) {
+      return errorResponse(429, "Rate limit exceeded");
+    }
+
+    return run(envVars, context.request.body);
+  } catch (e) {
+    console.error("Failed to increment request count", e);
   }
-
-  const id = context.env.RATE_LIMITER.idFromName(ip);
-  const stub = context.env.RATE_LIMITER.get(id);
-  const response = await stub.fetch(context.request.clone());
-  const stats = await response.text();
-
-  console.log(stats)
-
-  const envVars = parseEnvVars(context.env);
-  return run(envVars, context.request.body);
 };
+
+function getRequestIp(request: Request): string {
+  if (request.headers.has("CF-Connecting-IP")) {
+    return request.headers.get("CF-Connecting-IP")
+  } else {
+    return "127.0.0.1"
+  }
+}
+
+async function incrementRequestCount(env: Env, request: Request, ip: string): Promise<RequestStats> {
+  const id = env.REQUEST_COUNTER.idFromName(ip);
+  const stub = env.REQUEST_COUNTER.get(id);
+  const response = await stub.fetch(request);
+  return response.json();
+}
+
+function isRatedLimited(env: EnvVars, stats: RequestStats): boolean {
+  // TODO
+  return false
+}
+
 
 function run(env: EnvVars, body: ReadableStream): Promise<Response> {
   const url = `${env.dockerRunBaseUrl}/run`;
@@ -44,15 +64,18 @@ function run(env: EnvVars, body: ReadableStream): Promise<Response> {
 interface EnvVars {
   dockerRunBaseUrl: string;
   dockerRunAccessToken: string;
+  maxRequestsPerMinute: number;
+  maxRequestsPerHour: number;
+  maxRequestsPerDay: number;
 }
 
 function parseEnvVars(env: StringRecord): EnvVars {
-  ensureNotEmpty(env, "DOCKER_RUN_BASE_URL");
-  ensureNotEmpty(env, "DOCKER_RUN_ACCESS_TOKEN");
-
   return {
-    dockerRunBaseUrl: env.DOCKER_RUN_BASE_URL,
-    dockerRunAccessToken: env.DOCKER_RUN_ACCESS_TOKEN,
+    dockerRunBaseUrl: getString(env, "DOCKER_RUN_BASE_URL"),
+    dockerRunAccessToken: getString(env, "DOCKER_RUN_ACCESS_TOKEN"),
+    maxRequestsPerMinute: getNumber(env, "MAX_REQUESTS_PER_MINUTE"),
+    maxRequestsPerHour: getNumber(env, "MAX_REQUESTS_PER_HOUR"),
+    maxRequestsPerDay: getNumber(env, "MAX_REQUESTS_PER_DAY"),
   };
 }
 
@@ -60,6 +83,27 @@ function ensureNotEmpty(env: StringRecord, field: string) {
   if (!(field in env) || env[field] === "") {
     throw new Error(`Missing env var ${field}`);
   }
+}
+
+function ensureInt(env: StringRecord, field: string) {
+  ensureNotEmpty(env, field);
+
+  const n = parseInt(env[field], 10);
+  if (isNaN(n)) {
+    throw new Error(`Invalid number for env var ${field}`);
+  }
+}
+
+function getString(env: StringRecord, field: string): string {
+  ensureNotEmpty(env, field);
+  return env[field];
+}
+
+function getNumber(env: StringRecord, field: string): number {
+  ensureNotEmpty(env, field);
+  ensureInt(env, field);
+
+  return parseInt(env[field], 10);
 }
 
 
