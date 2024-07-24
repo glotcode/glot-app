@@ -17,14 +17,14 @@ export const onRequestPost: PagesFunction<Env & StringRecord> = async (context) 
   try {
     const ip = getRequestIp(context.request);
     const requestStats = await incrementRequestCount(context.env, context.request.clone(), ip);
-    if (isRatedLimited(envVars, requestStats)) {
+    if (isRateLimited(envVars, requestStats)) {
       return errorResponse(429, "Rate limit exceeded");
     }
-
-    return run(envVars, context.request.body);
   } catch (e) {
-    console.error("Failed to increment request count", e);
+    console.error("Failed to increment request count", e.message);
   }
+
+  return run(envVars, context.request.body);
 };
 
 function getRequestIp(request: Request): string {
@@ -42,9 +42,12 @@ async function incrementRequestCount(env: Env, request: Request, ip: string): Pr
   return response.json();
 }
 
-function isRatedLimited(env: EnvVars, stats: RequestStats): boolean {
-  // TODO
-  return false
+function isRateLimited(env: EnvVars, stats: RequestStats): boolean {
+  return (
+    stats.minutely.count > env.maxRequestsPerMinute ||
+    stats.hourly.count > env.maxRequestsPerHour ||
+    stats.daily.count > env.maxRequestsPerDay
+  );
 }
 
 
