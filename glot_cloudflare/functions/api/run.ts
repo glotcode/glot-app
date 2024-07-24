@@ -14,17 +14,22 @@ export const onRequestPost: PagesFunction<Env & StringRecord> = async (context) 
     return errorResponse(403, "Forbidden");
   }
 
+  const requestBody = context.request.clone().body;
+  const runResponse = run(envVars, requestBody);
+
   try {
     const ip = getRequestIp(context.request);
-    const requestStats = await incrementRequestCount(context.env, context.request.clone(), ip);
+    const requestStats = await incrementRequestCount(context.env, context.request, ip);
+
     if (isRateLimited(envVars, requestStats)) {
       return errorResponse(429, "Rate limit exceeded");
+    } else {
+      return runResponse;
     }
   } catch (e) {
     console.error("Failed to increment request count", e.message);
+    return runResponse;
   }
-
-  return run(envVars, context.request.body);
 };
 
 function getRequestIp(request: Request): string {
