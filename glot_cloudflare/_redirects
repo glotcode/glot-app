@@ -1,2 +1,4 @@
 /new / 301
 /new/* /:splat 301
+/snippets https://legacy.glot.io/snippets 301
+/snippets/:id https://legacy.glot.io/snippets/:id 301

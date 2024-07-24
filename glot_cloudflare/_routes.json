@@ -8,6 +8,7 @@
     "/static/*",
     "/wasm/*",
     "/new/*",
+    "/snippets/*",
     "/api/snippets/*",
     "/api/run/assembly/*",
     "/api/run/ats/*",
