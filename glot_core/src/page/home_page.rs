@@ -71,7 +71,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 
     fn view(&self, model: &Model) -> PageMarkup<Markup> {
         PageMarkup {
-            head: view_head(),
+            head: view_head(model),
             body: view_body(model),
         }
     }
@@ -104,9 +104,12 @@ pub enum Msg {
 #[serde(rename_all = "camelCase")]
 pub enum AppEffect {}
 
-fn view_head() -> maud::Markup {
+fn view_head(model: &Model) -> maud::Markup {
+    let description = format!("glot.io is an open source code sandbox for running and sharing code snippets. Currently supports {} different programming languages.", model.languages.len());
+
     html! {
         title { "glot.io - code sandbox" }
+        meta name="description" content=(description);
         meta name="viewport" content="width=device-width, initial-scale=1";
         link rel="stylesheet" href="/static/app.css?hash=checksum";
         script defer type="module" src="/sw.js?hash=checksum" {}
