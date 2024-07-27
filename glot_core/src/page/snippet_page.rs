@@ -938,8 +938,11 @@ pub struct RunRequestPayload {
 }
 
 fn view_head(model: &Model) -> maud::Markup {
+    let description = format!("Run and share {} snippets", model.language.name);
+
     html! {
         title { (model.title) " - " (model.language.name) " snippet" }
+        meta name="description" content=(description);
         meta name="viewport" content="width=device-width, initial-scale=1";
         link id="app-styles" rel="stylesheet" href="/static/app.css?hash=checksum";
         script defer src="/static/vendor/ace/ace.js?hash=checksum" {}
