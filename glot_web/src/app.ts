@@ -31,6 +31,17 @@ AceEditorElement.register();
                 }
                 break;
 
+            case "getLanguageVersion":
+                try {
+                    const runResponse = await run(msg.config);
+                    poly.sendMessage("GotLanguageVersionResponse", runResponse);
+                } catch (err: any) {
+                    poly.sendMessage("LanguageVersionResponse", {
+                        message: err.message,
+                    });
+                }
+                break;
+
             default:
                 console.warn(`Unhandled app effect: ${msg.type}`);
         }

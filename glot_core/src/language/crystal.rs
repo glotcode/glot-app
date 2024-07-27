@@ -24,7 +24,7 @@ pub fn config() -> Config {
         },
         run_config: RunConfig {
             container_image: "glot/crystal:latest".to_string(),
-            version_command: "crystal --version".to_string(),
+            version_command: "crystal --version | head -n 1".to_string(),
         },
     }
 }

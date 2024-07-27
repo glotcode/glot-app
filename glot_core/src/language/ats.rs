@@ -25,7 +25,7 @@ pub fn config() -> Config {
         },
         run_config: RunConfig {
             container_image: "glot/ats:latest".to_string(),
-            version_command: "patscc --version".to_string(),
+            version_command: "patscc -vats".to_string(),
         },
     }
 }

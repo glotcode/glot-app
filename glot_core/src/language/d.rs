@@ -30,7 +30,7 @@ pub fn config() -> Config {
         },
         run_config: RunConfig {
             container_image: "glot/dlang:latest".to_string(),
-            version_command: "dmd --version".to_string(),
+            version_command: "dmd --version | head -n 1".to_string(),
         },
     }
 }

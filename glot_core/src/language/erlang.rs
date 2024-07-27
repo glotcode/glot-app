@@ -28,7 +28,7 @@ pub fn config() -> Config {
         },
         run_config: RunConfig {
             container_image: "glot/erlang:latest".to_string(),
-            version_command: "erl -version".to_string(),
+            version_command: "erl -version 2>&1".to_string(),
         },
     }
 }

@@ -31,7 +31,7 @@ pub fn config() -> Config {
         },
         run_config: RunConfig {
             container_image: "glot/cobol:latest".to_string(),
-            version_command: "cobc --version".to_string(),
+            version_command: "cobc --version | head -n 1".to_string(),
         },
     }
 }

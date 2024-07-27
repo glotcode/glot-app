@@ -24,7 +24,7 @@ pub fn config() -> Config {
         },
         run_config: RunConfig {
             container_image: "glot/bash:latest".to_string(),
-            version_command: "bash --version".to_string(),
+            version_command: "bash --version | head -n 1".to_string(),
         },
     }
 }

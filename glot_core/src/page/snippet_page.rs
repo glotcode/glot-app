@@ -57,6 +57,7 @@ pub struct Model {
     pub current_route: Route,
     pub current_url: Url,
     pub run_result: RemoteData<FailedRunResult, RunResult>,
+    pub language_version_result: RemoteData<FailedRunResult, RunResult>,
     pub snippet: Option<Snippet>,
 }
 
@@ -216,6 +217,7 @@ impl SnippetPage {
             current_url: self.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
+            language_version_result: RemoteData::Loading,
             snippet: None,
         })
     }
@@ -264,6 +266,7 @@ impl SnippetPage {
             current_url: self.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
+            language_version_result: RemoteData::Loading,
             snippet: Some(snippet_clone),
         })
     }
@@ -275,8 +278,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
-        let effects = vec![load_settings_effect()];
         let model = self.get_model()?;
+
+        let effects = vec![
+            load_settings_effect(),
+            get_language_version_effect(&model.language),
+        ];
 
         Ok((model, effects))
     }
@@ -543,6 +550,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         language: model.language.id.clone(),
                         files: model.files.to_vec(),
                         stdin: model.stdin.clone(),
+                        command: None,
                     },
                 };
 
@@ -675,6 +683,23 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                     RunOutcome::Failure(err) => {
                         model.run_result = RemoteData::Failure(err);
+                    }
+                }
+
+                Ok(vec![])
+            }
+
+            "GotLanguageVersionResponse" => {
+                let outcome = RunOutcome::from_value(msg.data)
+                    .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
+
+                match outcome {
+                    RunOutcome::Success(run_result) => {
+                        model.language_version_result = RemoteData::Success(run_result);
+                    }
+
+                    RunOutcome::Failure(err) => {
+                        model.language_version_result = RemoteData::Failure(err);
                     }
                 }
 
@@ -886,7 +911,7 @@ impl EditorTheme {
 #[serde(rename_all = "camelCase")]
 pub enum AppEffect {
     Run(RunRequest),
-    CreateSnippet(Snippet),
+    GetLanguageVersion(RunRequest),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -935,6 +960,7 @@ pub struct RunRequestPayload {
     pub language: language::Language,
     pub files: Vec<File>,
     pub stdin: String,
+    pub command: Option<String>,
 }
 
 fn view_head(model: &Model) -> maud::Markup {
@@ -1085,13 +1111,31 @@ fn view_content(model: &Model) -> Markup {
     }
 }
 
+fn extract_language_version(model: &Model) -> Option<String> {
+    if let RemoteData::Success(run_result) = &model.language_version_result {
+        if run_result.stdout.is_empty() {
+            None
+        } else {
+            Some(run_result.stdout.clone())
+        }
+    } else {
+        None
+    }
+}
+
 fn view_output_panel(model: &Model) -> Markup {
+    let ready_info = if let Some(version) = extract_language_version(model) {
+        format!("READY.\n\n{}", version)
+    } else {
+        "READY.".to_string()
+    };
+
     html! {
         div class="overflow-auto h-full border-b border-x border-gray-400 shadow-lg" {
             dl {
                 @match &model.run_result {
                     RemoteData::NotAsked => {
-                        (view_info("READY."))
+                        (view_info(&ready_info))
                     }
 
                     RemoteData::Loading => {
@@ -1588,6 +1632,20 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
         },
         Msg::SavedSettings,
     )
+}
+
+fn get_language_version_effect(language: &language::Config) -> Effect<Msg, AppEffect> {
+    let config = RunRequest {
+        image: language.run_config.container_image.clone(),
+        payload: RunRequestPayload {
+            language: language.id.clone(),
+            files: vec![],
+            stdin: "".to_string(),
+            command: Some(language.run_config.version_command.clone()),
+        },
+    };
+
+    effect::app_effect(AppEffect::GetLanguageVersion(config))
 }
 
 fn focus_editor_effect() -> Effect<Msg, AppEffect> {

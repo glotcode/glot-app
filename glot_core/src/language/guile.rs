@@ -24,7 +24,7 @@ pub fn config() -> Config {
         },
         run_config: RunConfig {
             container_image: "glot/guile:latest".to_string(),
-            version_command: "guile --version".to_string(),
+            version_command: "guile --version | head -n 1".to_string(),
         },
     }
 }
