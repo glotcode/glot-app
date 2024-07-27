@@ -1,7 +1,7 @@
 export { run };
 
 async function run(data: any): Promise<unknown> {
-  const response = await fetch("/api/run", {
+  const response = await fetch("/internal-api/run", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

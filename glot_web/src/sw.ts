@@ -54,7 +54,7 @@ function isServiceWorker(url: URL) {
 }
 
 function isApiRequest(url: URL) {
-    return url.pathname.startsWith("/api");
+    return url.pathname.startsWith("/internal-api");
 }
 
 function hasHashParam(url: URL) {
