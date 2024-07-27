@@ -29,6 +29,7 @@ use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
+use std::fmt;
 use std::time::Duration;
 use url::Url;
 
@@ -90,7 +91,7 @@ enum Id {
     CloseSharingModal,
     SnippetUrl,
     CopyUrl,
-    // Title
+    // Title related
     Title,
     TopBarTitle,
     TitleForm,
@@ -125,8 +126,9 @@ pub enum Msg {
     ShareClicked,
     CopyUrlClicked,
     GotCopyUrlResult(Capture<WriteTextResult>),
+    EncodeSnippetUrl,
     ClearCopyStateTimeout,
-    // Title
+    // Title related
     EditTitleClicked,
     TitleChanged(Capture<String>),
     ConfirmUpdateTitle,
@@ -167,7 +169,7 @@ pub struct StdinState {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SharingState {
-    snippet_url: String,
+    snippet_url: Option<String>,
     copy_state: RemoteData<String, ()>,
 }
 
@@ -550,24 +552,39 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::ShareClicked => {
-                let snippet_url = get_snippet_url(model)?;
-
                 let state = SharingState {
-                    snippet_url,
+                    snippet_url: None,
                     copy_state: RemoteData::NotAsked,
                 };
 
                 model.active_modal = Modal::Sharing(state);
 
+                // TODO: request_animation_frame
+                Ok(vec![browser::effect::browser::set_timeout(
+                    Duration::from_millis(500),
+                    Msg::EncodeSnippetUrl,
+                )])
+            }
+
+            Msg::EncodeSnippetUrl => {
+                let snippet_url = get_snippet_url(model)?;
+                if let Modal::Sharing(state) = &mut model.active_modal {
+                    state.snippet_url = Some(snippet_url);
+                }
+
                 Ok(vec![])
             }
 
             Msg::CopyUrlClicked => {
-                if let Modal::Sharing(state) = &mut model.active_modal {
-                    Ok(vec![browser::effect::clipboard::write_text(
-                        &state.snippet_url,
-                        Msg::GotCopyUrlResult,
-                    )])
+                if let Modal::Sharing(state) = &model.active_modal {
+                    if let Some(snippet_url) = &state.snippet_url {
+                        Ok(vec![browser::effect::clipboard::write_text(
+                            snippet_url,
+                            Msg::GotCopyUrlResult,
+                        )])
+                    } else {
+                        Ok(vec![])
+                    }
                 } else {
                     Ok(vec![])
                 }
@@ -1458,8 +1475,44 @@ fn view_settings_modal(model: &Model) -> maud::Markup {
     }
 }
 
+enum SnippetUrlOverlay {
+    Encoding,
+    Copied,
+    Failure,
+}
+
+impl SnippetUrlOverlay {
+    fn from_state(state: &SharingState) -> Option<Self> {
+        match state.copy_state {
+            RemoteData::Success(_) => Some(Self::Copied),
+            RemoteData::Failure(_) => Some(Self::Failure),
+            RemoteData::NotAsked => {
+                if state.snippet_url.is_none() {
+                    Some(Self::Encoding)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for SnippetUrlOverlay {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Encoding => write!(f, "Encoding snippet..."),
+            Self::Copied => write!(f, "Copied to clipboard!"),
+            Self::Failure => write!(f, "Failed to copy url"),
+        }
+    }
+}
+
 fn view_sharing_modal(state: &SharingState) -> maud::Markup {
     let url_max_length = 16000;
+    let maybe_overlay = SnippetUrlOverlay::from_state(state);
+    let snippet_url_value = state.snippet_url.clone().unwrap_or_default();
+    let url_length = snippet_url_value.len();
 
     html! {
         div class="text-center" {
@@ -1474,24 +1527,15 @@ fn view_sharing_modal(state: &SharingState) -> maud::Markup {
             }
             div class="mt-2 flex rounded-md shadow-sm" {
                 div class="relative flex flex-grow items-stretch focus-within:z-10" {
-                    input id=(Id::SnippetUrl) value=(state.snippet_url) readonly class="block w-full rounded-none rounded-l-md border-0 py-1.5 px-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6";
-                    @match state.copy_state {
-                        RemoteData::Success(_) => {
-                            div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 text-grey-900" {
-                                "Copied to clipboard!"
-                            }
-                        }
+                    input id=(Id::SnippetUrl) value=(snippet_url_value) readonly class="block w-full rounded-none rounded-l-md border-0 py-1.5 px-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6";
 
-                        RemoteData::Failure(_) => {
-                            div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 text-red-900" {
-                                "Failed to copy url"
-                            }
+                    @if let Some(overlay) = maybe_overlay {
+                        div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 text-grey-900" {
+                            (overlay)
                         }
-
-                        _ => {}
                     }
                 }
-                button id=(Id::CopyUrl) class="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" type="button" {
+                button id=(Id::CopyUrl) disabled[state.snippet_url.is_none()] class="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" type="button" {
                     span class="w-4 h-4" {
                         (heroicons_maud::clipboard_outline())
                     }
@@ -1501,17 +1545,14 @@ fn view_sharing_modal(state: &SharingState) -> maud::Markup {
             p class="mt-2 text-sm text-gray-500" {
                 "The snippet is embedded in the url using brotli compression and base62 encoding."
             }
-            @match state.snippet_url.len() {
-                length if length > url_max_length => {
-                    p class="mt-2 text-sm text-red-500" {
-                        (format!("{} / {}", length, url_max_length))
-                    }
-                }
 
-                length => {
-                    p class="mt-2 text-sm text-gray-500" {
-                        (format!("{} / {}", length, url_max_length))
-                    }
+            @if url_length > url_max_length {
+                p class="mt-2 text-sm text-red-500" {
+                    (format!("{} / {}", url_length, url_max_length))
+                }
+            } @else {
+                p class="mt-2 text-sm text-gray-500" {
+                    (format!("{} / {}", url_length, url_max_length))
                 }
             }
         }
