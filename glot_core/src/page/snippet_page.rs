@@ -1131,7 +1131,7 @@ fn view_output_panel(model: &Model) -> Markup {
     };
 
     html! {
-        div class="overflow-auto h-full border-b border-x border-gray-400 shadow-lg" {
+        div class="h-full border-b border-x border-gray-400 shadow-lg" {
             dl {
                 @match &model.run_result {
                     RemoteData::NotAsked => {
@@ -1164,7 +1164,7 @@ fn view_info(text: &str) -> Markup {
         dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
             pre { "INFO" }
         }
-        dd class="px-4 py-2" {
+        dd class="px-4 py-2 overflow-y-auto" {
             pre { (text) }
         }
     }
@@ -1176,7 +1176,7 @@ fn view_run_result(run_result: &RunResult) -> Markup {
             dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-green-400" {
                 pre { "STDOUT" }
             }
-            dd class="px-4 py-2" {
+            dd class="px-4 py-2 overflow-y-auto" {
                 pre {
                     (run_result.stdout)
                 }
@@ -1187,7 +1187,7 @@ fn view_run_result(run_result: &RunResult) -> Markup {
             dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-yellow-400" {
                 pre { "STDERR" }
             }
-            dd class="px-4 py-2"{
+            dd class="px-4 py-2 overflow-y-auto" {
                 pre {
                     (run_result.stderr)
                 }
@@ -1198,7 +1198,7 @@ fn view_run_result(run_result: &RunResult) -> Markup {
             dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-red-400" {
                 pre { "ERROR" }
             }
-            dd class="px-4 py-2" {
+            dd class="px-4 py-2 overflow-y-auto" {
                 pre {
                     (run_result.error)
                 }
