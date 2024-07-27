@@ -14,7 +14,7 @@ fun main(args : Array<String>){
 
 pub fn config() -> Config {
     Config {
-        id: Language::Julia,
+        id: Language::Kotlin,
         name: "Kotlin".to_string(),
         logo_svg_path: "/static/assets/language/kotlin.svg?hash=checksum".to_string(),
         file_extension: "kt".to_string(),
@@ -27,7 +27,7 @@ pub fn config() -> Config {
         },
         run_config: RunConfig {
             container_image: "glot/kotlin:latest".to_string(),
-            version_command: "kotlinc -version".to_string(),
+            version_command: "kotlinc -version 2>&1 | cut -c 7-".to_string(),
         },
     }
 }
