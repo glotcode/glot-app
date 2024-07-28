@@ -61,7 +61,7 @@ pub struct Model {
     pub run_result: RemoteData<FailedRunResult, RunResult>,
     pub language_version_result: RemoteData<FailedRunResult, RunResult>,
     pub snippet: Option<Snippet>,
-    pub search_modal_state: search_modal::State,
+    pub search_modal_state: search_modal::State<QuickActionId>,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -672,16 +672,17 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::SearchModalMsg(child_msg) => {
-                let data: search_modal::UpdateData<Msg, AppEffect> = search_modal::update(
-                    &child_msg,
-                    &mut model.search_modal_state,
-                    quick_actions(),
-                    Msg::SearchModalMsg,
-                )?;
+                let data: search_modal::UpdateData<Msg, AppEffect, QuickActionId> =
+                    search_modal::update(
+                        &child_msg,
+                        &mut model.search_modal_state,
+                        quick_actions(),
+                        Msg::SearchModalMsg,
+                    )?;
 
                 let mut effects = if let Some(entry) = data.selected_entry {
-                    match entry.id.as_str() {
-                        "run" => {
+                    match entry.id {
+                        QuickActionId::Run => {
                             let effect = run_effect(model);
                             vec![effect]
                         }
@@ -1724,13 +1725,22 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
     effect::app_effect(AppEffect::Run(config))
 }
 
+#[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 enum QuickActionId {
     Run,
 }
 
-fn quick_actions() -> Vec<search_modal::Entry> {
+impl fmt::Display for QuickActionId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            QuickActionId::Run => write!(f, "run"),
+        }
+    }
+}
+
+fn quick_actions() -> Vec<search_modal::Entry<QuickActionId>> {
     vec![search_modal::Entry {
-        id: "run".to_string(),
+        id: QuickActionId::Run,
         title: "Run code".to_string(),
         keywords: vec!["run".to_string()],
     }]

@@ -3,16 +3,26 @@ use crate::{
 };
 use itertools::Itertools;
 use maud::html;
-use poly::browser::{self, dom, Capture, DomId, Effect, Effects, Key};
+use poly::browser::{self, dom, Capture, DomId, Effects, Key};
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
+use std::{fmt::Display, hash::Hash};
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct State {
+pub struct State<EntryId> {
     is_open: bool,
     query: String,
-    matching_entries: Vec<Entry>,
+    matching_entries: Vec<Entry<EntryId>>,
+}
+
+impl<EntryId> Default for State<EntryId> {
+    fn default() -> Self {
+        Self {
+            is_open: false,
+            query: String::new(),
+            matching_entries: vec![],
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -31,9 +41,9 @@ enum Id {
     SearchModalBackdrop,
 }
 
-pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
+pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect, EntryId>(
     user_agent: &UserAgent,
-    _state: &State,
+    _state: &State<EntryId>,
     to_parent_msg: ToParentMsg,
 ) -> browser::Subscriptions<ParentMsg, AppEffect>
 where
@@ -61,19 +71,20 @@ where
     ]
 }
 
-pub struct UpdateData<ParentMsg, AppEffect> {
+pub struct UpdateData<ParentMsg, AppEffect, EntryId> {
     pub effects: Effects<ParentMsg, AppEffect>,
-    pub selected_entry: Option<Entry>,
+    pub selected_entry: Option<Entry<EntryId>>,
 }
 
-pub fn update<ToParentMsg, ParentMsg, AppEffect>(
+pub fn update<ToParentMsg, ParentMsg, AppEffect, EntryId>(
     msg: &Msg,
-    state: &mut State,
-    entries: Vec<Entry>,
+    state: &mut State<EntryId>,
+    entries: Vec<Entry<EntryId>>,
     _to_parent_msg: ToParentMsg,
-) -> Result<UpdateData<ParentMsg, AppEffect>, String>
+) -> Result<UpdateData<ParentMsg, AppEffect, EntryId>, String>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
+    EntryId: Clone + Eq + PartialEq + Hash + Display,
 {
     match msg {
         Msg::QueryChanged(captured) => {
@@ -104,7 +115,9 @@ where
 
         Msg::QuickActionSelected(captured) => {
             let action_id = captured.value();
-            let entry = entries.iter().find(|entry| entry.id == action_id);
+            let entry = entries
+                .iter()
+                .find(|entry| entry.id.to_string() == action_id);
 
             if let Some(entry) = entry {
                 *state = State::default();
@@ -123,7 +136,7 @@ where
     }
 }
 
-pub fn view(state: &State) -> maud::Markup {
+pub fn view<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
     if state.is_open {
         modal::view_barebones(
             view_search_modal(state),
@@ -137,7 +150,7 @@ pub fn view(state: &State) -> maud::Markup {
     }
 }
 
-fn view_search_modal(state: &State) -> maud::Markup {
+fn view_search_modal<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
     html! {
         div class="h-[400px]" {
             div {
@@ -162,18 +175,21 @@ fn view_search_modal(state: &State) -> maud::Markup {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Entry {
-    pub id: String,
+pub struct Entry<EntryId> {
+    pub id: EntryId,
     pub title: String,
     pub keywords: Vec<String>,
 }
 
-fn find_entries(query: &str, entries: Vec<Entry>) -> Vec<Entry> {
+fn find_entries<EntryId>(query: &str, entries: Vec<Entry<EntryId>>) -> Vec<Entry<EntryId>>
+where
+    EntryId: Clone + Eq + PartialEq + Hash,
+{
     if query.is_empty() {
         return vec![];
     }
 
-    let entries_starting_with: Vec<&Entry> = entries
+    let entries_starting_with: Vec<&Entry<_>> = entries
         .iter()
         .filter(|entry| {
             entry
@@ -183,7 +199,7 @@ fn find_entries(query: &str, entries: Vec<Entry>) -> Vec<Entry> {
         })
         .collect();
 
-    let entries_containing: Vec<&Entry> = entries
+    let entries_containing: Vec<&Entry<_>> = entries
         .iter()
         .filter(|entry| entry.keywords.iter().any(|keyword| keyword.contains(query)))
         .collect();
