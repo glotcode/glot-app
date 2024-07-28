@@ -13,13 +13,14 @@ impl UserAgent {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum OperatingSystem {
     Windows,
     Mac,
     Linux,
     Android,
     IOS,
+    Cloudflare,
     Other,
 }
 
@@ -35,6 +36,8 @@ impl OperatingSystem {
             OperatingSystem::Linux
         } else if ua.contains("Win") {
             OperatingSystem::Windows
+        } else if ua.contains("cloudflare") {
+            OperatingSystem::Cloudflare
         } else {
             OperatingSystem::Other
         }

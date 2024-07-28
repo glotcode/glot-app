@@ -1,10 +1,12 @@
 use std::fmt;
 
+use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::language;
 use crate::language::Language;
 use crate::layout::app_layout;
+use crate::util::user_agent::OperatingSystem;
 use crate::util::user_agent::UserAgent;
 use crate::view::features;
 use crate::view::language_grid;
@@ -70,6 +72,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         let mut subscriptions = vec![
             browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
             browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
+            browser::on_click_closest(Id::QuickActionButton, Msg::QuickActionButtonClicked),
         ];
 
         subscriptions.extend(search_modal_subscriptions);
@@ -87,6 +90,11 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
             Msg::CloseSidebarClicked => {
                 model.layout_state.close_sidebar();
                 Ok(vec![])
+            }
+
+            Msg::QuickActionButtonClicked => {
+                // fmt
+                Ok(model.search_modal_state.open())
             }
 
             Msg::SearchModalMsg(child_msg) => {
@@ -139,6 +147,7 @@ enum Id {
     Glot,
     OpenSidebar,
     CloseSidebar,
+    QuickActionButton,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -147,6 +156,7 @@ pub enum Msg {
     OpenSidebarClicked,
     CloseSidebarClicked,
     // Search modal related
+    QuickActionButtonClicked,
     SearchModalMsg(search_modal::Msg),
 }
 
@@ -232,7 +242,11 @@ fn view_content(model: &Model) -> Markup {
                 }))
             }
 
-            div class="py-6" {
+            div class="pt-6 flex justify-center" {
+                (view_search_button(model))
+            }
+
+            div class="pb-6" {
                 div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" {
                     div class="border-b border-gray-200 pb-5 mt-8" {
                         h3 class="text-lg font-medium leading-6 text-gray-900" {
@@ -242,6 +256,28 @@ fn view_content(model: &Model) -> Markup {
 
                     div class="mt-4" {
                         (language_grid::view(model.languages.iter().map(to_grid_language).collect::<Vec<_>>()))
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn view_search_button(model: &Model) -> Markup {
+    let key_combo = KeyboardShortcut::OpenQuickSearch.key_combo(&model.user_agent);
+
+    html! {
+        button id=(Id::QuickActionButton) class="hidden sm:flex items-center w-72 text-left space-x-3 px-4 h-12 bg-white ring-1 ring-slate-900/10 hover:ring-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm rounded-lg text-slate-400" type="button" {
+            span class="text-slate-300 w-6 h-6" {
+                (heroicons_maud::magnifying_glass_outline())
+            }
+            span class="flex-auto" {
+                "Quick action..."
+            }
+            @if model.user_agent.os != OperatingSystem::Cloudflare {
+                kbd class="font-sans font-semibold dark:text-slate-500" {
+                    abbr class="no-underline text-slate-300 dark:text-slate-500" title="Command" {
+                        (key_combo)
                     }
                 }
             }

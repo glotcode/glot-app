@@ -16,6 +16,13 @@ pub struct State<EntryId> {
     selected_index: Option<usize>,
 }
 
+impl<EntryId> State<EntryId> {
+    pub fn open<ParentMsg, AppEffect>(&mut self) -> Effects<ParentMsg, AppEffect> {
+        self.is_open = true;
+        vec![dom::focus_element(Id::QueryInput)]
+    }
+}
+
 impl<EntryId> Default for State<EntryId> {
     fn default() -> Self {
         Self {
@@ -234,12 +241,12 @@ where
     html! {
         form id=(Id::QueryForm) class="h-[225px]" {
             div class="flex border-b border-gray-300" {
-                label class="flex items-center w-12 justify-center font-bold text-gray-700" for=(Id::QueryInput) {
+                label class="flex items-center w-12 justify-center font-bold text-slate-300" for=(Id::QueryInput) {
                     div class="w-5 h-5" {
                         (heroicons_maud::magnifying_glass_outline())
                     }
                 }
-                input id=(Id::QueryInput) value=(state.query) class="w-full border-none pl-0 ring-0 focus:ring-0 outline-none focus:outline-none" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" spellcheck="false" placeholder="Quick action" maxlength="64" type="text";
+                input id=(Id::QueryInput) value=(state.query) class="w-full border-none pl-0 ring-0 focus:ring-0 outline-none focus:outline-none" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" spellcheck="false" placeholder="Quick action..." maxlength="64" type="text";
             }
 
             div {

@@ -1762,11 +1762,7 @@ impl search_modal::EntryExtra for QuickAction {
         match self {
             QuickAction::Run => {
                 let key_combo = KeyboardShortcut::RunCode.key_combo(user_agent);
-                match key_combo.modifier {
-                    ModifierKey::Meta => Some("⌘+Enter".to_string()),
-                    ModifierKey::Ctrl => Some("Ctrl+Enter".to_string()),
-                    _ => None,
-                }
+                Some(key_combo.to_string())
             }
             _ => None,
         }
