@@ -1,3 +1,4 @@
+use crate::common::keyboard_shortcut;
 use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::route::Route;
 use crate::components::search_modal;
@@ -1061,7 +1062,7 @@ fn view_body(model: &Model) -> maud::Markup {
                 }
             }
 
-            (search_modal::view(&model.search_modal_state))
+            (search_modal::view(&model.user_agent, &model.search_modal_state))
         }
     }
 }
@@ -1756,6 +1757,20 @@ impl search_modal::EntryExtra for QuickActionId {
         match self {
             QuickActionId::Run => heroicons_maud::play_outline(),
             QuickActionId::GoToLanguage(_) => heroicons_maud::link_outline(),
+        }
+    }
+
+    fn extra_text(&self, user_agent: &UserAgent) -> Option<String> {
+        match self {
+            QuickActionId::Run => {
+                let key_combo = KeyboardShortcut::RunCode.key_combo(user_agent);
+                match key_combo.modifier {
+                    ModifierKey::Meta => Some("⌘+Enter".to_string()),
+                    ModifierKey::Ctrl => Some("Ctrl+Enter".to_string()),
+                    _ => None,
+                }
+            }
+            _ => None,
         }
     }
 }

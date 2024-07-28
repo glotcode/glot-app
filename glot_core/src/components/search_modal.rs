@@ -210,13 +210,13 @@ where
     }
 }
 
-pub fn view<EntryId>(state: &State<EntryId>) -> maud::Markup
+pub fn view<EntryId>(user_agent: &UserAgent, state: &State<EntryId>) -> maud::Markup
 where
     EntryId: Display + EntryExtra,
 {
     if state.is_open {
         modal::view_barebones(
-            view_search_modal(state),
+            view_search_modal(user_agent, state),
             &modal::Config {
                 backdrop_id: Id::SearchModalBackdrop,
                 close_button_id: Id::CloseSearchModal,
@@ -227,7 +227,7 @@ where
     }
 }
 
-fn view_search_modal<EntryId>(state: &State<EntryId>) -> maud::Markup
+fn view_search_modal<EntryId>(user_agent: &UserAgent, state: &State<EntryId>) -> maud::Markup
 where
     EntryId: Display + EntryExtra,
 {
@@ -246,13 +246,18 @@ where
                 ul class="divide-y divide-gray-200" {
                     @for (index, entry) in state.matching_entries.iter().enumerate() {
                         li data-quick-action=(entry.0) ."bg-gray-100"[state.selected_index == Some(index)] {
-                            button class="w-full py-2 px-4 flex items center justify-between hover:bg-gray-100" type="button" {
+                            button class="w-full py-2 px-4 flex justify-between hover:bg-gray-100" type="button" {
                                 div class="flex items-center" {
                                     div class="w-4 h-4 flex items-center justify-center" {
                                         (entry.0.icon())
                                     }
                                     div class="ml-2 text-sm font-medium text-gray-900" {
                                         (entry.0.title())
+                                    }
+                                }
+                                @if let Some(extra_text) = entry.0.extra_text(user_agent) {
+                                    div class="text-sm text-gray-500" {
+                                        (extra_text)
                                     }
                                 }
                             }
@@ -278,6 +283,10 @@ pub trait EntryExtra {
     fn title(&self) -> String;
     fn keywords(&self) -> Vec<String>;
     fn icon(&self) -> maud::Markup;
+
+    fn extra_text(&self, user_agent: &UserAgent) -> Option<String> {
+        None
+    }
 }
 
 fn find_entries<EntryId>(query: &str, entries: Vec<Entry<EntryId>>) -> Vec<Entry<EntryId>>
