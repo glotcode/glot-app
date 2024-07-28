@@ -31,11 +31,13 @@ pub enum Msg {
     OpenModal,
     CloseModal,
     QuickActionSelected(Capture<String>),
+    FormSubmitted,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
 #[strum(serialize_all = "kebab-case")]
 enum Id {
+    QueryForm,
     QueryInput,
     CloseSearchModal,
     SearchModalBackdrop,
@@ -68,6 +70,7 @@ where
             browser::dom::get_target_data_string_value("quick-action"),
             |captured| to_parent_msg(Msg::QuickActionSelected(captured)),
         ),
+        browser::on_submit(Id::QueryForm, to_parent_msg(Msg::FormSubmitted)),
     ]
 }
 
@@ -133,6 +136,24 @@ where
                 })
             }
         }
+
+        Msg::FormSubmitted => {
+            let entries = state.matching_entries.clone();
+
+            if let Some(entry) = entries.first() {
+                *state = State::default();
+
+                Ok(UpdateData {
+                    effects: vec![],
+                    selected_entry: Some(entry.clone()),
+                })
+            } else {
+                Ok(UpdateData {
+                    effects: vec![],
+                    selected_entry: None,
+                })
+            }
+        }
     }
 }
 
@@ -152,16 +173,21 @@ pub fn view<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
 
 fn view_search_modal<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
     html! {
-        div class="h-[400px]" {
-            div {
-                input id=(Id::QueryInput) value=(state.query) autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" spellcheck="false" placeholder="Quick action" maxlength="64" type="search";
+        form id=(Id::QueryForm) class="h-[400px]" {
+            div class="flex border-b border-gray-300" {
+                label class="flex items-center w-12 justify-center font-bold text-gray-700" for=(Id::QueryInput) {
+                    div class="w-5 h-5" {
+                        (heroicons_maud::magnifying_glass_outline())
+                    }
+                }
+                input id=(Id::QueryInput) value=(state.query) class="w-full border-none pl-0 ring-0 focus:ring-0 outline-none focus:outline-none" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" spellcheck="false" placeholder="Quick action" maxlength="64" type="text";
             }
 
             div {
-                ul class="mt-2 divide-y divide-gray-200" {
+                ul class="divide-y divide-gray-200" {
                     @for entry in &state.matching_entries {
-                        li data-quick-action=(entry.id) class="py py-2 px-4 cursor-pointer hover:bg-gray-100" {
-                            div class="flex items center justify-between" {
+                        li data-quick-action=(entry.id) {
+                            button class="w-full py-2 px-4 flex items center justify-between hover:bg-gray-100" type="button" {
                                 div class="flex items center" {
                                     div class="text-sm font-medium text-gray-900" { (entry.title) }
                                 }

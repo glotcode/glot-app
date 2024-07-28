@@ -1753,10 +1753,14 @@ fn quick_actions() -> Vec<search_modal::Entry<QuickActionId>> {
 
     let language_entries: Vec<_> = Language::list()
         .iter()
-        .map(|language| search_modal::Entry {
-            id: QuickActionId::GoToLanguage(language.clone()),
-            title: format!("Go to {}", language.config().name),
-            keywords: vec![language.to_string()],
+        .map(|language| {
+            let config = language.config();
+
+            search_modal::Entry {
+                id: QuickActionId::GoToLanguage(language.clone()),
+                title: format!("Go to {}", config.name),
+                keywords: vec![language.to_string(), config.name.clone()],
+            }
         })
         .collect();
 
