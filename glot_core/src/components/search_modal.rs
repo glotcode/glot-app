@@ -13,6 +13,7 @@ pub struct State<EntryId> {
     is_open: bool,
     query: String,
     matching_entries: Vec<Entry<EntryId>>,
+    selected_index: Option<usize>,
 }
 
 impl<EntryId> Default for State<EntryId> {
@@ -21,6 +22,7 @@ impl<EntryId> Default for State<EntryId> {
             is_open: false,
             query: String::new(),
             matching_entries: vec![],
+            selected_index: None,
         }
     }
 }
@@ -32,6 +34,8 @@ pub enum Msg {
     CloseModal,
     QuickActionSelected(Capture<String>),
     FormSubmitted,
+    SelectNext,
+    SelectPrevious,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -71,6 +75,14 @@ where
             |captured| to_parent_msg(Msg::QuickActionSelected(captured)),
         ),
         browser::on_submit(Id::QueryForm, to_parent_msg(Msg::FormSubmitted)),
+        browser::on_keyup(
+            Key::Key("ArrowUp".to_string()),
+            to_parent_msg(Msg::SelectPrevious),
+        ),
+        browser::on_keyup(
+            Key::Key("ArrowDown".to_string()),
+            to_parent_msg(Msg::SelectNext),
+        ),
     ]
 }
 
@@ -140,7 +152,13 @@ where
         Msg::FormSubmitted => {
             let entries = state.matching_entries.clone();
 
-            if let Some(entry) = entries.first() {
+            let selected_entry = if let Some(index) = state.selected_index {
+                entries.get(index)
+            } else {
+                entries.first()
+            };
+
+            if let Some(entry) = selected_entry {
                 *state = State::default();
 
                 Ok(UpdateData {
@@ -153,6 +171,39 @@ where
                     selected_entry: None,
                 })
             }
+        }
+
+        Msg::SelectNext => {
+            let new_index = if let Some(current_index) = state.selected_index {
+                let entry_count = state.matching_entries.len();
+                (current_index + 1) % entry_count
+            } else {
+                0
+            };
+
+            state.selected_index = Some(new_index);
+
+            Ok(UpdateData {
+                effects: vec![],
+                selected_entry: None,
+            })
+        }
+
+        Msg::SelectPrevious => {
+            let current_index = state.selected_index.unwrap_or_default();
+            let entry_count = state.matching_entries.len();
+            let new_index = if current_index == 0 {
+                entry_count - 1
+            } else {
+                current_index - 1
+            };
+
+            state.selected_index = Some(new_index);
+
+            Ok(UpdateData {
+                effects: vec![],
+                selected_entry: None,
+            })
         }
     }
 }
@@ -173,7 +224,7 @@ pub fn view<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
 
 fn view_search_modal<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
     html! {
-        form id=(Id::QueryForm) class="h-[400px]" {
+        form id=(Id::QueryForm) class="h-[225px]" {
             div class="flex border-b border-gray-300" {
                 label class="flex items-center w-12 justify-center font-bold text-gray-700" for=(Id::QueryInput) {
                     div class="w-5 h-5" {
@@ -185,8 +236,8 @@ fn view_search_modal<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
 
             div {
                 ul class="divide-y divide-gray-200" {
-                    @for entry in &state.matching_entries {
-                        li data-quick-action=(entry.id) {
+                    @for (index, entry) in state.matching_entries.iter().enumerate() {
+                        li data-quick-action=(entry.id) ."bg-gray-100"[state.selected_index == Some(index)] {
                             button class="w-full py-2 px-4 flex items center justify-between hover:bg-gray-100" type="button" {
                                 div class="flex items center" {
                                     div class="text-sm font-medium text-gray-900" { (entry.title) }
