@@ -1,4 +1,5 @@
 pub mod common;
+pub mod components;
 pub mod language;
 pub mod layout;
 pub mod page;

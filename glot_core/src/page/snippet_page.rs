@@ -1,4 +1,6 @@
+use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::route::Route;
+use crate::components::search_modal;
 use crate::language;
 use crate::language::Language;
 use crate::layout::app_layout;
@@ -59,6 +61,7 @@ pub struct Model {
     pub run_result: RemoteData<FailedRunResult, RunResult>,
     pub language_version_result: RemoteData<FailedRunResult, RunResult>,
     pub snippet: Option<Snippet>,
+    pub search_modal_state: search_modal::State,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -133,6 +136,8 @@ pub enum Msg {
     EditTitleClicked,
     TitleChanged(Capture<String>),
     ConfirmUpdateTitle,
+    // Search modal related
+    SearchModalMsg(search_modal::Msg),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -219,6 +224,7 @@ impl SnippetPage {
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
             snippet: None,
+            search_modal_state: search_modal::State::default(),
         })
     }
 
@@ -268,6 +274,7 @@ impl SnippetPage {
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
             snippet: Some(snippet_clone),
+            search_modal_state: search_modal::State::default(),
         })
     }
 }
@@ -289,10 +296,17 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn subscriptions(&self, model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
-        let modifier_key = get_modifier_key(&model.user_agent);
+        let search_modal_subscriptions: Vec<browser::Subscription<Msg, AppEffect>> =
+            search_modal::subscriptions(
+                &model.user_agent,
+                &model.search_modal_state,
+                Msg::SearchModalMsg,
+            );
+
+        let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.user_agent);
 
         // TODO: add conditionals
-        vec![
+        let mut subscriptions = vec![
             browser::on_change_string(Id::Editor, Msg::EditorContentChanged),
             browser::on_click_selector_closest(
                 browser::Selector::data("filename"),
@@ -314,7 +328,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_submit(Id::NewFileForm, Msg::ConfirmAddFile),
             browser::on_submit(Id::EditFileForm, Msg::ConfirmUpdateFile),
             browser::on_keyup(Key::Escape, Msg::CloseModalTriggered),
-            browser::on_keydown(Key::Enter, modifier_key, Msg::RunClicked),
+            browser::on_keydown(run_key_combo.key, run_key_combo.modifier, Msg::RunClicked),
             browser::on_window_resize(Msg::WindowSizeChanged),
             browser::on_change(Id::EditorKeyboardBindings, Msg::KeyboardBindingsChanged),
             browser::on_change(Id::EditorTheme, Msg::EditorThemeChanged),
@@ -333,7 +347,11 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             browser::on_input(Id::TitleInput, Msg::TitleChanged),
             browser::on_click(Id::UpdateTitleConfirm, Msg::ConfirmUpdateTitle),
             browser::on_submit(Id::TitleForm, Msg::ConfirmUpdateTitle),
-        ]
+        ];
+
+        subscriptions.extend(search_modal_subscriptions);
+
+        subscriptions
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
@@ -544,19 +562,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::RunClicked => {
-                let config = RunRequest {
-                    image: model.language.run_config.container_image.clone(),
-                    payload: RunRequestPayload {
-                        language: model.language.id.clone(),
-                        files: model.files.to_vec(),
-                        stdin: model.stdin.clone(),
-                        command: None,
-                    },
-                };
-
-                model.run_result = RemoteData::Loading;
-
-                Ok(vec![effect::app_effect(AppEffect::Run(config))])
+                let effect = run_effect(model);
+                Ok(vec![effect])
             }
 
             Msg::ShareClicked => {
@@ -662,6 +669,32 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 }
 
                 Ok(vec![])
+            }
+
+            Msg::SearchModalMsg(child_msg) => {
+                let data: search_modal::UpdateData<Msg, AppEffect> = search_modal::update(
+                    &child_msg,
+                    &mut model.search_modal_state,
+                    quick_actions(),
+                    Msg::SearchModalMsg,
+                )?;
+
+                let mut effects = if let Some(entry) = data.selected_entry {
+                    match entry.id.as_str() {
+                        "run" => {
+                            let effect = run_effect(model);
+                            vec![effect]
+                        }
+
+                        _ => vec![],
+                    }
+                } else {
+                    vec![]
+                };
+
+                effects.extend(data.effects);
+
+                Ok(effects)
             }
         }
     }
@@ -983,6 +1016,11 @@ fn view_body(model: &Model) -> maud::Markup {
         close_sidebar_id: Id::CloseSidebar,
     };
 
+    let modal_config = modal::Config {
+        backdrop_id: Id::ModalBackdrop,
+        close_button_id: Id::ModalClose,
+    };
+
     html! {
         div id=(Id::Glot) .h-full {
             (app_layout::app_shell(
@@ -993,44 +1031,32 @@ fn view_body(model: &Model) -> maud::Markup {
                 &model.current_route,
             ))
 
+
             @match &model.active_modal {
                 Modal::None => {},
 
                 Modal::File(state) => {
-                    (modal::view(view_file_modal(model, state), &modal::Config{
-                        backdrop_id: Id::ModalBackdrop,
-                        close_button_id: Id::ModalClose,
-                    }))
+                    (modal::view(view_file_modal(model, state), &modal_config))
                 },
 
                 Modal::Stdin(state) => {
-                    (modal::view(view_stdin_modal(state), &modal::Config{
-                        backdrop_id: Id::ModalBackdrop,
-                        close_button_id: Id::ModalClose,
-                    }))
+                    (modal::view(view_stdin_modal(state), &modal_config))
                 }
 
                 Modal::Settings => {
-                    (modal::view(view_settings_modal(model), &modal::Config{
-                        backdrop_id: Id::ModalBackdrop,
-                        close_button_id: Id::ModalClose,
-                    }))
+                    (modal::view(view_settings_modal(model), &modal_config))
                 }
 
                 Modal::Sharing(state) => {
-                    (modal::view(view_sharing_modal(state), &modal::Config{
-                        backdrop_id: Id::ModalBackdrop,
-                        close_button_id: Id::ModalClose,
-                    }))
+                    (modal::view(view_sharing_modal(state), &modal_config))
                 }
 
                 Modal::Title(state) => {
-                    (modal::view(view_title_modal(state), &modal::Config{
-                        backdrop_id: Id::ModalBackdrop,
-                        close_button_id: Id::ModalClose,
-                    }))
+                    (modal::view(view_title_modal(state), &modal_config))
                 }
             }
+
+            (search_modal::view(&model.search_modal_state, quick_actions()))
         }
     }
 }
@@ -1682,9 +1708,30 @@ fn get_snippet_url(model: &Model) -> Result<String, String> {
     Ok(route.to_absolute_path(&model.current_url))
 }
 
-fn get_modifier_key(user_agent: &UserAgent) -> ModifierKey {
-    match user_agent.os {
-        OperatingSystem::Mac => ModifierKey::Meta,
-        _ => ModifierKey::Ctrl,
-    }
+fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
+    let config = RunRequest {
+        image: model.language.run_config.container_image.clone(),
+        payload: RunRequestPayload {
+            language: model.language.id.clone(),
+            files: model.files.to_vec(),
+            stdin: model.stdin.clone(),
+            command: None,
+        },
+    };
+
+    model.run_result = RemoteData::Loading;
+
+    effect::app_effect(AppEffect::Run(config))
+}
+
+enum QuickActionId {
+    Run,
+}
+
+fn quick_actions() -> Vec<search_modal::Entry> {
+    vec![search_modal::Entry {
+        id: "run".to_string(),
+        title: "Run code".to_string(),
+        keywords: vec!["run".to_string()],
+    }]
 }

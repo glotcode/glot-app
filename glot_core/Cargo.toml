@@ -15,3 +15,4 @@ strum_macros = "0.24.3"
 url = { version = "2.3.1", features = ["serde"] }
 brotli = "6.0.0"
 base-62 = "0.1.1"
+itertools = "0.13.0"
