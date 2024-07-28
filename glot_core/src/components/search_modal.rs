@@ -12,6 +12,7 @@ use std::hash::{Hash, Hasher};
 pub struct State {
     is_open: bool,
     query: String,
+    matching_entries: Vec<Entry>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -77,6 +78,8 @@ where
     match msg {
         Msg::QueryChanged(captured) => {
             state.query = captured.value();
+            state.matching_entries = find_entries(&state.query, entries);
+
             Ok(UpdateData {
                 effects: vec![],
                 selected_entry: None,
@@ -120,10 +123,10 @@ where
     }
 }
 
-pub fn view(state: &State, entries: Vec<Entry>) -> maud::Markup {
+pub fn view(state: &State) -> maud::Markup {
     if state.is_open {
         modal::view_barebones(
-            view_search_modal(state, entries),
+            view_search_modal(state),
             &modal::Config {
                 backdrop_id: Id::SearchModalBackdrop,
                 close_button_id: Id::CloseSearchModal,
@@ -134,9 +137,7 @@ pub fn view(state: &State, entries: Vec<Entry>) -> maud::Markup {
     }
 }
 
-fn view_search_modal(state: &State, entries: Vec<Entry>) -> maud::Markup {
-    let matching_entries = find_entries(&state.query, entries);
-
+fn view_search_modal(state: &State) -> maud::Markup {
     html! {
         div class="h-[400px]" {
             div {
@@ -145,7 +146,7 @@ fn view_search_modal(state: &State, entries: Vec<Entry>) -> maud::Markup {
 
             div {
                 ul class="mt-2 divide-y divide-gray-200" {
-                    @for entry in matching_entries {
+                    @for entry in &state.matching_entries {
                         li data-quick-action=(entry.id) class="py py-2 px-4 cursor-pointer hover:bg-gray-100" {
                             div class="flex items center justify-between" {
                                 div class="flex items center" {
@@ -160,7 +161,7 @@ fn view_search_modal(state: &State, entries: Vec<Entry>) -> maud::Markup {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Entry {
     pub id: String,
     pub title: String,
@@ -191,6 +192,7 @@ fn find_entries(query: &str, entries: Vec<Entry>) -> Vec<Entry> {
         .concat()
         .into_iter()
         .unique()
+        .take(5)
         .cloned()
         .collect()
 }

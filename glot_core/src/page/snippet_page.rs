@@ -1056,7 +1056,7 @@ fn view_body(model: &Model) -> maud::Markup {
                 }
             }
 
-            (search_modal::view(&model.search_modal_state, quick_actions()))
+            (search_modal::view(&model.search_modal_state))
         }
     }
 }
