@@ -96,7 +96,10 @@ where
 {
     let items = sidebar_items();
     let commit_hash = env!("GIT_HASH");
-    let commit_url = format!("https://github.com/glotlabs/glot/commit/{}", commit_hash);
+    let commit_url = format!(
+        "https://github.com/glotcode/glot-app/commit/{}",
+        commit_hash
+    );
 
     html! {
         div class="h-full" {
