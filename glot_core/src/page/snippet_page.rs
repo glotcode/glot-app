@@ -687,7 +687,11 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                             vec![effect]
                         }
 
-                        _ => vec![],
+                        QuickActionId::GoToLanguage(language) => {
+                            let route = Route::NewSnippet(language);
+                            let url = route.to_absolute_path(&model.current_url);
+                            vec![browser::effect::navigation::set_location(&url)]
+                        }
                     }
                 } else {
                     vec![]
@@ -1728,20 +1732,35 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
 #[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 enum QuickActionId {
     Run,
+    GoToLanguage(Language),
 }
 
 impl fmt::Display for QuickActionId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             QuickActionId::Run => write!(f, "run"),
+            QuickActionId::GoToLanguage(language) => write!(f, "goto-{}", language),
         }
     }
 }
 
 fn quick_actions() -> Vec<search_modal::Entry<QuickActionId>> {
-    vec![search_modal::Entry {
+    let mut entries = vec![search_modal::Entry {
         id: QuickActionId::Run,
         title: "Run code".to_string(),
         keywords: vec!["run".to_string()],
-    }]
+    }];
+
+    let language_entries: Vec<_> = Language::list()
+        .iter()
+        .map(|language| search_modal::Entry {
+            id: QuickActionId::GoToLanguage(language.clone()),
+            title: format!("Go to {}", language.config().name),
+            keywords: vec![language.to_string()],
+        })
+        .collect();
+
+    entries.extend(language_entries);
+
+    entries
 }

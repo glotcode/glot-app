@@ -189,19 +189,26 @@ where
         return vec![];
     }
 
+    let lowercase_query = query.to_lowercase();
+
     let entries_starting_with: Vec<&Entry<_>> = entries
         .iter()
         .filter(|entry| {
             entry
                 .keywords
                 .iter()
-                .any(|keyword| keyword.starts_with(query))
+                .any(|keyword| keyword.to_lowercase().starts_with(&lowercase_query))
         })
         .collect();
 
     let entries_containing: Vec<&Entry<_>> = entries
         .iter()
-        .filter(|entry| entry.keywords.iter().any(|keyword| keyword.contains(query)))
+        .filter(|entry| {
+            entry
+                .keywords
+                .iter()
+                .any(|keyword| keyword.to_lowercase().contains(&lowercase_query))
+        })
         .collect();
 
     vec![entries_starting_with, entries_containing]
