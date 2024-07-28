@@ -90,7 +90,7 @@ where
 
 pub struct UpdateData<ParentMsg, AppEffect, EntryId> {
     pub effects: Effects<ParentMsg, AppEffect>,
-    pub selected_entry: Option<Entry<EntryId>>,
+    pub selected_entry: Option<EntryId>,
 }
 
 pub fn update<ToParentMsg, ParentMsg, AppEffect, EntryId>(
@@ -101,7 +101,7 @@ pub fn update<ToParentMsg, ParentMsg, AppEffect, EntryId>(
 ) -> Result<UpdateData<ParentMsg, AppEffect, EntryId>, String>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
-    EntryId: Clone + Eq + PartialEq + Hash + Display,
+    EntryId: Clone + Eq + PartialEq + Hash + Display + EntryExtra,
 {
     match msg {
         Msg::QueryChanged(captured) => {
@@ -134,14 +134,14 @@ where
             let action_id = captured.value();
             let entry = entries
                 .iter()
-                .find(|entry| entry.id.to_string() == action_id);
+                .find(|entry| entry.0.to_string() == action_id);
 
             if let Some(entry) = entry {
                 *state = State::default();
 
                 Ok(UpdateData {
                     effects: vec![],
-                    selected_entry: Some(entry.clone()),
+                    selected_entry: Some(entry.0.clone()),
                 })
             } else {
                 Ok(UpdateData {
@@ -165,7 +165,7 @@ where
 
                 Ok(UpdateData {
                     effects: vec![],
-                    selected_entry: Some(entry.clone()),
+                    selected_entry: Some(entry.0.clone()),
                 })
             } else {
                 Ok(UpdateData {
@@ -210,7 +210,10 @@ where
     }
 }
 
-pub fn view<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
+pub fn view<EntryId>(state: &State<EntryId>) -> maud::Markup
+where
+    EntryId: Display + EntryExtra,
+{
     if state.is_open {
         modal::view_barebones(
             view_search_modal(state),
@@ -224,7 +227,10 @@ pub fn view<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
     }
 }
 
-fn view_search_modal<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
+fn view_search_modal<EntryId>(state: &State<EntryId>) -> maud::Markup
+where
+    EntryId: Display + EntryExtra,
+{
     html! {
         form id=(Id::QueryForm) class="h-[225px]" {
             div class="flex border-b border-gray-300" {
@@ -239,10 +245,15 @@ fn view_search_modal<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
             div {
                 ul class="divide-y divide-gray-200" {
                     @for (index, entry) in state.matching_entries.iter().enumerate() {
-                        li data-quick-action=(entry.id) ."bg-gray-100"[state.selected_index == Some(index)] {
+                        li data-quick-action=(entry.0) ."bg-gray-100"[state.selected_index == Some(index)] {
                             button class="w-full py-2 px-4 flex items center justify-between hover:bg-gray-100" type="button" {
-                                div class="flex items center" {
-                                    div class="text-sm font-medium text-gray-900" { (entry.title) }
+                                div class="flex items-center" {
+                                    div class="w-4 h-4 flex items-center justify-center" {
+                                        (entry.0.icon())
+                                    }
+                                    div class="ml-2 text-sm font-medium text-gray-900" {
+                                        (entry.0.title())
+                                    }
                                 }
                             }
                         }
@@ -254,15 +265,24 @@ fn view_search_modal<EntryId: Display>(state: &State<EntryId>) -> maud::Markup {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Entry<EntryId> {
-    pub id: EntryId,
-    pub title: String,
-    pub keywords: Vec<String>,
+pub struct Entry<EntryId>(EntryId);
+
+impl<EntryId> Entry<EntryId> {
+    pub fn new(id: EntryId) -> Self {
+        Self(id)
+    }
+}
+
+// TODO: rename
+pub trait EntryExtra {
+    fn title(&self) -> String;
+    fn keywords(&self) -> Vec<String>;
+    fn icon(&self) -> maud::Markup;
 }
 
 fn find_entries<EntryId>(query: &str, entries: Vec<Entry<EntryId>>) -> Vec<Entry<EntryId>>
 where
-    EntryId: Clone + Eq + PartialEq + Hash,
+    EntryId: Clone + Eq + PartialEq + Hash + EntryExtra,
 {
     if query.is_empty() {
         return vec![];
@@ -274,7 +294,8 @@ where
         .iter()
         .filter(|entry| {
             entry
-                .keywords
+                .0
+                .keywords()
                 .iter()
                 .any(|keyword| keyword.to_lowercase().starts_with(&lowercase_query))
         })
@@ -284,7 +305,8 @@ where
         .iter()
         .filter(|entry| {
             entry
-                .keywords
+                .0
+                .keywords()
                 .iter()
                 .any(|keyword| keyword.to_lowercase().contains(&lowercase_query))
         })

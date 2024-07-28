@@ -681,7 +681,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     )?;
 
                 let mut effects = if let Some(entry) = data.selected_entry {
-                    match entry.id {
+                    match entry {
                         QuickActionId::Run => {
                             let effect = run_effect(model);
                             vec![effect]
@@ -1735,6 +1735,31 @@ enum QuickActionId {
     GoToLanguage(Language),
 }
 
+impl search_modal::EntryExtra for QuickActionId {
+    fn title(&self) -> String {
+        match self {
+            QuickActionId::Run => "Run code".to_string(),
+            QuickActionId::GoToLanguage(language) => format!("Go to {}", language.config().name),
+        }
+    }
+
+    fn keywords(&self) -> Vec<String> {
+        match self {
+            QuickActionId::Run => vec!["run".to_string()],
+            QuickActionId::GoToLanguage(language) => {
+                vec![language.to_string(), language.config().name.clone()]
+            }
+        }
+    }
+
+    fn icon(&self) -> maud::Markup {
+        match self {
+            QuickActionId::Run => heroicons_maud::play_outline(),
+            QuickActionId::GoToLanguage(_) => heroicons_maud::link_outline(),
+        }
+    }
+}
+
 impl fmt::Display for QuickActionId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -1745,23 +1770,11 @@ impl fmt::Display for QuickActionId {
 }
 
 fn quick_actions() -> Vec<search_modal::Entry<QuickActionId>> {
-    let mut entries = vec![search_modal::Entry {
-        id: QuickActionId::Run,
-        title: "Run code".to_string(),
-        keywords: vec!["run".to_string()],
-    }];
+    let mut entries = vec![search_modal::Entry::new(QuickActionId::Run)];
 
     let language_entries: Vec<_> = Language::list()
         .iter()
-        .map(|language| {
-            let config = language.config();
-
-            search_modal::Entry {
-                id: QuickActionId::GoToLanguage(language.clone()),
-                title: format!("Go to {}", config.name),
-                keywords: vec![language.to_string(), config.name.clone()],
-            }
-        })
+        .map(|language| search_modal::Entry::new(QuickActionId::GoToLanguage(language.clone())))
         .collect();
 
     entries.extend(language_entries);
