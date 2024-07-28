@@ -3,7 +3,7 @@ use crate::{
 };
 use itertools::Itertools;
 use maud::html;
-use poly::browser::{self, dom, Capture, DomId, Effects, Key};
+use poly::browser::{self, dom, Capture, DomId, Effects, Key, ModifierKey};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, hash::Hash};
 
@@ -75,12 +75,14 @@ where
             |captured| to_parent_msg(Msg::QuickActionSelected(captured)),
         ),
         browser::on_submit(Id::QueryForm, to_parent_msg(Msg::FormSubmitted)),
-        browser::on_keyup(
+        browser::on_keydown(
             Key::Key("ArrowUp".to_string()),
+            ModifierKey::None,
             to_parent_msg(Msg::SelectPrevious),
         ),
-        browser::on_keyup(
+        browser::on_keydown(
             Key::Key("ArrowDown".to_string()),
+            ModifierKey::None,
             to_parent_msg(Msg::SelectNext),
         ),
     ]
