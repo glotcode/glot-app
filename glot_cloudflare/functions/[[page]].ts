@@ -35,7 +35,7 @@ function getPageConfig(route: string, url: any): PageConfig {
 
         case "Home":
             return {
-                page: glot.homePage(url),
+                page: glot.homePage("cloudflare", url),
                 status: 200,
             }
 

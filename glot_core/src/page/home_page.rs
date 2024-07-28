@@ -1,7 +1,11 @@
+use std::fmt;
+
 use crate::common::route::Route;
+use crate::components::search_modal;
 use crate::language;
 use crate::language::Language;
 use crate::layout::app_layout;
+use crate::util::user_agent::UserAgent;
 use crate::view::features;
 use crate::view::language_grid;
 use maud::html;
@@ -18,12 +22,16 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub current_route: Route,
+    pub current_url: Url,
+    pub user_agent: UserAgent,
     pub layout_state: app_layout::State,
     pub languages: Vec<language::Config>,
+    pub search_modal_state: search_modal::State<QuickAction>,
 }
 
 pub struct HomePage {
     pub current_url: Url,
+    pub user_agent: UserAgent,
 }
 
 impl Page<Model, Msg, AppEffect, Markup> for HomePage {
@@ -40,7 +48,10 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         let model = Model {
             layout_state: app_layout::State::new(),
             current_route: Route::from_path(self.current_url.path()),
+            current_url: self.current_url.clone(),
+            user_agent: self.user_agent.clone(),
             languages,
+            search_modal_state: search_modal::State::default(),
         };
 
         let effects = vec![];
@@ -48,11 +59,22 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         Ok((model, effects))
     }
 
-    fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
-        vec![
+    fn subscriptions(&self, model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
+        let search_modal_subscriptions: Vec<browser::Subscription<Msg, AppEffect>> =
+            search_modal::subscriptions(
+                &model.user_agent,
+                &model.search_modal_state,
+                Msg::SearchModalMsg,
+            );
+
+        let mut subscriptions = vec![
             browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
             browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
-        ]
+        ];
+
+        subscriptions.extend(search_modal_subscriptions);
+
+        subscriptions
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
@@ -65,6 +87,32 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
             Msg::CloseSidebarClicked => {
                 model.layout_state.close_sidebar();
                 Ok(vec![])
+            }
+
+            Msg::SearchModalMsg(child_msg) => {
+                let data: search_modal::UpdateData<Msg, AppEffect, QuickAction> =
+                    search_modal::update(
+                        &child_msg,
+                        &mut model.search_modal_state,
+                        quick_actions(),
+                        Msg::SearchModalMsg,
+                    )?;
+
+                let mut effects = if let Some(entry) = data.selected_entry {
+                    match entry {
+                        QuickAction::GoToLanguage(language) => {
+                            let route = Route::NewSnippet(language);
+                            let url = route.to_absolute_path(&model.current_url);
+                            vec![browser::effect::navigation::set_location(&url)]
+                        }
+                    }
+                } else {
+                    vec![]
+                };
+
+                effects.extend(data.effects);
+
+                Ok(effects)
             }
         }
     }
@@ -98,6 +146,8 @@ enum Id {
 pub enum Msg {
     OpenSidebarClicked,
     CloseSidebarClicked,
+    // Search modal related
+    SearchModalMsg(search_modal::Msg),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -133,6 +183,7 @@ fn view_body(model: &Model) -> maud::Markup {
                 &model.current_route,
             ))
 
+            (search_modal::view(&model.user_agent, &model.search_modal_state))
         }
     }
 }
@@ -204,4 +255,46 @@ fn to_grid_language(language: &language::Config) -> language_grid::Language {
         icon_path: language.logo_svg_path.to_string(),
         route: Route::NewSnippet(language.id.clone()),
     }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum QuickAction {
+    GoToLanguage(Language),
+}
+
+impl search_modal::EntryExtra for QuickAction {
+    fn title(&self) -> String {
+        match self {
+            QuickAction::GoToLanguage(language) => format!("Go to {}", language.config().name),
+        }
+    }
+
+    fn keywords(&self) -> Vec<String> {
+        match self {
+            QuickAction::GoToLanguage(language) => {
+                vec![language.to_string(), language.config().name.clone()]
+            }
+        }
+    }
+
+    fn icon(&self) -> maud::Markup {
+        match self {
+            QuickAction::GoToLanguage(_) => heroicons_maud::link_outline(),
+        }
+    }
+}
+
+impl fmt::Display for QuickAction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            QuickAction::GoToLanguage(language) => write!(f, "goto-{}", language),
+        }
+    }
+}
+
+fn quick_actions() -> Vec<search_modal::Entry<QuickAction>> {
+    Language::list()
+        .iter()
+        .map(|language| search_modal::Entry::new(QuickAction::GoToLanguage(language.clone())))
+        .collect()
 }

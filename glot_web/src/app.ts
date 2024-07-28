@@ -59,7 +59,7 @@ function pageFromRoute(route: string): Page {
             return notFoundPage(location.href)
 
         case "Home":
-            return homePage(location.href)
+            return homePage(navigator.userAgent, location.href)
 
         case "NewSnippet":
             return snippetPage(windowSize, navigator.userAgent, location.href)
