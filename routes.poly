@@ -1,3 +1,0 @@
-/ => ./target/debug/glot_cli
-/account/login => ./target/debug/glot_cli
-/new/* => ./target/debug/glot_cli
