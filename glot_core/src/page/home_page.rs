@@ -274,11 +274,9 @@ fn view_search_button(model: &Model) -> Markup {
             span class="flex-auto" {
                 "Quick action..."
             }
-            @if model.user_agent.os != OperatingSystem::Cloudflare {
-                kbd class="font-sans font-semibold dark:text-slate-500" {
-                    abbr class="no-underline text-slate-300 dark:text-slate-500" title="Command" {
-                        (key_combo)
-                    }
+            kbd class="font-sans font-semibold dark:text-slate-500" {
+                abbr class="no-underline text-slate-300 dark:text-slate-500" title="Command" {
+                    (key_combo)
                 }
             }
         }

@@ -2,7 +2,7 @@ import * as glot from "../dist_backend/wasm_backend/glot";
 
 export async function onRequest({ request }) {
     const route = glot.getRouteName(request.url);
-    const { page, status } = getPageConfig(route, request.url);
+    const { page, status } = getPageConfig(route, request);
 
     const { model, effects } = page.init();
     const html = page.view(model);
@@ -23,8 +23,10 @@ interface PageConfig {
     status: number;
 }
 
-function getPageConfig(route: string, url: any): PageConfig {
+function getPageConfig(route: string, request: any): PageConfig {
     const windowSize = null;
+    const url = request.url;
+    const userAgent = request.headers.get("user-agent");
 
     switch (route) {
         case "NotFound":
@@ -35,19 +37,19 @@ function getPageConfig(route: string, url: any): PageConfig {
 
         case "Home":
             return {
-                page: glot.homePage("cloudflare", url),
+                page: glot.homePage(userAgent, url),
                 status: 200,
             }
 
         case "NewSnippet":
             return {
-                page: glot.snippetPage(windowSize, "cloudflare", url),
+                page: glot.snippetPage(windowSize, userAgent, url),
                 status: 200,
             }
 
         case "EditSnippet":
             return {
-                page: glot.snippetPage(windowSize, "cloudflare", url),
+                page: glot.snippetPage(windowSize, userAgent, url),
                 status: 200,
             }
     }
