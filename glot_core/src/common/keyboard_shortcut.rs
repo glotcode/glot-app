@@ -1,7 +1,8 @@
 use std::fmt;
 
 use crate::util::user_agent::{OperatingSystem, UserAgent};
-use poly::browser::{Key, ModifierKey};
+use poly::browser::keyboard::Key;
+use poly::browser::subscription::event_listener::ModifierKey;
 
 pub enum KeyboardShortcut {
     OpenQuickSearch,

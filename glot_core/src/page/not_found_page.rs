@@ -2,10 +2,12 @@ use crate::common::route::Route;
 use crate::layout::app_layout;
 use maud::html;
 use maud::Markup;
-use poly::browser;
+use poly::browser::dom_id::DomId;
 use poly::browser::effect;
-use poly::browser::DomId;
-use poly::browser::Effect;
+use poly::browser::effect::Effect;
+use poly::browser::subscription;
+use poly::browser::subscription::event_listener;
+use poly::browser::subscription::Subscription;
 use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
@@ -36,11 +38,11 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
         Ok((model, effect::none()))
     }
 
-    fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
-        vec![
-            browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
-            browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
-        ]
+    fn subscriptions(&self, _model: &Model) -> Subscription<Msg, AppEffect> {
+        subscription::batch(vec![
+            event_listener::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
+            event_listener::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
+        ])
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {

@@ -14,14 +14,20 @@ use crate::view::modal;
 use maud::html;
 use maud::Markup;
 use poly::browser;
-use poly::browser::clipboard::WriteTextResult;
+use poly::browser::dom_id::DomId;
 use poly::browser::effect;
+use poly::browser::effect::clipboard::WriteTextResult;
+use poly::browser::effect::console;
 use poly::browser::effect::dom;
 use poly::browser::effect::local_storage;
-use poly::browser::Capture;
-use poly::browser::DomId;
-use poly::browser::Effect;
-use poly::browser::Key;
+use poly::browser::effect::Effect;
+use poly::browser::keyboard::Key;
+use poly::browser::selector::Selector;
+use poly::browser::subscription;
+use poly::browser::subscription::event_listener;
+use poly::browser::subscription::Subscription;
+use poly::browser::value::Capture;
+use poly::browser::value::Value;
 use poly::browser::WindowSize;
 use poly::page::JsMsg;
 use poly::page::Page;
@@ -102,7 +108,7 @@ enum Id {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum Msg {
-    WindowSizeChanged(Capture<browser::Value>),
+    WindowSizeChanged(Capture<Value>),
     EditorContentChanged(Capture<String>),
     FileSelected(Capture<String>),
     ShowAddFileModalClicked,
@@ -114,9 +120,9 @@ pub enum Msg {
     ConfirmDeleteFile,
     FilenameChanged(Capture<String>),
     EditFileClicked,
-    KeyboardBindingsChanged(Capture<browser::Value>),
-    EditorThemeChanged(Capture<browser::Value>),
-    GotSettings(Capture<browser::Value>),
+    KeyboardBindingsChanged(Capture<Value>),
+    EditorThemeChanged(Capture<Value>),
+    GotSettings(Capture<Value>),
     SavedSettings(Capture<bool>),
     StdinChanged(Capture<String>),
     UpdateStdinClicked,
@@ -292,63 +298,59 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         Ok((model, effect))
     }
 
-    fn subscriptions(&self, model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
-        let search_modal_subscriptions: Vec<browser::Subscription<Msg, AppEffect>> =
-            search_modal::subscriptions(
-                &model.user_agent,
-                &model.search_modal_state,
-                Msg::SearchModalMsg,
-            );
+    fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
+        let search_modal_subscriptions: Subscription<Msg, AppEffect> = search_modal::subscriptions(
+            &model.user_agent,
+            &model.search_modal_state,
+            Msg::SearchModalMsg,
+        );
 
         let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.user_agent);
 
         // TODO: add conditionals
-        let mut subscriptions = vec![
-            browser::on_change_string(Id::Editor, Msg::EditorContentChanged),
-            browser::on_click_selector_closest(
-                browser::Selector::data("filename"),
-                browser::dom::get_target_data_string_value("filename"),
+        subscription::batch(vec![
+            event_listener::on_change_string(Id::Editor, Msg::EditorContentChanged),
+            event_listener::on_click_selector_closest(
+                Selector::data("filename"),
+                dom::get_target_data_string_value("filename"),
                 Msg::FileSelected,
             ),
-            browser::on_click_closest(Id::ShowAddFileModal, Msg::ShowAddFileModalClicked),
-            browser::on_click_closest(Id::ShowSettingsModal, Msg::ShowSettingsModalClicked),
-            browser::on_click_closest(Id::ShowStdinModal, Msg::ShowStdinModalClicked),
-            browser::on_click_closest(Id::ShowStdinEditModal, Msg::ShowStdinModalClicked),
-            browser::on_click_closest(Id::ModalClose, Msg::CloseModalTriggered),
-            browser::on_click(Id::CloseSettings, Msg::CloseModalTriggered),
-            browser::on_mouse_down(Id::ModalBackdrop, Msg::CloseModalTriggered),
-            browser::on_click(Id::AddFileConfirm, Msg::ConfirmAddFile),
-            browser::on_click(Id::UpdateFileConfirm, Msg::ConfirmUpdateFile),
-            browser::on_click(Id::DeleteFileConfirm, Msg::ConfirmDeleteFile),
-            browser::on_input(Id::Filename, Msg::FilenameChanged),
-            browser::on_click_closest(Id::SelectedFile, Msg::EditFileClicked),
-            browser::on_submit(Id::NewFileForm, Msg::ConfirmAddFile),
-            browser::on_submit(Id::EditFileForm, Msg::ConfirmUpdateFile),
-            browser::on_keyup(Key::Escape, Msg::CloseModalTriggered),
-            browser::on_keydown(run_key_combo.key, run_key_combo.modifier, Msg::RunClicked),
-            browser::on_window_resize(Msg::WindowSizeChanged),
-            browser::on_change(Id::EditorKeyboardBindings, Msg::KeyboardBindingsChanged),
-            browser::on_change(Id::EditorTheme, Msg::EditorThemeChanged),
-            browser::on_input(Id::Stdin, Msg::StdinChanged),
-            browser::on_click(Id::ClearStdin, Msg::ClearStdinClicked),
-            browser::on_click(Id::UpdateStdin, Msg::UpdateStdinClicked),
-            browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
-            browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
-            browser::on_click_closest(Id::Run, Msg::RunClicked),
-            browser::on_click_closest(Id::Share, Msg::ShareClicked),
-            browser::on_click_closest(Id::CopyUrl, Msg::CopyUrlClicked),
-            browser::on_click(Id::CloseSharingModal, Msg::CloseModalTriggered),
+            event_listener::on_click_closest(Id::ShowAddFileModal, Msg::ShowAddFileModalClicked),
+            event_listener::on_click_closest(Id::ShowSettingsModal, Msg::ShowSettingsModalClicked),
+            event_listener::on_click_closest(Id::ShowStdinModal, Msg::ShowStdinModalClicked),
+            event_listener::on_click_closest(Id::ShowStdinEditModal, Msg::ShowStdinModalClicked),
+            event_listener::on_click_closest(Id::ModalClose, Msg::CloseModalTriggered),
+            event_listener::on_click(Id::CloseSettings, Msg::CloseModalTriggered),
+            event_listener::on_mouse_down(Id::ModalBackdrop, Msg::CloseModalTriggered),
+            event_listener::on_click(Id::AddFileConfirm, Msg::ConfirmAddFile),
+            event_listener::on_click(Id::UpdateFileConfirm, Msg::ConfirmUpdateFile),
+            event_listener::on_click(Id::DeleteFileConfirm, Msg::ConfirmDeleteFile),
+            event_listener::on_input(Id::Filename, Msg::FilenameChanged),
+            event_listener::on_click_closest(Id::SelectedFile, Msg::EditFileClicked),
+            event_listener::on_submit(Id::NewFileForm, Msg::ConfirmAddFile),
+            event_listener::on_submit(Id::EditFileForm, Msg::ConfirmUpdateFile),
+            event_listener::on_keyup(Key::Escape, Msg::CloseModalTriggered),
+            event_listener::on_keydown(run_key_combo.key, run_key_combo.modifier, Msg::RunClicked),
+            event_listener::on_window_resize(Msg::WindowSizeChanged),
+            event_listener::on_change(Id::EditorKeyboardBindings, Msg::KeyboardBindingsChanged),
+            event_listener::on_change(Id::EditorTheme, Msg::EditorThemeChanged),
+            event_listener::on_input(Id::Stdin, Msg::StdinChanged),
+            event_listener::on_click(Id::ClearStdin, Msg::ClearStdinClicked),
+            event_listener::on_click(Id::UpdateStdin, Msg::UpdateStdinClicked),
+            event_listener::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
+            event_listener::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
+            event_listener::on_click_closest(Id::Run, Msg::RunClicked),
+            event_listener::on_click_closest(Id::Share, Msg::ShareClicked),
+            event_listener::on_click_closest(Id::CopyUrl, Msg::CopyUrlClicked),
+            event_listener::on_click(Id::CloseSharingModal, Msg::CloseModalTriggered),
             // Title
-            browser::on_click_closest(Id::Title, Msg::EditTitleClicked),
-            browser::on_click_closest(Id::TopBarTitle, Msg::EditTitleClicked),
-            browser::on_input(Id::TitleInput, Msg::TitleChanged),
-            browser::on_click(Id::UpdateTitleConfirm, Msg::ConfirmUpdateTitle),
-            browser::on_submit(Id::TitleForm, Msg::ConfirmUpdateTitle),
-        ];
-
-        subscriptions.extend(search_modal_subscriptions);
-
-        subscriptions
+            event_listener::on_click_closest(Id::Title, Msg::EditTitleClicked),
+            event_listener::on_click_closest(Id::TopBarTitle, Msg::EditTitleClicked),
+            event_listener::on_input(Id::TitleInput, Msg::TitleChanged),
+            event_listener::on_click(Id::UpdateTitleConfirm, Msg::ConfirmUpdateTitle),
+            event_listener::on_submit(Id::TitleForm, Msg::ConfirmUpdateTitle),
+            search_modal_subscriptions,
+        ])
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
@@ -738,7 +740,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
             _ => {
                 let log_effect =
-                    browser::console::log(&format!("Got unknown message from JS: {}", msg.type_));
+                    console::log(&format!("Got unknown message from JS: {}", msg.type_));
                 Ok(log_effect)
             }
         }

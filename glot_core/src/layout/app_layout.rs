@@ -1,7 +1,7 @@
 use crate::common::route::Route;
 use maud::html;
 use maud::Markup;
-use poly::browser::DomId;
+use poly::browser::dom_id::DomId;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 

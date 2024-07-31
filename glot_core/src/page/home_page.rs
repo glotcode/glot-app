@@ -4,7 +4,6 @@ use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::language;
-use crate::language::d;
 use crate::language::Language;
 use crate::layout::app_layout;
 use crate::util::user_agent::UserAgent;
@@ -13,9 +12,12 @@ use crate::view::language_grid;
 use maud::html;
 use maud::Markup;
 use poly::browser;
+use poly::browser::dom_id::DomId;
 use poly::browser::effect;
-use poly::browser::DomId;
-use poly::browser::Effect;
+use poly::browser::effect::Effect;
+use poly::browser::subscription;
+use poly::browser::subscription::event_listener;
+use poly::browser::subscription::Subscription;
 use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
@@ -60,23 +62,19 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         Ok((model, effect::none()))
     }
 
-    fn subscriptions(&self, model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
-        let search_modal_subscriptions: Vec<browser::Subscription<Msg, AppEffect>> =
-            search_modal::subscriptions(
-                &model.user_agent,
-                &model.search_modal_state,
-                Msg::SearchModalMsg,
-            );
+    fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
+        let search_modal_subscriptions: Subscription<Msg, AppEffect> = search_modal::subscriptions(
+            &model.user_agent,
+            &model.search_modal_state,
+            Msg::SearchModalMsg,
+        );
 
-        let mut subscriptions = vec![
-            browser::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
-            browser::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
-            browser::on_click_closest(Id::QuickActionButton, Msg::QuickActionButtonClicked),
-        ];
-
-        subscriptions.extend(search_modal_subscriptions);
-
-        subscriptions
+        subscription::batch(vec![
+            event_listener::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
+            event_listener::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
+            event_listener::on_click_closest(Id::QuickActionButton, Msg::QuickActionButtonClicked),
+            search_modal_subscriptions,
+        ])
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {

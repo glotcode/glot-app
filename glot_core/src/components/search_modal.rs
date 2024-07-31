@@ -1,9 +1,19 @@
-use crate::{
-    common::keyboard_shortcut::KeyboardShortcut, util::user_agent::UserAgent, view::modal,
-};
+use crate::common::keyboard_shortcut::KeyboardShortcut;
+use crate::util::user_agent::UserAgent;
+use crate::view::modal;
 use itertools::Itertools;
 use maud::html;
-use poly::browser::{self, dom, effect, Capture, DomId, Effect, Key, ModifierKey};
+use poly::browser::dom_id::DomId;
+use poly::browser::effect;
+use poly::browser::effect::dom;
+use poly::browser::effect::Effect;
+use poly::browser::keyboard::Key;
+use poly::browser::selector::Selector;
+use poly::browser::subscription;
+use poly::browser::subscription::event_listener;
+use poly::browser::subscription::event_listener::ModifierKey;
+use poly::browser::subscription::Subscription;
+use poly::browser::value::Capture;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, hash::Hash};
 
@@ -58,41 +68,41 @@ pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect, EntryId>(
     user_agent: &UserAgent,
     _state: &State<EntryId>,
     to_parent_msg: ToParentMsg,
-) -> browser::Subscriptions<ParentMsg, AppEffect>
+) -> Subscription<ParentMsg, AppEffect>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
     let key_combo = KeyboardShortcut::OpenQuickSearch.key_combo(user_agent);
 
-    vec![
-        browser::on_input(Id::QueryInput, |captured| {
+    subscription::batch(vec![
+        event_listener::on_input(Id::QueryInput, |captured| {
             to_parent_msg(Msg::QueryChanged(captured))
         }),
-        browser::on_click_closest(Id::CloseSearchModal, to_parent_msg(Msg::CloseModal)),
-        browser::on_mouse_down(Id::SearchModalBackdrop, to_parent_msg(Msg::CloseModal)),
-        browser::on_keyup(Key::Escape, to_parent_msg(Msg::CloseModal)),
-        browser::on_keydown(
+        event_listener::on_click_closest(Id::CloseSearchModal, to_parent_msg(Msg::CloseModal)),
+        event_listener::on_mouse_down(Id::SearchModalBackdrop, to_parent_msg(Msg::CloseModal)),
+        event_listener::on_keyup(Key::Escape, to_parent_msg(Msg::CloseModal)),
+        event_listener::on_keydown(
             key_combo.key,
             key_combo.modifier,
             to_parent_msg(Msg::OpenModal),
         ),
-        browser::on_click_selector_closest(
-            browser::Selector::data("quick-action"),
-            browser::dom::get_target_data_string_value("quick-action"),
+        event_listener::on_click_selector_closest(
+            Selector::data("quick-action"),
+            dom::get_target_data_string_value("quick-action"),
             |captured| to_parent_msg(Msg::QuickActionSelected(captured)),
         ),
-        browser::on_submit(Id::QueryForm, to_parent_msg(Msg::FormSubmitted)),
-        browser::on_keydown(
+        event_listener::on_submit(Id::QueryForm, to_parent_msg(Msg::FormSubmitted)),
+        event_listener::on_keydown(
             Key::Key("ArrowUp".to_string()),
             ModifierKey::None,
             to_parent_msg(Msg::SelectPrevious),
         ),
-        browser::on_keydown(
+        event_listener::on_keydown(
             Key::Key("ArrowDown".to_string()),
             ModifierKey::None,
             to_parent_msg(Msg::SelectNext),
         ),
-    ]
+    ])
 }
 
 pub struct UpdateData<ParentMsg, AppEffect, EntryId> {
