@@ -21,9 +21,7 @@ use poly::browser::effect::local_storage;
 use poly::browser::Capture;
 use poly::browser::DomId;
 use poly::browser::Effect;
-use poly::browser::Effects;
 use poly::browser::Key;
-use poly::browser::ModifierKey;
 use poly::browser::WindowSize;
 use poly::page::JsMsg;
 use poly::page::Page;
@@ -283,15 +281,15 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         &Id::Glot
     }
 
-    fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
+    fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
         let model = self.get_model()?;
 
-        let effects = vec![
+        let effect = effect::batch(vec![
             load_settings_effect(),
             get_language_version_effect(&model.language),
-        ];
+        ]);
 
-        Ok((model, effects))
+        Ok((model, effect))
     }
 
     fn subscriptions(&self, model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
@@ -353,16 +351,16 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         subscriptions
     }
 
-    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
+    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
         match msg {
             Msg::OpenSidebarClicked => {
                 model.layout_state.open_sidebar();
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::CloseSidebarClicked => {
                 model.layout_state.close_sidebar();
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::WindowSizeChanged(captured) => {
@@ -372,7 +370,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     .map_err(|err| format!("Failed to parse window size: {}", err))?;
 
                 model.window_size = Some(window_size);
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::EditorContentChanged(captured) => {
@@ -380,7 +378,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     file.content = captured.value();
                 });
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::FileSelected(captured) => {
@@ -396,7 +394,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         model.files.select_index(index);
                     });
 
-                Ok(vec![focus_editor_effect()])
+                Ok(focus_editor_effect())
             }
 
             Msg::ShowAddFileModalClicked => {
@@ -406,13 +404,13 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     error: None,
                 });
 
-                Ok(vec![dom::focus_element(Id::Filename)])
+                Ok(dom::focus_element(Id::Filename))
             }
 
             Msg::ShowSettingsModalClicked => {
                 model.active_modal = Modal::Settings;
 
-                Ok(vec![dom::focus_element(Id::EditorKeyboardBindings)])
+                Ok(dom::focus_element(Id::EditorKeyboardBindings))
             }
 
             Msg::ShowStdinModalClicked => {
@@ -420,7 +418,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     stdin: model.stdin.clone(),
                 });
 
-                Ok(vec![dom::focus_element(Id::Stdin)])
+                Ok(dom::focus_element(Id::Stdin))
             }
 
             Msg::FilenameChanged(captured) => {
@@ -429,7 +427,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     state.error = None;
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::ConfirmAddFile => {
@@ -443,7 +441,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                             model.files.select_last();
                             model.active_modal = Modal::None;
-                            return Ok(vec![focus_editor_effect()]);
+                            return Ok(focus_editor_effect());
                         }
 
                         Err(err) => {
@@ -452,7 +450,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     }
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::ConfirmUpdateFile => {
@@ -464,7 +462,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                             });
 
                             model.active_modal = Modal::None;
-                            return Ok(vec![focus_editor_effect()]);
+                            return Ok(focus_editor_effect());
                         }
 
                         Err(err) => {
@@ -473,18 +471,18 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     }
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::ConfirmDeleteFile => {
                 model.files.remove_selected();
                 model.active_modal = Modal::None;
-                Ok(vec![focus_editor_effect()])
+                Ok(focus_editor_effect())
             }
 
             Msg::CloseModalTriggered => {
                 model.active_modal = Modal::None;
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::EditFileClicked => {
@@ -494,7 +492,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     error: None,
                 });
 
-                Ok(vec![dom::select_input_text(Id::Filename)])
+                Ok(dom::select_input_text(Id::Filename))
             }
 
             Msg::KeyboardBindingsChanged(captured) => {
@@ -505,7 +503,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 model.editor_keyboard_bindings = keyboard_bindings;
 
-                Ok(vec![save_settings_effect(&model)])
+                Ok(save_settings_effect(&model))
             }
 
             Msg::EditorThemeChanged(captured) => {
@@ -516,7 +514,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 model.editor_theme = editor_theme;
 
-                Ok(vec![save_settings_effect(&model)])
+                Ok(save_settings_effect(&model))
             }
 
             Msg::GotSettings(captured) => {
@@ -530,24 +528,24 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     model.editor_theme = settings.editor_theme;
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
-            Msg::SavedSettings(captured) => Ok(vec![]),
+            Msg::SavedSettings(_captured) => Ok(effect::none()),
 
             Msg::StdinChanged(captured) => {
                 if let Modal::Stdin(state) = &mut model.active_modal {
                     state.stdin = captured.value()
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::ClearStdinClicked => {
                 model.stdin.clear();
                 model.active_modal = Modal::None;
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::UpdateStdinClicked => {
@@ -557,12 +555,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 model.active_modal = Modal::None;
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::RunClicked => {
                 let effect = run_effect(model);
-                Ok(vec![effect])
+                Ok(effect)
             }
 
             Msg::ShareClicked => {
@@ -574,10 +572,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 model.active_modal = Modal::Sharing(state);
 
                 // TODO: request_animation_frame
-                Ok(vec![browser::effect::browser::set_timeout(
+                Ok(browser::effect::browser::set_timeout(
                     Duration::from_millis(500),
                     Msg::EncodeSnippetUrl,
-                )])
+                ))
             }
 
             Msg::EncodeSnippetUrl => {
@@ -586,21 +584,21 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     state.snippet_url = Some(snippet_url);
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::CopyUrlClicked => {
                 if let Modal::Sharing(state) = &model.active_modal {
                     if let Some(snippet_url) = &state.snippet_url {
-                        Ok(vec![browser::effect::clipboard::write_text(
+                        Ok(browser::effect::clipboard::write_text(
                             snippet_url,
                             Msg::GotCopyUrlResult,
-                        )])
+                        ))
                     } else {
-                        Ok(vec![])
+                        Ok(effect::none())
                     }
                 } else {
-                    Ok(vec![])
+                    Ok(effect::none())
                 }
             }
 
@@ -610,19 +608,19 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 if let Modal::Sharing(state) = &mut model.active_modal {
                     if result.success {
                         state.copy_state = RemoteData::Success(());
-                        Ok(vec![browser::effect::browser::set_timeout(
+                        Ok(browser::effect::browser::set_timeout(
                             Duration::from_secs(3),
                             Msg::ClearCopyStateTimeout,
-                        )])
+                        ))
                     } else {
                         state.copy_state = RemoteData::Failure(result.error.unwrap_or_default());
-                        Ok(vec![browser::effect::browser::set_timeout(
+                        Ok(browser::effect::browser::set_timeout(
                             Duration::from_secs(5),
                             Msg::ClearCopyStateTimeout,
-                        )])
+                        ))
                     }
                 } else {
-                    Ok(vec![])
+                    Ok(effect::none())
                 }
             }
 
@@ -631,7 +629,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     state.copy_state = RemoteData::NotAsked
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::EditTitleClicked => {
@@ -640,7 +638,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     error: None,
                 });
 
-                Ok(vec![dom::select_input_text(Id::TitleInput)])
+                Ok(dom::select_input_text(Id::TitleInput))
             }
 
             Msg::TitleChanged(captured) => {
@@ -649,7 +647,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     state.error = None;
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::ConfirmUpdateTitle => {
@@ -658,7 +656,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         Ok(_) => {
                             model.title = state.title.clone();
                             model.active_modal = Modal::None;
-                            return Ok(vec![focus_editor_effect()]);
+                            return Ok(focus_editor_effect());
                         }
 
                         Err(err) => {
@@ -667,7 +665,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     }
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::SearchModalMsg(child_msg) => {
@@ -679,26 +677,21 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         Msg::SearchModalMsg,
                     )?;
 
-                let mut effects = if let Some(entry) = data.selected_entry {
+                let effect = if let Some(entry) = data.selected_entry {
                     match entry {
-                        QuickAction::Run => {
-                            let effect = run_effect(model);
-                            vec![effect]
-                        }
+                        QuickAction::Run => run_effect(model),
 
                         QuickAction::GoToLanguage(language) => {
                             let route = Route::NewSnippet(language);
                             let url = route.to_absolute_path(&model.current_url);
-                            vec![browser::effect::navigation::set_location(&url)]
+                            browser::effect::navigation::set_location(&url)
                         }
                     }
                 } else {
-                    vec![]
+                    effect::none()
                 };
 
-                effects.extend(data.effects);
-
-                Ok(effects)
+                Ok(effect::batch(vec![effect, data.effect]))
             }
         }
     }
@@ -707,7 +700,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         &self,
         msg: JsMsg,
         model: &mut Model,
-    ) -> Result<Effects<Msg, AppEffect>, String> {
+    ) -> Result<Effect<Msg, AppEffect>, String> {
         match msg.type_.as_ref() {
             "GotRunResponse" => {
                 let outcome = RunOutcome::from_value(msg.data)
@@ -723,7 +716,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     }
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             "GotLanguageVersionResponse" => {
@@ -740,13 +733,13 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     }
                 }
 
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             _ => {
                 let log_effect =
                     browser::console::log(&format!("Got unknown message from JS: {}", msg.type_));
-                Ok(vec![log_effect])
+                Ok(log_effect)
             }
         }
     }

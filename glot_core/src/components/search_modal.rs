@@ -3,7 +3,7 @@ use crate::{
 };
 use itertools::Itertools;
 use maud::html;
-use poly::browser::{self, dom, Capture, DomId, Effects, Key, ModifierKey};
+use poly::browser::{self, dom, effect, Capture, DomId, Effect, Key, ModifierKey};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, hash::Hash};
 
@@ -17,9 +17,9 @@ pub struct State<EntryId> {
 }
 
 impl<EntryId> State<EntryId> {
-    pub fn open<ParentMsg, AppEffect>(&mut self) -> Effects<ParentMsg, AppEffect> {
+    pub fn open<ParentMsg, AppEffect>(&mut self) -> Effect<ParentMsg, AppEffect> {
         self.is_open = true;
-        vec![dom::focus_element(Id::QueryInput)]
+        dom::focus_element(Id::QueryInput)
     }
 }
 
@@ -96,7 +96,7 @@ where
 }
 
 pub struct UpdateData<ParentMsg, AppEffect, EntryId> {
-    pub effects: Effects<ParentMsg, AppEffect>,
+    pub effect: Effect<ParentMsg, AppEffect>,
     pub selected_entry: Option<EntryId>,
 }
 
@@ -116,7 +116,7 @@ where
             state.matching_entries = find_entries(&state.query, entries);
 
             Ok(UpdateData {
-                effects: vec![],
+                effect: effect::none(),
                 selected_entry: None,
             })
         }
@@ -124,7 +124,7 @@ where
         Msg::OpenModal => {
             state.is_open = true;
             Ok(UpdateData {
-                effects: vec![dom::focus_element(Id::QueryInput)],
+                effect: dom::focus_element(Id::QueryInput),
                 selected_entry: None,
             })
         }
@@ -132,7 +132,7 @@ where
         Msg::CloseModal => {
             *state = State::default();
             Ok(UpdateData {
-                effects: vec![],
+                effect: effect::none(),
                 selected_entry: None,
             })
         }
@@ -147,12 +147,12 @@ where
                 *state = State::default();
 
                 Ok(UpdateData {
-                    effects: vec![],
+                    effect: effect::none(),
                     selected_entry: Some(entry.0.clone()),
                 })
             } else {
                 Ok(UpdateData {
-                    effects: vec![],
+                    effect: effect::none(),
                     selected_entry: None,
                 })
             }
@@ -171,12 +171,12 @@ where
                 *state = State::default();
 
                 Ok(UpdateData {
-                    effects: vec![],
+                    effect: effect::none(),
                     selected_entry: Some(entry.0.clone()),
                 })
             } else {
                 Ok(UpdateData {
-                    effects: vec![],
+                    effect: effect::none(),
                     selected_entry: None,
                 })
             }
@@ -193,7 +193,7 @@ where
             state.selected_index = Some(new_index);
 
             Ok(UpdateData {
-                effects: vec![],
+                effect: effect::none(),
                 selected_entry: None,
             })
         }
@@ -210,7 +210,7 @@ where
             state.selected_index = Some(new_index);
 
             Ok(UpdateData {
-                effects: vec![],
+                effect: effect::none(),
                 selected_entry: None,
             })
         }

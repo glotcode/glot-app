@@ -3,8 +3,9 @@ use crate::layout::app_layout;
 use maud::html;
 use maud::Markup;
 use poly::browser;
+use poly::browser::effect;
 use poly::browser::DomId;
-use poly::browser::Effects;
+use poly::browser::Effect;
 use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
@@ -26,15 +27,13 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
         &Id::Glot
     }
 
-    fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
+    fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
         let model = Model {
             layout_state: app_layout::State::new(),
             current_route: Route::from_path(self.current_url.path()),
         };
 
-        let effects = vec![];
-
-        Ok((model, effects))
+        Ok((model, effect::none()))
     }
 
     fn subscriptions(&self, _model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
@@ -44,16 +43,16 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
         ]
     }
 
-    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
+    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
         match msg {
             Msg::OpenSidebarClicked => {
                 model.layout_state.open_sidebar();
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::CloseSidebarClicked => {
                 model.layout_state.close_sidebar();
-                Ok(vec![])
+                Ok(effect::none())
             }
         }
     }

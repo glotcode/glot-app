@@ -4,17 +4,18 @@ use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::language;
+use crate::language::d;
 use crate::language::Language;
 use crate::layout::app_layout;
-use crate::util::user_agent::OperatingSystem;
 use crate::util::user_agent::UserAgent;
 use crate::view::features;
 use crate::view::language_grid;
 use maud::html;
 use maud::Markup;
 use poly::browser;
+use poly::browser::effect;
 use poly::browser::DomId;
-use poly::browser::Effects;
+use poly::browser::Effect;
 use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
@@ -41,7 +42,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         &Id::Glot
     }
 
-    fn init(&self) -> Result<(Model, Effects<Msg, AppEffect>), String> {
+    fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
         let languages: Vec<language::Config> = Language::list()
             .iter()
             .map(|language| language.config())
@@ -56,9 +57,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
             search_modal_state: search_modal::State::default(),
         };
 
-        let effects = vec![];
-
-        Ok((model, effects))
+        Ok((model, effect::none()))
     }
 
     fn subscriptions(&self, model: &Model) -> browser::Subscriptions<Msg, AppEffect> {
@@ -80,16 +79,16 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         subscriptions
     }
 
-    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effects<Msg, AppEffect>, String> {
+    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
         match msg {
             Msg::OpenSidebarClicked => {
                 model.layout_state.open_sidebar();
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::CloseSidebarClicked => {
                 model.layout_state.close_sidebar();
-                Ok(vec![])
+                Ok(effect::none())
             }
 
             Msg::QuickActionButtonClicked => {
@@ -106,21 +105,19 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
                         Msg::SearchModalMsg,
                     )?;
 
-                let mut effects = if let Some(entry) = data.selected_entry {
+                let effect = if let Some(entry) = data.selected_entry {
                     match entry {
                         QuickAction::GoToLanguage(language) => {
                             let route = Route::NewSnippet(language);
                             let url = route.to_absolute_path(&model.current_url);
-                            vec![browser::effect::navigation::set_location(&url)]
+                            browser::effect::navigation::set_location(&url)
                         }
                     }
                 } else {
-                    vec![]
+                    effect::none()
                 };
 
-                effects.extend(data.effects);
-
-                Ok(effects)
+                Ok(effect::batch(vec![effect, data.effect]))
             }
         }
     }
