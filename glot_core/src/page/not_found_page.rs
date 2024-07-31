@@ -31,7 +31,7 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
 
     fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
         let model = Model {
-            layout_state: app_layout::State::new(),
+            layout_state: app_layout::State::default(),
             current_route: Route::from_path(self.current_url.path()),
         };
 
@@ -124,7 +124,7 @@ fn view_body(model: &Model) -> maud::Markup {
     }
 }
 
-fn view_content(model: &Model) -> Markup {
+fn view_content(_model: &Model) -> Markup {
     html! {
         div class="h-full flex flex-col bg-white" {
             h1 class="text-lg h-full text-center mt-8" {

@@ -3,9 +3,10 @@ use crate::language::EditorConfig;
 use crate::language::Language;
 use crate::language::RunConfig;
 use crate::language::RunInstructions;
+use std::path::Path;
 use std::path::PathBuf;
 
-const EXAMPLE_CODE: &'static str = r#"
+const EXAMPLE_CODE: &str = r#"
 const greeting: string = "Hello World!"
 console.log(greeting)
 "#;
@@ -37,8 +38,8 @@ pub fn run_instructions(main_file: PathBuf, _other_files: Vec<PathBuf>) -> RunIn
     }
 }
 
-fn replace_extension(file: &PathBuf, extension: &str) -> PathBuf {
-    let mut new_file = file.clone();
+fn replace_extension(file: &Path, extension: &str) -> PathBuf {
+    let mut new_file = file.to_path_buf();
     new_file.set_extension(extension);
     new_file
 }

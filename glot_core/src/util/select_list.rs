@@ -52,6 +52,10 @@ where
         self.to_vec().len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        false
+    }
+
     pub fn selected(&self) -> T {
         self.current.clone()
     }

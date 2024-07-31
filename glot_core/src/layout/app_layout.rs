@@ -26,19 +26,13 @@ pub struct Config<Id> {
     pub close_sidebar_id: Id,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct State {
     sidebar_is_open: bool,
 }
 
 impl State {
-    pub fn new() -> Self {
-        Self {
-            sidebar_is_open: false,
-        }
-    }
-
     pub fn open_sidebar(&mut self) {
         self.sidebar_is_open = true;
     }
@@ -171,11 +165,8 @@ where
                             (heroicons_maud::bars_3_outline())
                         }
                     }
-                    @match topbar_content {
-                        Some(markup) => {
-                            (markup)
-                        }
-                        None => {}
+                    @if let Some(markup) = topbar_content {
+                        (markup)
                     }
                 }
 

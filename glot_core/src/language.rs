@@ -316,8 +316,7 @@ impl FromStr for Language {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Language::list()
             .into_iter()
-            .filter(|language| s == language.config().id.to_string())
-            .next()
+            .find(|language| s == language.config().id.to_string())
             .ok_or(ParseIdError)
     }
 }

@@ -51,7 +51,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
             .collect();
 
         let model = Model {
-            layout_state: app_layout::State::new(),
+            layout_state: app_layout::State::default(),
             current_route: Route::from_path(self.current_url.path()),
             current_url: self.current_url.clone(),
             user_agent: self.user_agent.clone(),
@@ -97,7 +97,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
             Msg::SearchModalMsg(child_msg) => {
                 let data: search_modal::UpdateData<Msg, AppEffect, QuickAction> =
                     search_modal::update(
-                        &child_msg,
+                        child_msg,
                         &mut model.search_modal_state,
                         quick_actions(),
                         Msg::SearchModalMsg,

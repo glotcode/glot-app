@@ -301,7 +301,7 @@ pub trait EntryExtra {
     fn keywords(&self) -> Vec<String>;
     fn icon(&self) -> maud::Markup;
 
-    fn extra_text(&self, user_agent: &UserAgent) -> Option<String> {
+    fn extra_text(&self, _user_agent: &UserAgent) -> Option<String> {
         None
     }
 }
@@ -338,7 +338,7 @@ where
         })
         .collect();
 
-    vec![entries_starting_with, entries_containing]
+    [entries_starting_with, entries_containing]
         .concat()
         .into_iter()
         .unique()

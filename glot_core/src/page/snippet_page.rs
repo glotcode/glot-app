@@ -39,7 +39,7 @@ use std::time::Duration;
 use url::Url;
 
 const MIN_EDITOR_HEIGHT: u64 = 300;
-const LOADING_TEXT: &'static str = r#"
+const LOADING_TEXT: &str = r#"
 LOAD"*",8,1
 
 SEARCHING FOR *
@@ -221,7 +221,7 @@ impl SnippetPage {
             editor_keyboard_bindings: EditorKeyboardBindings::Default,
             editor_theme: EditorTheme::TextMate,
             stdin: "".to_string(),
-            layout_state: app_layout::State::new(),
+            layout_state: app_layout::State::default(),
             current_url: self.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
@@ -271,7 +271,7 @@ impl SnippetPage {
             editor_keyboard_bindings: EditorKeyboardBindings::Default,
             editor_theme: EditorTheme::TextMate,
             stdin: snippet.stdin.to_string(),
-            layout_state: app_layout::State::new(),
+            layout_state: app_layout::State::default(),
             current_url: self.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
@@ -386,15 +386,17 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::FileSelected(captured) => {
                 let filename = captured.value();
 
-                model
+                let maybe_index = model
                     .files
                     .to_vec()
                     .iter()
                     .enumerate()
                     .find(|(_, file)| file.name == filename)
-                    .map(|(index, _)| {
-                        model.files.select_index(index);
-                    });
+                    .map(|(index, _)| index);
+
+                if let Some(index) = maybe_index {
+                    model.files.select_index(index);
+                }
 
                 Ok(focus_editor_effect())
             }
@@ -505,7 +507,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 model.editor_keyboard_bindings = keyboard_bindings;
 
-                Ok(save_settings_effect(&model))
+                Ok(save_settings_effect(model))
             }
 
             Msg::EditorThemeChanged(captured) => {
@@ -516,7 +518,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 model.editor_theme = editor_theme;
 
-                Ok(save_settings_effect(&model))
+                Ok(save_settings_effect(model))
             }
 
             Msg::GotSettings(captured) => {
@@ -673,7 +675,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::SearchModalMsg(child_msg) => {
                 let data: search_modal::UpdateData<Msg, AppEffect, QuickAction> =
                     search_modal::update(
-                        &child_msg,
+                        child_msg,
                         &mut model.search_modal_state,
                         quick_actions(),
                         Msg::SearchModalMsg,
@@ -788,9 +790,7 @@ fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> 
 
     if filename.is_empty() {
         Err("Filename cannot be empty".to_string())
-    } else if is_new && is_duplicate {
-        Err("Filename is already used by another file".to_string())
-    } else if is_duplicate && !is_duplicate_of_selected {
+    } else if (!is_duplicate_of_selected || is_new) && is_duplicate {
         Err("Filename is already used by another file".to_string())
     } else {
         Ok(())

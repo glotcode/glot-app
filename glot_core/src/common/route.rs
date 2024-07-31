@@ -41,9 +41,9 @@ impl Default for Route {
 impl Route {
     pub fn from_path(path: &str) -> Route {
         let parts = path
-            .trim_start_matches("/")
-            .trim_end_matches("/")
-            .split("/")
+            .trim_start_matches('/')
+            .trim_end_matches('/')
+            .split('/')
             .collect::<Vec<&str>>();
 
         match parts.as_slice() {
@@ -60,8 +60,8 @@ impl Route {
 
     pub fn to_path(&self) -> String {
         match self {
-            Route::NotFound => format!("/not-found"),
-            Route::Home => format!("/"),
+            Route::NotFound => "/not-found".to_string(),
+            Route::Home => "/".to_string(),
             Route::NewSnippet(language) => format!("/{}", language),
             Route::EditSnippet(language, id) => format!("/{}/{}", language, id),
         }

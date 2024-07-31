@@ -5,7 +5,7 @@ use crate::language::RunConfig;
 use crate::language::RunInstructions;
 use std::path::PathBuf;
 
-const EXAMPLE_CODE: &'static str = r#"
+const EXAMPLE_CODE: &str = r#"
 print "Hello World!\n";
 "#;
 

@@ -7,7 +7,7 @@ fn main() {
 
 fn get_commit_hash() -> Option<String> {
     let output = Command::new("git")
-        .args(&["rev-parse", "HEAD"])
+        .args(["rev-parse", "HEAD"])
         .output()
         .ok()?;
 
