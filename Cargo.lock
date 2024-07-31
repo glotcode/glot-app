@@ -326,7 +326,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 [[package]]
 name = "poly"
 version = "0.1.0"
-source = "git+https://github.com/glotlabs/poly-rs#aebbc1f400ffe32843caa5e8d9f99b2363ca0d3d"
+source = "git+https://github.com/glotlabs/poly-rs#587ddbe5afe02025fb33cb73f65713954c27d37d"
 dependencies = [
  "maud",
  "serde",
@@ -338,7 +338,7 @@ dependencies = [
 [[package]]
 name = "poly_macro"
 version = "0.1.0"
-source = "git+https://github.com/glotlabs/poly-rs#aebbc1f400ffe32843caa5e8d9f99b2363ca0d3d"
+source = "git+https://github.com/glotlabs/poly-rs#587ddbe5afe02025fb33cb73f65713954c27d37d"
 dependencies = [
  "quote",
  "syn 1.0.109",
