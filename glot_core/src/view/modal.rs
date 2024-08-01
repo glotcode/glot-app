@@ -1,10 +1,25 @@
 use maud::html;
 use maud::Markup;
 use poly::browser::dom_id::DomId;
+use poly::browser::keyboard::Key;
+use poly::browser::subscription;
+use poly::browser::subscription::event_listener;
+use poly::browser::subscription::Subscription;
 
 pub struct Config<Id> {
     pub backdrop_id: Id,
     pub close_button_id: Id,
+}
+
+pub fn subscriptions<Msg: Clone, AppEffect, Id: DomId>(
+    config: &Config<Id>,
+    msg: Msg,
+) -> Subscription<Msg, AppEffect> {
+    subscription::batch(vec![
+        event_listener::on_mouse_down(&config.backdrop_id, msg.clone()),
+        event_listener::on_click_closest(&config.close_button_id, msg.clone()),
+        event_listener::on_keyup(Key::Escape, msg),
+    ])
 }
 
 pub fn view<Id: DomId>(content: Markup, config: &Config<Id>) -> Markup {

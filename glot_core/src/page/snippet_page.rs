@@ -1,6 +1,7 @@
 use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::route::Route;
 use crate::components::search_modal;
+use crate::components::title_modal;
 use crate::language;
 use crate::language::Language;
 use crate::layout::app_layout;
@@ -65,6 +66,7 @@ pub struct Model {
     pub language_version_result: RemoteData<FailedRunResult, RunResult>,
     pub snippet: Option<Snippet>,
     pub search_modal_state: search_modal::State<QuickAction>,
+    pub title_modal_state: title_modal::State,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -99,9 +101,6 @@ enum Id {
     // Title related
     Title,
     TopBarTitle,
-    TitleForm,
-    TitleInput,
-    UpdateTitleConfirm,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -133,8 +132,7 @@ pub enum Msg {
     ClearCopyStateTimeout,
     // Title related
     EditTitleClicked,
-    TitleChanged(Capture<String>),
-    ConfirmUpdateTitle,
+    TitleModalMsg(title_modal::Msg),
     // Search modal related
     SearchModalMsg(search_modal::Msg),
     // App layout related
@@ -149,7 +147,6 @@ pub enum Modal {
     Settings,
     Stdin(StdinState),
     Sharing(SharingState),
-    Title(TitleState),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -157,13 +154,6 @@ pub enum Modal {
 pub struct FileState {
     filename: String,
     is_new: bool,
-    error: Option<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TitleState {
-    title: String,
     error: Option<String>,
 }
 
@@ -209,12 +199,14 @@ impl SnippetPage {
             content: language_config.editor_config.example_code.clone(),
         };
 
+        let title = "Hello World".to_string();
+
         Ok(Model {
             window_size: self.window_size.clone(),
             user_agent: self.user_agent.clone(),
             language: language_config,
             files: SelectList::singleton(file),
-            title: "Hello World".to_string(),
+            title,
             active_modal: Modal::None,
             editor_keyboard_bindings: EditorKeyboardBindings::Default,
             editor_theme: EditorTheme::TextMate,
@@ -225,7 +217,8 @@ impl SnippetPage {
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
             snippet: None,
-            search_modal_state: search_modal::State::default(),
+            search_modal_state: Default::default(),
+            title_modal_state: Default::default(),
         })
     }
 
@@ -275,7 +268,8 @@ impl SnippetPage {
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
             snippet: Some(snippet_clone),
-            search_modal_state: search_modal::State::default(),
+            search_modal_state: Default::default(),
+            title_modal_state: Default::default(),
         })
     }
 }
@@ -305,6 +299,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
         let app_layout_subscriptions =
             app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg);
+
+        let title_modal_subscriptions =
+            title_modal::subscriptions(&model.title_modal_state, Msg::TitleModalMsg);
 
         let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.user_agent);
 
@@ -345,11 +342,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             // Title
             event_listener::on_click_closest(Id::Title, Msg::EditTitleClicked),
             event_listener::on_click_closest(Id::TopBarTitle, Msg::EditTitleClicked),
-            event_listener::on_input(Id::TitleInput, Msg::TitleChanged),
-            event_listener::on_click(Id::UpdateTitleConfirm, Msg::ConfirmUpdateTitle),
-            event_listener::on_submit(Id::TitleForm, Msg::ConfirmUpdateTitle),
             search_modal_subscriptions,
             app_layout_subscriptions,
+            title_modal_subscriptions,
         ])
     }
 
@@ -627,39 +622,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::EditTitleClicked => {
-                model.active_modal = Modal::Title(TitleState {
-                    title: model.title.clone(),
-                    error: None,
-                });
-
-                Ok(dom::select_input_text(Id::TitleInput))
-            }
-
-            Msg::TitleChanged(captured) => {
-                if let Modal::Title(state) = &mut model.active_modal {
-                    state.title = captured.value();
-                    state.error = None;
-                }
-
-                Ok(effect::none())
-            }
-
-            Msg::ConfirmUpdateTitle => {
-                if let Modal::Title(state) = &mut model.active_modal {
-                    match validate_title(&state.title) {
-                        Ok(_) => {
-                            model.title = state.title.clone();
-                            model.active_modal = Modal::None;
-                            return Ok(focus_editor_effect());
-                        }
-
-                        Err(err) => {
-                            state.error = Some(err);
-                        }
-                    }
-                }
-
-                Ok(effect::none())
+                let effect = title_modal::open(&mut model.title_modal_state, &model.title);
+                Ok(effect)
             }
 
             Msg::SearchModalMsg(child_msg) => {
@@ -690,6 +654,19 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
             Msg::AppLayoutMsg(child_msg) => {
                 app_layout::update(child_msg, &mut model.layout_state, Msg::AppLayoutMsg)
+            }
+
+            Msg::TitleModalMsg(child_msg) => {
+                let event = title_modal::update(child_msg, &mut model.title_modal_state)?;
+
+                match event {
+                    title_modal::Event::TitleChanged(title) => {
+                        model.title = title;
+                        Ok(effect::none())
+                    }
+
+                    title_modal::Event::None => Ok(effect::none()),
+                }
             }
         }
     }
@@ -755,21 +732,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
     fn render_page(&self, markup: PageMarkup<Markup>) -> String {
         app_layout::render_page(markup)
-    }
-}
-
-fn validate_title(title: &str) -> Result<(), String> {
-    let max_length = 50;
-
-    if title.is_empty() {
-        Err("Title cannot be empty".to_string())
-    } else if title.len() > max_length {
-        Err(format!(
-            "Title is {} character(s) too long",
-            title.len() - max_length
-        ))
-    } else {
-        Ok(())
     }
 }
 
@@ -1037,12 +999,9 @@ fn view_body(model: &Model) -> maud::Markup {
                 Modal::Sharing(state) => {
                     (modal::view(view_sharing_modal(state), &modal_config))
                 }
-
-                Modal::Title(state) => {
-                    (modal::view(view_title_modal(state), &modal_config))
-                }
             }
 
+            (title_modal::view(&model.title_modal_state))
             (search_modal::view(&model.user_agent, &model.search_modal_state))
         }
     }
@@ -1305,49 +1264,6 @@ fn view_action_bar() -> Markup {
             button id=(Id::Share) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons_maud::share_outline()) }
                 span { "SHARE" }
-            }
-        }
-    }
-}
-
-fn view_title_modal(state: &TitleState) -> maud::Markup {
-    html! {
-        div class="text-center" {
-            h3 class="text-lg leading-6 font-medium text-gray-900" {
-                "Edit Title"
-            }
-        }
-
-        form id=(Id::TitleForm) class="mt-8" {
-            label class="block text-sm font-medium text-gray-700" for=(Id::TitleInput) {
-                "Title"
-            }
-            @match &state.error {
-                Some(err) => {
-                    div class="relative mt-1 rounded-md shadow-sm" {
-                        input id=(Id::TitleInput) value=(state.title) class="block w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm" type="text" placeholder="Hello World" aria-invalid="true";
-                        div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" {
-                            span class="h-5 w-5 text-red-500" {
-                                (heroicons_maud::exclamation_circle_solid())
-                            }
-                        }
-                    }
-                    p class="mt-2 text-sm text-red-600" {
-                        (err)
-                    }
-                }
-
-                None => {
-                    div class="mt-1" {
-                        input id=(Id::TitleInput) value=(state.title) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="text" placeholder="Hello World";
-                    }
-                }
-            }
-        }
-
-        div class="flex mt-4" {
-            button id=(Id::UpdateTitleConfirm) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                "Update title"
             }
         }
     }
