@@ -5,8 +5,6 @@ use maud::Markup;
 use poly::browser::dom_id::DomId;
 use poly::browser::effect;
 use poly::browser::effect::Effect;
-use poly::browser::subscription;
-use poly::browser::subscription::event_listener;
 use poly::browser::subscription::Subscription;
 use poly::page::Page;
 use poly::page::PageMarkup;
@@ -38,23 +36,14 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
         Ok((model, effect::none()))
     }
 
-    fn subscriptions(&self, _model: &Model) -> Subscription<Msg, AppEffect> {
-        subscription::batch(vec![
-            event_listener::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
-            event_listener::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
-        ])
+    fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
+        app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg)
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
         match msg {
-            Msg::OpenSidebarClicked => {
-                model.layout_state.open_sidebar();
-                Ok(effect::none())
-            }
-
-            Msg::CloseSidebarClicked => {
-                model.layout_state.close_sidebar();
-                Ok(effect::none())
+            Msg::AppLayoutMsg(child_msg) => {
+                app_layout::update(child_msg, &mut model.layout_state, Msg::AppLayoutMsg)
             }
         }
     }
@@ -79,15 +68,12 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Glot,
-    OpenSidebar,
-    CloseSidebar,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Msg {
-    OpenSidebarClicked,
-    CloseSidebarClicked,
+    AppLayoutMsg(app_layout::Msg),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -105,17 +91,11 @@ fn view_head() -> maud::Markup {
 }
 
 fn view_body(model: &Model) -> maud::Markup {
-    let layout_config = app_layout::Config {
-        open_sidebar_id: Id::OpenSidebar,
-        close_sidebar_id: Id::CloseSidebar,
-    };
-
     html! {
         div id=(Id::Glot) class="h-full" {
             (app_layout::app_shell(
                 view_content(model),
                 None,
-                &layout_config,
                 &model.layout_state,
                 &model.current_route,
             ))

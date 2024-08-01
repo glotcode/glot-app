@@ -2,6 +2,11 @@ use crate::common::route::Route;
 use maud::html;
 use maud::Markup;
 use poly::browser::dom_id::DomId;
+use poly::browser::effect;
+use poly::browser::effect::Effect;
+use poly::browser::subscription;
+use poly::browser::subscription::event_listener;
+use poly::browser::subscription::Subscription;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 
@@ -21,24 +26,57 @@ pub fn render_page(markup: PageMarkup<Markup>) -> String {
     .into_string()
 }
 
-pub struct Config<Id> {
-    pub open_sidebar_id: Id,
-    pub close_sidebar_id: Id,
-}
-
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct State {
     sidebar_is_open: bool,
 }
 
-impl State {
-    pub fn open_sidebar(&mut self) {
-        self.sidebar_is_open = true;
-    }
+#[derive(strum_macros::Display, poly_macro::DomId)]
+#[strum(serialize_all = "kebab-case")]
+enum Id {
+    OpenSidebar,
+    CloseSidebar,
+}
 
-    pub fn close_sidebar(&mut self) {
-        self.sidebar_is_open = false;
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Msg {
+    OpenSidebarClicked,
+    CloseSidebarClicked,
+}
+
+pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
+    _state: &State,
+    to_parent_msg: ToParentMsg,
+) -> Subscription<ParentMsg, AppEffect>
+where
+    ToParentMsg: Fn(Msg) -> ParentMsg,
+{
+    subscription::batch(vec![
+        event_listener::on_click_closest(Id::OpenSidebar, to_parent_msg(Msg::OpenSidebarClicked)),
+        event_listener::on_click_closest(Id::CloseSidebar, to_parent_msg(Msg::CloseSidebarClicked)),
+    ])
+}
+
+pub fn update<ToParentMsg, ParentMsg, AppEffect>(
+    msg: &Msg,
+    state: &mut State,
+    _to_parent_msg: ToParentMsg,
+) -> Result<Effect<ParentMsg, AppEffect>, String>
+where
+    ToParentMsg: Fn(Msg) -> ParentMsg,
+{
+    match msg {
+        Msg::OpenSidebarClicked => {
+            state.sidebar_is_open = true;
+            Ok(effect::none())
+        }
+
+        Msg::CloseSidebarClicked => {
+            state.sidebar_is_open = false;
+            Ok(effect::none())
+        }
     }
 }
 
@@ -78,16 +116,12 @@ fn sidebar_items() -> Vec<SidebarItem> {
     }]
 }
 
-pub fn app_shell<Id>(
+pub fn app_shell(
     content: Markup,
     topbar_content: Option<Markup>,
-    config: &Config<Id>,
     state: &State,
     current_route: &Route,
-) -> Markup
-where
-    Id: DomId,
-{
+) -> Markup {
     let items = sidebar_items();
     let commit_hash = env!("GIT_HASH");
     let commit_url = format!(
@@ -103,7 +137,7 @@ where
                     div class="fixed inset-0 flex z-40" {
                         div class="relative flex-1 flex flex-col max-w-xs w-full bg-gray-800" {
                             div class="absolute top-0 right-0 -mr-12 pt-2" {
-                                button id=(config.close_sidebar_id) class="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white" type="button" {
+                                button id=(Id::CloseSidebar) class="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white" type="button" {
                                     span class="sr-only" {
                                         "Close sidebar"
                                     }
@@ -157,7 +191,7 @@ where
             }
             div class="h-full xl:pl-60 flex flex-col flex-1" {
                 div class="flex sticky top-0 z-10 xl:hidden pl-1 py-0.5 sm:pl-3 bg-gray-100" {
-                    button id=(config.open_sidebar_id) class="-ml-0.5 my-auto h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" type="button" {
+                    button id=(Id::OpenSidebar) class="-ml-0.5 my-auto h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" type="button" {
                         span class="sr-only" {
                             "Open sidebar"
                         }

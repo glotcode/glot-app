@@ -71,8 +71,6 @@ pub struct Model {
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Glot,
-    OpenSidebar,
-    CloseSidebar,
     Editor,
     ModalBackdrop,
     ModalClose,
@@ -127,8 +125,6 @@ pub enum Msg {
     StdinChanged(Capture<String>),
     UpdateStdinClicked,
     ClearStdinClicked,
-    OpenSidebarClicked,
-    CloseSidebarClicked,
     RunClicked,
     ShareClicked,
     CopyUrlClicked,
@@ -141,6 +137,8 @@ pub enum Msg {
     ConfirmUpdateTitle,
     // Search modal related
     SearchModalMsg(search_modal::Msg),
+    // App layout related
+    AppLayoutMsg(app_layout::Msg),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -299,11 +297,14 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
-        let search_modal_subscriptions: Subscription<Msg, AppEffect> = search_modal::subscriptions(
+        let search_modal_subscriptions = search_modal::subscriptions(
             &model.user_agent,
             &model.search_modal_state,
             Msg::SearchModalMsg,
         );
+
+        let app_layout_subscriptions =
+            app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg);
 
         let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.user_agent);
 
@@ -337,8 +338,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             event_listener::on_input(Id::Stdin, Msg::StdinChanged),
             event_listener::on_click(Id::ClearStdin, Msg::ClearStdinClicked),
             event_listener::on_click(Id::UpdateStdin, Msg::UpdateStdinClicked),
-            event_listener::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
-            event_listener::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
             event_listener::on_click_closest(Id::Run, Msg::RunClicked),
             event_listener::on_click_closest(Id::Share, Msg::ShareClicked),
             event_listener::on_click_closest(Id::CopyUrl, Msg::CopyUrlClicked),
@@ -350,21 +349,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             event_listener::on_click(Id::UpdateTitleConfirm, Msg::ConfirmUpdateTitle),
             event_listener::on_submit(Id::TitleForm, Msg::ConfirmUpdateTitle),
             search_modal_subscriptions,
+            app_layout_subscriptions,
         ])
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
         match msg {
-            Msg::OpenSidebarClicked => {
-                model.layout_state.open_sidebar();
-                Ok(effect::none())
-            }
-
-            Msg::CloseSidebarClicked => {
-                model.layout_state.close_sidebar();
-                Ok(effect::none())
-            }
-
             Msg::WindowSizeChanged(captured) => {
                 let window_size = captured
                     .value()
@@ -697,6 +687,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 Ok(effect::batch(vec![effect, data.effect]))
             }
+
+            Msg::AppLayoutMsg(child_msg) => {
+                app_layout::update(child_msg, &mut model.layout_state, Msg::AppLayoutMsg)
+            }
         }
     }
 
@@ -1010,11 +1004,6 @@ fn view_head(model: &Model) -> maud::Markup {
 }
 
 fn view_body(model: &Model) -> maud::Markup {
-    let layout_config = app_layout::Config {
-        open_sidebar_id: Id::OpenSidebar,
-        close_sidebar_id: Id::CloseSidebar,
-    };
-
     let modal_config = modal::Config {
         backdrop_id: Id::ModalBackdrop,
         close_button_id: Id::ModalClose,
@@ -1025,7 +1014,6 @@ fn view_body(model: &Model) -> maud::Markup {
             (app_layout::app_shell(
                 view_content(model),
                 Some(view_topbar_title(model)),
-                &layout_config,
                 &model.layout_state,
                 &model.current_route,
             ))

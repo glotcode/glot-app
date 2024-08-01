@@ -63,32 +63,24 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 
     fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
-        let search_modal_subscriptions: Subscription<Msg, AppEffect> = search_modal::subscriptions(
+        let search_modal_subscriptions = search_modal::subscriptions(
             &model.user_agent,
             &model.search_modal_state,
             Msg::SearchModalMsg,
         );
 
+        let app_layout_subscriptions =
+            app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg);
+
         subscription::batch(vec![
-            event_listener::on_click_closest(Id::OpenSidebar, Msg::OpenSidebarClicked),
-            event_listener::on_click_closest(Id::CloseSidebar, Msg::CloseSidebarClicked),
             event_listener::on_click_closest(Id::QuickActionButton, Msg::QuickActionButtonClicked),
             search_modal_subscriptions,
+            app_layout_subscriptions,
         ])
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
         match msg {
-            Msg::OpenSidebarClicked => {
-                model.layout_state.open_sidebar();
-                Ok(effect::none())
-            }
-
-            Msg::CloseSidebarClicked => {
-                model.layout_state.close_sidebar();
-                Ok(effect::none())
-            }
-
             Msg::QuickActionButtonClicked => {
                 // fmt
                 Ok(model.search_modal_state.open())
@@ -117,6 +109,10 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 
                 Ok(effect::batch(vec![effect, data.effect]))
             }
+
+            Msg::AppLayoutMsg(child_msg) => {
+                app_layout::update(child_msg, &mut model.layout_state, Msg::AppLayoutMsg)
+            }
         }
     }
 
@@ -140,16 +136,13 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 #[strum(serialize_all = "kebab-case")]
 enum Id {
     Glot,
-    OpenSidebar,
-    CloseSidebar,
     QuickActionButton,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Msg {
-    OpenSidebarClicked,
-    CloseSidebarClicked,
+    AppLayoutMsg(app_layout::Msg),
     // Search modal related
     QuickActionButtonClicked,
     SearchModalMsg(search_modal::Msg),
@@ -173,17 +166,11 @@ fn view_head(model: &Model) -> maud::Markup {
 }
 
 fn view_body(model: &Model) -> maud::Markup {
-    let layout_config = app_layout::Config {
-        open_sidebar_id: Id::OpenSidebar,
-        close_sidebar_id: Id::CloseSidebar,
-    };
-
     html! {
         div id=(Id::Glot) class="h-full" {
             (app_layout::app_shell(
                 view_content(model),
                 None,
-                &layout_config,
                 &model.layout_state,
                 &model.current_route,
             ))
