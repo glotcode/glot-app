@@ -1,6 +1,9 @@
+use crate::ace_editor::EditorKeyboardBindings;
+use crate::ace_editor::EditorTheme;
 use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::route::Route;
 use crate::components::search_modal;
+use crate::components::settings_modal;
 use crate::components::sharing_modal;
 use crate::components::title_modal;
 use crate::language;
@@ -67,6 +70,7 @@ pub struct Model {
     pub search_modal_state: search_modal::State<QuickAction>,
     pub title_modal_state: title_modal::State,
     pub sharing_modal_state: sharing_modal::State,
+    pub settings_modal_state: settings_modal::State,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -85,8 +89,6 @@ enum Id {
     NewFileForm,
     EditFileForm,
     SelectedFile,
-    EditorKeyboardBindings,
-    EditorTheme,
     CloseSettings,
     ShowStdinModal,
     ShowStdinEditModal,
@@ -114,10 +116,6 @@ pub enum Msg {
     ConfirmDeleteFile,
     FilenameChanged(Capture<String>),
     EditFileClicked,
-    KeyboardBindingsChanged(Capture<Value>),
-    EditorThemeChanged(Capture<Value>),
-    GotSettings(Capture<Value>),
-    SavedSettings(Capture<bool>),
     StdinChanged(Capture<String>),
     UpdateStdinClicked,
     ClearStdinClicked,
@@ -131,6 +129,11 @@ pub enum Msg {
     ShareClicked,
     SharingModalMsg(sharing_modal::Msg),
 
+    // Settings related
+    SettingsModalMsg(settings_modal::Msg),
+    GotSettings(Capture<Value>),
+    SavedSettings(Capture<bool>),
+
     // Search modal related
     SearchModalMsg(search_modal::Msg),
 
@@ -143,7 +146,6 @@ pub enum Msg {
 pub enum Modal {
     None,
     File(FileState),
-    Settings,
     Stdin(StdinState),
 }
 
@@ -199,8 +201,8 @@ impl SnippetPage {
             files: SelectList::singleton(file),
             title,
             active_modal: Modal::None,
-            editor_keyboard_bindings: EditorKeyboardBindings::Default,
-            editor_theme: EditorTheme::TextMate,
+            editor_keyboard_bindings: Default::default(),
+            editor_theme: Default::default(),
             stdin: "".to_string(),
             layout_state: app_layout::State::default(),
             current_url: self.current_url.clone(),
@@ -211,6 +213,7 @@ impl SnippetPage {
             search_modal_state: Default::default(),
             title_modal_state: Default::default(),
             sharing_modal_state: Default::default(),
+            settings_modal_state: Default::default(),
         })
     }
 
@@ -251,8 +254,8 @@ impl SnippetPage {
             files,
             title: snippet.title,
             active_modal: Modal::None,
-            editor_keyboard_bindings: EditorKeyboardBindings::Default,
-            editor_theme: EditorTheme::TextMate,
+            editor_keyboard_bindings: Default::default(),
+            editor_theme: Default::default(),
             stdin: snippet.stdin.to_string(),
             layout_state: app_layout::State::default(),
             current_url: self.current_url.clone(),
@@ -263,6 +266,7 @@ impl SnippetPage {
             search_modal_state: Default::default(),
             title_modal_state: Default::default(),
             sharing_modal_state: Default::default(),
+            settings_modal_state: Default::default(),
         })
     }
 }
@@ -299,6 +303,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         let sharing_modal_subscriptions =
             sharing_modal::subscriptions(&model.sharing_modal_state, Msg::SharingModalMsg);
 
+        let settings_modal_subscriptions =
+            settings_modal::subscriptions(&model.settings_modal_state, Msg::SettingsModalMsg);
+
         let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.user_agent);
 
         // TODO: add conditionals
@@ -326,8 +333,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             event_listener::on_keyup(Key::Escape, Msg::CloseModalTriggered),
             event_listener::on_keydown(run_key_combo.key, run_key_combo.modifier, Msg::RunClicked),
             event_listener::on_window_resize(Msg::WindowSizeChanged),
-            event_listener::on_change(Id::EditorKeyboardBindings, Msg::KeyboardBindingsChanged),
-            event_listener::on_change(Id::EditorTheme, Msg::EditorThemeChanged),
             event_listener::on_input(Id::Stdin, Msg::StdinChanged),
             event_listener::on_click(Id::ClearStdin, Msg::ClearStdinClicked),
             event_listener::on_click(Id::UpdateStdin, Msg::UpdateStdinClicked),
@@ -340,6 +345,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             app_layout_subscriptions,
             title_modal_subscriptions,
             sharing_modal_subscriptions,
+            settings_modal_subscriptions,
         ])
     }
 
@@ -392,9 +398,13 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::ShowSettingsModalClicked => {
-                model.active_modal = Modal::Settings;
+                let effect = settings_modal::open(
+                    &mut model.settings_modal_state,
+                    &model.editor_keyboard_bindings,
+                    &model.editor_theme,
+                );
 
-                Ok(dom::focus_element(Id::EditorKeyboardBindings))
+                Ok(effect)
             }
 
             Msg::ShowStdinModalClicked => {
@@ -479,24 +489,17 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(dom::select_input_text(Id::Filename))
             }
 
-            Msg::KeyboardBindingsChanged(captured) => {
-                let keyboard_bindings = captured
-                    .value()
-                    .parse()
-                    .map_err(|err| format!("Failed to parse keyboard bindings: {}", err))?;
+            Msg::SettingsModalMsg(child_msg) => {
+                let event = settings_modal::update(child_msg, &mut model.settings_modal_state)?;
 
-                model.editor_keyboard_bindings = keyboard_bindings;
+                match event {
+                    settings_modal::Event::SettingsChanged(settings) => {
+                        model.editor_keyboard_bindings = settings.keyboard_bindings;
+                        model.editor_theme = settings.theme;
+                    }
 
-                Ok(save_settings_effect(model))
-            }
-
-            Msg::EditorThemeChanged(captured) => {
-                let editor_theme = captured
-                    .value()
-                    .parse()
-                    .map_err(|err| format!("Failed to parse keyboard bindings: {}", err))?;
-
-                model.editor_theme = editor_theme;
+                    settings_modal::Event::None => {}
+                }
 
                 Ok(save_settings_effect(model))
             }
@@ -706,147 +709,6 @@ fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> 
     }
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub enum EditorKeyboardBindings {
-    Default,
-    Vim,
-    Emacs,
-}
-
-impl EditorKeyboardBindings {
-    fn ace_keyboard_handler(&self) -> String {
-        match self {
-            EditorKeyboardBindings::Default => "".into(),
-            EditorKeyboardBindings::Vim => "ace/keyboard/vim".into(),
-            EditorKeyboardBindings::Emacs => "ace/keyboard/emacs".into(),
-        }
-    }
-
-    fn label(&self) -> String {
-        match self {
-            EditorKeyboardBindings::Default => "Default".into(),
-            EditorKeyboardBindings::Vim => "Vim".into(),
-            EditorKeyboardBindings::Emacs => "Emacs".into(),
-        }
-    }
-}
-
-#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub enum EditorTheme {
-    // Bright themes
-    Chrome,
-    Clouds,
-    CrimsonEditor,
-    Dawn,
-    Dreamweaver,
-    Eclipse,
-    GitHub,
-    SolarizedLight,
-    TextMate,
-    Tomorrow,
-    XCode,
-    Kuroir,
-    KatzenMilch,
-    // Dark themes
-    Ambiance,
-    Chaos,
-    CloudsMidnight,
-    Cobalt,
-    IdleFingers,
-    KrTheme,
-    Merbivore,
-    MerbivoreSoft,
-    MonoIndustrial,
-    Monokai,
-    PastelOnDark,
-    SolarizedDark,
-    Terminal,
-    TomorrowNight,
-    TomorrowNightBlue,
-    TomorrowNightBright,
-    TomorrowNightEighties,
-    Twilight,
-    VibrantInk,
-}
-
-impl EditorTheme {
-    fn label(&self) -> String {
-        match self {
-            EditorTheme::Chrome => "Chrome".into(),
-            EditorTheme::Clouds => "Clouds".into(),
-            EditorTheme::CrimsonEditor => "Crimson Editor".into(),
-            EditorTheme::Dawn => "Dawn".into(),
-            EditorTheme::Dreamweaver => "Dreamweaver".into(),
-            EditorTheme::Eclipse => "Eclipse".into(),
-            EditorTheme::GitHub => "GitHub".into(),
-            EditorTheme::SolarizedLight => "Solarized Light".into(),
-            EditorTheme::TextMate => "TextMate".into(),
-            EditorTheme::Tomorrow => "Tomorrow".into(),
-            EditorTheme::XCode => "XCode".into(),
-            EditorTheme::Kuroir => "Kuroir".into(),
-            EditorTheme::KatzenMilch => "KatzenMilch".into(),
-            EditorTheme::Ambiance => "Ambiance".into(),
-            EditorTheme::Chaos => "Chaos".into(),
-            EditorTheme::CloudsMidnight => "Clouds Midnight".into(),
-            EditorTheme::Cobalt => "Cobalt".into(),
-            EditorTheme::IdleFingers => "Idle Fingers".into(),
-            EditorTheme::KrTheme => "krTheme".into(),
-            EditorTheme::Merbivore => "Merbivore".into(),
-            EditorTheme::MerbivoreSoft => "Merbivore Soft".into(),
-            EditorTheme::MonoIndustrial => "Mono Industrial".into(),
-            EditorTheme::Monokai => "Monokai".into(),
-            EditorTheme::PastelOnDark => "Pastel on dark".into(),
-            EditorTheme::SolarizedDark => "Solarized Dark".into(),
-            EditorTheme::Terminal => "Terminal".into(),
-            EditorTheme::TomorrowNight => "Tomorrow Night".into(),
-            EditorTheme::TomorrowNightBlue => "Tomorrow Night Blue".into(),
-            EditorTheme::TomorrowNightBright => "Tomorrow Night Bright".into(),
-            EditorTheme::TomorrowNightEighties => "Tomorrow Night 80s".into(),
-            EditorTheme::Twilight => "Twilight".into(),
-            EditorTheme::VibrantInk => "Vibrant Ink".into(),
-        }
-    }
-
-    fn ace_theme(&self) -> String {
-        match self {
-            EditorTheme::Chrome => "ace/theme/chrome".into(),
-            EditorTheme::Clouds => "ace/theme/clouds".into(),
-            EditorTheme::CrimsonEditor => "ace/theme/crimson_editor".into(),
-            EditorTheme::Dawn => "ace/theme/dawn".into(),
-            EditorTheme::Dreamweaver => "ace/theme/dreamweaver".into(),
-            EditorTheme::Eclipse => "ace/theme/eclipse".into(),
-            EditorTheme::GitHub => "ace/theme/github".into(),
-            EditorTheme::SolarizedLight => "ace/theme/solarized_light".into(),
-            EditorTheme::TextMate => "ace/theme/textmate".into(),
-            EditorTheme::Tomorrow => "ace/theme/tomorrow".into(),
-            EditorTheme::XCode => "ace/theme/xcode".into(),
-            EditorTheme::Kuroir => "ace/theme/kuroir".into(),
-            EditorTheme::KatzenMilch => "ace/theme/katzenmilch".into(),
-            EditorTheme::Ambiance => "ace/theme/ambiance".into(),
-            EditorTheme::Chaos => "ace/theme/chaos".into(),
-            EditorTheme::CloudsMidnight => "ace/theme/clouds_midnight".into(),
-            EditorTheme::Cobalt => "ace/theme/cobalt".into(),
-            EditorTheme::IdleFingers => "ace/theme/idle_fingers".into(),
-            EditorTheme::KrTheme => "ace/theme/kr_theme".into(),
-            EditorTheme::Merbivore => "ace/theme/merbivore".into(),
-            EditorTheme::MerbivoreSoft => "ace/theme/merbivore_soft".into(),
-            EditorTheme::MonoIndustrial => "ace/theme/mono_industrial".into(),
-            EditorTheme::Monokai => "ace/theme/monokai".into(),
-            EditorTheme::PastelOnDark => "ace/theme/pastel_on_dark".into(),
-            EditorTheme::SolarizedDark => "ace/theme/solarized_dark".into(),
-            EditorTheme::Terminal => "ace/theme/terminal".into(),
-            EditorTheme::TomorrowNight => "ace/theme/tomorrow_night".into(),
-            EditorTheme::TomorrowNightBlue => "ace/theme/tomorrow_night_blue".into(),
-            EditorTheme::TomorrowNightBright => "ace/theme/tomorrow_night_bright".into(),
-            EditorTheme::TomorrowNightEighties => "ace/theme/tomorrow_night_eighties".into(),
-            EditorTheme::Twilight => "ace/theme/twilight".into(),
-            EditorTheme::VibrantInk => "ace/theme/vibrant_ink".into(),
-        }
-    }
-}
-
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", content = "config")]
 #[serde(rename_all = "camelCase")]
@@ -944,15 +806,12 @@ fn view_body(model: &Model) -> maud::Markup {
                 Modal::Stdin(state) => {
                     (modal::view(view_stdin_modal(state), &modal_config))
                 }
-
-                Modal::Settings => {
-                    (modal::view(view_settings_modal(model), &modal_config))
-                }
             }
 
             (title_modal::view(&model.title_modal_state))
             (search_modal::view(&model.user_agent, &model.search_modal_state))
             (sharing_modal::view(&model.sharing_modal_state))
+            (settings_modal::view(&model.settings_modal_state))
         }
     }
 }
@@ -1313,89 +1172,6 @@ fn view_stdin_modal(state: &StdinState) -> maud::Markup {
             }
             button id=(Id::UpdateStdin) class="ml-4 flex-1 w-full w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
                 "Update"
-            }
-        }
-    }
-}
-
-fn view_settings_modal(model: &Model) -> maud::Markup {
-    html! {
-        div class="text-center" {
-            h3 class="text-lg leading-6 font-medium text-gray-900" {
-                "Settings"
-            }
-        }
-
-        div class="border-b border-gray-200 pb-5 mt-8" {
-            h3 class="text-lg font-medium leading-6 text-gray-900" {
-                "Editor Settings"
-            }
-        }
-
-        (dropdown::view(&dropdown::Config{
-            id: Id::EditorKeyboardBindings,
-            title: "Keyboard Bindings",
-            selected_value: &model.editor_keyboard_bindings,
-            options: dropdown::Options::Ungrouped(vec![
-                (&EditorKeyboardBindings::Default, &EditorKeyboardBindings::Default.label()),
-                (&EditorKeyboardBindings::Vim, &EditorKeyboardBindings::Vim.label()),
-                (&EditorKeyboardBindings::Emacs, &EditorKeyboardBindings::Emacs.label()),
-            ]),
-        }))
-
-        (dropdown::view(&dropdown::Config{
-            id: Id::EditorTheme,
-            title: "Theme",
-            selected_value: &model.editor_theme,
-            options: dropdown::Options::Grouped(vec![
-                dropdown::Group{
-                    label: "Bright",
-                    options: vec![
-                        (&EditorTheme::Chrome, &EditorTheme::Chrome.label()),
-                        (&EditorTheme::Clouds, &EditorTheme::Clouds.label()),
-                        (&EditorTheme::CrimsonEditor, &EditorTheme::CrimsonEditor.label()),
-                        (&EditorTheme::Dawn, &EditorTheme::Dawn.label()),
-                        (&EditorTheme::Dreamweaver, &EditorTheme::Dreamweaver.label()),
-                        (&EditorTheme::Eclipse, &EditorTheme::Eclipse.label()),
-                        (&EditorTheme::GitHub, &EditorTheme::GitHub.label()),
-                        (&EditorTheme::SolarizedLight, &EditorTheme::SolarizedLight.label()),
-                        (&EditorTheme::TextMate, &EditorTheme::TextMate.label()),
-                        (&EditorTheme::Tomorrow, &EditorTheme::Tomorrow.label()),
-                        (&EditorTheme::XCode, &EditorTheme::XCode.label()),
-                        (&EditorTheme::Kuroir, &EditorTheme::Kuroir.label()),
-                        (&EditorTheme::KatzenMilch, &EditorTheme::KatzenMilch.label()),
-                    ],
-                },
-                dropdown::Group{
-                    label: "Dark",
-                    options: vec![
-                        (&EditorTheme::Ambiance, &EditorTheme::Ambiance.label()),
-                        (&EditorTheme::Chaos, &EditorTheme::Chaos.label()),
-                        (&EditorTheme::CloudsMidnight, &EditorTheme::CloudsMidnight.label()),
-                        (&EditorTheme::Cobalt, &EditorTheme::Cobalt.label()),
-                        (&EditorTheme::IdleFingers, &EditorTheme::IdleFingers.label()),
-                        (&EditorTheme::KrTheme, &EditorTheme::KrTheme.label()),
-                        (&EditorTheme::Merbivore, &EditorTheme::Merbivore.label()),
-                        (&EditorTheme::MerbivoreSoft, &EditorTheme::MerbivoreSoft.label()),
-                        (&EditorTheme::MonoIndustrial, &EditorTheme::MonoIndustrial.label()),
-                        (&EditorTheme::Monokai, &EditorTheme::Monokai.label()),
-                        (&EditorTheme::PastelOnDark, &EditorTheme::PastelOnDark.label()),
-                        (&EditorTheme::SolarizedDark, &EditorTheme::SolarizedDark.label()),
-                        (&EditorTheme::Terminal, &EditorTheme::Terminal.label()),
-                        (&EditorTheme::TomorrowNight, &EditorTheme::TomorrowNight.label()),
-                        (&EditorTheme::TomorrowNightBlue, &EditorTheme::TomorrowNightBlue.label()),
-                        (&EditorTheme::TomorrowNightBright, &EditorTheme::TomorrowNightBright.label()),
-                        (&EditorTheme::TomorrowNightEighties, &EditorTheme::TomorrowNightEighties.label()),
-                        (&EditorTheme::Twilight, &EditorTheme::Twilight.label()),
-                        (&EditorTheme::VibrantInk, &EditorTheme::VibrantInk.label()),
-                    ],
-                }
-            ]),
-        }))
-
-        div class="flex mt-4" {
-            button id=(Id::CloseSettings) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                "Close"
             }
         }
     }

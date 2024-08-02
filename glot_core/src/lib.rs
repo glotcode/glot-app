@@ -1,3 +1,4 @@
+pub mod ace_editor;
 pub mod common;
 pub mod components;
 pub mod language;
