@@ -245,6 +245,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         let model = self.get_model()?;
 
         let effect = effect::batch(vec![
+            focus_editor_effect(),
             load_settings_effect(),
             get_language_version_effect(&model.language),
         ]);
