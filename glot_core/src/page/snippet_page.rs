@@ -5,6 +5,7 @@ use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::components::settings_modal;
 use crate::components::sharing_modal;
+use crate::components::stdin_modal;
 use crate::components::title_modal;
 use crate::language;
 use crate::language::Language;
@@ -14,7 +15,6 @@ use crate::snippet::Snippet;
 use crate::util::remote_data::RemoteData;
 use crate::util::select_list::SelectList;
 use crate::util::user_agent::UserAgent;
-use crate::view::dropdown;
 use crate::view::modal;
 use maud::html;
 use maud::Markup;
@@ -71,6 +71,7 @@ pub struct Model {
     pub title_modal_state: title_modal::State,
     pub sharing_modal_state: sharing_modal::State,
     pub settings_modal_state: settings_modal::State,
+    pub stdin_modal_state: stdin_modal::State,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -91,10 +92,6 @@ enum Id {
     SelectedFile,
     CloseSettings,
     ShowStdinModal,
-    ShowStdinEditModal,
-    Stdin,
-    UpdateStdin,
-    ClearStdin,
     Run,
     Share,
     // Title related
@@ -109,16 +106,12 @@ pub enum Msg {
     FileSelected(Capture<String>),
     ShowAddFileModalClicked,
     ShowSettingsModalClicked,
-    ShowStdinModalClicked,
     CloseModalTriggered,
     ConfirmAddFile,
     ConfirmUpdateFile,
     ConfirmDeleteFile,
     FilenameChanged(Capture<String>),
     EditFileClicked,
-    StdinChanged(Capture<String>),
-    UpdateStdinClicked,
-    ClearStdinClicked,
     RunClicked,
 
     // Title related
@@ -134,6 +127,10 @@ pub enum Msg {
     GotSettings(Capture<Value>),
     SavedSettings(Capture<bool>),
 
+    // Stdin related
+    ShowStdinModalClicked,
+    StdinModalMsg(stdin_modal::Msg),
+
     // Search modal related
     SearchModalMsg(search_modal::Msg),
 
@@ -146,7 +143,6 @@ pub enum Msg {
 pub enum Modal {
     None,
     File(FileState),
-    Stdin(StdinState),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -155,12 +151,6 @@ pub struct FileState {
     filename: String,
     is_new: bool,
     error: Option<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct StdinState {
-    stdin: String,
 }
 
 pub struct SnippetPage {
@@ -214,6 +204,7 @@ impl SnippetPage {
             title_modal_state: Default::default(),
             sharing_modal_state: Default::default(),
             settings_modal_state: Default::default(),
+            stdin_modal_state: Default::default(),
         })
     }
 
@@ -267,6 +258,7 @@ impl SnippetPage {
             title_modal_state: Default::default(),
             sharing_modal_state: Default::default(),
             settings_modal_state: Default::default(),
+            stdin_modal_state: Default::default(),
         })
     }
 }
@@ -306,6 +298,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         let settings_modal_subscriptions =
             settings_modal::subscriptions(&model.settings_modal_state, Msg::SettingsModalMsg);
 
+        let stdin_modal_subscriptions =
+            stdin_modal::subscriptions(&model.stdin_modal_state, Msg::StdinModalMsg);
+
         let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.user_agent);
 
         // TODO: add conditionals
@@ -319,7 +314,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             event_listener::on_click_closest(Id::ShowAddFileModal, Msg::ShowAddFileModalClicked),
             event_listener::on_click_closest(Id::ShowSettingsModal, Msg::ShowSettingsModalClicked),
             event_listener::on_click_closest(Id::ShowStdinModal, Msg::ShowStdinModalClicked),
-            event_listener::on_click_closest(Id::ShowStdinEditModal, Msg::ShowStdinModalClicked),
             event_listener::on_click_closest(Id::ModalClose, Msg::CloseModalTriggered),
             event_listener::on_click(Id::CloseSettings, Msg::CloseModalTriggered),
             event_listener::on_mouse_down(Id::ModalBackdrop, Msg::CloseModalTriggered),
@@ -333,9 +327,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             event_listener::on_keyup(Key::Escape, Msg::CloseModalTriggered),
             event_listener::on_keydown(run_key_combo.key, run_key_combo.modifier, Msg::RunClicked),
             event_listener::on_window_resize(Msg::WindowSizeChanged),
-            event_listener::on_input(Id::Stdin, Msg::StdinChanged),
-            event_listener::on_click(Id::ClearStdin, Msg::ClearStdinClicked),
-            event_listener::on_click(Id::UpdateStdin, Msg::UpdateStdinClicked),
             event_listener::on_click_closest(Id::Run, Msg::RunClicked),
             event_listener::on_click_closest(Id::Share, Msg::ShareClicked),
             // Title
@@ -346,6 +337,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             title_modal_subscriptions,
             sharing_modal_subscriptions,
             settings_modal_subscriptions,
+            stdin_modal_subscriptions,
         ])
     }
 
@@ -408,11 +400,20 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::ShowStdinModalClicked => {
-                model.active_modal = Modal::Stdin(StdinState {
-                    stdin: model.stdin.clone(),
-                });
+                let effect = stdin_modal::open(&mut model.stdin_modal_state, &model.stdin);
+                Ok(effect)
+            }
 
-                Ok(dom::focus_element(Id::Stdin))
+            Msg::StdinModalMsg(child_msg) => {
+                let event = stdin_modal::update(child_msg, &mut model.stdin_modal_state)?;
+
+                match event {
+                    stdin_modal::Event::StdinChanged(stdin) => {
+                        model.stdin = stdin;
+                        Ok(effect::none())
+                    }
+                    stdin_modal::Event::None => Ok(effect::none()),
+                }
             }
 
             Msg::FilenameChanged(captured) => {
@@ -519,31 +520,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::SavedSettings(_captured) => Ok(effect::none()),
-
-            Msg::StdinChanged(captured) => {
-                if let Modal::Stdin(state) = &mut model.active_modal {
-                    state.stdin = captured.value()
-                }
-
-                Ok(effect::none())
-            }
-
-            Msg::ClearStdinClicked => {
-                model.stdin.clear();
-                model.active_modal = Modal::None;
-
-                Ok(effect::none())
-            }
-
-            Msg::UpdateStdinClicked => {
-                if let Modal::Stdin(state) = &mut model.active_modal {
-                    model.stdin = state.stdin.clone();
-                }
-
-                model.active_modal = Modal::None;
-
-                Ok(effect::none())
-            }
 
             Msg::RunClicked => {
                 let effect = run_effect(model);
@@ -802,16 +778,13 @@ fn view_body(model: &Model) -> maud::Markup {
                 Modal::File(state) => {
                     (modal::view(view_file_modal(model, state), &modal_config))
                 },
-
-                Modal::Stdin(state) => {
-                    (modal::view(view_stdin_modal(state), &modal_config))
-                }
             }
 
             (title_modal::view(&model.title_modal_state))
             (search_modal::view(&model.user_agent, &model.search_modal_state))
             (sharing_modal::view(&model.sharing_modal_state))
             (settings_modal::view(&model.settings_modal_state))
+            (stdin_modal::view(&model.stdin_modal_state))
         }
     }
 }
@@ -1046,7 +1019,7 @@ fn view_stdin_bar(model: &Model) -> Markup {
                 dt class="px-4 py-1 border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
                     pre { "STDIN" }
                 }
-                dd id=(Id::ShowStdinEditModal) class="h-full px-4 py-2 relative cursor-pointer stdin-preview" {
+                dd id=(Id::ShowStdinModal) class="h-full px-4 py-2 relative cursor-pointer stdin-preview" {
                     pre {
                         (model.stdin)
                     }
@@ -1142,36 +1115,6 @@ fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
                 button id=(Id::UpdateFileConfirm) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
                     "Update file"
                 }
-            }
-        }
-    }
-}
-
-fn view_stdin_modal(state: &StdinState) -> maud::Markup {
-    html! {
-        div class="text-center" {
-            h3 class="text-lg leading-6 font-medium text-gray-900" {
-                "Stdin Data"
-            }
-        }
-
-        form class="mt-8" {
-            label class="block text-sm font-medium text-gray-700" for=(Id::Stdin) {
-                "Data will be sent to stdin of the program"
-            }
-            div class="mt-1" {
-                textarea id=(Id::Stdin) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono" rows="8" {
-                    (state.stdin)
-                }
-            }
-        }
-
-        div class="flex mt-4" {
-            button id=(Id::ClearStdin) class="flex-1 w-full inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                "Clear"
-            }
-            button id=(Id::UpdateStdin) class="ml-4 flex-1 w-full w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                "Update"
             }
         }
     }
