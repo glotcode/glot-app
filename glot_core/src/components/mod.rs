@@ -1,3 +1,4 @@
+pub mod file_modal;
 pub mod search_modal;
 pub mod settings_modal;
 pub mod sharing_modal;

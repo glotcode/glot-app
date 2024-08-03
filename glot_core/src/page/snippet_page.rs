@@ -2,6 +2,7 @@ use crate::ace_editor::EditorKeyboardBindings;
 use crate::ace_editor::EditorTheme;
 use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::route::Route;
+use crate::components::file_modal;
 use crate::components::search_modal;
 use crate::components::settings_modal;
 use crate::components::sharing_modal;
@@ -15,7 +16,6 @@ use crate::snippet::Snippet;
 use crate::util::remote_data::RemoteData;
 use crate::util::select_list::SelectList;
 use crate::util::user_agent::UserAgent;
-use crate::view::modal;
 use maud::html;
 use maud::Markup;
 use poly::browser;
@@ -25,7 +25,6 @@ use poly::browser::effect::console;
 use poly::browser::effect::dom;
 use poly::browser::effect::local_storage;
 use poly::browser::effect::Effect;
-use poly::browser::keyboard::Key;
 use poly::browser::selector::Selector;
 use poly::browser::subscription;
 use poly::browser::subscription::event_listener;
@@ -56,7 +55,6 @@ pub struct Model {
     pub language: language::Config,
     pub files: SelectList<File>,
     pub title: String,
-    pub active_modal: Modal,
     pub editor_keyboard_bindings: EditorKeyboardBindings,
     pub editor_theme: EditorTheme,
     pub stdin: String,
@@ -71,6 +69,7 @@ pub struct Model {
     pub sharing_modal_state: sharing_modal::State,
     pub settings_modal_state: settings_modal::State,
     pub stdin_modal_state: stdin_modal::State,
+    pub file_modal_state: file_modal::State,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -78,22 +77,12 @@ pub struct Model {
 enum Id {
     Glot,
     Editor,
-    ModalBackdrop,
-    ModalClose,
     ShowSettingsModal,
     ShowAddFileModal,
-    AddFileConfirm,
-    UpdateFileConfirm,
-    DeleteFileConfirm,
-    Filename,
-    NewFileForm,
-    EditFileForm,
     SelectedFile,
-    CloseSettings,
     ShowStdinModal,
     Run,
     Share,
-    // Title related
     Title,
     TopBarTitle,
 }
@@ -102,15 +91,6 @@ enum Id {
 pub enum Msg {
     WindowSizeChanged(Capture<WindowSize>),
     EditorContentChanged(Capture<String>),
-    FileSelected(Capture<String>),
-    ShowAddFileModalClicked,
-    ShowSettingsModalClicked,
-    CloseModalTriggered,
-    ConfirmAddFile,
-    ConfirmUpdateFile,
-    ConfirmDeleteFile,
-    FilenameChanged(Capture<String>),
-    EditFileClicked,
     RunClicked,
 
     // Title related
@@ -122,6 +102,7 @@ pub enum Msg {
     SharingModalMsg(sharing_modal::Msg),
 
     // Settings related
+    ShowSettingsModalClicked,
     SettingsModalMsg(settings_modal::Msg),
     GotSettings(Capture<Option<LocalStorageSettings>>),
     SavedSettings(Capture<bool>),
@@ -130,26 +111,17 @@ pub enum Msg {
     ShowStdinModalClicked,
     StdinModalMsg(stdin_modal::Msg),
 
+    // File related
+    FileSelected(Capture<String>),
+    AddFileClicked,
+    EditFileClicked,
+    FileModalMsg(file_modal::Msg),
+
     // Search modal related
     SearchModalMsg(search_modal::Msg),
 
     // App layout related
     AppLayoutMsg(app_layout::Msg),
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Modal {
-    None,
-    File(FileState),
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FileState {
-    filename: String,
-    is_new: bool,
-    error: Option<String>,
 }
 
 pub struct SnippetPage {
@@ -189,7 +161,6 @@ impl SnippetPage {
             language: language_config,
             files: SelectList::singleton(file),
             title,
-            active_modal: Modal::None,
             editor_keyboard_bindings: Default::default(),
             editor_theme: Default::default(),
             stdin: "".to_string(),
@@ -204,6 +175,7 @@ impl SnippetPage {
             sharing_modal_state: Default::default(),
             settings_modal_state: Default::default(),
             stdin_modal_state: Default::default(),
+            file_modal_state: Default::default(),
         })
     }
 
@@ -243,7 +215,6 @@ impl SnippetPage {
             language: language_config,
             files,
             title: snippet.title,
-            active_modal: Modal::None,
             editor_keyboard_bindings: Default::default(),
             editor_theme: Default::default(),
             stdin: snippet.stdin.to_string(),
@@ -258,6 +229,7 @@ impl SnippetPage {
             sharing_modal_state: Default::default(),
             settings_modal_state: Default::default(),
             stdin_modal_state: Default::default(),
+            file_modal_state: Default::default(),
         })
     }
 }
@@ -300,6 +272,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         let stdin_modal_subscriptions =
             stdin_modal::subscriptions(&model.stdin_modal_state, Msg::StdinModalMsg);
 
+        let file_modal_subscriptions =
+            file_modal::subscriptions(&model.file_modal_state, Msg::FileModalMsg);
+
         let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.user_agent);
 
         // TODO: add conditionals
@@ -310,20 +285,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 dom::get_target_data_string_value("filename"),
                 Msg::FileSelected,
             ),
-            event_listener::on_click_closest(Id::ShowAddFileModal, Msg::ShowAddFileModalClicked),
+            event_listener::on_click_closest(Id::ShowAddFileModal, Msg::AddFileClicked),
             event_listener::on_click_closest(Id::ShowSettingsModal, Msg::ShowSettingsModalClicked),
             event_listener::on_click_closest(Id::ShowStdinModal, Msg::ShowStdinModalClicked),
-            event_listener::on_click_closest(Id::ModalClose, Msg::CloseModalTriggered),
-            event_listener::on_click(Id::CloseSettings, Msg::CloseModalTriggered),
-            event_listener::on_mouse_down(Id::ModalBackdrop, Msg::CloseModalTriggered),
-            event_listener::on_click(Id::AddFileConfirm, Msg::ConfirmAddFile),
-            event_listener::on_click(Id::UpdateFileConfirm, Msg::ConfirmUpdateFile),
-            event_listener::on_click(Id::DeleteFileConfirm, Msg::ConfirmDeleteFile),
-            event_listener::on_input(Id::Filename, Msg::FilenameChanged),
             event_listener::on_click_closest(Id::SelectedFile, Msg::EditFileClicked),
-            event_listener::on_submit(Id::NewFileForm, Msg::ConfirmAddFile),
-            event_listener::on_submit(Id::EditFileForm, Msg::ConfirmUpdateFile),
-            event_listener::on_keyup(Key::Escape, Msg::CloseModalTriggered),
             event_listener::on_keydown(run_key_combo.key, run_key_combo.modifier, Msg::RunClicked),
             event_listener::on_window_resize(Msg::WindowSizeChanged),
             event_listener::on_click_closest(Id::Run, Msg::RunClicked),
@@ -337,6 +302,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             sharing_modal_subscriptions,
             settings_modal_subscriptions,
             stdin_modal_subscriptions,
+            file_modal_subscriptions,
         ])
     }
 
@@ -355,34 +321,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 });
 
                 Ok(effect::none())
-            }
-
-            Msg::FileSelected(captured) => {
-                let filename = captured.value();
-
-                let maybe_index = model
-                    .files
-                    .to_vec()
-                    .iter()
-                    .enumerate()
-                    .find(|(_, file)| file.name == filename)
-                    .map(|(index, _)| index);
-
-                if let Some(index) = maybe_index {
-                    model.files.select_index(index);
-                }
-
-                Ok(focus_editor_effect())
-            }
-
-            Msg::ShowAddFileModalClicked => {
-                model.active_modal = Modal::File(FileState {
-                    filename: "".to_string(),
-                    is_new: true,
-                    error: None,
-                });
-
-                Ok(dom::focus_element(Id::Filename))
             }
 
             Msg::ShowSettingsModalClicked => {
@@ -412,78 +350,95 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 }
             }
 
-            Msg::FilenameChanged(captured) => {
-                if let Modal::File(state) = &mut model.active_modal {
-                    state.filename = captured.value();
-                    state.error = None;
+            Msg::FileSelected(captured) => {
+                let filename = captured.value();
+
+                let maybe_index = model
+                    .files
+                    .to_vec()
+                    .iter()
+                    .enumerate()
+                    .find(|(_, file)| file.name == filename)
+                    .map(|(index, _)| index);
+
+                if let Some(index) = maybe_index {
+                    model.files.select_index(index);
                 }
 
-                Ok(effect::none())
-            }
-
-            Msg::ConfirmAddFile => {
-                if let Modal::File(state) = &mut model.active_modal {
-                    match validate_filename(&model.files, &state.filename, true) {
-                        Ok(_) => {
-                            model.files.push(File {
-                                name: state.filename.clone(),
-                                content: "".to_string(),
-                            });
-
-                            model.files.select_last();
-                            model.active_modal = Modal::None;
-                            return Ok(focus_editor_effect());
-                        }
-
-                        Err(err) => {
-                            state.error = Some(err);
-                        }
-                    }
-                }
-
-                Ok(effect::none())
-            }
-
-            Msg::ConfirmUpdateFile => {
-                if let Modal::File(state) = &mut model.active_modal {
-                    match validate_filename(&model.files, &state.filename, false) {
-                        Ok(_) => {
-                            model.files.update_selected(|file| {
-                                file.name = state.filename.clone();
-                            });
-
-                            model.active_modal = Modal::None;
-                            return Ok(focus_editor_effect());
-                        }
-
-                        Err(err) => {
-                            state.error = Some(err);
-                        }
-                    }
-                }
-
-                Ok(effect::none())
-            }
-
-            Msg::ConfirmDeleteFile => {
-                model.files.remove_selected();
-                model.active_modal = Modal::None;
                 Ok(focus_editor_effect())
             }
 
-            Msg::CloseModalTriggered => {
-                model.active_modal = Modal::None;
-                Ok(effect::none())
+            Msg::EditFileClicked => {
+                let current_filename = model.files.selected().name.clone();
+
+                let existing_filenames = model
+                    .files
+                    .to_vec()
+                    .iter()
+                    .map(|file| file.name.clone())
+                    .filter(|name| name != &current_filename)
+                    .collect();
+
+                let effect = file_modal::open_for_edit(
+                    &mut model.file_modal_state,
+                    file_modal::EditContext {
+                        filename: model.files.selected().name.clone(),
+                        language: model.language.clone(),
+                        existing_filenames,
+                    },
+                );
+
+                Ok(effect)
             }
 
-            Msg::EditFileClicked => {
-                model.active_modal = Modal::File(FileState {
-                    filename: model.files.selected().name.clone(),
-                    is_new: false,
-                    error: None,
-                });
+            Msg::AddFileClicked => {
+                let existing_filenames = model
+                    .files
+                    .to_vec()
+                    .iter()
+                    .map(|file| file.name.clone())
+                    .collect();
 
-                Ok(dom::select_input_text(Id::Filename))
+                let effect = file_modal::open_for_add(
+                    &mut model.file_modal_state,
+                    file_modal::AddContext {
+                        language: model.language.clone(),
+                        existing_filenames,
+                    },
+                );
+
+                Ok(effect)
+            }
+
+            Msg::FileModalMsg(child_msg) => {
+                let event = file_modal::update(child_msg, &mut model.file_modal_state)?;
+
+                match event {
+                    file_modal::Event::FilenameChanged(filename) => {
+                        model.files.update_selected(|file| {
+                            file.name = filename.clone();
+                        });
+
+                        Ok(focus_editor_effect())
+                    }
+
+                    file_modal::Event::FileAdded(filename) => {
+                        model.files.push(File {
+                            name: filename.clone(),
+                            content: "".to_string(),
+                        });
+
+                        model.files.select_last();
+                        Ok(focus_editor_effect())
+                    }
+
+                    file_modal::Event::FileDeleted => {
+                        model.files.remove_selected();
+                        Ok(focus_editor_effect())
+                    }
+
+                    file_modal::Event::None => Ok(effect::none()),
+                }
             }
 
             Msg::SettingsModalMsg(child_msg) => {
@@ -660,24 +615,6 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 }
 
-fn validate_filename(files: &SelectList<File>, filename: &str, is_new: bool) -> Result<(), String> {
-    let is_duplicate = files
-        .to_vec()
-        .iter()
-        .map(|file| &file.name)
-        .any(|name| name == filename);
-
-    let is_duplicate_of_selected = filename == files.selected().name;
-
-    if filename.is_empty() {
-        Err("Filename cannot be empty".to_string())
-    } else if (!is_duplicate_of_selected || is_new) && is_duplicate {
-        Err("Filename is already used by another file".to_string())
-    } else {
-        Ok(())
-    }
-}
-
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", content = "config")]
 #[serde(rename_all = "camelCase")]
@@ -750,11 +687,6 @@ fn view_head(model: &Model) -> maud::Markup {
 }
 
 fn view_body(model: &Model) -> maud::Markup {
-    let modal_config = modal::Config {
-        backdrop_id: Id::ModalBackdrop,
-        close_button_id: Id::ModalClose,
-    };
-
     html! {
         div id=(Id::Glot) .h-full {
             (app_layout::app_shell(
@@ -764,20 +696,12 @@ fn view_body(model: &Model) -> maud::Markup {
                 &model.current_route,
             ))
 
-
-            @match &model.active_modal {
-                Modal::None => {},
-
-                Modal::File(state) => {
-                    (modal::view(view_file_modal(model, state), &modal_config))
-                },
-            }
-
             (title_modal::view(&model.title_modal_state))
             (search_modal::view(&model.user_agent, &model.search_modal_state))
             (sharing_modal::view(&model.sharing_modal_state))
             (settings_modal::view(&model.settings_modal_state))
             (stdin_modal::view(&model.stdin_modal_state))
+            (file_modal::view(&model.file_modal_state))
         }
     }
 }
@@ -1039,75 +963,6 @@ fn view_action_bar() -> Markup {
             button id=(Id::Share) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons_maud::share_outline()) }
                 span { "SHARE" }
-            }
-        }
-    }
-}
-
-fn view_file_modal(model: &Model, state: &FileState) -> maud::Markup {
-    let form_id = if state.is_new {
-        Id::NewFileForm
-    } else {
-        Id::EditFileForm
-    };
-
-    let files_count = model.files.len();
-
-    html! {
-        div class="text-center" {
-            h3 class="text-lg leading-6 font-medium text-gray-900" {
-                @if state.is_new {
-                    "New File"
-                } @else {
-                    "Edit File"
-                }
-            }
-        }
-
-        form id=(form_id) class="mt-8" {
-            label class="block text-sm font-medium text-gray-700" for=(Id::Filename) {
-                "Filename"
-            }
-            @match &state.error {
-                Some(err) => {
-                    div class="relative mt-1 rounded-md shadow-sm" {
-                        input id=(Id::Filename) value=(state.filename) class="block w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm" type="text" placeholder="main.rs" aria-invalid="true";
-                        div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" {
-                            span class="h-5 w-5 text-red-500" {
-                                (heroicons_maud::exclamation_circle_solid())
-                            }
-                        }
-                    }
-                    p class="mt-2 text-sm text-red-600" {
-                        (err)
-                    }
-                }
-
-                None => {
-                    div class="mt-1" {
-                        input id=(Id::Filename) value=(state.filename) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="text" placeholder="main.rs";
-                    }
-                }
-            }
-        }
-
-        div class="flex mt-4" {
-            @if state.is_new {
-                button id=(Id::AddFileConfirm) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                    "Add file"
-                }
-            } @else if files_count > 1 {
-                button id=(Id::DeleteFileConfirm) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                    "Delete file"
-                }
-
-                button id=(Id::UpdateFileConfirm) class="flex-1 w-full ml-4 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                    "Update file"
-                }
-            } @else {
-                button id=(Id::UpdateFileConfirm) class="flex-1 w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" type="button" {
-                    "Update file"
-                }
             }
         }
     }

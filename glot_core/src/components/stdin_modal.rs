@@ -1,3 +1,4 @@
+use crate::view::modal;
 use maud::html;
 use poly::browser::dom_id::DomId;
 use poly::browser::effect::dom;
@@ -7,8 +8,6 @@ use poly::browser::subscription::event_listener;
 use poly::browser::subscription::Subscription;
 use poly::browser::value::Capture;
 use serde::{Deserialize, Serialize};
-
-use crate::view::modal;
 
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -23,8 +22,8 @@ enum Id {
     StdinInput,
     ClearStdinButton,
     SaveStdinButton,
-    TitleModalBackdrop,
-    TitleModalClose,
+    StdinModalBackdrop,
+    StdinModalClose,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -44,8 +43,8 @@ where
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
     let modal_config = modal::Config {
-        backdrop_id: Id::TitleModalBackdrop,
-        close_button_id: Id::TitleModalClose,
+        backdrop_id: Id::StdinModalBackdrop,
+        close_button_id: Id::StdinModalClose,
     };
 
     subscription::batch(vec![
@@ -107,8 +106,8 @@ pub fn view(state: &State) -> maud::Markup {
         modal::view(
             view_modal(state),
             &modal::Config {
-                backdrop_id: Id::TitleModalBackdrop,
-                close_button_id: Id::TitleModalClose,
+                backdrop_id: Id::StdinModalBackdrop,
+                close_button_id: Id::StdinModalClose,
             },
         )
     } else {
