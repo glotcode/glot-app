@@ -24,13 +24,13 @@ const MODAL_CONFIG: modal::Config<Id> = modal::Config {
 
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub enum State<EntryId> {
+pub enum State<Action> {
     #[default]
     Closed,
-    Open(Model<EntryId>),
+    Open(Model<Action>),
 }
 
-impl<EntryId> State<EntryId> {
+impl<Action> State<Action> {
     pub fn open<ParentMsg, AppEffect>(&mut self) -> Effect<ParentMsg, AppEffect> {
         *self = State::Open(Model::default());
         dom::focus_element(Id::QueryInput)
@@ -39,13 +39,13 @@ impl<EntryId> State<EntryId> {
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Model<EntryId> {
+pub struct Model<Action> {
     query: String,
-    matching_entries: Vec<Entry<EntryId>>,
+    matching_entries: Vec<Entry<Action>>,
     selected_index: Option<usize>,
 }
 
-impl<EntryId> Default for Model<EntryId> {
+impl<Action> Default for Model<Action> {
     fn default() -> Self {
         Self {
             query: String::new(),
@@ -75,9 +75,9 @@ enum Id {
     SearchModalBackdrop,
 }
 
-pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect, EntryId>(
+pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect, Action>(
     user_agent: &UserAgent,
-    state: &State<EntryId>,
+    state: &State<Action>,
     to_parent_msg: ToParentMsg,
 ) -> Subscription<ParentMsg, AppEffect>
 where
@@ -124,29 +124,29 @@ where
     }
 }
 
-pub struct UpdateData<ParentMsg, AppEffect, EntryId> {
+pub struct UpdateData<ParentMsg, AppEffect, Action> {
     pub effect: Effect<ParentMsg, AppEffect>,
-    pub selected_entry: Option<EntryId>,
+    pub action: Option<Action>,
 }
 
-impl<ParentMsg, AppEffect, EntryId> UpdateData<ParentMsg, AppEffect, EntryId> {
+impl<ParentMsg, AppEffect, Action> UpdateData<ParentMsg, AppEffect, Action> {
     fn none() -> Self {
         Self {
             effect: effect::none(),
-            selected_entry: None,
+            action: None,
         }
     }
 }
 
-pub fn update<ToParentMsg, ParentMsg, AppEffect, EntryId>(
+pub fn update<ToParentMsg, ParentMsg, AppEffect, Action>(
     msg: &Msg,
-    state: &mut State<EntryId>,
-    entries: Vec<Entry<EntryId>>,
+    state: &mut State<Action>,
+    entries: Vec<Entry<Action>>,
     _to_parent_msg: ToParentMsg,
-) -> Result<UpdateData<ParentMsg, AppEffect, EntryId>, String>
+) -> Result<UpdateData<ParentMsg, AppEffect, Action>, String>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
-    EntryId: Clone + Eq + PartialEq + Hash + Display + EntryExtra,
+    Action: Clone + Eq + PartialEq + Hash + Display + EntryExtra,
 {
     match msg {
         Msg::QueryChanged(captured) => {
@@ -156,7 +156,7 @@ where
 
                 Ok(UpdateData {
                     effect: effect::none(),
-                    selected_entry: None,
+                    action: None,
                 })
             } else {
                 Ok(UpdateData::none())
@@ -168,7 +168,7 @@ where
 
             Ok(UpdateData {
                 effect: dom::focus_element(Id::QueryInput),
-                selected_entry: None,
+                action: None,
             })
         }
 
@@ -188,7 +188,7 @@ where
 
                 Ok(UpdateData {
                     effect: effect::none(),
-                    selected_entry: Some(entry.0.clone()),
+                    action: Some(entry.0.clone()),
                 })
             } else {
                 Ok(UpdateData::none())
@@ -210,7 +210,7 @@ where
 
                     Ok(UpdateData {
                         effect: effect::none(),
-                        selected_entry: Some(entry.0.clone()),
+                        action: Some(entry.0.clone()),
                     })
                 } else {
                     Ok(UpdateData::none())
@@ -253,9 +253,9 @@ where
     }
 }
 
-pub fn view<EntryId>(user_agent: &UserAgent, state: &State<EntryId>) -> maud::Markup
+pub fn view<Action>(user_agent: &UserAgent, state: &State<Action>) -> maud::Markup
 where
-    EntryId: Display + EntryExtra,
+    Action: Display + EntryExtra,
 {
     if let State::Open(model) = state {
         modal::view_minimal(view_search_modal(user_agent, model), &MODAL_CONFIG)
@@ -264,9 +264,9 @@ where
     }
 }
 
-fn view_search_modal<EntryId>(user_agent: &UserAgent, model: &Model<EntryId>) -> maud::Markup
+fn view_search_modal<Action>(user_agent: &UserAgent, model: &Model<Action>) -> maud::Markup
 where
-    EntryId: Display + EntryExtra,
+    Action: Display + EntryExtra,
 {
     html! {
         form id=(Id::QueryForm) class="h-[225px]" {
@@ -307,10 +307,10 @@ where
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Entry<EntryId>(EntryId);
+pub struct Entry<Action>(Action);
 
-impl<EntryId> Entry<EntryId> {
-    pub fn new(id: EntryId) -> Self {
+impl<Action> Entry<Action> {
+    pub fn new(id: Action) -> Self {
         Self(id)
     }
 }
@@ -326,9 +326,9 @@ pub trait EntryExtra {
     }
 }
 
-fn find_entries<EntryId>(query: &str, entries: Vec<Entry<EntryId>>) -> Vec<Entry<EntryId>>
+fn find_entries<Action>(query: &str, entries: Vec<Entry<Action>>) -> Vec<Entry<Action>>
 where
-    EntryId: Clone + Eq + PartialEq + Hash + EntryExtra,
+    Action: Clone + Eq + PartialEq + Hash + EntryExtra,
 {
     if query.is_empty() {
         return vec![];

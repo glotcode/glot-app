@@ -1,6 +1,6 @@
-use std::fmt;
-
 use crate::common::keyboard_shortcut::KeyboardShortcut;
+use crate::common::quick_action;
+use crate::common::quick_action::LanguageQuickAction;
 use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::language;
@@ -11,7 +11,6 @@ use crate::view::features;
 use crate::view::language_grid;
 use maud::html;
 use maud::Markup;
-use poly::browser;
 use poly::browser::dom_id::DomId;
 use poly::browser::effect;
 use poly::browser::effect::Effect;
@@ -31,7 +30,7 @@ pub struct Model {
     pub user_agent: UserAgent,
     pub layout_state: app_layout::State,
     pub languages: Vec<language::Config>,
-    pub search_modal_state: search_modal::State<QuickAction>,
+    pub search_modal_state: search_modal::State<LanguageQuickAction>,
 }
 
 pub struct HomePage {
@@ -87,25 +86,18 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
             }
 
             Msg::SearchModalMsg(child_msg) => {
-                let data: search_modal::UpdateData<Msg, AppEffect, QuickAction> =
+                let data: search_modal::UpdateData<Msg, AppEffect, LanguageQuickAction> =
                     search_modal::update(
                         child_msg,
                         &mut model.search_modal_state,
-                        quick_actions(),
+                        quick_action::language_entries(),
                         Msg::SearchModalMsg,
                     )?;
 
-                let effect = if let Some(entry) = data.selected_entry {
-                    match entry {
-                        QuickAction::GoToLanguage(language) => {
-                            let route = Route::NewSnippet(language);
-                            let url = route.to_absolute_path(&model.current_url);
-                            browser::effect::navigation::set_location(&url)
-                        }
-                    }
-                } else {
-                    effect::none()
-                };
+                let effect = data
+                    .action
+                    .map(|entry| entry.perform_action(&model.current_url))
+                    .unwrap_or_else(effect::none);
 
                 Ok(effect::batch(vec![effect, data.effect]))
             }
@@ -271,46 +263,4 @@ fn to_grid_language(language: &language::Config) -> language_grid::Language {
         icon_path: language.logo_svg_path.to_string(),
         route: Route::NewSnippet(language.id.clone()),
     }
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum QuickAction {
-    GoToLanguage(Language),
-}
-
-impl search_modal::EntryExtra for QuickAction {
-    fn title(&self) -> String {
-        match self {
-            QuickAction::GoToLanguage(language) => format!("Go to {}", language.config().name),
-        }
-    }
-
-    fn keywords(&self) -> Vec<String> {
-        match self {
-            QuickAction::GoToLanguage(language) => {
-                vec![language.to_string(), language.config().name.clone()]
-            }
-        }
-    }
-
-    fn icon(&self) -> maud::Markup {
-        match self {
-            QuickAction::GoToLanguage(_) => heroicons_maud::link_outline(),
-        }
-    }
-}
-
-impl fmt::Display for QuickAction {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            QuickAction::GoToLanguage(language) => write!(f, "goto-{}", language),
-        }
-    }
-}
-
-fn quick_actions() -> Vec<search_modal::Entry<QuickAction>> {
-    Language::list()
-        .iter()
-        .map(|language| search_modal::Entry::new(QuickAction::GoToLanguage(language.clone())))
-        .collect()
 }

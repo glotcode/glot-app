@@ -1,6 +1,8 @@
 use crate::ace_editor::EditorKeyboardBindings;
 use crate::ace_editor::EditorTheme;
 use crate::common::keyboard_shortcut::KeyboardShortcut;
+use crate::common::quick_action;
+use crate::common::quick_action::LanguageQuickAction;
 use crate::common::route::Route;
 use crate::components::file_modal;
 use crate::components::search_modal;
@@ -472,14 +474,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         Msg::SearchModalMsg,
                     )?;
 
-                let effect = if let Some(entry) = data.selected_entry {
+                let effect = if let Some(entry) = data.action {
                     match entry {
                         QuickAction::Run => run_effect(model),
 
-                        QuickAction::GoToLanguage(language) => {
-                            let route = Route::NewSnippet(language);
-                            let url = route.to_absolute_path(&model.current_url);
-                            browser::effect::navigation::set_location(&url)
+                        QuickAction::GoToLanguage(action) => {
+                            action.perform_action(&model.current_url)
                         }
                     }
                 } else {
@@ -1019,30 +1019,28 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
 #[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum QuickAction {
     Run,
-    GoToLanguage(Language),
+    GoToLanguage(LanguageQuickAction),
 }
 
 impl search_modal::EntryExtra for QuickAction {
     fn title(&self) -> String {
         match self {
             QuickAction::Run => "Run code".to_string(),
-            QuickAction::GoToLanguage(language) => format!("Go to {}", language.config().name),
+            QuickAction::GoToLanguage(action) => action.title(),
         }
     }
 
     fn keywords(&self) -> Vec<String> {
         match self {
             QuickAction::Run => vec!["run".to_string()],
-            QuickAction::GoToLanguage(language) => {
-                vec![language.to_string(), language.config().name.clone()]
-            }
+            QuickAction::GoToLanguage(action) => action.keywords(),
         }
     }
 
     fn icon(&self) -> maud::Markup {
         match self {
             QuickAction::Run => heroicons_maud::play_outline(),
-            QuickAction::GoToLanguage(_) => heroicons_maud::link_outline(),
+            QuickAction::GoToLanguage(action) => action.icon(),
         }
     }
 
@@ -1061,20 +1059,22 @@ impl fmt::Display for QuickAction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             QuickAction::Run => write!(f, "run"),
-            QuickAction::GoToLanguage(language) => write!(f, "goto-{}", language),
+            QuickAction::GoToLanguage(action) => write!(f, "{}", action),
         }
     }
 }
 
 fn quick_actions() -> Vec<search_modal::Entry<QuickAction>> {
-    let mut entries = vec![search_modal::Entry::new(QuickAction::Run)];
+    let snippet_actions = vec![QuickAction::Run];
 
-    let language_entries: Vec<_> = Language::list()
-        .iter()
-        .map(|language| search_modal::Entry::new(QuickAction::GoToLanguage(language.clone())))
+    let language_actions = quick_action::language_actions()
+        .into_iter()
+        .map(QuickAction::GoToLanguage)
         .collect();
 
-    entries.extend(language_entries);
-
-    entries
+    [snippet_actions, language_actions]
+        .concat()
+        .into_iter()
+        .map(search_modal::Entry::new)
+        .collect()
 }
