@@ -31,7 +31,6 @@ use poly::browser::subscription;
 use poly::browser::subscription::event_listener;
 use poly::browser::subscription::Subscription;
 use poly::browser::value::Capture;
-use poly::browser::value::Value;
 use poly::browser::WindowSize;
 use poly::page::JsMsg;
 use poly::page::Page;
@@ -101,7 +100,7 @@ enum Id {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum Msg {
-    WindowSizeChanged(Capture<Value>),
+    WindowSizeChanged(Capture<WindowSize>),
     EditorContentChanged(Capture<String>),
     FileSelected(Capture<String>),
     ShowAddFileModalClicked,
@@ -124,7 +123,7 @@ pub enum Msg {
 
     // Settings related
     SettingsModalMsg(settings_modal::Msg),
-    GotSettings(Capture<Value>),
+    GotSettings(Capture<Option<LocalStorageSettings>>),
     SavedSettings(Capture<bool>),
 
     // Stdin related
@@ -344,10 +343,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
         match msg {
             Msg::WindowSizeChanged(captured) => {
-                let window_size = captured
-                    .value()
-                    .parse()
-                    .map_err(|err| format!("Failed to parse window size: {}", err))?;
+                let window_size = captured.value();
 
                 model.window_size = Some(window_size);
                 Ok(effect::none())
@@ -506,10 +502,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::GotSettings(captured) => {
-                let maybe_settings: Option<LocalStorageSettings> = captured
-                    .value()
-                    .parse()
-                    .map_err(|err| format!("Failed to parse settings: {}", err))?;
+                let maybe_settings = captured.value();
 
                 if let Some(settings) = maybe_settings {
                     model.editor_keyboard_bindings = settings.editor_keyboard_bindings;
