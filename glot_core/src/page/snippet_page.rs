@@ -308,12 +308,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::StdinModalMsg(child_msg) => {
                 let event = stdin_modal::update(child_msg, &mut model.stdin_modal_state)?;
 
-                // TODO: focus editor when closed
                 match event {
                     stdin_modal::Event::StdinChanged(stdin) => {
                         model.stdin = stdin;
-                        Ok(effect::none())
+                        Ok(focus_editor_effect())
                     }
+                    stdin_modal::Event::ModalClosed => Ok(focus_editor_effect()),
                     stdin_modal::Event::None => Ok(effect::none()),
                 }
             }
@@ -367,6 +367,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         Ok(focus_editor_effect())
                     }
 
+                    file_modal::Event::ModalClosed => Ok(focus_editor_effect()),
                     file_modal::Event::None => Ok(effect::none()),
                 }
             }
@@ -379,12 +380,15 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     settings_modal::Event::SettingsChanged(settings) => {
                         model.editor_keyboard_bindings = settings.keyboard_bindings;
                         model.editor_theme = settings.theme;
+                        let effects =
+                            effect::batch(vec![focus_editor_effect(), save_settings_effect(model)]);
+
+                        Ok(effects)
                     }
 
-                    settings_modal::Event::None => {}
+                    settings_modal::Event::ModalClosed => Ok(focus_editor_effect()),
+                    settings_modal::Event::None => Ok(effect::none()),
                 }
-
-                Ok(save_settings_effect(model))
             }
 
             Msg::GotSettings(captured) => {
@@ -450,8 +454,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 match event {
                     title_modal::Event::TitleChanged(title) => {
                         model.title = title;
-                        Ok(effect::none())
+                        Ok(focus_editor_effect())
                     }
+
+                    title_modal::Event::ModalClosed => Ok(focus_editor_effect()),
 
                     title_modal::Event::None => Ok(effect::none()),
                 }
@@ -469,12 +475,20 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     },
                 };
 
-                let effect = sharing_modal::update(
+                let data = sharing_modal::update(
                     child_msg,
                     &mut model.sharing_modal_state,
                     context,
                     Msg::SharingModalMsg,
                 )?;
+
+                let effect = match data.event {
+                    sharing_modal::Event::None => data.effect,
+                    sharing_modal::Event::ModalClosed => {
+                        effect::batch(vec![focus_editor_effect(), data.effect])
+                    }
+                };
+
                 Ok(effect)
             }
         }

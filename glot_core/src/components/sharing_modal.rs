@@ -88,12 +88,45 @@ pub struct Context {
     pub current_url: Url,
 }
 
+pub enum Event {
+    None,
+    ModalClosed,
+}
+
+pub struct UpdateData<ParentMsg, AppEffect> {
+    pub event: Event,
+    pub effect: Effect<ParentMsg, AppEffect>,
+}
+
+impl<ParentMsg, AppEffect> UpdateData<ParentMsg, AppEffect> {
+    fn none() -> Self {
+        Self {
+            event: Event::None,
+            effect: effect::none(),
+        }
+    }
+
+    fn with_effect(effect: Effect<ParentMsg, AppEffect>) -> Self {
+        Self {
+            event: Event::None,
+            effect,
+        }
+    }
+
+    fn with_event(event: Event) -> Self {
+        Self {
+            event,
+            effect: effect::none(),
+        }
+    }
+}
+
 pub fn update<ToParentMsg, ParentMsg, AppEffect>(
     msg: &Msg,
     state: &mut State,
     context: Context,
     to_parent_msg: ToParentMsg,
-) -> Result<Effect<ParentMsg, AppEffect>, String>
+) -> Result<UpdateData<ParentMsg, AppEffect>, String>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
@@ -104,20 +137,22 @@ where
                 model.snippet_url = Some(snippet_url);
             }
 
-            Ok(effect::none())
+            Ok(UpdateData::none())
         }
 
         Msg::CopyUrlClicked => {
             if let State::Open(model) = state {
                 if let Some(snippet_url) = &model.snippet_url {
-                    Ok(clipboard::write_text(snippet_url, |captured| {
+                    let effect = clipboard::write_text(snippet_url, |captured| {
                         to_parent_msg(Msg::GotCopyUrlResult(captured))
-                    }))
+                    });
+
+                    Ok(UpdateData::with_effect(effect))
                 } else {
-                    Ok(effect::none())
+                    Ok(UpdateData::none())
                 }
             } else {
-                Ok(effect::none())
+                Ok(UpdateData::none())
             }
         }
 
@@ -127,19 +162,21 @@ where
 
                 if result.success {
                     model.copy_state = RemoteData::Success(());
-                    Ok(browser::set_timeout(
+                    let effect = browser::set_timeout(
                         Duration::from_secs(3),
                         to_parent_msg(Msg::ClearCopyStateTimeout),
-                    ))
+                    );
+                    Ok(UpdateData::with_effect(effect))
                 } else {
                     model.copy_state = RemoteData::Failure(result.error.unwrap_or_default());
-                    Ok(browser::set_timeout(
+                    let effect = browser::set_timeout(
                         Duration::from_secs(5),
                         to_parent_msg(Msg::ClearCopyStateTimeout),
-                    ))
+                    );
+                    Ok(UpdateData::with_effect(effect))
                 }
             } else {
-                Ok(effect::none())
+                Ok(UpdateData::none())
             }
         }
 
@@ -148,12 +185,12 @@ where
                 model.copy_state = RemoteData::NotAsked;
             }
 
-            Ok(effect::none())
+            Ok(UpdateData::none())
         }
 
         Msg::Close => {
             *state = State::default();
-            Ok(effect::none())
+            Ok(UpdateData::with_event(Event::ModalClosed))
         }
     }
 }

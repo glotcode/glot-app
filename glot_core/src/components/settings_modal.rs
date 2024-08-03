@@ -81,6 +81,7 @@ where
 pub enum Event {
     None,
     SettingsChanged(Settings),
+    ModalClosed,
 }
 
 pub struct Settings {
@@ -121,7 +122,7 @@ pub fn update(msg: &Msg, state: &mut State) -> Result<Event, String> {
 
         Msg::Close => {
             *state = State::default();
-            Ok(Event::None)
+            Ok(Event::ModalClosed)
         }
     }
 }
