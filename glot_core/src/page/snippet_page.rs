@@ -77,12 +77,12 @@ pub struct Model {
 enum Id {
     Glot,
     Editor,
-    ShowSettingsModal,
-    ShowAddFileModal,
-    SelectedFile,
-    ShowStdinModal,
-    Run,
-    Share,
+    SettingsButton,
+    AddFileButton,
+    EditFileButton,
+    StdinButton,
+    RunButton,
+    ShareButton,
     Title,
     TopBarTitle,
 }
@@ -102,13 +102,13 @@ pub enum Msg {
     SharingModalMsg(sharing_modal::Msg),
 
     // Settings related
-    ShowSettingsModalClicked,
+    SettingsButtonClicked,
     SettingsModalMsg(settings_modal::Msg),
     GotSettings(Capture<Option<LocalStorageSettings>>),
     SavedSettings(Capture<bool>),
 
     // Stdin related
-    ShowStdinModalClicked,
+    StdinButtonClicked,
     StdinModalMsg(stdin_modal::Msg),
 
     // File related
@@ -251,33 +251,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
-        let search_modal_subscriptions = search_modal::subscriptions(
-            &model.user_agent,
-            &model.search_modal_state,
-            Msg::SearchModalMsg,
-        );
-
-        let app_layout_subscriptions =
-            app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg);
-
-        let title_modal_subscriptions =
-            title_modal::subscriptions(&model.title_modal_state, Msg::TitleModalMsg);
-
-        let sharing_modal_subscriptions =
-            sharing_modal::subscriptions(&model.sharing_modal_state, Msg::SharingModalMsg);
-
-        let settings_modal_subscriptions =
-            settings_modal::subscriptions(&model.settings_modal_state, Msg::SettingsModalMsg);
-
-        let stdin_modal_subscriptions =
-            stdin_modal::subscriptions(&model.stdin_modal_state, Msg::StdinModalMsg);
-
-        let file_modal_subscriptions =
-            file_modal::subscriptions(&model.file_modal_state, Msg::FileModalMsg);
-
         let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.user_agent);
 
-        // TODO: add conditionals
         subscription::batch(vec![
             event_listener::on_change_string(Id::Editor, Msg::EditorContentChanged),
             event_listener::on_click_selector_closest(
@@ -285,24 +260,27 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 dom::get_target_data_string_value("filename"),
                 Msg::FileSelected,
             ),
-            event_listener::on_click_closest(Id::ShowAddFileModal, Msg::AddFileClicked),
-            event_listener::on_click_closest(Id::ShowSettingsModal, Msg::ShowSettingsModalClicked),
-            event_listener::on_click_closest(Id::ShowStdinModal, Msg::ShowStdinModalClicked),
-            event_listener::on_click_closest(Id::SelectedFile, Msg::EditFileClicked),
+            event_listener::on_click_closest(Id::AddFileButton, Msg::AddFileClicked),
+            event_listener::on_click_closest(Id::SettingsButton, Msg::SettingsButtonClicked),
+            event_listener::on_click_closest(Id::StdinButton, Msg::StdinButtonClicked),
+            event_listener::on_click_closest(Id::EditFileButton, Msg::EditFileClicked),
             event_listener::on_keydown(run_key_combo.key, run_key_combo.modifier, Msg::RunClicked),
             event_listener::on_window_resize(Msg::WindowSizeChanged),
-            event_listener::on_click_closest(Id::Run, Msg::RunClicked),
-            event_listener::on_click_closest(Id::Share, Msg::ShareClicked),
-            // Title
+            event_listener::on_click_closest(Id::RunButton, Msg::RunClicked),
+            event_listener::on_click_closest(Id::ShareButton, Msg::ShareClicked),
             event_listener::on_click_closest(Id::Title, Msg::EditTitleClicked),
             event_listener::on_click_closest(Id::TopBarTitle, Msg::EditTitleClicked),
-            search_modal_subscriptions,
-            app_layout_subscriptions,
-            title_modal_subscriptions,
-            sharing_modal_subscriptions,
-            settings_modal_subscriptions,
-            stdin_modal_subscriptions,
-            file_modal_subscriptions,
+            search_modal::subscriptions(
+                &model.user_agent,
+                &model.search_modal_state,
+                Msg::SearchModalMsg,
+            ),
+            app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg),
+            title_modal::subscriptions(&model.title_modal_state, Msg::TitleModalMsg),
+            sharing_modal::subscriptions(&model.sharing_modal_state, Msg::SharingModalMsg),
+            settings_modal::subscriptions(&model.settings_modal_state, Msg::SettingsModalMsg),
+            stdin_modal::subscriptions(&model.stdin_modal_state, Msg::StdinModalMsg),
+            file_modal::subscriptions(&model.file_modal_state, Msg::FileModalMsg),
         ])
     }
 
@@ -323,7 +301,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(effect::none())
             }
 
-            Msg::ShowSettingsModalClicked => {
+            Msg::SettingsButtonClicked => {
                 let effect = settings_modal::open(
                     &mut model.settings_modal_state,
                     &model.editor_keyboard_bindings,
@@ -333,7 +311,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(effect)
             }
 
-            Msg::ShowStdinModalClicked => {
+            Msg::StdinButtonClicked => {
                 let effect = stdin_modal::open(&mut model.stdin_modal_state, &model.stdin);
                 Ok(effect)
             }
@@ -883,7 +861,7 @@ fn view_tab_bar(model: &Model) -> Markup {
 
     html! {
         div class="h-10 flex border-b border-gray-400" {
-            button id=(Id::ShowSettingsModal) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3" type="button" {
+            button id=(Id::SettingsButton) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3" type="button" {
                 span class="w-6 h-6" {
                     (heroicons_maud::cog_6_tooth_outline())
                 }
@@ -895,7 +873,7 @@ fn view_tab_bar(model: &Model) -> Markup {
                 }
             }
 
-            button id=(Id::ShowAddFileModal) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 font-semibold text-sm border-l border-gray-400" type="button"{
+            button id=(Id::AddFileButton) class="inline-flex items-center text-gray-500 hover:text-gray-700 px-3 font-semibold text-sm border-l border-gray-400" type="button"{
                 span class="w-5 h-5" {
                     (heroicons_maud::document_plus_outline())
                 }
@@ -906,7 +884,7 @@ fn view_tab_bar(model: &Model) -> Markup {
 
 fn view_file_tab(model: &Model, file: &File) -> Markup {
     let is_selected = model.files.selected().name == file.name;
-    let id = is_selected.then_some(Id::SelectedFile);
+    let id = is_selected.then_some(Id::EditFileButton);
 
     html! {
         button id=[id] data-filename=(file.name) .file .relative ."[min-width:5rem]" ."border-l" ."border-gray-400" ."cursor-pointer" ."inline-flex" ."items-center" ."justify-center" ."px-3" ."bg-indigo-100"[is_selected]  ."cursor-pointer" ."text-gray-500"[!is_selected] ."text-gray-800"[is_selected] ."hover:text-gray-800" ."text-sm" type="button" {
@@ -927,7 +905,7 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
 fn view_stdin_bar(model: &Model) -> Markup {
     html! {
         @if model.stdin.is_empty() {
-            button id=(Id::ShowStdinModal) class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" type="button" {
+            button id=(Id::StdinButton) class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" type="button" {
                 span class="w-5 h-5 mr-1" { (heroicons_maud::plus_circle_outline()) }
                 span { "STDIN" }
             }
@@ -936,7 +914,7 @@ fn view_stdin_bar(model: &Model) -> Markup {
                 dt class="px-4 py-1 border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
                     pre { "STDIN" }
                 }
-                dd id=(Id::ShowStdinModal) class="h-full px-4 py-2 relative cursor-pointer stdin-preview" {
+                dd id=(Id::StdinButton) class="h-full px-4 py-2 relative cursor-pointer stdin-preview" {
                     pre {
                         (model.stdin)
                     }
@@ -955,12 +933,12 @@ fn view_stdin_bar(model: &Model) -> Markup {
 fn view_action_bar() -> Markup {
     html! {
         div class="h-12 flex border-t border-gray-400" {
-            button id=(Id::Run) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm" type="button" {
+            button id=(Id::RunButton) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons_maud::play_outline()) }
                 span { "RUN" }
             }
 
-            button id=(Id::Share) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
+            button id=(Id::ShareButton) class="bg-white hover:bg-gray-50 text-gray-700 w-full inline-flex items-center justify-center px-3 py-1 font-semibold text-sm border-l border-gray-400" type="button" {
                 span class="w-5 h-5 mr-2" { (heroicons_maud::share_outline()) }
                 span { "SHARE" }
             }
