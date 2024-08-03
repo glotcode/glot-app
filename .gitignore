@@ -2,3 +2,4 @@ target/
 dist/
 notes.txt
 wrangler.toml
+local_poly_import.sh
