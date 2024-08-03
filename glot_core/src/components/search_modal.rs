@@ -17,6 +17,11 @@ use poly::browser::value::Capture;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, hash::Hash};
 
+const MODAL_CONFIG: modal::Config<Id> = modal::Config {
+    backdrop_id: Id::SearchModalBackdrop,
+    close_button_id: Id::SearchModalClose,
+};
+
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum State<EntryId> {
@@ -81,11 +86,7 @@ where
 {
     match state {
         State::Open(_) => {
-            let modal_config = modal::Config {
-                backdrop_id: Id::SearchModalBackdrop,
-                close_button_id: Id::SearchModalClose,
-            };
-
+            // fmt
             subscription::batch(vec![
                 event_listener::on_input(Id::QueryInput, |captured| {
                     to_parent_msg(Msg::QueryChanged(captured))
@@ -107,7 +108,7 @@ where
                     ModifierKey::None,
                     to_parent_msg(Msg::SelectNext),
                 ),
-                modal::subscriptions(&modal_config, to_parent_msg(Msg::CloseModal)),
+                modal::subscriptions(&MODAL_CONFIG, to_parent_msg(Msg::CloseModal)),
             ])
         }
 
@@ -257,13 +258,7 @@ where
     EntryId: Display + EntryExtra,
 {
     if let State::Open(model) = state {
-        modal::view_barebones(
-            view_search_modal(user_agent, model),
-            &modal::Config {
-                backdrop_id: Id::SearchModalBackdrop,
-                close_button_id: Id::SearchModalClose,
-            },
-        )
+        modal::view_minimal(view_search_modal(user_agent, model), &MODAL_CONFIG)
     } else {
         html! {}
     }

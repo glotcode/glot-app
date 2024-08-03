@@ -18,6 +18,11 @@ use std::fmt;
 use std::time::Duration;
 use url::Url;
 
+const MODAL_CONFIG: modal::Config<Id> = modal::Config {
+    backdrop_id: Id::SharingModalBackdrop,
+    close_button_id: Id::SharingModalClose,
+};
+
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum State {
@@ -62,18 +67,14 @@ where
 {
     match state {
         State::Open(_) => {
-            let modal_config = modal::Config {
-                backdrop_id: Id::SharingModalBackdrop,
-                close_button_id: Id::SharingModalClose,
-            };
-
+            // fmt
             subscription::batch(vec![
                 event_listener::on_click_closest(
                     Id::CopyUrlButton,
                     to_parent_msg(Msg::CopyUrlClicked),
                 ),
                 event_listener::on_click(Id::SharingModalCloseButton, to_parent_msg(Msg::Close)),
-                modal::subscriptions(&modal_config, to_parent_msg(Msg::Close)),
+                modal::subscriptions(&MODAL_CONFIG, to_parent_msg(Msg::Close)),
             ])
         }
 
@@ -174,13 +175,7 @@ where
 
 pub fn view(state: &State) -> maud::Markup {
     if let State::Open(model) = state {
-        modal::view(
-            view_modal(model),
-            &modal::Config {
-                backdrop_id: Id::SharingModalBackdrop,
-                close_button_id: Id::SharingModalClose,
-            },
-        )
+        modal::view(view_modal(model), &MODAL_CONFIG)
     } else {
         html! {}
     }

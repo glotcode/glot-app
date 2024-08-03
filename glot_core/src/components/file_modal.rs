@@ -10,6 +10,11 @@ use poly::browser::subscription::Subscription;
 use poly::browser::value::Capture;
 use serde::{Deserialize, Serialize};
 
+const MODAL_CONFIG: modal::Config<Id> = modal::Config {
+    backdrop_id: Id::FileModalBackdrop,
+    close_button_id: Id::FileModalClose,
+};
+
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum State {
@@ -72,10 +77,7 @@ where
 {
     match state {
         State::Open(_) => {
-            let modal_config = modal::Config {
-                backdrop_id: Id::FileModalBackdrop,
-                close_button_id: Id::FileModalClose,
-            };
+            // fmt
 
             subscription::batch(vec![
                 event_listener::on_click(Id::AddFileButton, to_parent_msg(Msg::AddFileClicked)),
@@ -92,7 +94,7 @@ where
                 }),
                 event_listener::on_submit(Id::NewFileForm, to_parent_msg(Msg::AddFileClicked)),
                 event_listener::on_submit(Id::EditFileForm, to_parent_msg(Msg::UpdateFileClicked)),
-                modal::subscriptions(&modal_config, to_parent_msg(Msg::Close)),
+                modal::subscriptions(&MODAL_CONFIG, to_parent_msg(Msg::Close)),
             ])
         }
 
@@ -214,13 +216,7 @@ pub fn open_for_add<ParentMsg, AppEffect>(
 
 pub fn view(state: &State) -> maud::Markup {
     match state {
-        State::Open(model) => modal::view(
-            view_modal(model),
-            &modal::Config {
-                backdrop_id: Id::FileModalBackdrop,
-                close_button_id: Id::FileModalClose,
-            },
-        ),
+        State::Open(model) => modal::view(view_modal(model), &MODAL_CONFIG),
         State::Closed => html! {},
     }
 }

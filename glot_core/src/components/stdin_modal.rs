@@ -9,6 +9,11 @@ use poly::browser::subscription::Subscription;
 use poly::browser::value::Capture;
 use serde::{Deserialize, Serialize};
 
+const MODAL_CONFIG: modal::Config<Id> = modal::Config {
+    backdrop_id: Id::StdinModalBackdrop,
+    close_button_id: Id::StdinModalClose,
+};
+
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum State {
@@ -51,11 +56,7 @@ where
 {
     match state {
         State::Open(_) => {
-            let modal_config = modal::Config {
-                backdrop_id: Id::StdinModalBackdrop,
-                close_button_id: Id::StdinModalClose,
-            };
-
+            // fmt
             subscription::batch(vec![
                 event_listener::on_input(Id::StdinInput, |captured| {
                     to_parent_msg(Msg::StdinChanged(captured))
@@ -68,7 +69,7 @@ where
                     Id::SaveStdinButton,
                     to_parent_msg(Msg::UpdateStdinClicked),
                 ),
-                modal::subscriptions(&modal_config, to_parent_msg(Msg::Close)),
+                modal::subscriptions(&MODAL_CONFIG, to_parent_msg(Msg::Close)),
             ])
         }
         State::Closed => subscription::none(),
@@ -128,13 +129,7 @@ pub fn open<ParentMsg, AppEffect>(state: &mut State, value: &str) -> Effect<Pare
 
 pub fn view(state: &State) -> maud::Markup {
     if let State::Open(model) = state {
-        modal::view(
-            view_modal(model),
-            &modal::Config {
-                backdrop_id: Id::StdinModalBackdrop,
-                close_button_id: Id::StdinModalClose,
-            },
-        )
+        modal::view(view_modal(model), &MODAL_CONFIG)
     } else {
         html! {}
     }
