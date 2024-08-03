@@ -17,26 +17,32 @@ use poly::browser::value::Capture;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, hash::Hash};
 
+#[derive(Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum State<EntryId> {
+    #[default]
+    Closed,
+    Open(Model<EntryId>),
+}
+
+impl<EntryId> State<EntryId> {
+    pub fn open<ParentMsg, AppEffect>(&mut self) -> Effect<ParentMsg, AppEffect> {
+        *self = State::Open(Model::default());
+        dom::focus_element(Id::QueryInput)
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct State<EntryId> {
-    is_open: bool,
+pub struct Model<EntryId> {
     query: String,
     matching_entries: Vec<Entry<EntryId>>,
     selected_index: Option<usize>,
 }
 
-impl<EntryId> State<EntryId> {
-    pub fn open<ParentMsg, AppEffect>(&mut self) -> Effect<ParentMsg, AppEffect> {
-        self.is_open = true;
-        dom::focus_element(Id::QueryInput)
-    }
-}
-
-impl<EntryId> Default for State<EntryId> {
+impl<EntryId> Default for Model<EntryId> {
     fn default() -> Self {
         Self {
-            is_open: false,
             query: String::new(),
             matching_entries: vec![],
             selected_index: None,
@@ -60,54 +66,75 @@ pub enum Msg {
 enum Id {
     QueryForm,
     QueryInput,
-    CloseSearchModal,
+    SearchModalClose,
     SearchModalBackdrop,
 }
 
 pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect, EntryId>(
     user_agent: &UserAgent,
-    _state: &State<EntryId>,
+    state: &State<EntryId>,
     to_parent_msg: ToParentMsg,
 ) -> Subscription<ParentMsg, AppEffect>
 where
+    ParentMsg: Clone,
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
-    let key_combo = KeyboardShortcut::OpenQuickSearch.key_combo(user_agent);
+    match state {
+        State::Open(_) => {
+            let modal_config = modal::Config {
+                backdrop_id: Id::SearchModalBackdrop,
+                close_button_id: Id::SearchModalClose,
+            };
 
-    subscription::batch(vec![
-        event_listener::on_input(Id::QueryInput, |captured| {
-            to_parent_msg(Msg::QueryChanged(captured))
-        }),
-        event_listener::on_click_closest(Id::CloseSearchModal, to_parent_msg(Msg::CloseModal)),
-        event_listener::on_mouse_down(Id::SearchModalBackdrop, to_parent_msg(Msg::CloseModal)),
-        event_listener::on_keyup(Key::Escape, to_parent_msg(Msg::CloseModal)),
-        event_listener::on_keydown(
-            key_combo.key,
-            key_combo.modifier,
-            to_parent_msg(Msg::OpenModal),
-        ),
-        event_listener::on_click_selector_closest(
-            Selector::data("quick-action"),
-            dom::get_target_data_string_value("quick-action"),
-            |captured| to_parent_msg(Msg::QuickActionSelected(captured)),
-        ),
-        event_listener::on_submit(Id::QueryForm, to_parent_msg(Msg::FormSubmitted)),
-        event_listener::on_keydown(
-            Key::Key("ArrowUp".to_string()),
-            ModifierKey::None,
-            to_parent_msg(Msg::SelectPrevious),
-        ),
-        event_listener::on_keydown(
-            Key::Key("ArrowDown".to_string()),
-            ModifierKey::None,
-            to_parent_msg(Msg::SelectNext),
-        ),
-    ])
+            subscription::batch(vec![
+                event_listener::on_input(Id::QueryInput, |captured| {
+                    to_parent_msg(Msg::QueryChanged(captured))
+                }),
+                event_listener::on_keyup(Key::Escape, to_parent_msg(Msg::CloseModal)),
+                event_listener::on_click_selector_closest(
+                    Selector::data("quick-action"),
+                    dom::get_target_data_string_value("quick-action"),
+                    |captured| to_parent_msg(Msg::QuickActionSelected(captured)),
+                ),
+                event_listener::on_submit(Id::QueryForm, to_parent_msg(Msg::FormSubmitted)),
+                event_listener::on_keydown(
+                    Key::Key("ArrowUp".to_string()),
+                    ModifierKey::None,
+                    to_parent_msg(Msg::SelectPrevious),
+                ),
+                event_listener::on_keydown(
+                    Key::Key("ArrowDown".to_string()),
+                    ModifierKey::None,
+                    to_parent_msg(Msg::SelectNext),
+                ),
+                modal::subscriptions(&modal_config, to_parent_msg(Msg::CloseModal)),
+            ])
+        }
+
+        State::Closed => {
+            let key_combo = KeyboardShortcut::OpenQuickSearch.key_combo(user_agent);
+
+            event_listener::on_keydown(
+                key_combo.key,
+                key_combo.modifier,
+                to_parent_msg(Msg::OpenModal),
+            )
+        }
+    }
 }
 
 pub struct UpdateData<ParentMsg, AppEffect, EntryId> {
     pub effect: Effect<ParentMsg, AppEffect>,
     pub selected_entry: Option<EntryId>,
+}
+
+impl<ParentMsg, AppEffect, EntryId> UpdateData<ParentMsg, AppEffect, EntryId> {
+    fn none() -> Self {
+        Self {
+            effect: effect::none(),
+            selected_entry: None,
+        }
+    }
 }
 
 pub fn update<ToParentMsg, ParentMsg, AppEffect, EntryId>(
@@ -122,17 +149,22 @@ where
 {
     match msg {
         Msg::QueryChanged(captured) => {
-            state.query = captured.value();
-            state.matching_entries = find_entries(&state.query, entries);
+            if let State::Open(model) = state {
+                model.query = captured.value();
+                model.matching_entries = find_entries(&model.query, entries);
 
-            Ok(UpdateData {
-                effect: effect::none(),
-                selected_entry: None,
-            })
+                Ok(UpdateData {
+                    effect: effect::none(),
+                    selected_entry: None,
+                })
+            } else {
+                Ok(UpdateData::none())
+            }
         }
 
         Msg::OpenModal => {
-            state.is_open = true;
+            *state = State::Open(Model::default());
+
             Ok(UpdateData {
                 effect: dom::focus_element(Id::QueryInput),
                 selected_entry: None,
@@ -141,10 +173,7 @@ where
 
         Msg::CloseModal => {
             *state = State::default();
-            Ok(UpdateData {
-                effect: effect::none(),
-                selected_entry: None,
-            })
+            Ok(UpdateData::none())
         }
 
         Msg::QuickActionSelected(captured) => {
@@ -161,68 +190,64 @@ where
                     selected_entry: Some(entry.0.clone()),
                 })
             } else {
-                Ok(UpdateData {
-                    effect: effect::none(),
-                    selected_entry: None,
-                })
+                Ok(UpdateData::none())
             }
         }
 
         Msg::FormSubmitted => {
-            let entries = state.matching_entries.clone();
+            if let State::Open(model) = state {
+                let entries = model.matching_entries.clone();
 
-            let selected_entry = if let Some(index) = state.selected_index {
-                entries.get(index)
+                let selected_entry = if let Some(index) = model.selected_index {
+                    entries.get(index)
+                } else {
+                    entries.first()
+                };
+
+                if let Some(entry) = selected_entry {
+                    *state = State::default();
+
+                    Ok(UpdateData {
+                        effect: effect::none(),
+                        selected_entry: Some(entry.0.clone()),
+                    })
+                } else {
+                    Ok(UpdateData::none())
+                }
             } else {
-                entries.first()
-            };
-
-            if let Some(entry) = selected_entry {
-                *state = State::default();
-
-                Ok(UpdateData {
-                    effect: effect::none(),
-                    selected_entry: Some(entry.0.clone()),
-                })
-            } else {
-                Ok(UpdateData {
-                    effect: effect::none(),
-                    selected_entry: None,
-                })
+                Ok(UpdateData::none())
             }
         }
 
         Msg::SelectNext => {
-            let new_index = if let Some(current_index) = state.selected_index {
-                let entry_count = state.matching_entries.len();
-                (current_index + 1) % entry_count
-            } else {
-                0
-            };
+            if let State::Open(model) = state {
+                let new_index = if let Some(current_index) = model.selected_index {
+                    let entry_count = model.matching_entries.len();
+                    (current_index + 1) % entry_count
+                } else {
+                    0
+                };
 
-            state.selected_index = Some(new_index);
+                model.selected_index = Some(new_index);
+            }
 
-            Ok(UpdateData {
-                effect: effect::none(),
-                selected_entry: None,
-            })
+            Ok(UpdateData::none())
         }
 
         Msg::SelectPrevious => {
-            let current_index = state.selected_index.unwrap_or_default();
-            let entry_count = state.matching_entries.len();
-            let new_index = if current_index == 0 {
-                entry_count - 1
-            } else {
-                current_index - 1
-            };
+            if let State::Open(model) = state {
+                let current_index = model.selected_index.unwrap_or_default();
+                let entry_count = model.matching_entries.len();
+                let new_index = if current_index == 0 {
+                    entry_count - 1
+                } else {
+                    current_index - 1
+                };
 
-            state.selected_index = Some(new_index);
+                model.selected_index = Some(new_index);
+            }
 
-            Ok(UpdateData {
-                effect: effect::none(),
-                selected_entry: None,
-            })
+            Ok(UpdateData::none())
         }
     }
 }
@@ -231,12 +256,12 @@ pub fn view<EntryId>(user_agent: &UserAgent, state: &State<EntryId>) -> maud::Ma
 where
     EntryId: Display + EntryExtra,
 {
-    if state.is_open {
+    if let State::Open(model) = state {
         modal::view_barebones(
-            view_search_modal(user_agent, state),
+            view_search_modal(user_agent, model),
             &modal::Config {
                 backdrop_id: Id::SearchModalBackdrop,
-                close_button_id: Id::CloseSearchModal,
+                close_button_id: Id::SearchModalClose,
             },
         )
     } else {
@@ -244,7 +269,7 @@ where
     }
 }
 
-fn view_search_modal<EntryId>(user_agent: &UserAgent, state: &State<EntryId>) -> maud::Markup
+fn view_search_modal<EntryId>(user_agent: &UserAgent, model: &Model<EntryId>) -> maud::Markup
 where
     EntryId: Display + EntryExtra,
 {
@@ -256,13 +281,13 @@ where
                         (heroicons_maud::magnifying_glass_outline())
                     }
                 }
-                input id=(Id::QueryInput) value=(state.query) class="w-full border-none pl-0 ring-0 focus:ring-0 outline-none focus:outline-none" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" spellcheck="false" placeholder="Quick action..." maxlength="64" type="text";
+                input id=(Id::QueryInput) value=(model.query) class="w-full border-none pl-0 ring-0 focus:ring-0 outline-none focus:outline-none" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" spellcheck="false" placeholder="Quick action..." maxlength="64" type="text";
             }
 
             div {
                 ul class="divide-y divide-gray-200" {
-                    @for (index, entry) in state.matching_entries.iter().enumerate() {
-                        li data-quick-action=(entry.0) ."bg-gray-100"[state.selected_index == Some(index)] {
+                    @for (index, entry) in model.matching_entries.iter().enumerate() {
+                        li data-quick-action=(entry.0) ."bg-gray-100"[model.selected_index == Some(index)] {
                             button class="w-full py-2 px-4 flex justify-between hover:bg-gray-100" type="button" {
                                 div class="flex items-center" {
                                     div class="w-4 h-4 flex items-center justify-center" {

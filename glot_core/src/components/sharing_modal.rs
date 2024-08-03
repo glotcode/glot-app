@@ -20,8 +20,15 @@ use url::Url;
 
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct State {
-    is_open: bool,
+pub enum State {
+    #[default]
+    Closed,
+    Open(Model),
+}
+
+#[derive(Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Model {
     snippet_url: Option<String>,
     copy_state: RemoteData<String, ()>,
 }
@@ -29,8 +36,8 @@ pub struct State {
 #[derive(strum_macros::Display, poly_macro::DomId)]
 #[strum(serialize_all = "kebab-case")]
 enum Id {
-    SnippetUrl,
-    CopyUrl,
+    SnippetUrlInput,
+    CopyUrlButton,
     SharingModalCloseButton,
     SharingModalBackdrop,
     SharingModalClose,
@@ -46,23 +53,32 @@ pub enum Msg {
 }
 
 pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
-    _state: &State,
+    state: &State,
     to_parent_msg: ToParentMsg,
 ) -> Subscription<ParentMsg, AppEffect>
 where
     ParentMsg: Clone,
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
-    let modal_config = modal::Config {
-        backdrop_id: Id::SharingModalBackdrop,
-        close_button_id: Id::SharingModalClose,
-    };
+    match state {
+        State::Open(_) => {
+            let modal_config = modal::Config {
+                backdrop_id: Id::SharingModalBackdrop,
+                close_button_id: Id::SharingModalClose,
+            };
 
-    subscription::batch(vec![
-        event_listener::on_click_closest(Id::CopyUrl, to_parent_msg(Msg::CopyUrlClicked)),
-        event_listener::on_click(Id::SharingModalCloseButton, to_parent_msg(Msg::Close)),
-        modal::subscriptions(&modal_config, to_parent_msg(Msg::Close)),
-    ])
+            subscription::batch(vec![
+                event_listener::on_click_closest(
+                    Id::CopyUrlButton,
+                    to_parent_msg(Msg::CopyUrlClicked),
+                ),
+                event_listener::on_click(Id::SharingModalCloseButton, to_parent_msg(Msg::Close)),
+                modal::subscriptions(&modal_config, to_parent_msg(Msg::Close)),
+            ])
+        }
+
+        State::Closed => subscription::none(),
+    }
 }
 
 pub struct Context {
@@ -82,42 +98,54 @@ where
 {
     match msg {
         Msg::EncodeSnippetUrl => {
-            let snippet_url = get_snippet_url(context)?;
-            state.snippet_url = Some(snippet_url);
+            if let State::Open(model) = state {
+                let snippet_url = get_snippet_url(context)?;
+                model.snippet_url = Some(snippet_url);
+            }
 
             Ok(effect::none())
         }
 
         Msg::CopyUrlClicked => {
-            if let Some(snippet_url) = &state.snippet_url {
-                Ok(clipboard::write_text(snippet_url, |captured| {
-                    to_parent_msg(Msg::GotCopyUrlResult(captured))
-                }))
+            if let State::Open(model) = state {
+                if let Some(snippet_url) = &model.snippet_url {
+                    Ok(clipboard::write_text(snippet_url, |captured| {
+                        to_parent_msg(Msg::GotCopyUrlResult(captured))
+                    }))
+                } else {
+                    Ok(effect::none())
+                }
             } else {
                 Ok(effect::none())
             }
         }
 
         Msg::GotCopyUrlResult(captured) => {
-            let result = captured.value();
+            if let State::Open(model) = state {
+                let result = captured.value();
 
-            if result.success {
-                state.copy_state = RemoteData::Success(());
-                Ok(browser::set_timeout(
-                    Duration::from_secs(3),
-                    to_parent_msg(Msg::ClearCopyStateTimeout),
-                ))
+                if result.success {
+                    model.copy_state = RemoteData::Success(());
+                    Ok(browser::set_timeout(
+                        Duration::from_secs(3),
+                        to_parent_msg(Msg::ClearCopyStateTimeout),
+                    ))
+                } else {
+                    model.copy_state = RemoteData::Failure(result.error.unwrap_or_default());
+                    Ok(browser::set_timeout(
+                        Duration::from_secs(5),
+                        to_parent_msg(Msg::ClearCopyStateTimeout),
+                    ))
+                }
             } else {
-                state.copy_state = RemoteData::Failure(result.error.unwrap_or_default());
-                Ok(browser::set_timeout(
-                    Duration::from_secs(5),
-                    to_parent_msg(Msg::ClearCopyStateTimeout),
-                ))
+                Ok(effect::none())
             }
         }
 
         Msg::ClearCopyStateTimeout => {
-            state.copy_state = RemoteData::NotAsked;
+            if let State::Open(model) = state {
+                model.copy_state = RemoteData::NotAsked;
+            }
 
             Ok(effect::none())
         }
@@ -136,10 +164,7 @@ pub fn open<ToParentMsg, ParentMsg, AppEffect>(
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
-    *state = State {
-        is_open: true,
-        ..State::default()
-    };
+    *state = State::Open(Model::default());
 
     browser::set_timeout(
         Duration::from_millis(500),
@@ -148,9 +173,9 @@ where
 }
 
 pub fn view(state: &State) -> maud::Markup {
-    if state.is_open {
+    if let State::Open(model) = state {
         modal::view(
-            view_modal(state),
+            view_modal(model),
             &modal::Config {
                 backdrop_id: Id::SharingModalBackdrop,
                 close_button_id: Id::SharingModalClose,
@@ -161,10 +186,10 @@ pub fn view(state: &State) -> maud::Markup {
     }
 }
 
-fn view_modal(state: &State) -> maud::Markup {
+fn view_modal(model: &Model) -> maud::Markup {
     let url_max_length = 16000;
-    let maybe_overlay = SnippetUrlOverlay::from_state(state);
-    let snippet_url_value = state.snippet_url.clone().unwrap_or_default();
+    let maybe_overlay = SnippetUrlOverlay::from_state(model);
+    let snippet_url_value = model.snippet_url.clone().unwrap_or_default();
     let url_length = snippet_url_value.len();
 
     html! {
@@ -175,12 +200,12 @@ fn view_modal(state: &State) -> maud::Markup {
         }
 
         div class="mt-4" {
-            label class="block text-sm font-medium leading-6 text-gray-900" for=(Id::SnippetUrl) {
+            label class="block text-sm font-medium leading-6 text-gray-900" for=(Id::SnippetUrlInput) {
                 "Snippet url"
             }
             div class="mt-2 flex rounded-md shadow-sm" {
                 div class="relative flex flex-grow items-stretch focus-within:z-10" {
-                    input id=(Id::SnippetUrl) value=(snippet_url_value) readonly class="block w-full rounded-none rounded-l-md border-0 py-1.5 px-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6";
+                    input id=(Id::SnippetUrlInput) value=(snippet_url_value) readonly class="block w-full rounded-none rounded-l-md border-0 py-1.5 px-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6";
 
                     @if let Some(overlay) = maybe_overlay {
                         div class="absolute flex justify-center items-center w-full h-full rounded-none rounded-l-md border-0 bg-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 text-grey-900" {
@@ -188,7 +213,7 @@ fn view_modal(state: &State) -> maud::Markup {
                         }
                     }
                 }
-                button id=(Id::CopyUrl) disabled[state.snippet_url.is_none()] class="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" type="button" {
+                button id=(Id::CopyUrlButton) disabled[model.snippet_url.is_none()] class="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" type="button" {
                     span class="w-4 h-4" {
                         (heroicons_maud::clipboard_outline())
                     }
@@ -225,12 +250,12 @@ enum SnippetUrlOverlay {
 }
 
 impl SnippetUrlOverlay {
-    fn from_state(state: &State) -> Option<Self> {
-        match state.copy_state {
+    fn from_state(model: &Model) -> Option<Self> {
+        match model.copy_state {
             RemoteData::Success(_) => Some(Self::Copied),
             RemoteData::Failure(_) => Some(Self::Failure),
             RemoteData::NotAsked => {
-                if state.snippet_url.is_none() {
+                if model.snippet_url.is_none() {
                     Some(Self::Encoding)
                 } else {
                     None

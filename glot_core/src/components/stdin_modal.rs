@@ -11,8 +11,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct State {
-    is_open: bool,
+pub enum State {
+    #[default]
+    Closed,
+    Open(Model),
+}
+
+#[derive(Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Model {
     value: String,
 }
 
@@ -35,26 +42,37 @@ pub enum Msg {
 }
 
 pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
-    _state: &State,
+    state: &State,
     to_parent_msg: ToParentMsg,
 ) -> Subscription<ParentMsg, AppEffect>
 where
     ParentMsg: Clone,
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
-    let modal_config = modal::Config {
-        backdrop_id: Id::StdinModalBackdrop,
-        close_button_id: Id::StdinModalClose,
-    };
+    match state {
+        State::Open(_) => {
+            let modal_config = modal::Config {
+                backdrop_id: Id::StdinModalBackdrop,
+                close_button_id: Id::StdinModalClose,
+            };
 
-    subscription::batch(vec![
-        event_listener::on_input(Id::StdinInput, |captured| {
-            to_parent_msg(Msg::StdinChanged(captured))
-        }),
-        event_listener::on_click(Id::ClearStdinButton, to_parent_msg(Msg::ClearStdinClicked)),
-        event_listener::on_click(Id::SaveStdinButton, to_parent_msg(Msg::UpdateStdinClicked)),
-        modal::subscriptions(&modal_config, to_parent_msg(Msg::Close)),
-    ])
+            subscription::batch(vec![
+                event_listener::on_input(Id::StdinInput, |captured| {
+                    to_parent_msg(Msg::StdinChanged(captured))
+                }),
+                event_listener::on_click(
+                    Id::ClearStdinButton,
+                    to_parent_msg(Msg::ClearStdinClicked),
+                ),
+                event_listener::on_click(
+                    Id::SaveStdinButton,
+                    to_parent_msg(Msg::UpdateStdinClicked),
+                ),
+                modal::subscriptions(&modal_config, to_parent_msg(Msg::Close)),
+            ])
+        }
+        State::Closed => subscription::none(),
+    }
 }
 
 pub enum Event {
@@ -65,23 +83,31 @@ pub enum Event {
 pub fn update(msg: &Msg, state: &mut State) -> Result<Event, String> {
     match msg {
         Msg::StdinChanged(captured) => {
-            state.value = captured.value();
+            if let State::Open(model) = state {
+                model.value = captured.value();
+            }
 
             Ok(Event::None)
         }
 
         Msg::UpdateStdinClicked => {
-            let event = Event::StdinChanged(state.value.clone());
-            *state = State::default();
-
-            Ok(event)
+            if let State::Open(model) = state {
+                let event = Event::StdinChanged(model.value.clone());
+                *state = State::default();
+                Ok(event)
+            } else {
+                Ok(Event::None)
+            }
         }
 
         Msg::ClearStdinClicked => {
-            let event = Event::StdinChanged("".to_string());
-            *state = State::default();
-
-            Ok(event)
+            if let State::Open(_) = state {
+                let event = Event::StdinChanged("".to_string());
+                *state = State::default();
+                Ok(event)
+            } else {
+                Ok(Event::None)
+            }
         }
 
         Msg::Close => {
@@ -92,19 +118,18 @@ pub fn update(msg: &Msg, state: &mut State) -> Result<Event, String> {
 }
 
 pub fn open<ParentMsg, AppEffect>(state: &mut State, value: &str) -> Effect<ParentMsg, AppEffect> {
-    *state = State {
-        is_open: true,
+    *state = State::Open(Model {
         value: value.to_string(),
-        ..State::default()
-    };
+        ..Model::default()
+    });
 
     dom::focus_element(Id::StdinInput)
 }
 
 pub fn view(state: &State) -> maud::Markup {
-    if state.is_open {
+    if let State::Open(model) = state {
         modal::view(
-            view_modal(state),
+            view_modal(model),
             &modal::Config {
                 backdrop_id: Id::StdinModalBackdrop,
                 close_button_id: Id::StdinModalClose,
@@ -115,7 +140,7 @@ pub fn view(state: &State) -> maud::Markup {
     }
 }
 
-fn view_modal(state: &State) -> maud::Markup {
+fn view_modal(model: &Model) -> maud::Markup {
     html! {
         div class="text-center" {
             h3 class="text-lg leading-6 font-medium text-gray-900" {
@@ -129,7 +154,7 @@ fn view_modal(state: &State) -> maud::Markup {
             }
             div class="mt-1" {
                 textarea id=(Id::StdinInput) class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono" rows="8" {
-                    (state.value)
+                    (model.value)
                 }
             }
         }

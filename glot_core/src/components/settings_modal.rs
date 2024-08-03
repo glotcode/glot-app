@@ -6,7 +6,6 @@ use poly::browser::subscription;
 use poly::browser::subscription::event_listener;
 use poly::browser::subscription::Subscription;
 use poly::browser::value::Capture;
-use poly::browser::value::Value;
 use serde::{Deserialize, Serialize};
 
 use crate::ace_editor::EditorKeyboardBindings;
@@ -16,8 +15,15 @@ use crate::view::modal;
 
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct State {
-    is_open: bool,
+pub enum State {
+    #[default]
+    Closed,
+    Open(Model),
+}
+
+#[derive(Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Model {
     keyboard_bindings: EditorKeyboardBindings,
     theme: EditorTheme,
 }
@@ -34,35 +40,41 @@ enum Id {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum Msg {
-    KeyboardBindingsChanged(Capture<Value>),
-    EditorThemeChanged(Capture<Value>),
+    KeyboardBindingsChanged(Capture<EditorKeyboardBindings>),
+    EditorThemeChanged(Capture<EditorTheme>),
     Save,
     Close,
 }
 
 pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
-    _state: &State,
+    state: &State,
     to_parent_msg: ToParentMsg,
 ) -> Subscription<ParentMsg, AppEffect>
 where
     ParentMsg: Clone,
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
-    let modal_config = modal::Config {
-        backdrop_id: Id::SettingsModalBackdrop,
-        close_button_id: Id::SettingsModalClose,
-    };
+    match state {
+        State::Open(_) => {
+            let modal_config = modal::Config {
+                backdrop_id: Id::SettingsModalBackdrop,
+                close_button_id: Id::SettingsModalClose,
+            };
 
-    subscription::batch(vec![
-        event_listener::on_change(Id::KeyboardBindings, |captured| {
-            to_parent_msg(Msg::KeyboardBindingsChanged(captured))
-        }),
-        event_listener::on_change(Id::Theme, |captured| {
-            to_parent_msg(Msg::EditorThemeChanged(captured))
-        }),
-        event_listener::on_click(Id::SettingsSaveButton, to_parent_msg(Msg::Save)),
-        modal::subscriptions(&modal_config, to_parent_msg(Msg::Close)),
-    ])
+            subscription::batch(vec![
+                event_listener::on_change(Id::KeyboardBindings, |captured| {
+                    to_parent_msg(Msg::KeyboardBindingsChanged(captured))
+                }),
+                event_listener::on_change(Id::Theme, |captured| {
+                    to_parent_msg(Msg::EditorThemeChanged(captured))
+                }),
+                event_listener::on_click(Id::SettingsSaveButton, to_parent_msg(Msg::Save)),
+                modal::subscriptions(&modal_config, to_parent_msg(Msg::Close)),
+            ])
+        }
+
+        State::Closed => subscription::none(),
+    }
 }
 
 pub enum Event {
@@ -78,34 +90,32 @@ pub struct Settings {
 pub fn update(msg: &Msg, state: &mut State) -> Result<Event, String> {
     match msg {
         Msg::KeyboardBindingsChanged(captured) => {
-            let keyboard_bindings = captured
-                .value()
-                .parse()
-                .map_err(|err| format!("Failed to parse keyboard bindings: {}", err))?;
-
-            state.keyboard_bindings = keyboard_bindings;
+            if let State::Open(model) = state {
+                model.keyboard_bindings = captured.value();
+            }
 
             Ok(Event::None)
         }
 
         Msg::EditorThemeChanged(captured) => {
-            let theme = captured
-                .value()
-                .parse()
-                .map_err(|err| format!("Failed to parse keyboard bindings: {}", err))?;
-
-            state.theme = theme;
+            if let State::Open(model) = state {
+                model.theme = captured.value();
+            }
 
             Ok(Event::None)
         }
 
         Msg::Save => {
-            let settings = Settings {
-                keyboard_bindings: state.keyboard_bindings.clone(),
-                theme: state.theme.clone(),
-            };
-            *state = State::default();
-            Ok(Event::SettingsChanged(settings))
+            if let State::Open(model) = state {
+                let settings = Settings {
+                    keyboard_bindings: model.keyboard_bindings.clone(),
+                    theme: model.theme.clone(),
+                };
+                *state = State::default();
+                Ok(Event::SettingsChanged(settings))
+            } else {
+                Ok(Event::None)
+            }
         }
 
         Msg::Close => {
@@ -120,20 +130,19 @@ pub fn open<ParentMsg, AppEffect>(
     keyboard_bindings: &EditorKeyboardBindings,
     theme: &EditorTheme,
 ) -> Effect<ParentMsg, AppEffect> {
-    *state = State {
-        is_open: true,
+    *state = State::Open(Model {
         keyboard_bindings: keyboard_bindings.clone(),
         theme: theme.clone(),
-        ..State::default()
-    };
+        ..Model::default()
+    });
 
     dom::focus_element(Id::KeyboardBindings)
 }
 
 pub fn view(state: &State) -> maud::Markup {
-    if state.is_open {
+    if let State::Open(model) = state {
         modal::view(
-            view_modal(state),
+            view_modal(model),
             &modal::Config {
                 backdrop_id: Id::SettingsModalBackdrop,
                 close_button_id: Id::SettingsModalClose,
@@ -144,7 +153,7 @@ pub fn view(state: &State) -> maud::Markup {
     }
 }
 
-fn view_modal(state: &State) -> maud::Markup {
+fn view_modal(model: &Model) -> maud::Markup {
     html! {
         div class="text-center" {
             h3 class="text-lg leading-6 font-medium text-gray-900" {
@@ -161,7 +170,7 @@ fn view_modal(state: &State) -> maud::Markup {
         (dropdown::view(&dropdown::Config{
             id: Id::KeyboardBindings,
             title: "Keyboard Bindings",
-            selected_value: &state.keyboard_bindings,
+            selected_value: &model.keyboard_bindings,
             options: dropdown::Options::Ungrouped(vec![
                 (&EditorKeyboardBindings::Default, &EditorKeyboardBindings::Default.label()),
                 (&EditorKeyboardBindings::Vim, &EditorKeyboardBindings::Vim.label()),
@@ -172,7 +181,7 @@ fn view_modal(state: &State) -> maud::Markup {
         (dropdown::view(&dropdown::Config{
             id: Id::Theme,
             title: "Theme",
-            selected_value: &state.theme,
+            selected_value: &model.theme,
             options: dropdown::Options::Grouped(vec![
                 dropdown::Group{
                     label: "Bright",

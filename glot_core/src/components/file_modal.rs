@@ -70,14 +70,13 @@ where
     ParentMsg: Clone,
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
-    let modal_config = modal::Config {
-        backdrop_id: Id::FileModalBackdrop,
-        close_button_id: Id::FileModalClose,
-    };
-
     match state {
         State::Open(_) => {
-            // fmt
+            let modal_config = modal::Config {
+                backdrop_id: Id::FileModalBackdrop,
+                close_button_id: Id::FileModalClose,
+            };
+
             subscription::batch(vec![
                 event_listener::on_click(Id::AddFileButton, to_parent_msg(Msg::AddFileClicked)),
                 event_listener::on_click(
