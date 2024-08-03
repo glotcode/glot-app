@@ -20,12 +20,12 @@ use crate::util::select_list::SelectList;
 use crate::util::user_agent::UserAgent;
 use maud::html;
 use maud::Markup;
-use poly::browser;
 use poly::browser::dom_id::DomId;
 use poly::browser::effect;
 use poly::browser::effect::console;
 use poly::browser::effect::dom;
 use poly::browser::effect::local_storage;
+use poly::browser::effect::navigation;
 use poly::browser::effect::Effect;
 use poly::browser::selector::Selector;
 use poly::browser::subscription;
@@ -303,24 +303,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(effect::none())
             }
 
-            Msg::SettingsButtonClicked => {
-                let effect = settings_modal::open(
-                    &mut model.settings_modal_state,
-                    &model.editor_keyboard_bindings,
-                    &model.editor_theme,
-                );
-
-                Ok(effect)
-            }
-
-            Msg::StdinButtonClicked => {
-                let effect = stdin_modal::open(&mut model.stdin_modal_state, &model.stdin);
-                Ok(effect)
-            }
+            Msg::StdinButtonClicked => Ok(open_stdin_modal(model)),
 
             Msg::StdinModalMsg(child_msg) => {
                 let event = stdin_modal::update(child_msg, &mut model.stdin_modal_state)?;
 
+                // TODO: focus editor when closed
                 match event {
                     stdin_modal::Event::StdinChanged(stdin) => {
                         model.stdin = stdin;
@@ -348,47 +336,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(focus_editor_effect())
             }
 
-            Msg::EditFileClicked => {
-                let current_filename = model.files.selected().name.clone();
+            Msg::EditFileClicked => Ok(open_edit_file_modal(model)),
 
-                let existing_filenames = model
-                    .files
-                    .to_vec()
-                    .iter()
-                    .map(|file| file.name.clone())
-                    .filter(|name| name != &current_filename)
-                    .collect();
-
-                let effect = file_modal::open_for_edit(
-                    &mut model.file_modal_state,
-                    file_modal::EditContext {
-                        filename: model.files.selected().name.clone(),
-                        language: model.language.clone(),
-                        existing_filenames,
-                    },
-                );
-
-                Ok(effect)
-            }
-
-            Msg::AddFileClicked => {
-                let existing_filenames = model
-                    .files
-                    .to_vec()
-                    .iter()
-                    .map(|file| file.name.clone())
-                    .collect();
-
-                let effect = file_modal::open_for_add(
-                    &mut model.file_modal_state,
-                    file_modal::AddContext {
-                        language: model.language.clone(),
-                        existing_filenames,
-                    },
-                );
-
-                Ok(effect)
-            }
+            Msg::AddFileClicked => Ok(open_add_file_modal(model)),
 
             Msg::FileModalMsg(child_msg) => {
                 let event = file_modal::update(child_msg, &mut model.file_modal_state)?;
@@ -421,6 +371,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 }
             }
 
+            Msg::SettingsButtonClicked => Ok(open_settings_modal(model)),
             Msg::SettingsModalMsg(child_msg) => {
                 let event = settings_modal::update(child_msg, &mut model.settings_modal_state)?;
 
@@ -454,16 +405,9 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 Ok(effect)
             }
 
-            Msg::ShareClicked => {
-                let effect =
-                    sharing_modal::open(&mut model.sharing_modal_state, Msg::SharingModalMsg);
-                Ok(effect)
-            }
+            Msg::ShareClicked => Ok(open_sharing_modal(model)),
 
-            Msg::EditTitleClicked => {
-                let effect = title_modal::open(&mut model.title_modal_state, &model.title);
-                Ok(effect)
-            }
+            Msg::EditTitleClicked => Ok(open_title_modal(model)),
 
             Msg::SearchModalMsg(child_msg) => {
                 let data: search_modal::UpdateData<Msg, AppEffect, QuickAction> =
@@ -477,6 +421,13 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 let effect = if let Some(entry) = data.action {
                     match entry {
                         QuickAction::Run => run_effect(model),
+                        QuickAction::EditTitle => open_title_modal(model),
+                        QuickAction::EditFile => open_edit_file_modal(model),
+                        QuickAction::EditStdin => open_stdin_modal(model),
+                        QuickAction::AddFile => open_add_file_modal(model),
+                        QuickAction::Share => open_sharing_modal(model),
+                        QuickAction::Settings => open_settings_modal(model),
+                        QuickAction::GoToFrontPage => go_to_home(model),
 
                         QuickAction::GoToLanguage(action) => {
                             action.perform_action(&model.current_url)
@@ -906,7 +857,7 @@ fn view_stdin_bar(model: &Model) -> Markup {
     html! {
         @if model.stdin.is_empty() {
             button id=(Id::StdinButton) class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" type="button" {
-                span class="w-5 h-5 mr-1" { (heroicons_maud::plus_circle_outline()) }
+                span class="w-5 h-5 mr-1" { (heroicons_maud::pencil_square_outline()) }
                 span { "STDIN" }
             }
         } @else {
@@ -1019,13 +970,27 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
 #[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum QuickAction {
     Run,
+    EditTitle,
+    EditFile,
+    EditStdin,
+    AddFile,
+    Settings,
+    Share,
+    GoToFrontPage,
     GoToLanguage(LanguageQuickAction),
 }
 
 impl search_modal::EntryExtra for QuickAction {
     fn title(&self) -> String {
         match self {
-            QuickAction::Run => "Run code".to_string(),
+            QuickAction::Run => "Run code".into(),
+            QuickAction::EditTitle => "Edit title".into(),
+            QuickAction::EditFile => "Edit file".into(),
+            QuickAction::EditStdin => "Edit stdin data".into(),
+            QuickAction::AddFile => "Add file".into(),
+            QuickAction::Share => "Open sharing dialog".into(),
+            QuickAction::Settings => "Open settings".into(),
+            QuickAction::GoToFrontPage => "Go to front page".into(),
             QuickAction::GoToLanguage(action) => action.title(),
         }
     }
@@ -1033,6 +998,13 @@ impl search_modal::EntryExtra for QuickAction {
     fn keywords(&self) -> Vec<String> {
         match self {
             QuickAction::Run => vec!["run".to_string()],
+            QuickAction::EditTitle => vec!["edit".into(), "title".into()],
+            QuickAction::EditFile => vec!["edit".into(), "file".into()],
+            QuickAction::EditStdin => vec!["edit".into(), "stdin".into()],
+            QuickAction::AddFile => vec!["add".into(), "file".into()],
+            QuickAction::Share => vec!["open".into(), "sharing".into(), "share".into()],
+            QuickAction::Settings => vec!["open".into(), "settings".into()],
+            QuickAction::GoToFrontPage => vec!["home".into(), "frontpage".into()],
             QuickAction::GoToLanguage(action) => action.keywords(),
         }
     }
@@ -1040,6 +1012,13 @@ impl search_modal::EntryExtra for QuickAction {
     fn icon(&self) -> maud::Markup {
         match self {
             QuickAction::Run => heroicons_maud::play_outline(),
+            QuickAction::EditTitle => heroicons_maud::pencil_square_outline(),
+            QuickAction::EditFile => heroicons_maud::pencil_square_outline(),
+            QuickAction::EditStdin => heroicons_maud::pencil_square_outline(),
+            QuickAction::AddFile => heroicons_maud::document_plus_outline(),
+            QuickAction::Share => heroicons_maud::share_outline(),
+            QuickAction::Settings => heroicons_maud::cog_6_tooth_outline(),
+            QuickAction::GoToFrontPage => heroicons_maud::link_outline(),
             QuickAction::GoToLanguage(action) => action.icon(),
         }
     }
@@ -1059,13 +1038,29 @@ impl fmt::Display for QuickAction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             QuickAction::Run => write!(f, "run"),
-            QuickAction::GoToLanguage(action) => write!(f, "{}", action),
+            QuickAction::EditTitle => write!(f, "edit-title"),
+            QuickAction::EditFile => write!(f, "edit-file"),
+            QuickAction::EditStdin => write!(f, "edit-stdin"),
+            QuickAction::AddFile => write!(f, "add-file"),
+            QuickAction::Share => write!(f, "share"),
+            QuickAction::Settings => write!(f, "settings"),
+            QuickAction::GoToFrontPage => write!(f, "go-to-front-page"),
+            QuickAction::GoToLanguage(action) => action.fmt(f),
         }
     }
 }
 
 fn quick_actions() -> Vec<search_modal::Entry<QuickAction>> {
-    let snippet_actions = vec![QuickAction::Run];
+    let snippet_actions = vec![
+        QuickAction::Run,
+        QuickAction::EditTitle,
+        QuickAction::EditFile,
+        QuickAction::EditStdin,
+        QuickAction::AddFile,
+        QuickAction::Share,
+        QuickAction::Settings,
+        QuickAction::GoToFrontPage,
+    ];
 
     let language_actions = quick_action::language_actions()
         .into_iter()
@@ -1077,4 +1072,68 @@ fn quick_actions() -> Vec<search_modal::Entry<QuickAction>> {
         .into_iter()
         .map(search_modal::Entry::new)
         .collect()
+}
+
+fn open_stdin_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+    stdin_modal::open(&mut model.stdin_modal_state, &model.stdin)
+}
+
+fn open_sharing_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+    sharing_modal::open(&mut model.sharing_modal_state, Msg::SharingModalMsg)
+}
+
+fn open_title_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+    title_modal::open(&mut model.title_modal_state, &model.title)
+}
+
+fn open_settings_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+    settings_modal::open(
+        &mut model.settings_modal_state,
+        &model.editor_keyboard_bindings,
+        &model.editor_theme,
+    )
+}
+
+fn open_edit_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+    let current_filename = model.files.selected().name.clone();
+
+    let existing_filenames = model
+        .files
+        .to_vec()
+        .iter()
+        .map(|file| file.name.clone())
+        .filter(|name| name != &current_filename)
+        .collect();
+
+    file_modal::open_for_edit(
+        &mut model.file_modal_state,
+        file_modal::EditContext {
+            filename: model.files.selected().name.clone(),
+            language: model.language.clone(),
+            existing_filenames,
+        },
+    )
+}
+
+fn open_add_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+    let existing_filenames = model
+        .files
+        .to_vec()
+        .iter()
+        .map(|file| file.name.clone())
+        .collect();
+
+    file_modal::open_for_add(
+        &mut model.file_modal_state,
+        file_modal::AddContext {
+            language: model.language.clone(),
+            existing_filenames,
+        },
+    )
+}
+
+fn go_to_home(model: &Model) -> Effect<Msg, AppEffect> {
+    let route = Route::Home;
+    let url = route.to_absolute_path(&model.current_url);
+    navigation::set_location(&url)
 }
