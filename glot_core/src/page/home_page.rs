@@ -1,3 +1,4 @@
+use crate::common::browser_context::BrowserContext;
 use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::quick_action;
 use crate::common::quick_action::LanguageQuickAction;
@@ -34,8 +35,7 @@ pub struct Model {
 }
 
 pub struct HomePage {
-    pub current_url: Url,
-    pub user_agent: UserAgent,
+    pub browser_ctx: BrowserContext,
 }
 
 impl Page<Model, Msg, AppEffect, Markup> for HomePage {
@@ -51,9 +51,9 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 
         let model = Model {
             layout_state: app_layout::State::default(),
-            current_route: Route::from_path(self.current_url.path()),
-            current_url: self.current_url.clone(),
-            user_agent: self.user_agent.clone(),
+            current_route: Route::from_path(self.browser_ctx.current_url.path()),
+            current_url: self.browser_ctx.current_url.clone(),
+            user_agent: self.browser_ctx.user_agent.clone(),
             languages,
             search_modal_state: search_modal::State::default(),
         };

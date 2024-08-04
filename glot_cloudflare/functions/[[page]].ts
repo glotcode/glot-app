@@ -24,32 +24,34 @@ interface PageConfig {
 }
 
 function getPageConfig(route: string, request: any): PageConfig {
-    const windowSize = null;
-    const url = request.url;
-    const userAgent = request.headers.get("user-agent");
+    const browserContext = {
+        windowSize: null,
+        userAgent: request.headers.get("user-agent") || "",
+        currentUrl: request.url,
+    };
 
     switch (route) {
         case "NotFound":
             return {
-                page: glot.notFoundPage(userAgent, url),
+                page: glot.notFoundPage(browserContext),
                 status: 404,
             }
 
         case "Home":
             return {
-                page: glot.homePage(userAgent, url),
+                page: glot.homePage(browserContext),
                 status: 200,
             }
 
         case "NewSnippet":
             return {
-                page: glot.snippetPage(windowSize, userAgent, url),
+                page: glot.snippetPage(browserContext),
                 status: 200,
             }
 
         case "EditSnippet":
             return {
-                page: glot.snippetPage(windowSize, userAgent, url),
+                page: glot.snippetPage(browserContext),
                 status: 200,
             }
     }

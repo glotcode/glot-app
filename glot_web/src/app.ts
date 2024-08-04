@@ -52,20 +52,24 @@ AceEditorElement.register();
 
 function pageFromRoute(route: string): Page {
     const browserWindow = new BrowserWindow();
-    const windowSize = browserWindow.getSize();
+    const browserContext = {
+        windowSize: browserWindow.getSize(),
+        userAgent: navigator.userAgent,
+        currentUrl: location.href,
+    }
 
     switch (route) {
         case "NotFound":
-            return notFoundPage(navigator.userAgent, location.href)
+            return notFoundPage(browserContext)
 
         case "Home":
-            return homePage(navigator.userAgent, location.href)
+            return homePage(browserContext)
 
         case "NewSnippet":
-            return snippetPage(windowSize, navigator.userAgent, location.href)
+            return snippetPage(browserContext)
 
         case "EditSnippet":
-            return snippetPage(windowSize, navigator.userAgent, location.href)
+            return snippetPage(browserContext)
     }
 
     throw new Error(`Unhandled route: ${route}`);

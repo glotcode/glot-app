@@ -1,5 +1,6 @@
 use crate::ace_editor::EditorKeyboardBindings;
 use crate::ace_editor::EditorTheme;
+use crate::common::browser_context::BrowserContext;
 use crate::common::keyboard_shortcut::KeyboardShortcut;
 use crate::common::quick_action;
 use crate::common::quick_action::LanguageQuickAction;
@@ -127,14 +128,12 @@ pub enum Msg {
 }
 
 pub struct SnippetPage {
-    pub window_size: Option<WindowSize>,
-    pub user_agent: UserAgent,
-    pub current_url: Url,
+    pub browser_ctx: BrowserContext,
 }
 
 impl SnippetPage {
     fn get_model(&self) -> Result<Model, String> {
-        let current_route = Route::from_path(self.current_url.path());
+        let current_route = Route::from_path(self.browser_ctx.current_url.path());
 
         match &current_route {
             Route::NewSnippet(language) => self.model_for_new_snippet(&current_route, language),
@@ -158,8 +157,8 @@ impl SnippetPage {
         let title = "Hello World".to_string();
 
         Ok(Model {
-            window_size: self.window_size.clone(),
-            user_agent: self.user_agent.clone(),
+            window_size: self.browser_ctx.window_size.clone(),
+            user_agent: self.browser_ctx.user_agent.clone(),
             language: language_config,
             files: SelectList::singleton(file),
             title,
@@ -167,7 +166,7 @@ impl SnippetPage {
             editor_theme: Default::default(),
             stdin: "".to_string(),
             layout_state: app_layout::State::default(),
-            current_url: self.current_url.clone(),
+            current_url: self.browser_ctx.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
@@ -212,8 +211,8 @@ impl SnippetPage {
             .unwrap_or_else(|| SelectList::singleton(default_file));
 
         Ok(Model {
-            window_size: self.window_size.clone(),
-            user_agent: self.user_agent.clone(),
+            window_size: self.browser_ctx.window_size.clone(),
+            user_agent: self.browser_ctx.user_agent.clone(),
             language: language_config,
             files,
             title: snippet.title,
@@ -221,7 +220,7 @@ impl SnippetPage {
             editor_theme: Default::default(),
             stdin: snippet.stdin.to_string(),
             layout_state: app_layout::State::default(),
-            current_url: self.current_url.clone(),
+            current_url: self.browser_ctx.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,

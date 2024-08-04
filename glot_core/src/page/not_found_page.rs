@@ -1,3 +1,4 @@
+use crate::common::browser_context::BrowserContext;
 use crate::common::quick_action;
 use crate::common::quick_action::LanguageQuickAction;
 use crate::common::route::Route;
@@ -27,8 +28,7 @@ pub struct Model {
 }
 
 pub struct NotFoundPage {
-    pub current_url: Url,
-    pub user_agent: UserAgent,
+    pub browser_ctx: BrowserContext,
 }
 
 impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
@@ -38,9 +38,9 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
 
     fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
         let model = Model {
-            current_route: Route::from_path(self.current_url.path()),
-            current_url: self.current_url.clone(),
-            user_agent: self.user_agent.clone(),
+            current_route: Route::from_path(self.browser_ctx.current_url.path()),
+            current_url: self.browser_ctx.current_url.clone(),
+            user_agent: self.browser_ctx.user_agent.clone(),
             layout_state: Default::default(),
             search_modal_state: Default::default(),
         };
