@@ -40,7 +40,6 @@ use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::fmt;
-use url::Url;
 
 const MIN_EDITOR_HEIGHT: u64 = 300;
 const LOADING_TEXT: &str = r#"

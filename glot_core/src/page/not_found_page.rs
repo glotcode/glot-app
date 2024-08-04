@@ -1,7 +1,6 @@
 use crate::common::browser_context::BrowserContext;
 use crate::common::quick_action;
 use crate::common::quick_action::LanguageQuickAction;
-use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::layout::app_layout;
 use maud::html;

@@ -122,7 +122,6 @@ pub fn update(msg: &Msg, state: &mut State) -> Result<Event, String> {
 pub fn open<ParentMsg, AppEffect>(state: &mut State, value: &str) -> Effect<ParentMsg, AppEffect> {
     *state = State::Open(Model {
         value: value.to_string(),
-        ..Model::default()
     });
 
     dom::focus_element(Id::StdinInput)

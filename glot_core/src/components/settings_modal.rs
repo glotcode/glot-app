@@ -135,7 +135,6 @@ pub fn open<ParentMsg, AppEffect>(
     *state = State::Open(Model {
         keyboard_bindings: keyboard_bindings.clone(),
         theme: theme.clone(),
-        ..Model::default()
     });
 
     dom::focus_element(Id::KeyboardBindings)

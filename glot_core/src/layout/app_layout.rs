@@ -2,8 +2,6 @@ use crate::common::route::Route;
 use maud::html;
 use maud::Markup;
 use poly::browser::dom_id::DomId;
-use poly::browser::effect;
-use poly::browser::effect::Effect;
 use poly::browser::subscription;
 use poly::browser::subscription::event_listener;
 use poly::browser::subscription::Subscription;
@@ -36,7 +34,7 @@ pub enum State {
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
 #[strum(serialize_all = "kebab-case")]
-enum Id {
+pub enum Id {
     OpenSidebar,
     CloseSidebar,
     SidebarSearch,
