@@ -446,7 +446,11 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::AppLayoutMsg(child_msg) => {
-                app_layout::update(child_msg, &mut model.layout_state, Msg::AppLayoutMsg)
+                let event = app_layout::update(child_msg, &mut model.layout_state)?;
+                match event {
+                    app_layout::Event::None => Ok(effect::none()),
+                    app_layout::Event::OpenSearch => Ok(model.search_modal_state.open()),
+                }
             }
 
             Msg::TitleModalMsg(child_msg) => {

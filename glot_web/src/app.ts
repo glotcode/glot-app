@@ -56,7 +56,7 @@ function pageFromRoute(route: string): Page {
 
     switch (route) {
         case "NotFound":
-            return notFoundPage(location.href)
+            return notFoundPage(navigator.userAgent, location.href)
 
         case "Home":
             return homePage(navigator.userAgent, location.href)

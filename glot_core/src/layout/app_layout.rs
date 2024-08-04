@@ -28,8 +28,10 @@ pub fn render_page(markup: PageMarkup<Markup>) -> String {
 
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct State {
-    sidebar_is_open: bool,
+pub enum State {
+    #[default]
+    Closed,
+    Open,
 }
 
 #[derive(strum_macros::Display, poly_macro::DomId)]
@@ -37,6 +39,7 @@ pub struct State {
 enum Id {
     OpenSidebar,
     CloseSidebar,
+    SidebarSearch,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -44,60 +47,94 @@ enum Id {
 pub enum Msg {
     OpenSidebarClicked,
     CloseSidebarClicked,
+    SidebarSearchClicked,
 }
 
 pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
-    _state: &State,
+    state: &State,
     to_parent_msg: ToParentMsg,
 ) -> Subscription<ParentMsg, AppEffect>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
-    subscription::batch(vec![
-        event_listener::on_click_closest(Id::OpenSidebar, to_parent_msg(Msg::OpenSidebarClicked)),
-        event_listener::on_click_closest(Id::CloseSidebar, to_parent_msg(Msg::CloseSidebarClicked)),
-    ])
+    let search_listener = event_listener::on_click_closest(
+        Id::SidebarSearch,
+        to_parent_msg(Msg::SidebarSearchClicked),
+    );
+
+    match state {
+        State::Open => subscription::batch(vec![
+            event_listener::on_click_closest(
+                Id::CloseSidebar,
+                to_parent_msg(Msg::CloseSidebarClicked),
+            ),
+            search_listener,
+        ]),
+
+        State::Closed => subscription::batch(vec![
+            event_listener::on_click_closest(
+                Id::OpenSidebar,
+                to_parent_msg(Msg::OpenSidebarClicked),
+            ),
+            search_listener,
+        ]),
+    }
 }
 
-pub fn update<ToParentMsg, ParentMsg, AppEffect>(
-    msg: &Msg,
-    state: &mut State,
-    _to_parent_msg: ToParentMsg,
-) -> Result<Effect<ParentMsg, AppEffect>, String>
-where
-    ToParentMsg: Fn(Msg) -> ParentMsg,
-{
+pub enum Event {
+    None,
+    OpenSearch,
+}
+
+pub fn update(msg: &Msg, state: &mut State) -> Result<Event, String> {
     match msg {
         Msg::OpenSidebarClicked => {
-            state.sidebar_is_open = true;
-            Ok(effect::none())
+            *state = State::Open;
+            Ok(Event::None)
         }
 
         Msg::CloseSidebarClicked => {
-            state.sidebar_is_open = false;
-            Ok(effect::none())
+            *state = State::Closed;
+            Ok(Event::None)
+        }
+
+        Msg::SidebarSearchClicked => {
+            *state = State::Closed;
+            Ok(Event::OpenSearch)
         }
     }
+}
+
+pub enum ItemType {
+    Route(Route),
+    Button(Id),
 }
 
 pub struct SidebarItem {
     pub label: String,
     pub icon: Markup,
-    pub route: Route,
+    pub type_: ItemType,
 }
 
 impl SidebarItem {
     fn view(&self, current_route: &Route) -> Markup {
+        match &self.type_ {
+            ItemType::Route(route) => self.view_route(route, current_route),
+            ItemType::Button(id) => self.view_button(id),
+        }
+    }
+
+    fn view_route(&self, route: &Route, current_route: &Route) -> Markup {
         html! {
-            @if self.route.name() == current_route.name() {
-                a href=(self.route.to_path()) class="bg-gray-900 text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" {
+            @if route.name() == current_route.name() {
+                a href=(route.to_path()) class="bg-gray-900 text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" {
                     span class="text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
                         (self.icon)
                     }
                     (self.label)
                 }
             } @else {
-                a href=(self.route.to_path()) class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" {
+                a href=(route.to_path()) class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" {
                     span class="text-gray-400 group-hover:text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
                         (self.icon)
                     }
@@ -106,14 +143,32 @@ impl SidebarItem {
             }
         }
     }
+
+    fn view_button(&self, id: &Id) -> Markup {
+        html! {
+            button id=(id) class="w-full text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" {
+                span class="text-gray-400 group-hover:text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
+                    (self.icon)
+                }
+                (self.label)
+            }
+        }
+    }
 }
 
 fn sidebar_items() -> Vec<SidebarItem> {
-    vec![SidebarItem {
-        label: "Home".to_string(),
-        icon: heroicons_maud::home_solid(),
-        route: Route::Home,
-    }]
+    vec![
+        SidebarItem {
+            label: "Home".to_string(),
+            icon: heroicons_maud::home_solid(),
+            type_: ItemType::Route(Route::Home),
+        },
+        SidebarItem {
+            label: "Quick Action".to_string(),
+            icon: heroicons_maud::magnifying_glass_outline(),
+            type_: ItemType::Button(Id::SidebarSearch),
+        },
+    ]
 }
 
 pub fn app_shell(
@@ -131,7 +186,7 @@ pub fn app_shell(
 
     html! {
         div class="h-full" {
-            @if state.sidebar_is_open {
+            @if let State::Open = state {
                 div class="relative z-40 xl:hidden" role="dialog" aria-modal="true" {
                     div class="fixed inset-0 bg-gray-600 bg-opacity-75" {}
                     div class="fixed inset-0 flex z-40" {

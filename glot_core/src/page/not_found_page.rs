@@ -1,10 +1,15 @@
+use crate::common::quick_action;
+use crate::common::quick_action::LanguageQuickAction;
 use crate::common::route::Route;
+use crate::components::search_modal;
 use crate::layout::app_layout;
+use crate::util::user_agent::UserAgent;
 use maud::html;
 use maud::Markup;
 use poly::browser::dom_id::DomId;
 use poly::browser::effect;
 use poly::browser::effect::Effect;
+use poly::browser::subscription;
 use poly::browser::subscription::Subscription;
 use poly::page::Page;
 use poly::page::PageMarkup;
@@ -15,11 +20,15 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub current_route: Route,
+    pub current_url: Url,
+    pub user_agent: UserAgent,
     pub layout_state: app_layout::State,
+    pub search_modal_state: search_modal::State<LanguageQuickAction>,
 }
 
 pub struct NotFoundPage {
     pub current_url: Url,
+    pub user_agent: UserAgent,
 }
 
 impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
@@ -29,21 +38,52 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
 
     fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
         let model = Model {
-            layout_state: app_layout::State::default(),
             current_route: Route::from_path(self.current_url.path()),
+            current_url: self.current_url.clone(),
+            user_agent: self.user_agent.clone(),
+            layout_state: Default::default(),
+            search_modal_state: Default::default(),
         };
 
         Ok((model, effect::none()))
     }
 
     fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
-        app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg)
+        subscription::batch(vec![
+            app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg),
+            search_modal::subscriptions(
+                &model.user_agent,
+                &model.search_modal_state,
+                Msg::SearchModalMsg,
+            ),
+        ])
     }
 
     fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
         match msg {
             Msg::AppLayoutMsg(child_msg) => {
-                app_layout::update(child_msg, &mut model.layout_state, Msg::AppLayoutMsg)
+                let event = app_layout::update(child_msg, &mut model.layout_state)?;
+                match event {
+                    app_layout::Event::None => Ok(effect::none()),
+                    app_layout::Event::OpenSearch => Ok(model.search_modal_state.open()),
+                }
+            }
+
+            Msg::SearchModalMsg(child_msg) => {
+                let data: search_modal::UpdateData<Msg, AppEffect, LanguageQuickAction> =
+                    search_modal::update(
+                        child_msg,
+                        &mut model.search_modal_state,
+                        quick_action::language_entries(),
+                        Msg::SearchModalMsg,
+                    )?;
+
+                let effect = data
+                    .action
+                    .map(|entry| entry.perform_action(&model.current_url))
+                    .unwrap_or_else(effect::none);
+
+                Ok(effect::batch(vec![effect, data.effect]))
             }
         }
     }
@@ -74,6 +114,7 @@ enum Id {
 #[serde(rename_all = "camelCase")]
 pub enum Msg {
     AppLayoutMsg(app_layout::Msg),
+    SearchModalMsg(search_modal::Msg),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -100,6 +141,9 @@ fn view_body(model: &Model) -> maud::Markup {
                 &model.current_route,
             ))
 
+            div class="search-wrapper" {
+                (search_modal::view(&model.user_agent, &model.search_modal_state))
+            }
         }
     }
 }

@@ -62,19 +62,14 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 
     fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
-        let search_modal_subscriptions = search_modal::subscriptions(
-            &model.user_agent,
-            &model.search_modal_state,
-            Msg::SearchModalMsg,
-        );
-
-        let app_layout_subscriptions =
-            app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg);
-
         subscription::batch(vec![
             event_listener::on_click_closest(Id::QuickActionButton, Msg::QuickActionButtonClicked),
-            search_modal_subscriptions,
-            app_layout_subscriptions,
+            app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg),
+            search_modal::subscriptions(
+                &model.user_agent,
+                &model.search_modal_state,
+                Msg::SearchModalMsg,
+            ),
         ])
     }
 
@@ -103,7 +98,11 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
             }
 
             Msg::AppLayoutMsg(child_msg) => {
-                app_layout::update(child_msg, &mut model.layout_state, Msg::AppLayoutMsg)
+                let event = app_layout::update(child_msg, &mut model.layout_state)?;
+                match event {
+                    app_layout::Event::None => Ok(effect::none()),
+                    app_layout::Event::OpenSearch => Ok(model.search_modal_state.open()),
+                }
             }
         }
     }

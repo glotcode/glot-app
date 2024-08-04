@@ -31,7 +31,7 @@ function getPageConfig(route: string, request: any): PageConfig {
     switch (route) {
         case "NotFound":
             return {
-                page: glot.notFoundPage(url),
+                page: glot.notFoundPage(userAgent, url),
                 status: 404,
             }
 
