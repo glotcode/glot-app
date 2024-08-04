@@ -1,4 +1,4 @@
-use crate::language;
+use crate::language::Language;
 use crate::view::modal;
 use maud::html;
 use poly::browser::dom_id::DomId;
@@ -26,7 +26,7 @@ pub enum State {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
-    language: language::Config,
+    language: Language,
     existing_filenames: Vec<String>,
     filename: String,
     is_new: bool,
@@ -175,7 +175,7 @@ pub fn update(msg: &Msg, state: &mut State) -> Result<Event, String> {
 }
 
 pub struct EditContext {
-    pub language: language::Config,
+    pub language: Language,
     pub existing_filenames: Vec<String>,
     pub filename: String,
 }
@@ -196,7 +196,7 @@ pub fn open_for_edit<ParentMsg, AppEffect>(
 }
 
 pub struct AddContext {
-    pub language: language::Config,
+    pub language: Language,
     pub existing_filenames: Vec<String>,
 }
 
@@ -229,7 +229,8 @@ fn view_modal(model: &Model) -> maud::Markup {
         Id::EditFileForm
     };
 
-    let placeholder = &model.language.editor_config.default_filename;
+    let language_config = model.language.config();
+    let placeholder = &language_config.editor_config.default_filename;
 
     html! {
         div class="text-center" {

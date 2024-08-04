@@ -53,7 +53,7 @@ LOADING
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub browser_ctx: BrowserContext,
-    pub language: language::Config,
+    pub language: Language,
     pub files: SelectList<File>,
     pub title: String,
     pub editor_keyboard_bindings: EditorKeyboardBindings,
@@ -154,7 +154,7 @@ impl SnippetPage {
 
         Ok(Model {
             browser_ctx: self.browser_ctx.clone(),
-            language: language_config,
+            language: language.clone(),
             files: SelectList::singleton(file),
             title,
             editor_keyboard_bindings: Default::default(),
@@ -204,7 +204,7 @@ impl SnippetPage {
 
         Ok(Model {
             browser_ctx: self.browser_ctx.clone(),
-            language: language_config,
+            language: language.clone(),
             files,
             title: snippet.title,
             editor_keyboard_bindings: Default::default(),
@@ -459,12 +459,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::SharingModalMsg(child_msg) => {
                 let context = sharing_modal::Context {
                     current_url: model.browser_ctx.current_url.clone(),
-                    language: model.language.id.clone(),
+                    language: model.language.clone(),
                     snippet: Snippet {
                         title: model.title.clone(),
                         files: model.files.to_vec(),
                         stdin: model.stdin.clone(),
-                        language: model.language.id.to_string(),
+                        language: model.language.to_string(),
                     },
                 };
 
@@ -609,10 +609,11 @@ pub struct RunRequestPayload {
 }
 
 fn view_head(model: &Model) -> maud::Markup {
-    let description = format!("Run and share {} snippets", model.language.name);
+    let language_config = model.language.config();
+    let description = format!("Run and share {} snippets", language_config.name);
 
     html! {
-        title { (model.title) " - " (model.language.name) " snippet" }
+        title { (model.title) " - " (language_config.name) " snippet" }
         meta name="description" content=(description);
         meta name="viewport" content="width=device-width, initial-scale=1";
         link id="app-styles" rel="stylesheet" href="/static/app.css?hash=checksum";
@@ -665,6 +666,7 @@ fn view_content(model: &Model) -> Markup {
     let inline_styles = format!("height: {}px;", editor_height);
     let height = format!("{}px", editor_height);
     let content = model.files.selected().content;
+    let language_config = model.language.config();
 
     html! {
         div class="pt-6 h-full flex flex-col" {
@@ -694,9 +696,9 @@ fn view_content(model: &Model) -> Markup {
                                 stylesheet-id="app-styles"
                                 height=(height)
                                 keyboard-handler=(model.editor_keyboard_bindings.ace_keyboard_handler())
-                                mode=(model.language.editor_config.mode)
-                                use-soft-tabs=(model.language.editor_config.use_soft_tabs)
-                                tab-size=(model.language.editor_config.soft_tab_size)
+                                mode=(language_config.editor_config.mode)
+                                use-soft-tabs=(language_config.editor_config.use_soft_tabs)
+                                tab-size=(language_config.editor_config.soft_tab_size)
                                 theme=(model.editor_theme.ace_theme())
                             {
                                 (content)
@@ -926,14 +928,16 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
     )
 }
 
-fn get_language_version_effect(language: &language::Config) -> Effect<Msg, AppEffect> {
+fn get_language_version_effect(language: &Language) -> Effect<Msg, AppEffect> {
+    let language_config = language.config();
+
     let config = RunRequest {
-        image: language.run_config.container_image.clone(),
+        image: language_config.run_config.container_image.clone(),
         payload: RunRequestPayload {
-            language: language.id.clone(),
+            language: language.clone(),
             files: vec![],
             stdin: "".to_string(),
-            command: Some(language.run_config.version_command.clone()),
+            command: Some(language_config.run_config.version_command.clone()),
         },
     };
 
@@ -959,10 +963,12 @@ fn calc_editor_height(window_size: &WindowSize) -> u64 {
 }
 
 fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
+    let language_config = model.language.config();
+
     let config = RunRequest {
-        image: model.language.run_config.container_image.clone(),
+        image: language_config.run_config.container_image.clone(),
         payload: RunRequestPayload {
-            language: model.language.id.clone(),
+            language: model.language.clone(),
             files: model.files.to_vec(),
             stdin: model.stdin.clone(),
             command: None,
