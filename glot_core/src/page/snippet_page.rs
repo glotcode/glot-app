@@ -53,8 +53,7 @@ LOADING
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
-    pub window_size: Option<WindowSize>,
-    pub user_agent: UserAgent,
+    pub browser_ctx: BrowserContext,
     pub language: language::Config,
     pub files: SelectList<File>,
     pub title: String,
@@ -63,7 +62,6 @@ pub struct Model {
     pub stdin: String,
     pub layout_state: app_layout::State,
     pub current_route: Route,
-    pub current_url: Url,
     pub run_result: RemoteData<FailedRunResult, RunResult>,
     pub language_version_result: RemoteData<FailedRunResult, RunResult>,
     pub snippet: Option<Snippet>,
@@ -157,8 +155,7 @@ impl SnippetPage {
         let title = "Hello World".to_string();
 
         Ok(Model {
-            window_size: self.browser_ctx.window_size.clone(),
-            user_agent: self.browser_ctx.user_agent.clone(),
+            browser_ctx: self.browser_ctx.clone(),
             language: language_config,
             files: SelectList::singleton(file),
             title,
@@ -166,7 +163,6 @@ impl SnippetPage {
             editor_theme: Default::default(),
             stdin: "".to_string(),
             layout_state: app_layout::State::default(),
-            current_url: self.browser_ctx.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
@@ -211,8 +207,7 @@ impl SnippetPage {
             .unwrap_or_else(|| SelectList::singleton(default_file));
 
         Ok(Model {
-            window_size: self.browser_ctx.window_size.clone(),
-            user_agent: self.browser_ctx.user_agent.clone(),
+            browser_ctx: self.browser_ctx.clone(),
             language: language_config,
             files,
             title: snippet.title,
@@ -220,7 +215,6 @@ impl SnippetPage {
             editor_theme: Default::default(),
             stdin: snippet.stdin.to_string(),
             layout_state: app_layout::State::default(),
-            current_url: self.browser_ctx.current_url.clone(),
             current_route: route.clone(),
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
@@ -253,7 +247,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     }
 
     fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
-        let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.user_agent);
+        let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.browser_ctx.user_agent);
 
         subscription::batch(vec![
             event_listener::on_change_string(Id::Editor, Msg::EditorContentChanged),
@@ -273,7 +267,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             event_listener::on_click_closest(Id::Title, Msg::EditTitleClicked),
             event_listener::on_click_closest(Id::TopBarTitle, Msg::EditTitleClicked),
             search_modal::subscriptions(
-                &model.user_agent,
+                &model.browser_ctx.user_agent,
                 &model.search_modal_state,
                 Msg::SearchModalMsg,
             ),
@@ -291,7 +285,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::WindowSizeChanged(captured) => {
                 let window_size = captured.value();
 
-                model.window_size = Some(window_size);
+                model.browser_ctx.window_size = Some(window_size);
                 Ok(effect::none())
             }
 
@@ -434,7 +428,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         QuickAction::GoToFrontPage => go_to_home(model),
 
                         QuickAction::GoToLanguage(action) => {
-                            action.perform_action(&model.current_url)
+                            action.perform_action(&model.browser_ctx.current_url)
                         }
                     }
                 } else {
@@ -469,7 +463,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
             Msg::SharingModalMsg(child_msg) => {
                 let context = sharing_modal::Context {
-                    current_url: model.current_url.clone(),
+                    current_url: model.browser_ctx.current_url.clone(),
                     language: model.language.id.clone(),
                     snippet: Snippet {
                         title: model.title.clone(),
@@ -644,7 +638,7 @@ fn view_body(model: &Model) -> maud::Markup {
             ))
 
             (title_modal::view(&model.title_modal_state))
-            (search_modal::view(&model.user_agent, &model.search_modal_state))
+            (search_modal::view(&model.browser_ctx.user_agent, &model.search_modal_state))
             (sharing_modal::view(&model.sharing_modal_state))
             (settings_modal::view(&model.settings_modal_state))
             (stdin_modal::view(&model.stdin_modal_state))
@@ -670,8 +664,8 @@ fn view_topbar_title(model: &Model) -> maud::Markup {
 }
 
 fn view_content(model: &Model) -> Markup {
-    let has_real_window_size = model.window_size.is_some();
-    let window_size = model.window_size.clone().unwrap_or_default();
+    let has_real_window_size = model.browser_ctx.window_size.is_some();
+    let window_size = model.browser_ctx.window_size.clone().unwrap_or_default();
     let editor_height = calc_editor_height(&window_size);
     let inline_styles = format!("height: {}px;", editor_height);
     let height = format!("{}px", editor_height);
@@ -1152,6 +1146,6 @@ fn open_add_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
 
 fn go_to_home(model: &Model) -> Effect<Msg, AppEffect> {
     let route = Route::Home;
-    let url = route.to_absolute_path(&model.current_url);
+    let url = route.to_absolute_path(&model.browser_ctx.current_url);
     navigation::set_location(&url)
 }

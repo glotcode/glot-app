@@ -1,3 +1,4 @@
+use glot_core::common::browser_context::JsBrowserContext;
 use glot_core::page::not_found_page;
 use poly::page::wasm;
 use poly::page::Page;
@@ -11,8 +12,10 @@ impl_wasm_page!(NotFoundPage);
 
 #[wasm_bindgen(js_name = notFoundPage)]
 pub fn new(js_browser_ctx: JsValue) -> Result<NotFoundPage, JsValue> {
-    let browser_ctx = wasm::decode_js_value(js_browser_ctx)
+    let browser_ctx: JsBrowserContext = wasm::decode_js_value(js_browser_ctx)
         .map_err(|err| format!("Failed to decode browser context: {}", err))?;
 
-    Ok(NotFoundPage(not_found_page::NotFoundPage { browser_ctx }))
+    Ok(NotFoundPage(not_found_page::NotFoundPage {
+        browser_ctx: browser_ctx.into_browser_context(),
+    }))
 }

@@ -7,7 +7,6 @@ use crate::components::search_modal;
 use crate::language;
 use crate::language::Language;
 use crate::layout::app_layout;
-use crate::util::user_agent::UserAgent;
 use crate::view::features;
 use crate::view::language_grid;
 use maud::html;
@@ -21,14 +20,12 @@ use poly::browser::subscription::Subscription;
 use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub current_route: Route,
-    pub current_url: Url,
-    pub user_agent: UserAgent,
+    pub browser_ctx: BrowserContext,
     pub layout_state: app_layout::State,
     pub languages: Vec<language::Config>,
     pub search_modal_state: search_modal::State<LanguageQuickAction>,
@@ -52,8 +49,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         let model = Model {
             layout_state: app_layout::State::default(),
             current_route: Route::from_path(self.browser_ctx.current_url.path()),
-            current_url: self.browser_ctx.current_url.clone(),
-            user_agent: self.browser_ctx.user_agent.clone(),
+            browser_ctx: self.browser_ctx.clone(),
             languages,
             search_modal_state: search_modal::State::default(),
         };
@@ -66,7 +62,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
             event_listener::on_click_closest(Id::QuickActionButton, Msg::QuickActionButtonClicked),
             app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg),
             search_modal::subscriptions(
-                &model.user_agent,
+                &model.browser_ctx.user_agent,
                 &model.search_modal_state,
                 Msg::SearchModalMsg,
             ),
@@ -91,7 +87,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 
                 let effect = data
                     .action
-                    .map(|entry| entry.perform_action(&model.current_url))
+                    .map(|entry| entry.perform_action(&model.browser_ctx.current_url))
                     .unwrap_or_else(effect::none);
 
                 Ok(effect::batch(vec![effect, data.effect]))
@@ -166,7 +162,7 @@ fn view_body(model: &Model) -> maud::Markup {
                 &model.current_route,
             ))
 
-            (search_modal::view(&model.user_agent, &model.search_modal_state))
+            (search_modal::view(&model.browser_ctx.user_agent, &model.search_modal_state))
         }
     }
 }
@@ -237,7 +233,7 @@ fn view_content(model: &Model) -> Markup {
 }
 
 fn view_search_button(model: &Model) -> Markup {
-    let key_combo = KeyboardShortcut::OpenQuickSearch.key_combo(&model.user_agent);
+    let key_combo = KeyboardShortcut::OpenQuickSearch.key_combo(&model.browser_ctx.user_agent);
 
     html! {
         button id=(Id::QuickActionButton) class="hidden sm:flex items-center w-72 text-left space-x-3 px-4 h-12 bg-white ring-1 ring-slate-900/10 hover:ring-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm rounded-lg text-slate-400" type="button" {

@@ -1,3 +1,4 @@
+use glot_core::common::browser_context::JsBrowserContext;
 use glot_core::page::home_page;
 use poly::page::wasm;
 use poly::page::Page;
@@ -11,8 +12,10 @@ impl_wasm_page!(HomePage);
 
 #[wasm_bindgen(js_name = homePage)]
 pub fn new(js_browser_ctx: JsValue) -> Result<HomePage, JsValue> {
-    let browser_ctx = wasm::decode_js_value(js_browser_ctx)
+    let browser_ctx: JsBrowserContext = wasm::decode_js_value(js_browser_ctx)
         .map_err(|err| format!("Failed to decode browser context: {}", err))?;
 
-    Ok(HomePage(home_page::HomePage { browser_ctx }))
+    Ok(HomePage(home_page::HomePage {
+        browser_ctx: browser_ctx.into_browser_context(),
+    }))
 }

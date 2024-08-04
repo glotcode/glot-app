@@ -4,7 +4,6 @@ use crate::common::quick_action::LanguageQuickAction;
 use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::layout::app_layout;
-use crate::util::user_agent::UserAgent;
 use maud::html;
 use maud::Markup;
 use poly::browser::dom_id::DomId;
@@ -15,14 +14,12 @@ use poly::browser::subscription::Subscription;
 use poly::page::Page;
 use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub current_route: Route,
-    pub current_url: Url,
-    pub user_agent: UserAgent,
+    pub browser_ctx: BrowserContext,
     pub layout_state: app_layout::State,
     pub search_modal_state: search_modal::State<LanguageQuickAction>,
 }
@@ -39,8 +36,7 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
     fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
         let model = Model {
             current_route: Route::from_path(self.browser_ctx.current_url.path()),
-            current_url: self.browser_ctx.current_url.clone(),
-            user_agent: self.browser_ctx.user_agent.clone(),
+            browser_ctx: self.browser_ctx.clone(),
             layout_state: Default::default(),
             search_modal_state: Default::default(),
         };
@@ -52,7 +48,7 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
         subscription::batch(vec![
             app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg),
             search_modal::subscriptions(
-                &model.user_agent,
+                &model.browser_ctx.user_agent,
                 &model.search_modal_state,
                 Msg::SearchModalMsg,
             ),
@@ -80,7 +76,7 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
 
                 let effect = data
                     .action
-                    .map(|entry| entry.perform_action(&model.current_url))
+                    .map(|entry| entry.perform_action(&model.browser_ctx.current_url))
                     .unwrap_or_else(effect::none);
 
                 Ok(effect::batch(vec![effect, data.effect]))
@@ -142,7 +138,7 @@ fn view_body(model: &Model) -> maud::Markup {
             ))
 
             div class="search-wrapper" {
-                (search_modal::view(&model.user_agent, &model.search_modal_state))
+                (search_modal::view(&model.browser_ctx.user_agent, &model.search_modal_state))
             }
         }
     }
