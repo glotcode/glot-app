@@ -24,7 +24,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
-    pub current_route: Route,
     pub browser_ctx: BrowserContext,
     pub layout_state: app_layout::State,
     pub languages: Vec<language::Config>,
@@ -48,7 +47,6 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
 
         let model = Model {
             layout_state: app_layout::State::default(),
-            current_route: Route::from_path(self.browser_ctx.current_url.path()),
             browser_ctx: self.browser_ctx.clone(),
             languages,
             search_modal_state: search_modal::State::default(),
@@ -159,7 +157,7 @@ fn view_body(model: &Model) -> maud::Markup {
                 view_content(model),
                 None,
                 &model.layout_state,
-                &model.current_route,
+                &model.browser_ctx.current_route(),
             ))
 
             (search_modal::view(&model.browser_ctx.user_agent, &model.search_modal_state))

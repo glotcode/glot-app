@@ -61,7 +61,6 @@ pub struct Model {
     pub editor_theme: EditorTheme,
     pub stdin: String,
     pub layout_state: app_layout::State,
-    pub current_route: Route,
     pub run_result: RemoteData<FailedRunResult, RunResult>,
     pub language_version_result: RemoteData<FailedRunResult, RunResult>,
     pub snippet: Option<Snippet>,
@@ -131,20 +130,20 @@ pub struct SnippetPage {
 
 impl SnippetPage {
     fn get_model(&self) -> Result<Model, String> {
-        let current_route = Route::from_path(self.browser_ctx.current_url.path());
+        let current_route = self.browser_ctx.current_route();
 
         match &current_route {
-            Route::NewSnippet(language) => self.model_for_new_snippet(&current_route, language),
+            Route::NewSnippet(language) => self.model_for_new_snippet(language),
 
             Route::EditSnippet(language, encoded_snippet) => {
-                self.model_for_existing_snippet(&current_route, language, encoded_snippet)
+                self.model_for_existing_snippet(language, encoded_snippet)
             }
 
             _ => Err("Invalid route".to_string()),
         }
     }
 
-    fn model_for_new_snippet(&self, route: &Route, language: &Language) -> Result<Model, String> {
+    fn model_for_new_snippet(&self, language: &Language) -> Result<Model, String> {
         let language_config = language.config();
 
         let file = File {
@@ -163,7 +162,6 @@ impl SnippetPage {
             editor_theme: Default::default(),
             stdin: "".to_string(),
             layout_state: app_layout::State::default(),
-            current_route: route.clone(),
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
             snippet: None,
@@ -178,7 +176,6 @@ impl SnippetPage {
 
     fn model_for_existing_snippet(
         &self,
-        route: &Route,
         language: &Language,
         encoded_snippet: &str,
     ) -> Result<Model, String> {
@@ -215,7 +212,6 @@ impl SnippetPage {
             editor_theme: Default::default(),
             stdin: snippet.stdin.to_string(),
             layout_state: app_layout::State::default(),
-            current_route: route.clone(),
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
             snippet: Some(snippet_clone),
@@ -634,7 +630,7 @@ fn view_body(model: &Model) -> maud::Markup {
                 view_content(model),
                 Some(view_topbar_title(model)),
                 &model.layout_state,
-                &model.current_route,
+                &model.browser_ctx.current_route(),
             ))
 
             (title_modal::view(&model.title_modal_state))

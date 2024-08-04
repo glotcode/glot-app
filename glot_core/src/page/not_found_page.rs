@@ -18,7 +18,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
-    pub current_route: Route,
     pub browser_ctx: BrowserContext,
     pub layout_state: app_layout::State,
     pub search_modal_state: search_modal::State<LanguageQuickAction>,
@@ -35,7 +34,6 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
 
     fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
         let model = Model {
-            current_route: Route::from_path(self.browser_ctx.current_url.path()),
             browser_ctx: self.browser_ctx.clone(),
             layout_state: Default::default(),
             search_modal_state: Default::default(),
@@ -134,7 +132,7 @@ fn view_body(model: &Model) -> maud::Markup {
                 view_content(model),
                 None,
                 &model.layout_state,
-                &model.current_route,
+                &model.browser_ctx.current_route(),
             ))
 
             div class="search-wrapper" {

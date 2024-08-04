@@ -1,3 +1,4 @@
+use crate::common::route::Route;
 use crate::util::user_agent::UserAgent;
 use poly::browser::WindowSize;
 use serde::{Deserialize, Serialize};
@@ -9,6 +10,12 @@ pub struct BrowserContext {
     pub window_size: Option<WindowSize>,
     pub user_agent: UserAgent,
     pub current_url: Url,
+}
+
+impl BrowserContext {
+    pub fn current_route(&self) -> Route {
+        Route::from_path(self.current_url.path())
+    }
 }
 
 #[derive(Deserialize)]
