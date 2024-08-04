@@ -20,7 +20,7 @@ const MODAL_CONFIG: modal::Config<Id> = modal::Config {
 pub enum State {
     #[default]
     Closed,
-    Open(Model),
+    Open(Box<Model>),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -184,13 +184,13 @@ pub fn open_for_edit<ParentMsg, AppEffect>(
     state: &mut State,
     ctx: EditContext,
 ) -> Effect<ParentMsg, AppEffect> {
-    *state = State::Open(Model {
+    *state = State::Open(Box::new(Model {
         language: ctx.language,
         existing_filenames: ctx.existing_filenames,
         filename: ctx.filename,
         is_new: false,
         error: None,
-    });
+    }));
 
     dom::select_input_text(Id::FilenameInput)
 }
@@ -204,13 +204,13 @@ pub fn open_for_add<ParentMsg, AppEffect>(
     state: &mut State,
     ctx: AddContext,
 ) -> Effect<ParentMsg, AppEffect> {
-    *state = State::Open(Model {
+    *state = State::Open(Box::new(Model {
         language: ctx.language,
         existing_filenames: ctx.existing_filenames,
         filename: "".to_string(),
         is_new: true,
         error: None,
-    });
+    }));
 
     dom::focus_element(Id::FilenameInput)
 }
