@@ -1,6 +1,6 @@
-use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::language::Language;
+use crate::{common::route::Route, language};
 use poly::browser::effect::{navigation, Effect};
 use std::fmt;
 use url::Url;
@@ -51,7 +51,7 @@ impl fmt::Display for LanguageQuickAction {
 }
 
 pub fn language_actions() -> Vec<LanguageQuickAction> {
-    Language::list()
+    language::all()
         .into_iter()
         .map(LanguageQuickAction)
         .collect()

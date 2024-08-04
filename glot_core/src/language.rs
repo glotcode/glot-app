@@ -100,55 +100,6 @@ pub enum Language {
 }
 
 impl Language {
-    pub fn list() -> Vec<Language> {
-        vec![
-            Language::Assembly,
-            Language::Ats,
-            Language::Bash,
-            Language::C,
-            Language::Clisp,
-            Language::Clojure,
-            Language::Cobol,
-            Language::CoffeeScript,
-            Language::Cpp,
-            Language::Crystal,
-            Language::Csharp,
-            Language::D,
-            Language::Dart,
-            Language::Elixir,
-            Language::Elm,
-            Language::Erlang,
-            Language::Fsharp,
-            Language::Go,
-            Language::Groovy,
-            Language::Guile,
-            Language::Hare,
-            Language::Haskell,
-            Language::Idris,
-            Language::Java,
-            Language::JavaScript,
-            Language::Julia,
-            Language::Kotlin,
-            Language::Lua,
-            Language::Mercury,
-            Language::Nim,
-            Language::Nix,
-            Language::Ocaml,
-            Language::Pascal,
-            Language::Perl,
-            Language::Php,
-            Language::Python,
-            Language::Raku,
-            Language::Ruby,
-            Language::Rust,
-            Language::Sac,
-            Language::Scala,
-            Language::Swift,
-            Language::TypeScript,
-            Language::Zig,
-        ]
-    }
-
     pub fn config(&self) -> Config {
         match self {
             Self::Assembly => assembly::config(),
@@ -314,11 +265,60 @@ impl FromStr for Language {
     type Err = ParseIdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Language::list()
+        all()
             .into_iter()
             .find(|language| s == language.config().id.to_string())
             .ok_or(ParseIdError)
     }
+}
+
+pub fn all() -> Vec<Language> {
+    vec![
+        Language::Assembly,
+        Language::Ats,
+        Language::Bash,
+        Language::C,
+        Language::Clisp,
+        Language::Clojure,
+        Language::Cobol,
+        Language::CoffeeScript,
+        Language::Cpp,
+        Language::Crystal,
+        Language::Csharp,
+        Language::D,
+        Language::Dart,
+        Language::Elixir,
+        Language::Elm,
+        Language::Erlang,
+        Language::Fsharp,
+        Language::Go,
+        Language::Groovy,
+        Language::Guile,
+        Language::Hare,
+        Language::Haskell,
+        Language::Idris,
+        Language::Java,
+        Language::JavaScript,
+        Language::Julia,
+        Language::Kotlin,
+        Language::Lua,
+        Language::Mercury,
+        Language::Nim,
+        Language::Nix,
+        Language::Ocaml,
+        Language::Pascal,
+        Language::Perl,
+        Language::Php,
+        Language::Python,
+        Language::Raku,
+        Language::Ruby,
+        Language::Rust,
+        Language::Sac,
+        Language::Scala,
+        Language::Swift,
+        Language::TypeScript,
+        Language::Zig,
+    ]
 }
 
 #[derive(Clone, Serialize, Deserialize)]

@@ -5,7 +5,6 @@ use crate::common::quick_action::LanguageQuickAction;
 use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::language;
-use crate::language::Language;
 use crate::layout::app_layout;
 use crate::view::features;
 use crate::view::language_grid;
@@ -40,7 +39,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 
     fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
-        let languages: Vec<language::Config> = Language::list()
+        let languages: Vec<language::Config> = language::all()
             .iter()
             .map(|language| language.config())
             .collect();
