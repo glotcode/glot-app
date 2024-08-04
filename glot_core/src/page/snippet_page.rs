@@ -27,6 +27,7 @@ use poly::browser::effect::console;
 use poly::browser::effect::dom;
 use poly::browser::effect::local_storage;
 use poly::browser::effect::navigation;
+use poly::browser::effect::session_storage;
 use poly::browser::effect::Effect;
 use poly::browser::selector::Selector;
 use poly::browser::subscription;
@@ -40,6 +41,7 @@ use poly::page::PageMarkup;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::fmt;
+use url::Url;
 
 const MIN_EDITOR_HEIGHT: u64 = 300;
 const LOADING_TEXT: &str = r#"
@@ -105,6 +107,10 @@ pub enum Msg {
     SettingsModalMsg(settings_modal::Msg),
     GotSettings(Capture<Option<LocalStorageSettings>>),
     SavedSettings(Capture<bool>),
+
+    // Session related
+    GotSessionSnippet(Capture<Option<Snippet>>),
+    SavedSessionSnippet(Capture<bool>),
 
     // Stdin related
     StdinButtonClicked,
@@ -235,6 +241,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         let effect = effect::batch(vec![
             focus_editor_effect(),
             load_settings_effect(),
+            load_session_snippet_effect(&model.browser_ctx.current_url),
             get_language_version_effect(&model.language),
         ]);
 
@@ -289,7 +296,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                     file.content = captured.value();
                 });
 
-                Ok(effect::none())
+                Ok(save_session_snippet_effect(model))
             }
 
             Msg::StdinButtonClicked => Ok(open_stdin_modal(model)),
@@ -300,7 +307,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 match event {
                     stdin_modal::Event::StdinChanged(stdin) => {
                         model.stdin = stdin;
-                        Ok(focus_editor_effect())
+                        Ok(effect::batch(vec![
+                            save_session_snippet_effect(model),
+                            focus_editor_effect(),
+                        ]))
                     }
                     stdin_modal::Event::ModalClosed => Ok(focus_editor_effect()),
                     stdin_modal::Event::None => Ok(effect::none()),
@@ -338,7 +348,10 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                             file.name = filename.clone();
                         });
 
-                        Ok(focus_editor_effect())
+                        Ok(effect::batch(vec![
+                            save_session_snippet_effect(model),
+                            focus_editor_effect(),
+                        ]))
                     }
 
                     file_modal::Event::FileAdded(filename) => {
@@ -348,12 +361,18 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         });
 
                         model.files.select_last();
-                        Ok(focus_editor_effect())
+                        Ok(effect::batch(vec![
+                            save_session_snippet_effect(model),
+                            focus_editor_effect(),
+                        ]))
                     }
 
                     file_modal::Event::FileDeleted => {
                         model.files.remove_selected();
-                        Ok(focus_editor_effect())
+                        Ok(effect::batch(vec![
+                            save_session_snippet_effect(model),
+                            focus_editor_effect(),
+                        ]))
                     }
 
                     file_modal::Event::ModalClosed => Ok(focus_editor_effect()),
@@ -381,9 +400,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::GotSettings(captured) => {
-                let maybe_settings = captured.value();
-
-                if let Some(settings) = maybe_settings {
+                if let Some(settings) = captured.value() {
                     model.editor_keyboard_bindings = settings.editor_keyboard_bindings;
                     model.editor_theme = settings.editor_theme;
                 }
@@ -392,6 +409,21 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             Msg::SavedSettings(_captured) => Ok(effect::none()),
+
+            Msg::GotSessionSnippet(captured) => {
+                if let Some(snippet) = captured.value() {
+                    model.title = snippet.title;
+                    model.stdin = snippet.stdin;
+
+                    if let Some(files) = SelectList::from_vec(snippet.files) {
+                        model.files = files
+                    }
+                }
+
+                Ok(effect::none())
+            }
+
+            Msg::SavedSessionSnippet(_captured) => Ok(effect::none()),
 
             Msg::RunClicked => {
                 let effect = run_effect(model);
@@ -447,7 +479,11 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 match event {
                     title_modal::Event::TitleChanged(title) => {
                         model.title = title;
-                        Ok(focus_editor_effect())
+
+                        Ok(effect::batch(vec![
+                            save_session_snippet_effect(model),
+                            focus_editor_effect(),
+                        ]))
                     }
 
                     title_modal::Event::ModalClosed => Ok(focus_editor_effect()),
@@ -460,12 +496,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                 let context = sharing_modal::Context {
                     current_url: model.browser_ctx.current_url.clone(),
                     language: model.language.clone(),
-                    snippet: Snippet {
-                        title: model.title.clone(),
-                        files: model.files.to_vec(),
-                        stdin: model.stdin.clone(),
-                        language: model.language.to_string(),
-                    },
+                    snippet: snippet_from_model(model),
                 };
 
                 let data = sharing_modal::update(
@@ -928,6 +959,16 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
     )
 }
 
+fn load_session_snippet_effect(url: &Url) -> Effect<Msg, AppEffect> {
+    session_storage::get_item(url.path(), Msg::GotSessionSnippet)
+}
+
+fn save_session_snippet_effect(model: &Model) -> Effect<Msg, AppEffect> {
+    let path = model.browser_ctx.current_url.path();
+    let snippet = snippet_from_model(model);
+    session_storage::set_item(path, snippet, Msg::SavedSessionSnippet)
+}
+
 fn get_language_version_effect(language: &Language) -> Effect<Msg, AppEffect> {
     let language_config = language.config();
 
@@ -1149,4 +1190,13 @@ fn go_to_home(model: &Model) -> Effect<Msg, AppEffect> {
     let route = Route::Home;
     let url = route.to_absolute_path(&model.browser_ctx.current_url);
     navigation::set_location(&url)
+}
+
+fn snippet_from_model(model: &Model) -> Snippet {
+    Snippet {
+        title: model.title.clone(),
+        files: model.files.to_vec(),
+        stdin: model.stdin.clone(),
+        language: model.language.to_string(),
+    }
 }

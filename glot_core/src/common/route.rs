@@ -24,18 +24,13 @@ impl fmt::Display for RouteName {
     }
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Default)]
 pub enum Route {
     NotFound,
+    #[default]
     Home,
     NewSnippet(Language),
     EditSnippet(Language, String),
-}
-
-impl Default for Route {
-    fn default() -> Self {
-        Self::Home
-    }
 }
 
 impl Route {
