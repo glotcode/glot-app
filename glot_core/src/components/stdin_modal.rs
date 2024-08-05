@@ -86,7 +86,7 @@ pub fn update(msg: &Msg, state: &mut State) -> Result<Event, String> {
     match msg {
         Msg::StdinChanged(captured) => {
             if let State::Open(model) = state {
-                model.value = captured.value();
+                model.value = captured.value().trim_start().to_string();
             }
 
             Ok(Event::None)
