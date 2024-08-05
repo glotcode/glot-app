@@ -632,7 +632,7 @@ pub struct RunRequestPayload {
 
 fn view_head(model: &Model) -> maud::Markup {
     let language_config = model.language.config();
-    let description = format!("Run and share {} snippets", language_config.name);
+    let description = format!("{} playground - glot.io", language_config.name);
 
     html! {
         title { (model.title) " - " (language_config.name) " snippet" }

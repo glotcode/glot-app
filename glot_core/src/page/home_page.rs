@@ -137,10 +137,10 @@ pub enum Msg {
 pub enum AppEffect {}
 
 fn view_head(model: &Model) -> maud::Markup {
-    let description = format!("glot.io is an open source code sandbox for running and sharing code snippets. Currently supports {} different programming languages.", model.languages.len());
+    let description = format!("glot.io is an open source code playground for running and sharing code snippets. Currently supports {} different programming languages.", model.languages.len());
 
     html! {
-        title { "glot.io - code sandbox" }
+        title { "glot.io - code playground" }
         meta name="description" content=(description);
         meta name="viewport" content="width=device-width, initial-scale=1";
         link rel="stylesheet" href="/static/app.css?hash=checksum";
@@ -175,7 +175,7 @@ fn view_content(model: &Model) -> Markup {
                         a href="https://github.com/glotcode/glot" class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" {
                             "open source"
                         }
-                        span { " code sandbox." }
+                        span { " code playground." }
                     }
                 }
             }
