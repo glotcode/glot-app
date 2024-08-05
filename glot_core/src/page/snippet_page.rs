@@ -319,20 +319,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
             Msg::FileSelected(captured) => {
                 let filename = captured.value();
-
-                let maybe_index = model
-                    .files
-                    .to_vec()
-                    .iter()
-                    .enumerate()
-                    .find(|(_, file)| file.name == filename)
-                    .map(|(index, _)| index);
-
-                if let Some(index) = maybe_index {
-                    model.files.select_index(index);
-                }
-
-                Ok(focus_editor_effect())
+                let effect = select_file(model, &filename);
+                Ok(effect)
             }
 
             Msg::EditFileClicked => Ok(open_edit_file_modal(model)),
@@ -435,11 +423,13 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::EditTitleClicked => Ok(open_title_modal(model)),
 
             Msg::SearchModalMsg(child_msg) => {
+                let files = model.files.to_vec();
+
                 let data: search_modal::UpdateData<Msg, AppEffect, QuickAction> =
                     search_modal::update(
                         child_msg,
                         &mut model.search_modal_state,
-                        quick_actions(),
+                        quick_actions(files),
                         Msg::SearchModalMsg,
                     )?;
 
@@ -452,6 +442,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
                         QuickAction::AddFile => open_add_file_modal(model),
                         QuickAction::Share => open_sharing_modal(model),
                         QuickAction::Settings => open_settings_modal(model),
+                        QuickAction::SelectFile(name) => select_file(model, &name),
                         QuickAction::GoToFrontPage => go_to_home(model),
 
                         QuickAction::GoToLanguage(action) => {
@@ -1030,6 +1021,7 @@ pub enum QuickAction {
     AddFile,
     Settings,
     Share,
+    SelectFile(String),
     GoToFrontPage,
     GoToLanguage(LanguageQuickAction),
 }
@@ -1044,6 +1036,7 @@ impl search_modal::EntryExtra for QuickAction {
             QuickAction::AddFile => "Add file".into(),
             QuickAction::Share => "Open sharing dialog".into(),
             QuickAction::Settings => "Open settings".into(),
+            QuickAction::SelectFile(name) => format!("Select {}", name),
             QuickAction::GoToFrontPage => "Go to front page".into(),
             QuickAction::GoToLanguage(action) => action.title(),
         }
@@ -1058,6 +1051,7 @@ impl search_modal::EntryExtra for QuickAction {
             QuickAction::AddFile => vec!["add".into(), "file".into()],
             QuickAction::Share => vec!["open".into(), "sharing".into(), "share".into()],
             QuickAction::Settings => vec!["open".into(), "settings".into()],
+            QuickAction::SelectFile(name) => vec!["select".into(), name.clone()],
             QuickAction::GoToFrontPage => vec!["home".into(), "frontpage".into()],
             QuickAction::GoToLanguage(action) => action.keywords(),
         }
@@ -1072,6 +1066,7 @@ impl search_modal::EntryExtra for QuickAction {
             QuickAction::AddFile => heroicons_maud::document_plus_outline(),
             QuickAction::Share => heroicons_maud::share_outline(),
             QuickAction::Settings => heroicons_maud::cog_6_tooth_outline(),
+            QuickAction::SelectFile(_) => heroicons_maud::document_outline(),
             QuickAction::GoToFrontPage => heroicons_maud::link_outline(),
             QuickAction::GoToLanguage(action) => action.icon(),
         }
@@ -1098,13 +1093,14 @@ impl fmt::Display for QuickAction {
             QuickAction::AddFile => write!(f, "add-file"),
             QuickAction::Share => write!(f, "share"),
             QuickAction::Settings => write!(f, "settings"),
+            QuickAction::SelectFile(name) => write!(f, "select-file-{}", name),
             QuickAction::GoToFrontPage => write!(f, "go-to-front-page"),
             QuickAction::GoToLanguage(action) => action.fmt(f),
         }
     }
 }
 
-fn quick_actions() -> Vec<search_modal::Entry<QuickAction>> {
+fn quick_actions(files: Vec<File>) -> Vec<search_modal::Entry<QuickAction>> {
     let snippet_actions = vec![
         QuickAction::Run,
         QuickAction::EditTitle,
@@ -1116,12 +1112,17 @@ fn quick_actions() -> Vec<search_modal::Entry<QuickAction>> {
         QuickAction::GoToFrontPage,
     ];
 
+    let file_actions = files
+        .iter()
+        .map(|file| QuickAction::SelectFile(file.name.clone()))
+        .collect();
+
     let language_actions = quick_action::language_actions()
         .into_iter()
         .map(QuickAction::GoToLanguage)
         .collect();
 
-    [snippet_actions, language_actions]
+    [snippet_actions, file_actions, language_actions]
         .concat()
         .into_iter()
         .map(search_modal::Entry::new)
@@ -1184,6 +1185,22 @@ fn open_add_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
             existing_filenames,
         },
     )
+}
+
+fn select_file(model: &mut Model, filename: &str) -> Effect<Msg, AppEffect> {
+    let maybe_index = model
+        .files
+        .to_vec()
+        .iter()
+        .enumerate()
+        .find(|(_, file)| file.name == filename)
+        .map(|(index, _)| index);
+
+    if let Some(index) = maybe_index {
+        model.files.select_index(index);
+    }
+
+    focus_editor_effect()
 }
 
 fn go_to_home(model: &Model) -> Effect<Msg, AppEffect> {
