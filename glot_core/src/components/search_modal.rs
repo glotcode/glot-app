@@ -11,6 +11,7 @@ use poly::browser::keyboard::Key;
 use poly::browser::selector::Selector;
 use poly::browser::subscription;
 use poly::browser::subscription::event_listener;
+use poly::browser::subscription::event_listener::EventPropagation;
 use poly::browser::subscription::event_listener::ModifierKey;
 use poly::browser::subscription::Subscription;
 use poly::browser::value::Capture;
@@ -115,9 +116,13 @@ where
         State::Closed => {
             let key_combo = KeyboardShortcut::OpenQuickSearch.key_combo(user_agent);
 
-            event_listener::on_keydown(
+            event_listener::on_keydown_with_options(
                 key_combo.key,
                 key_combo.modifier,
+                EventPropagation {
+                    stop_propagation: false,
+                    prevent_default: true,
+                },
                 to_parent_msg(Msg::OpenModal),
             )
         }
