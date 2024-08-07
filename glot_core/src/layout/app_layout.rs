@@ -1,4 +1,5 @@
 use crate::common::route::Route;
+use crate::view::svg;
 use maud::html;
 use maud::Markup;
 use poly::browser::dom_id::DomId;
@@ -126,14 +127,14 @@ impl SidebarItem {
         html! {
             @if route.name() == current_route.name() {
                 a href=(route.to_path()) class="bg-gray-900 text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" {
-                    span class="text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
+                    span class="flex text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
                         (self.icon)
                     }
                     (self.label)
                 }
             } @else {
                 a href=(route.to_path()) class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-base font-medium rounded-md" {
-                    span class="text-gray-400 group-hover:text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
+                    span class="flex text-gray-400 group-hover:text-gray-300 mr-4 flex-shrink-0 h-6 w-6" {
                         (self.icon)
                     }
                     (self.label)
@@ -208,6 +209,23 @@ pub fn app_shell(
                                         (item.view(current_route))
                                     }
                                 }
+                                div class="mx-4 flex mb-4 gap-6" {
+                                    a href="https://twitter.com/glotcode" target="_blank" {
+                                        span class="flex w-6 h-6" {
+                                            (svg::x_logo())
+                                        }
+                                    }
+                                    a href="https://discord.gg/5fyVwp8559" target="_blank" {
+                                        span class="flex w-6 h-6" {
+                                            (svg::discord_logo())
+                                        }
+                                    }
+                                    a href="https://github.com/glotcode/glot" target="_blank" {
+                                        span class="flex w-6 h-6" {
+                                            (svg::github_logo())
+                                        }
+                                    }
+                                }
                                 div class="ml-4 text-white" {
                                     "Version: "
                                     a href=(commit_url) class="underline hover:no-underline text-gray-200 hover:text-gray-400 visited:text-purple-400" target="_blank" {
@@ -231,6 +249,23 @@ pub fn app_shell(
                         nav class="mt-5 flex-1 px-2 space-y-1" {
                             @for item in &items {
                                 (item.view(current_route))
+                            }
+                        }
+                        div class="mx-4 flex mb-4 gap-6" {
+                            a href="https://twitter.com/glotcode" target="_blank" {
+                                span class="flex w-6 h-6" {
+                                    (svg::x_logo())
+                                }
+                            }
+                            a href="https://discord.gg/5fyVwp8559" target="_blank" {
+                                span class="flex w-6 h-6" {
+                                    (svg::discord_logo())
+                                }
+                            }
+                            a href="https://github.com/glotcode/glot" target="_blank" {
+                                span class="flex w-6 h-6" {
+                                    (svg::github_logo())
+                                }
                             }
                         }
                         div class="ml-4 text-white" {
