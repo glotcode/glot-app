@@ -755,11 +755,9 @@ fn extract_language_version(model: &Model) -> Option<String> {
 }
 
 fn view_output_panel(model: &Model) -> Markup {
-    let ready_info = if let Some(version) = extract_language_version(model) {
-        format!("READY.\n\n{}", version)
-    } else {
-        "READY.".to_string()
-    };
+    let ready_info = extract_language_version(model)
+        .map(|version| format!("{}\nREADY.", version))
+        .unwrap_or_default();
 
     html! {
         div class="h-full border-b border-x border-gray-400 shadow-lg" {
