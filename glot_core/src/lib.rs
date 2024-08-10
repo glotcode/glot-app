@@ -4,6 +4,7 @@ pub mod components;
 pub mod language;
 pub mod layout;
 pub mod page;
+pub mod run;
 pub mod snippet;
 pub mod util;
 pub mod view;
