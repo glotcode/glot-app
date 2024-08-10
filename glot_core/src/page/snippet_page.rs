@@ -44,15 +44,10 @@ use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use url::Url;
 
+pub mod output_panel;
 pub mod quick_action;
 
 const MIN_EDITOR_HEIGHT: u64 = 300;
-const LOADING_TEXT: &str = r#"
-LOAD"*",8,1
-
-SEARCHING FOR *
-LOADING
-"#;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -689,101 +684,10 @@ fn view_content(model: &Model) -> Markup {
 
             div class="w-full flex-1 max-w-7xl mx-auto pb-4 px-4 sm:px-6 md:px-8" {
                 div ."h-full" ."pt-4" .hidden[!has_real_window_size] {
-                    (view_output_panel(model))
-                }
-            }
-        }
-    }
-}
-
-fn extract_language_version(model: &Model) -> Option<String> {
-    if let RemoteData::Success(run_result) = &model.language_version_result {
-        if run_result.stdout.is_empty() {
-            None
-        } else {
-            Some(run_result.stdout.clone())
-        }
-    } else {
-        None
-    }
-}
-
-fn view_output_panel(model: &Model) -> Markup {
-    let ready_info = extract_language_version(model)
-        .map(|version| format!("{}\nREADY.", version))
-        .unwrap_or_default();
-
-    html! {
-        div class="h-full border-b border-x border-gray-400 shadow-lg" {
-            dl {
-                @match &model.run_result {
-                    RemoteData::NotAsked => {
-                        (view_info(&ready_info))
-                    }
-
-                    RemoteData::Loading => {
-                        (view_info(LOADING_TEXT))
-                    }
-
-                    RemoteData::Success(run_result) => {
-                        @if run_result.is_empty() {
-                            (view_info("EMPTY OUTPUT"))
-                        } @else {
-                            (view_run_result(run_result))
-                        }
-                    }
-
-                    RemoteData::Failure(err) => {
-                        (view_info(&format!("ERROR: {}", err.message)))
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn view_info(text: &str) -> Markup {
-    html! {
-        dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
-            pre { "INFO" }
-        }
-        dd class="px-4 py-2 overflow-y-auto" {
-            pre { (text) }
-        }
-    }
-}
-
-fn view_run_result(run_result: &RunResult) -> Markup {
-    html! {
-        @if !run_result.stdout.is_empty() {
-            dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-green-400" {
-                pre { "STDOUT" }
-            }
-            dd class="px-4 py-2 overflow-y-auto" {
-                pre {
-                    (run_result.stdout)
-                }
-            }
-        }
-
-        @if !run_result.stderr.is_empty() {
-            dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-yellow-400" {
-                pre { "STDERR" }
-            }
-            dd class="px-4 py-2 overflow-y-auto" {
-                pre {
-                    (run_result.stderr)
-                }
-            }
-        }
-
-        @if !run_result.error.is_empty() {
-            dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-red-400" {
-                pre { "ERROR" }
-            }
-            dd class="px-4 py-2 overflow-y-auto" {
-                pre {
-                    (run_result.error)
+                    (output_panel::view(output_panel::ViewModel {
+                        run_result: &model.run_result,
+                        version_result: &model.language_version_result,
+                    }))
                 }
             }
         }
