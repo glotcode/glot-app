@@ -3,7 +3,7 @@ use maud::html;
 use maud::Markup;
 
 pub struct Language {
-    pub icon_path: String,
+    pub logo: Markup,
     pub name: String,
     pub route: Route,
 }
@@ -16,7 +16,7 @@ pub fn view(languages: Vec<Language>) -> Markup {
                     li class="col-span-1 rounded-md shadow-sm border border-gray-200 bg-white" {
                         a class="flex" href=(language.route.to_path()) {
                             div class="p-3 flex-shrink-0 flex items-center justify-center w-16 h-16 text-white text-sm font-medium" {
-                                img class="mx-auto flex-shrink-0 h-[40px]" src=(language.icon_path);
+                                (language.logo)
                             }
                             div class="flex flex-1 items-center justify-between border-l border-gray-200 truncate" {
                                 div class="flex-1 truncate px-4 py-2 text-2xl" {

@@ -43,6 +43,7 @@ pub mod swift;
 pub mod typescript;
 pub mod zig;
 
+use maud::Markup;
 use serde::Deserialize;
 use serde::Serialize;
 use std::fmt;
@@ -321,12 +322,13 @@ pub fn all() -> Vec<Language> {
     ]
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone)]
 pub struct Config {
     pub id: Language,
     pub name: String,
+    // TODO: remove logo_svg_path
     pub logo_svg_path: String,
+    pub logo: Markup,
     pub file_extension: String,
     pub editor_config: EditorConfig,
     pub run_config: RunConfig,

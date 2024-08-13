@@ -25,7 +25,6 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     pub browser_ctx: BrowserContext,
     pub layout_state: app_layout::State,
-    pub languages: Vec<language::Config>,
     pub search_modal_state: search_modal::State<LanguageQuickAction>,
 }
 
@@ -39,15 +38,9 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 
     fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
-        let languages: Vec<language::Config> = language::all()
-            .iter()
-            .map(|language| language.config())
-            .collect();
-
         let model = Model {
             layout_state: app_layout::State::default(),
             browser_ctx: self.browser_ctx.clone(),
-            languages,
             search_modal_state: search_modal::State::default(),
         };
 
@@ -101,9 +94,14 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 
     fn view(&self, model: &Model) -> PageMarkup<Markup> {
+        let language_configs: Vec<language::Config> = language::all()
+            .iter()
+            .map(|language| language.config())
+            .collect();
+
         PageMarkup {
-            head: view_head(model),
-            body: view_body(model),
+            head: view_head(model, &language_configs),
+            body: view_body(model, &language_configs),
         }
     }
 
@@ -136,8 +134,8 @@ pub enum Msg {
 #[serde(rename_all = "camelCase")]
 pub enum AppEffect {}
 
-fn view_head(model: &Model) -> maud::Markup {
-    let description = format!("glot.io is an open source code playground for running and sharing code snippets. Currently supports {} different programming languages.", model.languages.len());
+fn view_head(model: &Model, language_configs: &Vec<language::Config>) -> maud::Markup {
+    let description = format!("glot.io is an open source code playground for running and sharing code snippets. Currently supports {} different programming languages.", language_configs.len());
 
     html! {
         title { "glot.io - code playground" }
@@ -149,11 +147,11 @@ fn view_head(model: &Model) -> maud::Markup {
     }
 }
 
-fn view_body(model: &Model) -> maud::Markup {
+fn view_body(model: &Model, language_configs: &Vec<language::Config>) -> maud::Markup {
     html! {
         div id=(Id::Glot) class="h-full" {
             (app_layout::app_shell(
-                view_content(model),
+                view_content(model, language_configs),
                 None,
                 &model.layout_state,
                 &model.browser_ctx.current_route(),
@@ -164,7 +162,7 @@ fn view_body(model: &Model) -> maud::Markup {
     }
 }
 
-fn view_content(model: &Model) -> Markup {
+fn view_content(model: &Model, language_configs: &Vec<language::Config>) -> Markup {
     html! {
         div class="h-full flex flex-col bg-white" {
             div class="background-banner h-60 min-h-[15rem]" {
@@ -187,7 +185,7 @@ fn view_content(model: &Model) -> Markup {
                         features::Feature {
                             icon: heroicons_maud::play_outline(),
                             title: "Run code",
-                            description: &format!("Support for {} different languages. The code is executed in a transient docker container without network.", model.languages.len()),
+                            description: &format!("Support for {} different languages. The code is executed in a transient docker container without network.", language_configs.len()),
                         },
                         features::Feature {
                             icon: heroicons_maud::share_outline(),
@@ -221,7 +219,7 @@ fn view_content(model: &Model) -> Markup {
                     }
 
                     div class="mt-4" {
-                        (language_grid::view(model.languages.iter().map(to_grid_language).collect::<Vec<_>>()))
+                        (language_grid::view(language_configs.iter().map(to_grid_language).collect::<Vec<_>>()))
                     }
                 }
             }
@@ -252,7 +250,7 @@ fn view_search_button(model: &Model) -> Markup {
 fn to_grid_language(language: &language::Config) -> language_grid::Language {
     language_grid::Language {
         name: language.name.clone(),
-        icon_path: language.logo_svg_path.to_string(),
+        logo: language.logo.clone(),
         route: Route::NewSnippet(language.id.clone()),
     }
 }
