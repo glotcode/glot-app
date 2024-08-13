@@ -32,7 +32,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Clojure,
         name: "Clojure".to_string(),
-        logo_svg_path: "/static/assets/language/clojure.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "clj".to_string(),
         editor_config: EditorConfig {

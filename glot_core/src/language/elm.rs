@@ -31,7 +31,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Elm,
         name: "Elm".to_string(),
-        logo_svg_path: "/static/assets/language/elm.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "elm".to_string(),
         editor_config: EditorConfig {

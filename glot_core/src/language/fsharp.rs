@@ -29,7 +29,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Fsharp,
         name: "F#".to_string(),
-        logo_svg_path: "/static/assets/language/fsharp.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "fs".to_string(),
         editor_config: EditorConfig {

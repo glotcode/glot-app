@@ -40,7 +40,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Swift,
         name: "Swift".to_string(),
-        logo_svg_path: "/static/assets/language/swift.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "swift".to_string(),
         editor_config: EditorConfig {

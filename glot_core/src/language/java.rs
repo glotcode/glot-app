@@ -37,7 +37,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Java,
         name: "Java".to_string(),
-        logo_svg_path: "/static/assets/language/java.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "java".to_string(),
         editor_config: EditorConfig {

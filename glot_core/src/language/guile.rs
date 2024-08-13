@@ -30,7 +30,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Guile,
         name: "Guile".to_string(),
-        logo_svg_path: "/static/assets/language/guile.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "scm".to_string(),
         editor_config: EditorConfig {

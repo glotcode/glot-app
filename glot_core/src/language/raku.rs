@@ -141,7 +141,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Raku,
         name: "Raku".to_string(),
-        logo_svg_path: "/static/assets/language/raku.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "raku".to_string(),
         editor_config: EditorConfig {

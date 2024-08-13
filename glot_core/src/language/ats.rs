@@ -27,7 +27,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Ats,
         name: "ATS".to_string(),
-        logo_svg_path: "/static/assets/language/ats.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "dats".to_string(),
         editor_config: EditorConfig {

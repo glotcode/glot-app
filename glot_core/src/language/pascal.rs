@@ -96,7 +96,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Pascal,
         name: "Pascal".to_string(),
-        logo_svg_path: "/static/assets/language/pascal.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "pp".to_string(),
         editor_config: EditorConfig {

@@ -24,7 +24,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Crystal,
         name: "Crystal".to_string(),
-        logo_svg_path: "/static/assets/language/crystal.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "cr".to_string(),
         editor_config: EditorConfig {

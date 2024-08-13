@@ -53,7 +53,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Ocaml,
         name: "Ocaml".to_string(),
-        logo_svg_path: "/static/assets/language/ocaml.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "ml".to_string(),
         editor_config: EditorConfig {

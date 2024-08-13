@@ -26,7 +26,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Groovy,
         name: "Groovy".to_string(),
-        logo_svg_path: "/static/assets/language/groovy.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "groovy".to_string(),
         editor_config: EditorConfig {

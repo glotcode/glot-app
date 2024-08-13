@@ -35,7 +35,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Kotlin,
         name: "Kotlin".to_string(),
-        logo_svg_path: "/static/assets/language/kotlin.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "kt".to_string(),
         editor_config: EditorConfig {

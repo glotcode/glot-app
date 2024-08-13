@@ -256,7 +256,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Ruby,
         name: "Ruby".to_string(),
-        logo_svg_path: "/static/assets/language/ruby.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "rb".to_string(),
         editor_config: EditorConfig {

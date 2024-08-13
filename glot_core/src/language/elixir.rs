@@ -25,7 +25,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Elixir,
         name: "Elixir".to_string(),
-        logo_svg_path: "/static/assets/language/elixir.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "ex".to_string(),
         editor_config: EditorConfig {

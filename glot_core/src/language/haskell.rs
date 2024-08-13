@@ -28,7 +28,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Haskell,
         name: "Haskell".to_string(),
-        logo_svg_path: "/static/assets/language/haskell.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "hs".to_string(),
         editor_config: EditorConfig {

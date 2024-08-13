@@ -24,7 +24,6 @@ pub fn config() -> Config {
     Config {
         id: Language::CoffeeScript,
         name: "CoffeeScript".to_string(),
-        logo_svg_path: "/static/assets/language/coffeescript.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "coffee".to_string(),
         editor_config: EditorConfig {

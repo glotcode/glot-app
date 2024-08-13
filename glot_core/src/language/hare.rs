@@ -44,7 +44,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Hare,
         name: "Hare".to_string(),
-        logo_svg_path: "/static/assets/language/hare.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "ha".to_string(),
         editor_config: EditorConfig {

@@ -72,7 +72,6 @@ pub fn config() -> Config {
         id: Language::Nix,
         name: "Nix".to_string(),
         logo: logo(),
-        logo_svg_path: "/static/assets/language/nix.svg?hash=checksum".to_string(),
         file_extension: "nix".to_string(),
         editor_config: EditorConfig {
             default_filename: "main.nix".to_string(),

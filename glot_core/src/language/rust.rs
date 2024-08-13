@@ -26,7 +26,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Rust,
         name: "Rust".to_string(),
-        logo_svg_path: "/static/assets/language/rust.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "rs".to_string(),
         editor_config: EditorConfig {

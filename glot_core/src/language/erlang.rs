@@ -36,7 +36,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Erlang,
         name: "Erlang".to_string(),
-        logo_svg_path: "/static/assets/language/erlang.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "erl".to_string(),
         editor_config: EditorConfig {

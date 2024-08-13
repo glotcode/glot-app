@@ -28,7 +28,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Clisp,
         name: "Common Lisp".to_string(),
-        logo_svg_path: "/static/assets/language/clisp.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "lsp".to_string(),
         editor_config: EditorConfig {

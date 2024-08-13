@@ -326,8 +326,6 @@ pub fn all() -> Vec<Language> {
 pub struct Config {
     pub id: Language,
     pub name: String,
-    // TODO: remove logo_svg_path
-    pub logo_svg_path: String,
     pub logo: Markup,
     pub file_extension: String,
     pub editor_config: EditorConfig,

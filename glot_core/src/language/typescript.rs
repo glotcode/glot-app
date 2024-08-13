@@ -28,7 +28,6 @@ pub fn config() -> Config {
     Config {
         id: Language::TypeScript,
         name: "TypeScript".to_string(),
-        logo_svg_path: "/static/assets/language/typescript.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "ts".to_string(),
         editor_config: EditorConfig {

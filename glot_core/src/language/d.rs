@@ -68,7 +68,6 @@ pub fn config() -> Config {
     Config {
         id: Language::D,
         name: "D".to_string(),
-        logo_svg_path: "/static/assets/language/d.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "d".to_string(),
         editor_config: EditorConfig {

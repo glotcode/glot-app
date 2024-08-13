@@ -32,7 +32,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Lua,
         name: "Lua".to_string(),
-        logo_svg_path: "/static/assets/language/lua.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "lua".to_string(),
         editor_config: EditorConfig {

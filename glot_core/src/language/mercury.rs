@@ -34,7 +34,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Mercury,
         name: "Mercury".to_string(),
-        logo_svg_path: "/static/assets/language/mercury.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "m".to_string(),
         editor_config: EditorConfig {

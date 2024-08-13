@@ -40,7 +40,6 @@ pub fn config() -> Config {
     Config {
         id: Language::Python,
         name: "Python".to_string(),
-        logo_svg_path: "/static/assets/language/python.svg?hash=checksum".to_string(),
         logo: logo(),
         file_extension: "py".to_string(),
         editor_config: EditorConfig {
