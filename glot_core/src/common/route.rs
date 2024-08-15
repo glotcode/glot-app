@@ -57,8 +57,8 @@ impl Route {
         match self {
             Route::NotFound => "/not-found".to_string(),
             Route::Home => "/".to_string(),
-            Route::NewSnippet(language) => format!("/{}", language),
-            Route::EditSnippet(language, id) => format!("/{}/{}", language, id),
+            Route::NewSnippet(language) => format!("/{}", language.config().id()),
+            Route::EditSnippet(language, id) => format!("/{}/{}", language.config().id(), id),
         }
     }
 

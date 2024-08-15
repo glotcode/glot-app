@@ -229,8 +229,8 @@ fn view_modal(model: &Model) -> maud::Markup {
         Id::EditFileForm
     };
 
-    let language_config = model.language.config();
-    let placeholder = &language_config.editor_config.default_filename;
+    let editor_config = model.language.config().editor_config();
+    let placeholder = editor_config.default_filename;
 
     html! {
         div class="text-center" {

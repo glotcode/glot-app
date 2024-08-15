@@ -5,6 +5,8 @@ use crate::common::quick_action::LanguageQuickAction;
 use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::language;
+use crate::language::Language;
+use crate::language::LanguageConfig;
 use crate::layout::app_layout;
 use crate::view::features;
 use crate::view::language_grid;
@@ -94,14 +96,9 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
     }
 
     fn view(&self, model: &Model) -> PageMarkup<Markup> {
-        let language_configs: Vec<language::Config> = language::all()
-            .iter()
-            .map(|language| language.config())
-            .collect();
-
         PageMarkup {
-            head: view_head(model, &language_configs),
-            body: view_body(model, &language_configs),
+            head: view_head(model),
+            body: view_body(model),
         }
     }
 
@@ -134,8 +131,9 @@ pub enum Msg {
 #[serde(rename_all = "camelCase")]
 pub enum AppEffect {}
 
-fn view_head(model: &Model, language_configs: &Vec<language::Config>) -> maud::Markup {
-    let description = format!("glot.io is an open source code playground for running and sharing code snippets. Currently supports {} different programming languages.", language_configs.len());
+fn view_head(model: &Model) -> maud::Markup {
+    let count = language::all().len();
+    let description = format!("glot.io is an open source code playground for running and sharing code snippets. Currently supports {} different programming languages.", count);
 
     html! {
         title { "glot.io - code playground" }
@@ -147,11 +145,11 @@ fn view_head(model: &Model, language_configs: &Vec<language::Config>) -> maud::M
     }
 }
 
-fn view_body(model: &Model, language_configs: &Vec<language::Config>) -> maud::Markup {
+fn view_body(model: &Model) -> maud::Markup {
     html! {
         div id=(Id::Glot) class="h-full" {
             (app_layout::app_shell(
-                view_content(model, language_configs),
+                view_content(model),
                 None,
                 &model.layout_state,
                 &model.browser_ctx.current_route(),
@@ -162,7 +160,7 @@ fn view_body(model: &Model, language_configs: &Vec<language::Config>) -> maud::M
     }
 }
 
-fn view_content(model: &Model, language_configs: &Vec<language::Config>) -> Markup {
+fn view_content(model: &Model) -> Markup {
     html! {
         div class="h-full flex flex-col bg-white" {
             div class="background-banner h-60 min-h-[15rem]" {
@@ -185,7 +183,7 @@ fn view_content(model: &Model, language_configs: &Vec<language::Config>) -> Mark
                         features::Feature {
                             icon: heroicons_maud::play_outline(),
                             title: "Run code",
-                            description: &format!("Support for {} different languages. The code is executed in a transient docker container without network.", language_configs.len()),
+                            description: &format!("Support for {} different languages. The code is executed in a transient docker container without network.", language::all().len()),
                         },
                         features::Feature {
                             icon: heroicons_maud::share_outline(),
@@ -219,7 +217,7 @@ fn view_content(model: &Model, language_configs: &Vec<language::Config>) -> Mark
                     }
 
                     div class="mt-4" {
-                        (language_grid::view(language_configs.iter().map(to_grid_language).collect::<Vec<_>>()))
+                        (language_grid::view(language::all().into_iter().map(to_grid_language).collect::<Vec<_>>()))
                     }
                 }
             }
@@ -247,10 +245,12 @@ fn view_search_button(model: &Model) -> Markup {
     }
 }
 
-fn to_grid_language(language: &language::Config) -> language_grid::Language {
+fn to_grid_language(language: Language) -> language_grid::Language {
+    let config = language.config();
+
     language_grid::Language {
-        name: language.name.clone(),
-        logo: language.logo.clone(),
-        route: Route::NewSnippet(language.id.clone()),
+        name: config.name(),
+        logo: config.logo(),
+        route: Route::NewSnippet(language),
     }
 }

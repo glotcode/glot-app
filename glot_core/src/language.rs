@@ -46,12 +46,10 @@ pub mod zig;
 use maud::Markup;
 use serde::Deserialize;
 use serde::Serialize;
-use std::fmt;
-use std::fmt::Display;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     Assembly,
@@ -101,160 +99,52 @@ pub enum Language {
 }
 
 impl Language {
-    pub fn config(&self) -> Config {
+    pub fn config(&self) -> Box<dyn LanguageConfig> {
         match self {
-            Self::Assembly => assembly::config(),
-            Self::Ats => ats::config(),
-            Self::Bash => bash::config(),
-            Self::C => c::config(),
-            Self::Clisp => clisp::config(),
-            Self::Clojure => clojure::config(),
-            Self::Cobol => cobol::config(),
-            Self::CoffeeScript => coffeescript::config(),
-            Self::Cpp => cpp::config(),
-            Self::Crystal => crystal::config(),
-            Self::Csharp => csharp::config(),
-            Self::D => d::config(),
-            Self::Dart => dart::config(),
-            Self::Elixir => elixir::config(),
-            Self::Elm => elm::config(),
-            Self::Erlang => erlang::config(),
-            Self::Fsharp => fsharp::config(),
-            Self::Go => go::config(),
-            Self::Groovy => groovy::config(),
-            Self::Guile => guile::config(),
-            Self::Hare => hare::config(),
-            Self::Haskell => haskell::config(),
-            Self::Idris => idris::config(),
-            Self::Java => java::config(),
-            Self::JavaScript => javascript::config(),
-            Self::Julia => julia::config(),
-            Self::Kotlin => kotlin::config(),
-            Self::Lua => lua::config(),
-            Self::Mercury => mercury::config(),
-            Self::Nim => nim::config(),
-            Self::Nix => nix::config(),
-            Self::Ocaml => ocaml::config(),
-            Self::Pascal => pascal::config(),
-            Self::Perl => perl::config(),
-            Self::Php => php::config(),
-            Self::Python => python::config(),
-            Self::Raku => raku::config(),
-            Self::Ruby => ruby::config(),
-            Self::Rust => rust::config(),
-            Self::Sac => sac::config(),
-            Self::Scala => scala::config(),
-            Self::Swift => swift::config(),
-            Self::TypeScript => typescript::config(),
-            Self::Zig => zig::config(),
-        }
-    }
-
-    pub fn run_instructions(
-        &self,
-        main_file: PathBuf,
-        other_files: Vec<PathBuf>,
-    ) -> RunInstructions {
-        self.run_instructions_fn()(main_file, other_files)
-    }
-
-    fn run_instructions_fn(&self) -> RunInstructionsFn {
-        match self {
-            Self::Assembly => assembly::run_instructions,
-            Self::Ats => ats::run_instructions,
-            Self::Bash => bash::run_instructions,
-            Self::C => c::run_instructions,
-            Self::Clisp => clisp::run_instructions,
-            Self::Clojure => clojure::run_instructions,
-            Self::Cobol => cobol::run_instructions,
-            Self::CoffeeScript => coffeescript::run_instructions,
-            Self::Cpp => cpp::run_instructions,
-            Self::Crystal => crystal::run_instructions,
-            Self::Csharp => csharp::run_instructions,
-            Self::D => d::run_instructions,
-            Self::Dart => dart::run_instructions,
-            Self::Elixir => elixir::run_instructions,
-            Self::Elm => elm::run_instructions,
-            Self::Erlang => erlang::run_instructions,
-            Self::Fsharp => fsharp::run_instructions,
-            Self::Go => go::run_instructions,
-            Self::Groovy => groovy::run_instructions,
-            Self::Guile => guile::run_instructions,
-            Self::Hare => hare::run_instructions,
-            Self::Haskell => haskell::run_instructions,
-            Self::Idris => idris::run_instructions,
-            Self::Java => java::run_instructions,
-            Self::JavaScript => javascript::run_instructions,
-            Self::Julia => julia::run_instructions,
-            Self::Kotlin => kotlin::run_instructions,
-            Self::Lua => lua::run_instructions,
-            Self::Mercury => mercury::run_instructions,
-            Self::Nim => nim::run_instructions,
-            Self::Nix => nix::run_instructions,
-            Self::Ocaml => ocaml::run_instructions,
-            Self::Pascal => pascal::run_instructions,
-            Self::Perl => perl::run_instructions,
-            Self::Php => php::run_instructions,
-            Self::Python => python::run_instructions,
-            Self::Raku => raku::run_instructions,
-            Self::Ruby => ruby::run_instructions,
-            Self::Rust => rust::run_instructions,
-            Self::Sac => sac::run_instructions,
-            Self::Scala => scala::run_instructions,
-            Self::Swift => swift::run_instructions,
-            Self::TypeScript => typescript::run_instructions,
-            Self::Zig => zig::run_instructions,
-        }
-    }
-}
-
-impl Display for Language {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            Self::C => write!(f, "c"),
-            Self::Assembly => write!(f, "assembly"),
-            Self::Ats => write!(f, "ats"),
-            Self::Bash => write!(f, "bash"),
-            Self::Clisp => write!(f, "clisp"),
-            Self::Clojure => write!(f, "clojure"),
-            Self::Cobol => write!(f, "cobol"),
-            Self::CoffeeScript => write!(f, "coffeescript"),
-            Self::Cpp => write!(f, "cpp"),
-            Self::Crystal => write!(f, "crystal"),
-            Self::Csharp => write!(f, "csharp"),
-            Self::D => write!(f, "d"),
-            Self::Dart => write!(f, "dart"),
-            Self::Elixir => write!(f, "elixir"),
-            Self::Elm => write!(f, "elm"),
-            Self::Erlang => write!(f, "erlang"),
-            Self::Fsharp => write!(f, "fsharp"),
-            Self::Go => write!(f, "go"),
-            Self::Groovy => write!(f, "groovy"),
-            Self::Guile => write!(f, "guile"),
-            Self::Hare => write!(f, "hare"),
-            Self::Haskell => write!(f, "haskell"),
-            Self::Idris => write!(f, "idris"),
-            Self::Java => write!(f, "java"),
-            Self::JavaScript => write!(f, "javascript"),
-            Self::Julia => write!(f, "julia"),
-            Self::Kotlin => write!(f, "kotlin"),
-            Self::Lua => write!(f, "lua"),
-            Self::Mercury => write!(f, "mercury"),
-            Self::Nim => write!(f, "nim"),
-            Self::Nix => write!(f, "nix"),
-            Self::Ocaml => write!(f, "ocaml"),
-            Self::Pascal => write!(f, "pascal"),
-            Self::Perl => write!(f, "perl"),
-            Self::Php => write!(f, "php"),
-            Self::Python => write!(f, "python"),
-            Self::Raku => write!(f, "raku"),
-            Self::Ruby => write!(f, "ruby"),
-            Self::Rust => write!(f, "rust"),
-            Self::Sac => write!(f, "sac"),
-            Self::Scala => write!(f, "scala"),
-            Self::Swift => write!(f, "swift"),
-            Self::TypeScript => write!(f, "typescript"),
-            Self::Zig => write!(f, "zig"),
+            Self::Assembly => Box::new(assembly::Assembly),
+            Self::Ats => Box::new(ats::Ats),
+            Self::Bash => Box::new(bash::Bash),
+            Self::C => Box::new(c::C),
+            Self::Clisp => Box::new(clisp::Clisp),
+            Self::Clojure => Box::new(clojure::Clojure),
+            Self::Cobol => Box::new(cobol::Cobol),
+            Self::CoffeeScript => Box::new(coffeescript::CoffeeScript),
+            Self::Cpp => Box::new(cpp::Cpp),
+            Self::Crystal => Box::new(crystal::Crystal),
+            Self::Csharp => Box::new(csharp::Csharp),
+            Self::D => Box::new(d::D),
+            Self::Dart => Box::new(dart::Dart),
+            Self::Elixir => Box::new(elixir::Elixir),
+            Self::Elm => Box::new(elm::Elm),
+            Self::Erlang => Box::new(erlang::Erlang),
+            Self::Fsharp => Box::new(fsharp::Fsharp),
+            Self::Go => Box::new(go::Go),
+            Self::Groovy => Box::new(groovy::Groovy),
+            Self::Guile => Box::new(guile::Guile),
+            Self::Hare => Box::new(hare::Hare),
+            Self::Haskell => Box::new(haskell::Haskell),
+            Self::Idris => Box::new(idris::Idris),
+            Self::Java => Box::new(java::Java),
+            Self::JavaScript => Box::new(javascript::JavaScript),
+            Self::Julia => Box::new(julia::Julia),
+            Self::Kotlin => Box::new(kotlin::Kotlin),
+            Self::Lua => Box::new(lua::Lua),
+            Self::Mercury => Box::new(mercury::Mercury),
+            Self::Nim => Box::new(nim::Nim),
+            Self::Nix => Box::new(nix::Nix),
+            Self::Ocaml => Box::new(ocaml::Ocaml),
+            Self::Pascal => Box::new(pascal::Pascal),
+            Self::Perl => Box::new(perl::Perl),
+            Self::Php => Box::new(php::Php),
+            Self::Python => Box::new(python::Python),
+            Self::Raku => Box::new(raku::Raku),
+            Self::Ruby => Box::new(ruby::Ruby),
+            Self::Rust => Box::new(rust::Rust),
+            Self::Sac => Box::new(sac::Sac),
+            Self::Scala => Box::new(scala::Scala),
+            Self::Swift => Box::new(swift::Swift),
+            Self::TypeScript => Box::new(typescript::TypeScript),
+            Self::Zig => Box::new(zig::Zig),
         }
     }
 }
@@ -268,7 +158,7 @@ impl FromStr for Language {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         all()
             .into_iter()
-            .find(|language| s == language.config().id.to_string())
+            .find(|language| s == language.config().id())
             .ok_or(ParseIdError)
     }
 }
@@ -322,6 +212,16 @@ pub fn all() -> Vec<Language> {
     ]
 }
 
+pub trait LanguageConfig {
+    fn id(&self) -> String;
+    fn name(&self) -> String;
+    fn file_extension(&self) -> String;
+    fn editor_config(&self) -> EditorConfig;
+    fn run_config(&self) -> RunConfig;
+    fn logo(&self) -> Markup;
+    fn run_instructions(&self, main_file: PathBuf, other_files: Vec<PathBuf>) -> RunInstructions;
+}
+
 #[derive(Clone)]
 pub struct Config {
     pub id: Language,
@@ -355,8 +255,6 @@ pub struct RunInstructions {
     pub build_commands: Vec<String>,
     pub run_command: String,
 }
-
-type RunInstructionsFn = fn(PathBuf, Vec<PathBuf>) -> RunInstructions;
 
 /* HELPER FUNCTIONS */
 

@@ -1,3 +1,4 @@
+use crate::language::Language;
 use base_62::base62;
 use brotli::enc::BrotliEncoderParams;
 use brotli::BrotliCompress;
@@ -8,7 +9,7 @@ use serde::Serialize;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Snippet {
-    pub language: String,
+    pub language: Language,
     pub title: String,
     pub stdin: String,
     pub files: Vec<File>,

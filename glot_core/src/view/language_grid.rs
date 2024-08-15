@@ -15,7 +15,7 @@ pub fn view(languages: Vec<Language>) -> Markup {
                 @for language in languages {
                     li class="col-span-1 rounded-md shadow-sm border border-gray-200 bg-white" {
                         a class="flex" href=(language.route.to_path()) {
-                            div class="p-3 flex-shrink-0 flex items-center justify-center w-16 h-16 text-white text-sm font-medium" {
+                            div class="p-3 flex-shrink-0 flex justify-center w-16 h-16 text-white text-sm font-medium" {
                                 (language.logo)
                             }
                             div class="flex flex-1 items-center justify-between border-l border-gray-200 truncate" {

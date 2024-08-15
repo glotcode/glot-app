@@ -24,7 +24,7 @@ impl search_modal::EntryExtra for LanguageQuickAction {
     fn title(&self) -> String {
         match self {
             LanguageQuickAction(language) => {
-                format!("Go to {}", language.config().name)
+                format!("Go to {}", language.config().name())
             }
         }
     }
@@ -32,7 +32,7 @@ impl search_modal::EntryExtra for LanguageQuickAction {
     fn keywords(&self) -> Vec<String> {
         match self {
             LanguageQuickAction(language) => {
-                vec![language.to_string(), language.config().name.clone()]
+                vec![language.config().id(), language.config().name()]
             }
         }
     }
@@ -45,7 +45,7 @@ impl search_modal::EntryExtra for LanguageQuickAction {
 impl fmt::Display for LanguageQuickAction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            LanguageQuickAction(language) => write!(f, "goto-{}", language),
+            LanguageQuickAction(language) => write!(f, "goto-{}", language.config().id()),
         }
     }
 }

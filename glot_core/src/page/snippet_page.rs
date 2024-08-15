@@ -148,10 +148,11 @@ impl SnippetPage {
 
     fn model_for_new_snippet(&self, language: &Language) -> Result<Model, String> {
         let language_config = language.config();
+        let editor_config = language.config().editor_config();
 
         let file = File {
-            name: language_config.editor_config.default_filename.clone(),
-            content: language_config.editor_config.example_code.clone(),
+            name: editor_config.default_filename,
+            content: editor_config.example_code,
         };
 
         let title = "Hello World".to_string();
@@ -187,11 +188,11 @@ impl SnippetPage {
 
         let snippet_clone = snippet.clone();
 
-        let language_config = language.config();
+        let editor_config = language.config().editor_config();
 
         let default_file = File {
-            name: language_config.editor_config.default_filename.clone(),
-            content: language_config.editor_config.example_code.clone(),
+            name: editor_config.default_filename,
+            content: editor_config.example_code,
         };
 
         let snippet_files: Vec<File> = snippet
@@ -580,11 +581,11 @@ pub enum AppEffect {
 }
 
 fn view_head(model: &Model) -> maud::Markup {
-    let language_config = model.language.config();
-    let description = format!("{} playground - glot.io", language_config.name);
+    let language_name = model.language.config().name();
+    let description = format!("{} playground - glot.io", language_name);
 
     html! {
-        title { (model.title) " - " (language_config.name) " snippet" }
+        title { (model.title) " - " (language_name) " snippet" }
         meta name="description" content=(description);
         meta name="viewport" content="width=device-width, initial-scale=1";
         link id="app-styles" rel="stylesheet" href="/static/app.css?hash=checksum";
@@ -637,7 +638,7 @@ fn view_content(model: &Model) -> Markup {
     let inline_styles = format!("height: {}px;", editor_height);
     let height = format!("{}px", editor_height);
     let content = model.files.selected().content;
-    let language_config = model.language.config();
+    let editor_config = model.language.config().editor_config();
 
     html! {
         div class="pt-6 h-full flex flex-col" {
@@ -667,9 +668,9 @@ fn view_content(model: &Model) -> Markup {
                                 stylesheet-id="app-styles"
                                 height=(height)
                                 keyboard-handler=(model.editor_keyboard_bindings.ace_keyboard_handler())
-                                mode=(language_config.editor_config.mode)
-                                use-soft-tabs=(language_config.editor_config.use_soft_tabs)
-                                tab-size=(language_config.editor_config.soft_tab_size)
+                                mode=(editor_config.mode)
+                                use-soft-tabs=(editor_config.use_soft_tabs)
+                                tab-size=(editor_config.soft_tab_size)
                                 theme=(model.editor_theme.ace_theme())
                             {
                                 (content)
@@ -817,15 +818,15 @@ fn save_session_snippet_effect(model: &Model) -> Effect<Msg, AppEffect> {
 }
 
 fn get_language_version_effect(language: &Language) -> Effect<Msg, AppEffect> {
-    let language_config = language.config();
+    let run_config = language.config().run_config();
 
     let config = RunRequest {
-        image: language_config.run_config.container_image.clone(),
+        image: run_config.container_image,
         payload: RunRequestPayload {
             language: language.clone(),
             files: vec![],
             stdin: "".to_string(),
-            command: Some(language_config.run_config.version_command.clone()),
+            command: Some(run_config.version_command),
         },
     };
 
@@ -851,10 +852,10 @@ fn calc_editor_height(window_size: &WindowSize) -> u64 {
 }
 
 fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
-    let language_config = model.language.config();
+    let run_config = model.language.config().run_config();
 
     let config = RunRequest {
-        image: language_config.run_config.container_image.clone(),
+        image: run_config.container_image.clone(),
         payload: RunRequestPayload {
             language: model.language.clone(),
             files: model.files.to_vec(),
@@ -953,6 +954,6 @@ fn snippet_from_model(model: &Model) -> Snippet {
         title: model.title.clone(),
         files: model.files.to_vec(),
         stdin: model.stdin.clone(),
-        language: model.language.to_string(),
+        language: model.language,
     }
 }
