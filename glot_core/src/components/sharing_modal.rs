@@ -314,6 +314,6 @@ fn get_snippet_url(context: Context) -> Result<String, String> {
         .to_encoded_string()
         .map_err(|err| format!("Failed to encode snippet: {}", err))?;
 
-    let route = Route::EditSnippet(context.language.clone(), encoded_snippet.clone());
+    let route = Route::EditSnippet(context.language, encoded_snippet.clone());
     Ok(route.to_absolute_path(&context.current_url))
 }

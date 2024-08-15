@@ -156,14 +156,14 @@ impl FromStr for Language {
     type Err = ParseIdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        all()
+        list()
             .into_iter()
             .find(|language| s == language.config().id())
             .ok_or(ParseIdError)
     }
 }
 
-pub fn all() -> Vec<Language> {
+pub fn list() -> Vec<Language> {
     vec![
         Language::Assembly,
         Language::Ats,
@@ -220,16 +220,6 @@ pub trait LanguageConfig {
     fn run_config(&self) -> RunConfig;
     fn logo(&self) -> Markup;
     fn run_instructions(&self, main_file: PathBuf, other_files: Vec<PathBuf>) -> RunInstructions;
-}
-
-#[derive(Clone)]
-pub struct Config {
-    pub id: Language,
-    pub name: String,
-    pub logo: Markup,
-    pub file_extension: String,
-    pub editor_config: EditorConfig,
-    pub run_config: RunConfig,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

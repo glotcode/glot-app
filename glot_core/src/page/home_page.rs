@@ -6,7 +6,6 @@ use crate::common::route::Route;
 use crate::components::search_modal;
 use crate::language;
 use crate::language::Language;
-use crate::language::LanguageConfig;
 use crate::layout::app_layout;
 use crate::view::features;
 use crate::view::language_grid;
@@ -131,8 +130,8 @@ pub enum Msg {
 #[serde(rename_all = "camelCase")]
 pub enum AppEffect {}
 
-fn view_head(model: &Model) -> maud::Markup {
-    let count = language::all().len();
+fn view_head(_model: &Model) -> maud::Markup {
+    let count = language::list().len();
     let description = format!("glot.io is an open source code playground for running and sharing code snippets. Currently supports {} different programming languages.", count);
 
     html! {
@@ -183,7 +182,7 @@ fn view_content(model: &Model) -> Markup {
                         features::Feature {
                             icon: heroicons_maud::play_outline(),
                             title: "Run code",
-                            description: &format!("Support for {} different languages. The code is executed in a transient docker container without network.", language::all().len()),
+                            description: &format!("Support for {} different languages. The code is executed in a transient docker container without network.", language::list().len()),
                         },
                         features::Feature {
                             icon: heroicons_maud::share_outline(),
@@ -217,7 +216,7 @@ fn view_content(model: &Model) -> Markup {
                     }
 
                     div class="mt-4" {
-                        (language_grid::view(language::all().into_iter().map(to_grid_language).collect::<Vec<_>>()))
+                        (language_grid::view(language::list().into_iter().map(to_grid_language).collect::<Vec<_>>()))
                     }
                 }
             }

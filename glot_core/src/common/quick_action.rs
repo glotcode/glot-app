@@ -51,7 +51,7 @@ impl fmt::Display for LanguageQuickAction {
 }
 
 pub fn language_actions() -> Vec<LanguageQuickAction> {
-    language::all()
+    language::list()
         .into_iter()
         .map(LanguageQuickAction)
         .collect()

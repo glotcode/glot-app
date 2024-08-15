@@ -136,18 +136,17 @@ impl SnippetPage {
         let current_route = self.browser_ctx.current_route();
 
         match &current_route {
-            Route::NewSnippet(language) => self.model_for_new_snippet(language),
+            Route::NewSnippet(language) => self.model_for_new_snippet(*language),
 
             Route::EditSnippet(language, encoded_snippet) => {
-                self.model_for_existing_snippet(language, encoded_snippet)
+                self.model_for_existing_snippet(*language, encoded_snippet)
             }
 
             _ => Err("Invalid route".to_string()),
         }
     }
 
-    fn model_for_new_snippet(&self, language: &Language) -> Result<Model, String> {
-        let language_config = language.config();
+    fn model_for_new_snippet(&self, language: Language) -> Result<Model, String> {
         let editor_config = language.config().editor_config();
 
         let file = File {
@@ -159,7 +158,7 @@ impl SnippetPage {
 
         Ok(Model {
             browser_ctx: self.browser_ctx.clone(),
-            language: language.clone(),
+            language,
             files: SelectList::singleton(file),
             title,
             editor_keyboard_bindings: Default::default(),
@@ -180,7 +179,7 @@ impl SnippetPage {
 
     fn model_for_existing_snippet(
         &self,
-        language: &Language,
+        language: Language,
         encoded_snippet: &str,
     ) -> Result<Model, String> {
         let snippet = Snippet::from_encoded_string(encoded_snippet)
@@ -209,7 +208,7 @@ impl SnippetPage {
 
         Ok(Model {
             browser_ctx: self.browser_ctx.clone(),
-            language: language.clone(),
+            language,
             files,
             title: snippet.title,
             editor_keyboard_bindings: Default::default(),
@@ -241,7 +240,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             focus_editor_effect(),
             load_settings_effect(),
             load_session_snippet_effect(&model.browser_ctx.current_url),
-            get_language_version_effect(&model.language),
+            get_language_version_effect(model.language),
         ]);
 
         Ok((model, effect))
@@ -485,7 +484,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::SharingModalMsg(child_msg) => {
                 let context = sharing_modal::Context {
                     current_url: model.browser_ctx.current_url.clone(),
-                    language: model.language.clone(),
+                    language: model.language,
                     snippet: snippet_from_model(model),
                 };
 
@@ -817,13 +816,13 @@ fn save_session_snippet_effect(model: &Model) -> Effect<Msg, AppEffect> {
     session_storage::set_item(path, snippet, Msg::SavedSessionSnippet)
 }
 
-fn get_language_version_effect(language: &Language) -> Effect<Msg, AppEffect> {
+fn get_language_version_effect(language: Language) -> Effect<Msg, AppEffect> {
     let run_config = language.config().run_config();
 
     let config = RunRequest {
         image: run_config.container_image,
         payload: RunRequestPayload {
-            language: language.clone(),
+            language,
             files: vec![],
             stdin: "".to_string(),
             command: Some(run_config.version_command),
@@ -857,7 +856,7 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
     let config = RunRequest {
         image: run_config.container_image.clone(),
         payload: RunRequestPayload {
-            language: model.language.clone(),
+            language: model.language,
             files: model.files.to_vec(),
             stdin: model.stdin.clone(),
             command: None,
@@ -904,7 +903,7 @@ fn open_edit_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
         &mut model.file_modal_state,
         file_modal::EditContext {
             filename: model.files.selected().name.clone(),
-            language: model.language.clone(),
+            language: model.language,
             existing_filenames,
         },
     )
@@ -921,7 +920,7 @@ fn open_add_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
     file_modal::open_for_add(
         &mut model.file_modal_state,
         file_modal::AddContext {
-            language: model.language.clone(),
+            language: model.language,
             existing_filenames,
         },
     )
