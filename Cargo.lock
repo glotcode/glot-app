@@ -172,6 +172,7 @@ dependencies = [
 [[package]]
 name = "glot_languages"
 version = "0.1.0"
+source = "git+https://github.com/glotcode/glot-languages#c1773c8b28006159f9a61ca26459be52c9ed8d50"
 dependencies = [
  "maud",
  "serde",

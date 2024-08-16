@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-glot_languages = { path = "../../glot-languages" }
+glot_languages = { git = "https://github.com/glotcode/glot-languages" }
 poly = { git = "https://github.com/glotlabs/poly-rs" }
 poly_macro = { git = "https://github.com/glotlabs/poly-rs" }
 heroicons_maud = { git = "https://github.com/glotlabs/heroicons-maud" }
