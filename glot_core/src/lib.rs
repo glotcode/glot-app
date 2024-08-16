@@ -1,7 +1,6 @@
 pub mod ace_editor;
 pub mod common;
 pub mod components;
-pub mod language;
 pub mod layout;
 pub mod page;
 pub mod run;

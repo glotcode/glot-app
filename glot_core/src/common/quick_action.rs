@@ -1,6 +1,7 @@
+use crate::common::route::Route;
 use crate::components::search_modal;
-use crate::language::Language;
-use crate::{common::route::Route, language};
+use glot_languages::language;
+use glot_languages::language::Language;
 use poly::browser::effect::{navigation, Effect};
 use std::fmt;
 use url::Url;

@@ -1,8 +1,8 @@
 use crate::common::route::Route;
-use crate::language::Language;
 use crate::snippet::Snippet;
 use crate::util::remote_data::RemoteData;
 use crate::view::modal;
+use glot_languages::language::Language;
 use maud::html;
 use poly::browser::dom_id::DomId;
 use poly::browser::effect;

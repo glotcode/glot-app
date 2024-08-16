@@ -1,5 +1,5 @@
-use crate::language::Language;
 use crate::view::modal;
+use glot_languages::language::Language;
 use maud::html;
 use poly::browser::dom_id::DomId;
 use poly::browser::effect::dom;

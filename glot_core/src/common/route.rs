@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::language::Language;
+use glot_languages::language::Language;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;

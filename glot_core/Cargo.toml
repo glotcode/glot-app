@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+glot_languages = { path = "../../glot-languages" }
 poly = { git = "https://github.com/glotlabs/poly-rs" }
 poly_macro = { git = "https://github.com/glotlabs/poly-rs" }
 heroicons_maud = { git = "https://github.com/glotlabs/heroicons-maud" }
-maud = "0.23.0"
+maud = "0.26.0"
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
 strum = { version = "0.24.1", features = ["derive"] }

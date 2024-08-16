@@ -1,5 +1,5 @@
-use crate::language::Language;
 use crate::snippet::File;
+use glot_languages::language::Language;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]

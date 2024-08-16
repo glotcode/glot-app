@@ -1,8 +1,8 @@
-use crate::language::Language;
 use base_62::base62;
 use brotli::enc::BrotliEncoderParams;
 use brotli::BrotliCompress;
 use brotli::BrotliDecompress;
+use glot_languages::language::Language;
 use serde::Deserialize;
 use serde::Serialize;
 
