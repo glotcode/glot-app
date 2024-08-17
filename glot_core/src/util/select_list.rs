@@ -56,6 +56,13 @@ where
         false
     }
 
+    pub fn first(&self) -> T {
+        self.before
+            .first()
+            .cloned()
+            .unwrap_or_else(|| self.current.clone())
+    }
+
     pub fn selected(&self) -> T {
         self.current.clone()
     }

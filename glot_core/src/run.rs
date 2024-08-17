@@ -1,5 +1,5 @@
 use crate::snippet::File;
-use glot_languages::language::Language;
+use glot_languages::language::RunInstructions;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,8 +44,7 @@ impl RunOutcome {
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RunRequestPayload {
-    pub language: Language,
+    pub run_instructions: RunInstructions,
     pub files: Vec<File>,
-    pub stdin: String,
-    pub command: Option<String>,
+    pub stdin: Option<String>,
 }

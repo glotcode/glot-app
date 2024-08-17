@@ -20,6 +20,7 @@ use crate::snippet::Snippet;
 use crate::util::remote_data::RemoteData;
 use crate::util::select_list::SelectList;
 use glot_languages::language::Language;
+use glot_languages::language::RunInstructions;
 use maud::html;
 use maud::Markup;
 use poly::browser::dom_id::DomId;
@@ -42,6 +43,7 @@ use poly::page::PageMarkup;
 use quick_action::QuickAction;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
+use std::path::PathBuf;
 use url::Url;
 
 pub mod output_panel;
@@ -822,10 +824,12 @@ fn get_language_version_effect(language: Language) -> Effect<Msg, AppEffect> {
     let config = RunRequest {
         image: run_config.container_image,
         payload: RunRequestPayload {
-            language,
             files: vec![],
-            stdin: "".to_string(),
-            command: Some(run_config.version_command),
+            stdin: None,
+            run_instructions: RunInstructions {
+                build_commands: vec![],
+                run_command: run_config.version_command,
+            },
         },
     };
 
@@ -851,15 +855,30 @@ fn calc_editor_height(window_size: &WindowSize) -> u64 {
 }
 
 fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
-    let run_config = model.language.config().run_config();
+    let language_config = model.language.config();
+    let run_config = language_config.run_config();
+
+    let stdin = if model.stdin.is_empty() {
+        None
+    } else {
+        Some(model.stdin.clone())
+    };
+
+    let files = model.files.to_vec();
+
+    let main_file = PathBuf::from(model.files.first().name);
+    let other_files = files
+        .iter()
+        .skip(1)
+        .map(|f| PathBuf::from(f.name.clone()))
+        .collect();
 
     let config = RunRequest {
         image: run_config.container_image.clone(),
         payload: RunRequestPayload {
-            language: model.language,
-            files: model.files.to_vec(),
-            stdin: model.stdin.clone(),
-            command: None,
+            run_instructions: language_config.run_instructions(main_file, other_files),
+            files,
+            stdin,
         },
     };
 
