@@ -60,7 +60,7 @@ pub struct Model {
     pub title: String,
     pub editor_keyboard_bindings: EditorKeyboardBindings,
     pub editor_theme: EditorTheme,
-    pub stdin: String,
+    pub stdin: Option<String>,
     pub custom_command: Option<String>,
     pub layout_state: app_layout::State,
     pub run_result: RemoteData<FailedRunResult, RunResult>,
@@ -166,7 +166,7 @@ impl SnippetPage {
             title,
             editor_keyboard_bindings: Default::default(),
             editor_theme: Default::default(),
-            stdin: "".to_string(),
+            stdin: None,
             custom_command: None,
             layout_state: app_layout::State::default(),
             run_result: RemoteData::NotAsked,
@@ -217,7 +217,7 @@ impl SnippetPage {
             title: snippet.title,
             editor_keyboard_bindings: Default::default(),
             editor_theme: Default::default(),
-            stdin: snippet.stdin.to_string(),
+            stdin: snippet.stdin.clone(),
             custom_command: snippet.command,
             layout_state: app_layout::State::default(),
             run_result: RemoteData::NotAsked,
@@ -309,7 +309,8 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 match event {
                     stdin_modal::Event::StdinChanged(stdin) => {
-                        model.stdin = stdin;
+                        model.stdin = if stdin.is_empty() { None } else { Some(stdin) };
+
                         Ok(effect::batch(vec![
                             save_session_snippet_effect(model),
                             focus_editor_effect(),
@@ -757,24 +758,28 @@ fn view_file_tab(model: &Model, file: &File) -> Markup {
 
 fn view_stdin_bar(model: &Model) -> Markup {
     html! {
-        @if model.stdin.is_empty() {
-            button id=(Id::StdinButton) class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" type="button" {
-                span class="w-5 h-5 mr-1" { (heroicons_maud::pencil_square_outline()) }
-                span { "STDIN" }
-            }
-        } @else {
-            div class="w-full h-24 border-t border-gray-400 overflow-hidden" {
-                dt class="px-4 py-1 border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
-                    pre { "STDIN" }
+        @match &model.stdin {
+            None => {
+                button id=(Id::StdinButton) class="flex justify-center h-10 w-full bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center px-3 font-semibold text-sm border-t border-gray-400" type="button" {
+                    span class="w-5 h-5 mr-1" { (heroicons_maud::pencil_square_outline()) }
+                    span { "STDIN" }
                 }
-                dd id=(Id::StdinButton) class="h-full px-4 py-2 relative cursor-pointer stdin-preview" {
-                    pre {
-                        (model.stdin)
-                    }
+            }
 
-                    span class="hidden stdin-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-30" {
-                        span class="absolute z-20 inset-0 mt-5 mx-auto w-5 h-5 text-slate-50" {
-                            (heroicons_maud::pencil_square_solid())
+            Some(stdin) => {
+                div class="w-full h-24 border-t border-gray-400 overflow-hidden" {
+                    dt class="px-4 py-1 border-b border-gray-400 text-sm text-slate-700 font-bold bg-blue-400" {
+                        pre { "STDIN" }
+                    }
+                    dd id=(Id::StdinButton) class="h-full px-4 py-2 relative cursor-pointer stdin-preview" {
+                        pre {
+                            (stdin)
+                        }
+
+                        span class="hidden stdin-overlay absolute z-10 inset-0 w-full h-full bg-gray-500 bg-opacity-30" {
+                            span class="absolute z-20 inset-0 mt-5 mx-auto w-5 h-5 text-slate-50" {
+                                (heroicons_maud::pencil_square_solid())
+                            }
                         }
                     }
                 }
@@ -871,12 +876,6 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
     let language_config = model.language.config();
     let run_config = language_config.run_config();
 
-    let stdin = if model.stdin.is_empty() {
-        None
-    } else {
-        Some(model.stdin.clone())
-    };
-
     let run_instructions = if let Some(command) = model.custom_command.clone() {
         RunInstructions {
             build_commands: vec![],
@@ -891,7 +890,7 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
         payload: RunRequestPayload {
             run_instructions,
             files: model.files.to_vec(),
-            stdin,
+            stdin: model.stdin.clone(),
         },
     };
 
@@ -917,7 +916,10 @@ fn get_default_run_instructions(model: &Model) -> RunInstructions {
 }
 
 fn open_stdin_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
-    stdin_modal::open(&mut model.stdin_modal_state, &model.stdin)
+    stdin_modal::open(
+        &mut model.stdin_modal_state,
+        &model.stdin.clone().unwrap_or_default(),
+    )
 }
 
 fn open_sharing_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
