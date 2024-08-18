@@ -11,6 +11,7 @@ pub struct RunRequest {
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RunResult {
+    pub duration: u64,
     pub stdout: String,
     pub stderr: String,
     pub error: String,

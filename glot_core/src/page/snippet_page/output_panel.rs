@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::run::FailedRunResult;
 use crate::run::RunResult;
 use crate::util::remote_data::RemoteData;
@@ -62,10 +64,13 @@ fn view_info(text: &str) -> Markup {
 }
 
 fn view_run_result(run_result: &RunResult) -> Markup {
+    let duration = format!("{:.2?}", Duration::from_nanos(run_result.duration));
+
     html! {
         @if !run_result.stdout.is_empty() {
-            dt class="px-4 py-1 border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-green-400" {
+            dt class="px-4 py-1 flex justify-between border-t border-b border-gray-400 text-sm text-slate-700 font-bold bg-green-400" {
                 pre { "STDOUT" }
+                pre { (duration) }
             }
             dd class="px-4 py-2 overflow-y-auto" {
                 pre {
