@@ -15,7 +15,7 @@ AceEditorElement.register();
     const page = pageFromRoute(route)
 
     const poly = new Poly(page, {
-        //loggerConfig: defaultDebugConfig(),
+        loggerConfig: hasDebugFlag() ? defaultDebugConfig() : undefined,
     });
 
     poly.onAppEffect(async (msg) => {
@@ -106,4 +106,8 @@ function waitForIdle(): Promise<void> {
             }, 200);
         })
     }
+}
+
+function hasDebugFlag(): boolean {
+    return document.location.search.includes("debug")
 }
