@@ -516,7 +516,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
     ) -> Result<Effect<Msg, AppEffect>, String> {
         match msg.type_.as_ref() {
             "GotRunResponse" => {
-                let outcome = RunOutcome::from_value(msg.data)
+                let outcome: RunOutcome = serde_json::from_value(msg.data)
                     .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
 
                 match outcome {
@@ -533,7 +533,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             }
 
             "GotLanguageVersionResponse" => {
-                let outcome = RunOutcome::from_value(msg.data)
+                let outcome: RunOutcome = serde_json::from_value(msg.data)
                     .map_err(|err| format!("Failed to decode run response from js: {}", err))?;
 
                 match outcome {

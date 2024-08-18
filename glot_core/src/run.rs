@@ -28,17 +28,11 @@ pub struct FailedRunResult {
     pub message: String,
 }
 
+#[derive(Clone, serde::Deserialize)]
+#[serde(untagged)]
 pub enum RunOutcome {
     Success(RunResult),
     Failure(FailedRunResult),
-}
-
-impl RunOutcome {
-    pub fn from_value(value: serde_json::Value) -> Result<Self, serde_json::error::Error> {
-        serde_json::from_value(value.clone())
-            .map(Self::Success)
-            .or_else(|_| serde_json::from_value(value).map(Self::Failure))
-    }
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
