@@ -61,6 +61,7 @@ pub struct Model {
     pub editor_keyboard_bindings: EditorKeyboardBindings,
     pub editor_theme: EditorTheme,
     pub stdin: String,
+    pub custom_command: Option<String>,
     pub layout_state: app_layout::State,
     pub run_result: RemoteData<FailedRunResult, RunResult>,
     pub language_version_result: RemoteData<FailedRunResult, RunResult>,
@@ -166,6 +167,7 @@ impl SnippetPage {
             editor_keyboard_bindings: Default::default(),
             editor_theme: Default::default(),
             stdin: "".to_string(),
+            custom_command: None,
             layout_state: app_layout::State::default(),
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
@@ -216,6 +218,7 @@ impl SnippetPage {
             editor_keyboard_bindings: Default::default(),
             editor_theme: Default::default(),
             stdin: snippet.stdin.to_string(),
+            custom_command: snippet.command,
             layout_state: app_layout::State::default(),
             run_result: RemoteData::NotAsked,
             language_version_result: RemoteData::Loading,
@@ -374,8 +377,18 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 
                 match event {
                     settings_modal::Event::SettingsChanged(settings) => {
+                        let use_default_instructions = settings.command
+                            == get_default_run_instructions(model).to_string()
+                            || settings.command.is_empty();
+
                         model.editor_keyboard_bindings = settings.keyboard_bindings;
                         model.editor_theme = settings.theme;
+                        model.custom_command = if use_default_instructions {
+                            None
+                        } else {
+                            Some(settings.command)
+                        };
+
                         let effects =
                             effect::batch(vec![focus_editor_effect(), save_settings_effect(model)]);
 
@@ -864,20 +877,20 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
         Some(model.stdin.clone())
     };
 
-    let files = model.files.to_vec();
-
-    let main_file = PathBuf::from(model.files.first().name);
-    let other_files = files
-        .iter()
-        .skip(1)
-        .map(|f| PathBuf::from(f.name.clone()))
-        .collect();
+    let run_instructions = if let Some(command) = model.custom_command.clone() {
+        RunInstructions {
+            build_commands: vec![],
+            run_command: command,
+        }
+    } else {
+        get_default_run_instructions(model)
+    };
 
     let config = RunRequest {
         image: run_config.container_image.clone(),
         payload: RunRequestPayload {
-            run_instructions: language_config.run_instructions(main_file, other_files),
-            files,
+            run_instructions,
+            files: model.files.to_vec(),
             stdin,
         },
     };
@@ -885,6 +898,22 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
     model.run_result = RemoteData::Loading;
 
     effect::app_effect(AppEffect::Run(config))
+}
+
+fn get_default_run_instructions(model: &Model) -> RunInstructions {
+    let files = model.files.to_vec();
+
+    let main_file = PathBuf::from(model.files.first().name);
+    let other_files = files
+        .into_iter()
+        .skip(1)
+        .map(|f| PathBuf::from(f.name))
+        .collect();
+
+    model
+        .language
+        .config()
+        .run_instructions(main_file, other_files)
 }
 
 fn open_stdin_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
@@ -900,10 +929,18 @@ fn open_title_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
 }
 
 fn open_settings_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+    let command = model
+        .custom_command
+        .clone()
+        .unwrap_or_else(|| get_default_run_instructions(model).to_string());
+
     settings_modal::open(
         &mut model.settings_modal_state,
-        &model.editor_keyboard_bindings,
-        &model.editor_theme,
+        settings_modal::Settings {
+            keyboard_bindings: model.editor_keyboard_bindings.clone(),
+            theme: model.editor_theme.clone(),
+            command,
+        },
     )
 }
 
@@ -973,5 +1010,6 @@ fn snippet_from_model(model: &Model) -> Snippet {
         files: model.files.to_vec(),
         stdin: model.stdin.clone(),
         language: model.language,
+        command: model.custom_command.clone(),
     }
 }

@@ -13,6 +13,8 @@ pub struct Snippet {
     pub title: String,
     pub stdin: String,
     pub files: Vec<File>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
 }
 
 impl Snippet {
