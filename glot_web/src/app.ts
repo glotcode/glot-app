@@ -9,7 +9,7 @@ AceEditorElement.register();
 (async () => {
     registerServiceWorker();
 
-    await init("/wasm/glot_bg.wasm?hash=checksum");
+    await init({ module_or_path: "/wasm/glot_bg.wasm?hash=checksum" });
 
     const route = getRouteName(location.href);
     const page = pageFromRoute(route)
