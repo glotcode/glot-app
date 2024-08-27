@@ -49,10 +49,10 @@ pub enum Msg {
     SidebarSearchClicked,
 }
 
-pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
+pub fn subscriptions<ToParentMsg, ParentMsg>(
     state: &State,
     to_parent_msg: ToParentMsg,
-) -> Subscription<ParentMsg, AppEffect>
+) -> Subscription<ParentMsg>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {

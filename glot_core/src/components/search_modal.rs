@@ -32,7 +32,7 @@ pub enum State<Action> {
 }
 
 impl<Action> State<Action> {
-    pub fn open<ParentMsg, AppEffect>(&mut self) -> Effect<ParentMsg, AppEffect> {
+    pub fn open<ParentMsg>(&mut self) -> Effect<ParentMsg> {
         *self = State::Open(Model::default());
         dom::focus_element(Id::QueryInput)
     }
@@ -76,11 +76,11 @@ enum Id {
     SearchModalBackdrop,
 }
 
-pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect, Action>(
+pub fn subscriptions<ToParentMsg, ParentMsg, Action>(
     user_agent: &UserAgent,
     state: &State<Action>,
     to_parent_msg: ToParentMsg,
-) -> Subscription<ParentMsg, AppEffect>
+) -> Subscription<ParentMsg>
 where
     ParentMsg: Clone,
     ToParentMsg: Fn(Msg) -> ParentMsg,
@@ -129,12 +129,12 @@ where
     }
 }
 
-pub struct UpdateData<ParentMsg, AppEffect, Action> {
-    pub effect: Effect<ParentMsg, AppEffect>,
+pub struct UpdateData<ParentMsg, Action> {
+    pub effect: Effect<ParentMsg>,
     pub action: Option<Action>,
 }
 
-impl<ParentMsg, AppEffect, Action> UpdateData<ParentMsg, AppEffect, Action> {
+impl<ParentMsg, Action> UpdateData<ParentMsg, Action> {
     fn none() -> Self {
         Self {
             effect: effect::none(),
@@ -143,12 +143,12 @@ impl<ParentMsg, AppEffect, Action> UpdateData<ParentMsg, AppEffect, Action> {
     }
 }
 
-pub fn update<ToParentMsg, ParentMsg, AppEffect, Action>(
+pub fn update<ToParentMsg, ParentMsg, Action>(
     msg: &Msg,
     state: &mut State<Action>,
     entries: Vec<Entry<Action>>,
     _to_parent_msg: ToParentMsg,
-) -> Result<UpdateData<ParentMsg, AppEffect, Action>, String>
+) -> Result<UpdateData<ParentMsg, Action>, String>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
     Action: Clone + Eq + PartialEq + Hash + Display + EntryExtra,

@@ -46,10 +46,10 @@ pub enum Msg {
     Close,
 }
 
-pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
+pub fn subscriptions<ToParentMsg, ParentMsg>(
     state: &State,
     to_parent_msg: ToParentMsg,
-) -> Subscription<ParentMsg, AppEffect>
+) -> Subscription<ParentMsg>
 where
     ParentMsg: Clone,
     ToParentMsg: Fn(Msg) -> ParentMsg,
@@ -116,7 +116,7 @@ pub fn update(msg: &Msg, state: &mut State) -> Result<Event, String> {
     }
 }
 
-pub fn open<ParentMsg, AppEffect>(state: &mut State, title: &str) -> Effect<ParentMsg, AppEffect> {
+pub fn open<ParentMsg>(state: &mut State, title: &str) -> Effect<ParentMsg> {
     *state = State::Open(Model {
         title: title.to_string(),
         ..Model::default()

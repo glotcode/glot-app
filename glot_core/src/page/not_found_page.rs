@@ -26,12 +26,12 @@ pub struct NotFoundPage {
     pub browser_ctx: BrowserContext,
 }
 
-impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
+impl Page<Model, Msg, Markup> for NotFoundPage {
     fn id(&self) -> &'static dyn DomId {
         &Id::Glot
     }
 
-    fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
+    fn init(&self) -> Result<(Model, Effect<Msg>), String> {
         let model = Model {
             browser_ctx: self.browser_ctx.clone(),
             layout_state: Default::default(),
@@ -41,7 +41,7 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
         Ok((model, effect::none()))
     }
 
-    fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
+    fn subscriptions(&self, model: &Model) -> Subscription<Msg> {
         subscription::batch(vec![
             app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg),
             search_modal::subscriptions(
@@ -52,7 +52,7 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
         ])
     }
 
-    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
+    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg>, String> {
         match msg {
             Msg::AppLayoutMsg(child_msg) => {
                 let event = app_layout::update(child_msg, &mut model.layout_state)?;
@@ -63,7 +63,7 @@ impl Page<Model, Msg, AppEffect, Markup> for NotFoundPage {
             }
 
             Msg::SearchModalMsg(child_msg) => {
-                let data: search_modal::UpdateData<Msg, AppEffect, LanguageQuickAction> =
+                let data: search_modal::UpdateData<Msg, LanguageQuickAction> =
                     search_modal::update(
                         child_msg,
                         &mut model.search_modal_state,
@@ -109,10 +109,6 @@ pub enum Msg {
     AppLayoutMsg(app_layout::Msg),
     SearchModalMsg(search_modal::Msg),
 }
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum AppEffect {}
 
 fn view_head() -> maud::Markup {
     html! {

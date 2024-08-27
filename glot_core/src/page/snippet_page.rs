@@ -233,12 +233,12 @@ impl SnippetPage {
     }
 }
 
-impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
+impl Page<Model, Msg, Markup> for SnippetPage {
     fn id(&self) -> &'static dyn DomId {
         &Id::Glot
     }
 
-    fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
+    fn init(&self) -> Result<(Model, Effect<Msg>), String> {
         let model = self.get_model()?;
 
         let effect = effect::batch(vec![
@@ -251,7 +251,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         Ok((model, effect))
     }
 
-    fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
+    fn subscriptions(&self, model: &Model) -> Subscription<Msg> {
         let run_key_combo = KeyboardShortcut::RunCode.key_combo(&model.browser_ctx.user_agent);
 
         subscription::batch(vec![
@@ -285,7 +285,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         ])
     }
 
-    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
+    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg>, String> {
         match msg {
             Msg::WindowSizeChanged(captured) => {
                 let window_size = captured.value();
@@ -439,13 +439,12 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
             Msg::SearchModalMsg(child_msg) => {
                 let files = model.files.to_vec();
 
-                let data: search_modal::UpdateData<Msg, AppEffect, QuickAction> =
-                    search_modal::update(
-                        child_msg,
-                        &mut model.search_modal_state,
-                        quick_action::actions(files),
-                        Msg::SearchModalMsg,
-                    )?;
+                let data: search_modal::UpdateData<Msg, QuickAction> = search_modal::update(
+                    child_msg,
+                    &mut model.search_modal_state,
+                    quick_action::actions(files),
+                    Msg::SearchModalMsg,
+                )?;
 
                 let effect = if let Some(entry) = data.action {
                     match entry {
@@ -523,11 +522,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
         }
     }
 
-    fn update_from_js(
-        &self,
-        msg: JsMsg,
-        model: &mut Model,
-    ) -> Result<Effect<Msg, AppEffect>, String> {
+    fn update_from_js(&self, msg: JsMsg, model: &mut Model) -> Result<Effect<Msg>, String> {
         match msg.type_.as_ref() {
             "GotRunResponse" => {
                 let outcome: RunOutcome = serde_json::from_value(msg.data)
@@ -590,7 +585,7 @@ impl Page<Model, Msg, AppEffect, Markup> for SnippetPage {
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", content = "config")]
 #[serde(rename_all = "camelCase")]
-pub enum AppEffect {
+pub enum CustomEffect {
     Run(RunRequest),
     GetLanguageVersion(RunRequest),
 }
@@ -811,11 +806,11 @@ pub struct LocalStorageSettings {
     pub editor_theme: EditorTheme,
 }
 
-fn load_settings_effect() -> Effect<Msg, AppEffect> {
+fn load_settings_effect() -> Effect<Msg> {
     local_storage::get_item("settings", Msg::GotSettings)
 }
 
-fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
+fn save_settings_effect(model: &Model) -> Effect<Msg> {
     local_storage::set_item(
         "settings",
         LocalStorageSettings {
@@ -826,17 +821,17 @@ fn save_settings_effect(model: &Model) -> Effect<Msg, AppEffect> {
     )
 }
 
-fn load_session_snippet_effect(url: &Url) -> Effect<Msg, AppEffect> {
+fn load_session_snippet_effect(url: &Url) -> Effect<Msg> {
     session_storage::get_item(url.path(), Msg::GotSessionSnippet)
 }
 
-fn save_session_snippet_effect(model: &Model) -> Effect<Msg, AppEffect> {
+fn save_session_snippet_effect(model: &Model) -> Effect<Msg> {
     let path = model.browser_ctx.current_url.path();
     let snippet = snippet_from_model(model);
     session_storage::set_item(path, snippet, Msg::SavedSessionSnippet)
 }
 
-fn get_language_version_effect(language: Language) -> Effect<Msg, AppEffect> {
+fn get_language_version_effect(language: Language) -> Effect<Msg> {
     let run_config = language.config().run_config();
 
     let config = RunRequest {
@@ -851,10 +846,10 @@ fn get_language_version_effect(language: Language) -> Effect<Msg, AppEffect> {
         },
     };
 
-    effect::app_effect(AppEffect::GetLanguageVersion(config))
+    effect::custom(CustomEffect::GetLanguageVersion(config))
 }
 
-fn focus_editor_effect() -> Effect<Msg, AppEffect> {
+fn focus_editor_effect() -> Effect<Msg> {
     dom::dispatch_element_event(Id::Editor, "focus")
 }
 
@@ -872,7 +867,7 @@ fn calc_editor_height(window_size: &WindowSize) -> u64 {
     max(height, MIN_EDITOR_HEIGHT)
 }
 
-fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
+fn run_effect(model: &mut Model) -> Effect<Msg> {
     let language_config = model.language.config();
     let run_config = language_config.run_config();
 
@@ -896,7 +891,7 @@ fn run_effect(model: &mut Model) -> Effect<Msg, AppEffect> {
 
     model.run_result = RemoteData::Loading;
 
-    effect::app_effect(AppEffect::Run(config))
+    effect::custom(CustomEffect::Run(config))
 }
 
 fn get_default_run_instructions(model: &Model) -> RunInstructions {
@@ -915,22 +910,22 @@ fn get_default_run_instructions(model: &Model) -> RunInstructions {
         .run_instructions(main_file, other_files)
 }
 
-fn open_stdin_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+fn open_stdin_modal(model: &mut Model) -> Effect<Msg> {
     stdin_modal::open(
         &mut model.stdin_modal_state,
         &model.stdin.clone().unwrap_or_default(),
     )
 }
 
-fn open_sharing_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+fn open_sharing_modal(model: &mut Model) -> Effect<Msg> {
     sharing_modal::open(&mut model.sharing_modal_state, Msg::SharingModalMsg)
 }
 
-fn open_title_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+fn open_title_modal(model: &mut Model) -> Effect<Msg> {
     title_modal::open(&mut model.title_modal_state, &model.title)
 }
 
-fn open_settings_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+fn open_settings_modal(model: &mut Model) -> Effect<Msg> {
     let command = model
         .custom_command
         .clone()
@@ -946,7 +941,7 @@ fn open_settings_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
     )
 }
 
-fn open_edit_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+fn open_edit_file_modal(model: &mut Model) -> Effect<Msg> {
     let current_filename = model.files.selected().name.clone();
 
     let existing_filenames = model
@@ -967,7 +962,7 @@ fn open_edit_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
     )
 }
 
-fn open_add_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
+fn open_add_file_modal(model: &mut Model) -> Effect<Msg> {
     let existing_filenames = model
         .files
         .to_vec()
@@ -984,7 +979,7 @@ fn open_add_file_modal(model: &mut Model) -> Effect<Msg, AppEffect> {
     )
 }
 
-fn select_file(model: &mut Model, filename: &str) -> Effect<Msg, AppEffect> {
+fn select_file(model: &mut Model, filename: &str) -> Effect<Msg> {
     let maybe_index = model
         .files
         .to_vec()
@@ -1000,7 +995,7 @@ fn select_file(model: &mut Model, filename: &str) -> Effect<Msg, AppEffect> {
     focus_editor_effect()
 }
 
-fn go_to_home(model: &Model) -> Effect<Msg, AppEffect> {
+fn go_to_home(model: &Model) -> Effect<Msg> {
     let route = Route::Home;
     let url = route.to_absolute_path(&model.browser_ctx.current_url);
     navigation::set_location(&url)

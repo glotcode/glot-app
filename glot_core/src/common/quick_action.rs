@@ -14,7 +14,7 @@ impl LanguageQuickAction {
         self.0
     }
 
-    pub fn perform_action<Msg, AppEffect>(self, current_url: &Url) -> Effect<Msg, AppEffect> {
+    pub fn perform_action<Msg>(self, current_url: &Url) -> Effect<Msg> {
         let route = Route::NewSnippet(self.language());
         let url = route.to_absolute_path(current_url);
         navigation::set_location(&url)

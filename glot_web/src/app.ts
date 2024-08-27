@@ -18,7 +18,7 @@ AceEditorElement.register();
         loggerConfig: hasDebugFlag() ? defaultDebugConfig() : undefined,
     });
 
-    poly.onAppEffect(async (msg) => {
+    poly.onCustomEffect(async (msg) => {
         switch (msg.type) {
             case "run":
                 try {

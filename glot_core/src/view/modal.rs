@@ -11,10 +11,7 @@ pub struct Config<Id> {
     pub close_button_id: Id,
 }
 
-pub fn subscriptions<Msg: Clone, AppEffect, Id: DomId>(
-    config: &Config<Id>,
-    msg: Msg,
-) -> Subscription<Msg, AppEffect> {
+pub fn subscriptions<Msg: Clone, Id: DomId>(config: &Config<Id>, msg: Msg) -> Subscription<Msg> {
     subscription::batch(vec![
         event_listener::on_mouse_down(&config.backdrop_id, msg.clone()),
         event_listener::on_click_closest(&config.close_button_id, msg.clone()),

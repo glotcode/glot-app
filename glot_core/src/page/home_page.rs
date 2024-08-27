@@ -33,12 +33,12 @@ pub struct HomePage {
     pub browser_ctx: BrowserContext,
 }
 
-impl Page<Model, Msg, AppEffect, Markup> for HomePage {
+impl Page<Model, Msg, Markup> for HomePage {
     fn id(&self) -> &'static dyn DomId {
         &Id::Glot
     }
 
-    fn init(&self) -> Result<(Model, Effect<Msg, AppEffect>), String> {
+    fn init(&self) -> Result<(Model, Effect<Msg>), String> {
         let model = Model {
             layout_state: app_layout::State::default(),
             browser_ctx: self.browser_ctx.clone(),
@@ -48,7 +48,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         Ok((model, effect::none()))
     }
 
-    fn subscriptions(&self, model: &Model) -> Subscription<Msg, AppEffect> {
+    fn subscriptions(&self, model: &Model) -> Subscription<Msg> {
         subscription::batch(vec![
             event_listener::on_click_closest(Id::QuickActionButton, Msg::QuickActionButtonClicked),
             app_layout::subscriptions(&model.layout_state, Msg::AppLayoutMsg),
@@ -60,7 +60,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
         ])
     }
 
-    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg, AppEffect>, String> {
+    fn update(&self, msg: &Msg, model: &mut Model) -> Result<Effect<Msg>, String> {
         match msg {
             Msg::QuickActionButtonClicked => {
                 // fmt
@@ -68,7 +68,7 @@ impl Page<Model, Msg, AppEffect, Markup> for HomePage {
             }
 
             Msg::SearchModalMsg(child_msg) => {
-                let data: search_modal::UpdateData<Msg, AppEffect, LanguageQuickAction> =
+                let data: search_modal::UpdateData<Msg, LanguageQuickAction> =
                     search_modal::update(
                         child_msg,
                         &mut model.search_modal_state,
@@ -125,10 +125,6 @@ pub enum Msg {
     QuickActionButtonClicked,
     SearchModalMsg(search_modal::Msg),
 }
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum AppEffect {}
 
 fn view_head(_model: &Model) -> maud::Markup {
     let count = language::list().len();

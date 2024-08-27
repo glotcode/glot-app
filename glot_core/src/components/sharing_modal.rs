@@ -57,10 +57,10 @@ pub enum Msg {
     Close,
 }
 
-pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
+pub fn subscriptions<ToParentMsg, ParentMsg>(
     state: &State,
     to_parent_msg: ToParentMsg,
-) -> Subscription<ParentMsg, AppEffect>
+) -> Subscription<ParentMsg>
 where
     ParentMsg: Clone,
     ToParentMsg: Fn(Msg) -> ParentMsg,
@@ -93,12 +93,12 @@ pub enum Event {
     ModalClosed,
 }
 
-pub struct UpdateData<ParentMsg, AppEffect> {
+pub struct UpdateData<ParentMsg> {
     pub event: Event,
-    pub effect: Effect<ParentMsg, AppEffect>,
+    pub effect: Effect<ParentMsg>,
 }
 
-impl<ParentMsg, AppEffect> UpdateData<ParentMsg, AppEffect> {
+impl<ParentMsg> UpdateData<ParentMsg> {
     fn none() -> Self {
         Self {
             event: Event::None,
@@ -106,7 +106,7 @@ impl<ParentMsg, AppEffect> UpdateData<ParentMsg, AppEffect> {
         }
     }
 
-    fn with_effect(effect: Effect<ParentMsg, AppEffect>) -> Self {
+    fn with_effect(effect: Effect<ParentMsg>) -> Self {
         Self {
             event: Event::None,
             effect,
@@ -121,12 +121,12 @@ impl<ParentMsg, AppEffect> UpdateData<ParentMsg, AppEffect> {
     }
 }
 
-pub fn update<ToParentMsg, ParentMsg, AppEffect>(
+pub fn update<ToParentMsg, ParentMsg>(
     msg: &Msg,
     state: &mut State,
     context: Context,
     to_parent_msg: ToParentMsg,
-) -> Result<UpdateData<ParentMsg, AppEffect>, String>
+) -> Result<UpdateData<ParentMsg>, String>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {
@@ -195,10 +195,10 @@ where
     }
 }
 
-pub fn open<ToParentMsg, ParentMsg, AppEffect>(
+pub fn open<ToParentMsg, ParentMsg>(
     state: &mut State,
     to_parent_msg: ToParentMsg,
-) -> Effect<ParentMsg, AppEffect>
+) -> Effect<ParentMsg>
 where
     ToParentMsg: Fn(Msg) -> ParentMsg,
 {

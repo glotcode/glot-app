@@ -67,10 +67,10 @@ pub enum Msg {
     Close,
 }
 
-pub fn subscriptions<ToParentMsg, ParentMsg, AppEffect>(
+pub fn subscriptions<ToParentMsg, ParentMsg>(
     state: &State,
     to_parent_msg: ToParentMsg,
-) -> Subscription<ParentMsg, AppEffect>
+) -> Subscription<ParentMsg>
 where
     ParentMsg: Clone,
     ToParentMsg: Fn(Msg) -> ParentMsg,
@@ -180,10 +180,7 @@ pub struct EditContext {
     pub filename: String,
 }
 
-pub fn open_for_edit<ParentMsg, AppEffect>(
-    state: &mut State,
-    ctx: EditContext,
-) -> Effect<ParentMsg, AppEffect> {
+pub fn open_for_edit<ParentMsg>(state: &mut State, ctx: EditContext) -> Effect<ParentMsg> {
     *state = State::Open(Box::new(Model {
         language: ctx.language,
         existing_filenames: ctx.existing_filenames,
@@ -200,10 +197,7 @@ pub struct AddContext {
     pub existing_filenames: Vec<String>,
 }
 
-pub fn open_for_add<ParentMsg, AppEffect>(
-    state: &mut State,
-    ctx: AddContext,
-) -> Effect<ParentMsg, AppEffect> {
+pub fn open_for_add<ParentMsg>(state: &mut State, ctx: AddContext) -> Effect<ParentMsg> {
     *state = State::Open(Box::new(Model {
         language: ctx.language,
         existing_filenames: ctx.existing_filenames,
