@@ -120,12 +120,12 @@ pub fn create_uses_selected_visibility_and_can_retry_after_failure_test() {
     |> editor_scenario.start(option.Some(current_user))
     |> editor_scenario.dispatch(message.SaveClicked)
     |> editor_scenario.dispatch(message.SaveVisibilityDraftSelected(
-      snippet_model.Public,
+      snippet_model.Secret,
     ))
     |> editor_scenario.dispatch(message.SaveConfirmed)
   let assert [editor_scenario.CreateSnippet(first_request, _)] =
     editor_scenario.pending(scenario)
-  assert first_request.data.visibility == snippet_model.Public
+  assert first_request.data.visibility == snippet_model.Secret
   let scenario =
     editor_scenario.respond_to_create(
       scenario,

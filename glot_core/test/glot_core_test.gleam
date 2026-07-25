@@ -29,6 +29,12 @@ pub fn new_slug_test() {
   assert snippet_model.new_slug(ts) == "hhan9vius2"
 }
 
+pub fn secret_snippet_visibility_round_trips_test() {
+  assert snippet_model.visibility_to_string(snippet_model.Secret) == "secret"
+  assert snippet_model.visibility_from_string("secret")
+    == option.Some(snippet_model.Secret)
+}
+
 pub fn effect_trace_decoder_accepts_legacy_measurements_test() {
   let json =
     "{\"effects\":[{\"category\":\"db_read\",\"name\":\"get_dynamic_config\",\"duration_ns\":5}]}"

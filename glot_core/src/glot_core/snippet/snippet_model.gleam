@@ -34,12 +34,14 @@ pub type HydratedSnippet {
 pub type Visibility {
   Public
   Unlisted
+  Secret
 }
 
 pub fn visibility_to_string(visibility: Visibility) -> String {
   case visibility {
     Public -> "public"
     Unlisted -> "unlisted"
+    Secret -> "secret"
   }
 }
 
@@ -47,6 +49,7 @@ pub fn visibility_from_string(visibility: String) -> option.Option(Visibility) {
   case visibility {
     "public" -> option.Some(Public)
     "unlisted" -> option.Some(Unlisted)
+    "secret" -> option.Some(Secret)
     _ -> option.None
   }
 }
@@ -60,6 +63,7 @@ pub fn visibility_decoder() -> decode.Decoder(Visibility) {
   case visibility {
     "public" -> decode.success(Public)
     "unlisted" -> decode.success(Unlisted)
+    "secret" -> decode.success(Secret)
     _ -> decode.failure(Public, "Visibility")
   }
 }

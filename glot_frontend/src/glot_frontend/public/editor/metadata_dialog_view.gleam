@@ -73,6 +73,13 @@ pub fn view(model: RealModel) -> Element(Msg) {
                   model.save_visibility_draft,
                   EditMetadataVisibilitySelected,
                 ),
+                dialog_controls.visibility_option(
+                  "Secret",
+                  "Visible only to you.",
+                  snippet_model.Secret,
+                  model.save_visibility_draft,
+                  EditMetadataVisibilitySelected,
+                ),
               ],
             ),
           ]),

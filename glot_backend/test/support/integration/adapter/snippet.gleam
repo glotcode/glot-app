@@ -1,4 +1,3 @@
-import gleam/option
 import glot_backend/snippet/ports/store
 import support/integration/adapter/state
 import support/integration/adapter/unexpected
@@ -24,9 +23,15 @@ pub fn defaults() -> store.Store {
 
 pub fn new(test_state: state.State) -> store.Store {
   store.Store(
-    get_snippet_by_id: fn(_) { Ok(option.None) },
-    get_snippet_by_slug: fn(_) { Ok(option.None) },
-    get_admin_snippet_by_slug: fn(_) { Ok(option.None) },
+    get_snippet_by_id: fn(id) {
+      Ok(snippet.find_by_id(state.get(test_state), id))
+    },
+    get_snippet_by_slug: fn(slug) {
+      Ok(snippet.find_by_slug(state.get(test_state), slug))
+    },
+    get_admin_snippet_by_slug: fn(slug) {
+      Ok(snippet.find_by_slug(state.get(test_state), slug))
+    },
     list_snippets: fn(_, _) { Ok([]) },
     list_admin_snippets: fn(_, _) { Ok([]) },
     delete_snippet: fn(id) {

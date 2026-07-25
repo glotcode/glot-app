@@ -264,6 +264,7 @@ fn visibility_text(visibility: snippet_model.Visibility) -> String {
   case visibility {
     snippet_model.Public -> "Public"
     snippet_model.Unlisted -> "Unlisted"
+    snippet_model.Secret -> "Secret"
   }
 }
 

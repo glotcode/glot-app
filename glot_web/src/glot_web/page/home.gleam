@@ -60,7 +60,7 @@ pub fn view(load_ad load_ad: Bool) -> Element(msg) {
             feature_card(
               icons.share(),
               "Share snippets",
-              "Save public or unlisted snippets and share them with a link.",
+              "Save public, unlisted, or secret snippets and share them when you choose.",
             ),
             feature_card(
               icons.cog_6_tooth(),

@@ -2,6 +2,7 @@ import gleam/dynamic
 import gleam/option
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/request_policy/api_action as api_action_policy
+import glot_backend/snippet/domain/access
 import glot_backend/snippet/effect/effect as snippet_effect
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error
@@ -49,6 +50,15 @@ pub fn get_snippet(
     snippet_effect.get_by_slug(request.slug)
     |> program.require(error.resource(resource_error.SnippetNotFound)),
   )
+
+  let viewer =
+    maybe_session
+    |> option.map(fn(session) { session.user.identity })
+
+  use _ <- program.and_then(case access.can_view(snippet, viewer) {
+    True -> program.succeed(Nil)
+    False -> program.fail(error.resource(resource_error.SnippetNotFound))
+  })
 
   let is_owner = maybe_user_id == option.Some(snippet.user.id)
 

@@ -30,7 +30,7 @@ pub fn view() -> Element(msg) {
             "When you use the site, glot.io processes requests and records limited operational data such as your IP address, browser user agent, referrer, requested page, timestamps, and diagnostic information. This is used to deliver the service, prevent abuse, investigate faults, and understand aggregate usage.",
           ),
           paragraph(
-            "If you create an account, glot.io stores your email address, username, authentication credentials such as passkey public-key data, and session records. If you create or run a snippet, the service processes the code, input, metadata, visibility choice, and execution result needed to provide that feature. Public snippets and usernames are visible to everyone; unlisted snippets are available to anyone with their link.",
+            "If you create an account, glot.io stores your email address, username, authentication credentials such as passkey public-key data, and session records. If you create or run a snippet, the service processes the code, input, metadata, visibility choice, and execution result needed to provide that feature. Public snippets and usernames are visible to everyone; unlisted snippets are available to anyone with their link; secret snippets are available only to their creator and service administrators.",
           ),
         ]),
         section("Why it is used", [

@@ -112,6 +112,13 @@ fn save_dialog_children(
                 model.save_visibility_draft,
                 SaveVisibilityDraftSelected,
               ),
+              dialog_controls.visibility_option(
+                "Secret",
+                "Visible only to you.",
+                snippet_model.Secret,
+                model.save_visibility_draft,
+                SaveVisibilityDraftSelected,
+              ),
             ],
           ),
           html.div([attribute.class("editor-page__dialog-actions")], [
