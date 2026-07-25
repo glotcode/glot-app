@@ -52,7 +52,7 @@ fn with_content_security_policy(
   }
 
   next()
-  |> content_security_policy.add(content_security_policy.ReportOnly, scope)
+  |> content_security_policy.add(content_security_policy.Enforce, scope)
 }
 
 fn with_tracked_request(

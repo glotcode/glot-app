@@ -59,12 +59,12 @@ pub fn app_accepts_matching_origin_test() {
     )
 
   assert response.status == 503
+  assert http_response.get_header(response, "content-security-policy")
+    == Ok(content_security_policy.policy(content_security_policy.Application))
   assert http_response.get_header(
       response,
       "content-security-policy-report-only",
     )
-    == Ok(content_security_policy.policy(content_security_policy.Application))
-  assert http_response.get_header(response, "content-security-policy")
     == Error(Nil)
 }
 
@@ -87,11 +87,13 @@ pub fn carbon_ad_document_uses_isolated_policy_test() {
 
   assert response.status == 200
   assert http_response.get_header(response, "cache-control") == Ok("no-store")
+  assert http_response.get_header(response, "content-security-policy")
+    == Ok(content_security_policy.policy(content_security_policy.CarbonAd))
   assert http_response.get_header(
       response,
       "content-security-policy-report-only",
     )
-    == Ok(content_security_policy.policy(content_security_policy.CarbonAd))
+    == Error(Nil)
   assert simulate.read_body(response)
     |> string.contains("https://cdn.carbonads.com/carbon.js")
 }
