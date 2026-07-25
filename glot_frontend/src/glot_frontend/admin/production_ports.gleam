@@ -138,12 +138,15 @@ fn run_config(command: config.Command(msg)) -> Effect(msg) {
       config_api.upsert_admin_passkey_config(request, done)
     config.GetCleanup(done) -> config_api.get_admin_cleanup_config(done)
     config.GetLogWorker(done) -> config_api.get_admin_log_worker_config(done)
+    config.GetHttpPool(done) -> config_api.get_admin_http_pool_config(done)
     config.GetLanguageCache(done) ->
       config_api.get_admin_language_version_cache_worker_config(done)
     config.UpsertCleanup(request, done) ->
       config_api.upsert_admin_cleanup_config(request, done)
     config.UpsertLogWorker(request, done) ->
       config_api.upsert_admin_log_worker_config(request, done)
+    config.UpsertHttpPool(request, done) ->
+      config_api.upsert_admin_http_pool_config(request, done)
     config.UpsertLanguageCache(request, done) ->
       config_api.upsert_admin_language_version_cache_worker_config(
         request,

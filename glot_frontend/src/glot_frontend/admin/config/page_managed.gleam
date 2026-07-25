@@ -6,14 +6,15 @@ import glot_frontend/admin/config/cloudflare
 import glot_frontend/admin/config/debug
 import glot_frontend/admin/config/docker_run
 import glot_frontend/admin/config/email
+import glot_frontend/admin/config/http_pool
 import glot_frontend/admin/config/language_version_cache_worker
 import glot_frontend/admin/config/log_worker
 import glot_frontend/admin/config/passkey
 
 import glot_frontend/admin/config/page_message.{
   type Msg, AuthMsg, AvailabilityMsg, CleanupMsg, CloudflareMsg, DebugMsg,
-  DockerRunMsg, EmailMsg, LanguageVersionCacheWorkerMsg, LogWorkerMsg,
-  PasskeyMsg,
+  DockerRunMsg, EmailMsg, HttpPoolMsg, LanguageVersionCacheWorkerMsg,
+  LogWorkerMsg, PasskeyMsg,
 }
 import glot_frontend/admin/config/page_model.{type Model, Model}
 
@@ -26,6 +27,7 @@ pub fn init() -> #(Model, admin_effect.Command(Msg)) {
       passkey: passkey.init(),
       cleanup: cleanup.init(),
       log_worker: log_worker.init(),
+      http_pool: http_pool.init(),
       language_version_cache_worker: language_version_cache_worker.init(),
       docker_run: docker_run.init(),
       cloudflare: cloudflare.init(),
@@ -44,6 +46,7 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
   let #(cleanup, cleanup_effect) = cleanup.ensure_loaded(model.cleanup)
   let #(log_worker, log_worker_effect) =
     log_worker.ensure_loaded(model.log_worker)
+  let #(http_pool, http_pool_effect) = http_pool.ensure_loaded(model.http_pool)
   let #(language_version_cache_worker, language_version_cache_worker_effect) =
     language_version_cache_worker.ensure_loaded(
       model.language_version_cache_worker,
@@ -62,6 +65,7 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
       passkey:,
       cleanup:,
       log_worker:,
+      http_pool:,
       language_version_cache_worker:,
       docker_run:,
       cloudflare:,
@@ -74,6 +78,7 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
       admin_effect.map(passkey_effect, PasskeyMsg),
       admin_effect.map(cleanup_effect, CleanupMsg),
       admin_effect.map(log_worker_effect, LogWorkerMsg),
+      admin_effect.map(http_pool_effect, HttpPoolMsg),
       admin_effect.map(
         language_version_cache_worker_effect,
         LanguageVersionCacheWorkerMsg,
@@ -123,6 +128,13 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
       #(
         Model(..model, log_worker: child),
         admin_effect.map(child_effect, LogWorkerMsg),
+      )
+    }
+    HttpPoolMsg(child_msg) -> {
+      let #(child, child_effect) = http_pool.update(model.http_pool, child_msg)
+      #(
+        Model(..model, http_pool: child),
+        admin_effect.map(child_effect, HttpPoolMsg),
       )
     }
     LanguageVersionCacheWorkerMsg(child_msg) -> {

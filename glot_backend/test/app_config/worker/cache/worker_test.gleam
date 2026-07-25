@@ -35,6 +35,8 @@ type ControlMessage {
     ),
   )
   GetFetchCount(reply: process.Subject(Int))
+  ConfigUpdated
+  GetConfigUpdatedCount(reply: process.Subject(Int))
   SetNow(Int)
   GetNow(reply: process.Subject(Int))
 }
@@ -42,6 +44,7 @@ type ControlMessage {
 type ControlState {
   ControlState(
     fetch_count: Int,
+    config_updated_count: Int,
     now_ns: Int,
     pending_fetches: List(
       process.Subject(
@@ -72,6 +75,11 @@ pub fn concurrent_cold_misses_are_deduped_test() {
   assert first == Ok(test_dynamic_config())
   assert second == Ok(test_dynamic_config())
   assert test_process.call(control_subject, GetFetchCount) == 1
+  assert test_process.eventually(
+      fn() { test_process.call(control_subject, GetConfigUpdatedCount) },
+      fn(count) { count == 1 },
+    )
+    == 1
 }
 
 pub fn stale_value_is_served_while_refresh_runs_test() {
@@ -164,6 +172,10 @@ fn start_worker(
         test_process.receive(response_subject)
       },
       now_ns: fn() { test_process.call(control_subject, GetNow) },
+      config_updated: fn(_) {
+        process.send(control_subject, ConfigUpdated)
+        Ok(Nil)
+      },
     )
 
   let assert Ok(_) =
@@ -186,7 +198,12 @@ fn start_control(
       process.send(ready, Nil)
       control_loop(
         subject,
-        ControlState(fetch_count: 0, now_ns: 0, pending_fetches: []),
+        ControlState(
+          fetch_count: 0,
+          config_updated_count: 0,
+          now_ns: 0,
+          pending_fetches: [],
+        ),
       )
     })
   let Nil = test_process.receive(ready)
@@ -220,6 +237,18 @@ fn control_loop(
     }
     GetFetchCount(reply) -> {
       process.send(reply, state.fetch_count)
+      control_loop(subject, state)
+    }
+    ConfigUpdated ->
+      control_loop(
+        subject,
+        ControlState(
+          ..state,
+          config_updated_count: state.config_updated_count + 1,
+        ),
+      )
+    GetConfigUpdatedCount(reply) -> {
+      process.send(reply, state.config_updated_count)
       control_loop(subject, state)
     }
     SetNow(now_ns) ->
@@ -294,6 +323,7 @@ fn expect_result(
 fn test_dynamic_config() -> dynamic_config.DynamicConfig {
   dynamic_config.DynamicConfig(
     debug: system_config.DebugConfig(enabled: False),
+    http_pool: system_config.HttpPoolConfig(16, 4, 120_000),
     availability: request_policy_config.AvailabilityConfig(
       mode: availability_mode.NormalMode,
       message: "glot.io is temporarily unavailable right now.",
@@ -375,6 +405,7 @@ fn test_dynamic_config() -> dynamic_config.DynamicConfig {
 fn updated_dynamic_config() -> dynamic_config.DynamicConfig {
   dynamic_config.DynamicConfig(
     debug: system_config.DebugConfig(enabled: True),
+    http_pool: system_config.HttpPoolConfig(16, 4, 120_000),
     availability: request_policy_config.AvailabilityConfig(
       mode: availability_mode.MaintenanceMode,
       message: "Maintenance is in progress.",

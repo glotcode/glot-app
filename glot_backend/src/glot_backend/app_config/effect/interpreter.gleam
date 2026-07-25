@@ -92,6 +92,17 @@ pub fn run(
         state,
         continue,
       )
+    algebra.UpsertHttpPoolConfig(config:, updated_at:, next:) ->
+      upsert(
+        store,
+        cache,
+        updates.http_pool(config),
+        updated_at,
+        algebra.UpsertHttpPoolConfigEffectName,
+        next,
+        state,
+        continue,
+      )
     algebra.UpsertLanguageVersionCacheWorkerConfig(config:, updated_at:, next:) ->
       upsert(
         store,

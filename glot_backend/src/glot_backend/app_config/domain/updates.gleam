@@ -127,6 +127,26 @@ pub fn log_worker(value: logging_config.Config) -> List(AppConfigEntry) {
   ]
 }
 
+pub fn http_pool(value: system_config.HttpPoolConfig) -> List(AppConfigEntry) {
+  [
+    entry(
+      "http_pool",
+      "docker_run_max_sessions",
+      json.int(value.docker_run_max_sessions),
+    ),
+    entry(
+      "http_pool",
+      "cloudflare_email_max_sessions",
+      json.int(value.cloudflare_email_max_sessions),
+    ),
+    entry(
+      "http_pool",
+      "keep_alive_timeout_ms",
+      json.int(value.keep_alive_timeout_ms),
+    ),
+  ]
+}
+
 pub fn language_version_cache_worker(
   value: run_code_config.LanguageVersionCacheWorkerConfig,
 ) -> List(AppConfigEntry) {

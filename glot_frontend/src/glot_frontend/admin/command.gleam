@@ -10,6 +10,7 @@ import glot_core/admin/debug_config_dto
 import glot_core/admin/docker_run_config_dto
 import glot_core/admin/email_config_dto
 import glot_core/admin/email_template_dto
+import glot_core/admin/http_pool_config_dto
 import glot_core/admin/job_dto
 import glot_core/admin/job_log_dto
 import glot_core/admin/job_type_policy_dto
@@ -321,6 +322,13 @@ pub fn get_admin_log_worker_config(
   Config(config.GetLogWorker(done))
 }
 
+pub fn get_admin_http_pool_config(
+  done: fn(response.Response(http_pool_config_dto.HttpPoolConfigResponse)) ->
+    msg,
+) -> Command(msg) {
+  Config(config.GetHttpPool(done))
+}
+
 pub fn get_admin_language_version_cache_worker_config(
   done: fn(
     response.Response(
@@ -344,6 +352,14 @@ pub fn upsert_admin_log_worker_config(
     msg,
 ) -> Command(msg) {
   Config(config.UpsertLogWorker(request, done))
+}
+
+pub fn upsert_admin_http_pool_config(
+  request: http_pool_config_dto.UpsertHttpPoolConfigRequest,
+  done: fn(response.Response(http_pool_config_dto.HttpPoolConfigResponse)) ->
+    msg,
+) -> Command(msg) {
+  Config(config.UpsertHttpPool(request, done))
 }
 
 pub fn upsert_admin_language_version_cache_worker_config(

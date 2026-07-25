@@ -1,5 +1,6 @@
 import gleam/erlang/process
 import gleam/otp/static_supervisor
+import glot_backend/app_config/adapter/http_pool/listener as http_pool_listener
 import glot_backend/app_config/adapter/postgres/store as app_config_postgres_store
 import glot_backend/app_config/ports/cache.{type Cache}
 import glot_backend/app_config/worker/cache/worker as app_config_cache_worker
@@ -16,6 +17,7 @@ import glot_backend/run_code/adapter/docker_run/client as docker_run_client
 import glot_backend/run_code/worker/language_version_cache/worker as language_version_cache_worker
 import glot_backend/system/database as db_helpers
 import glot_backend/system/effect/runtime.{type Runtime}
+import glot_backend/system/http/pool.{type Pools}
 import glot_backend/system/lifecycle/database_health/adapter/postgres/checker as database_health_postgres_checker
 import glot_backend/system/lifecycle/database_health/worker as database_health_worker
 import glot_backend/system/lifecycle/request_tracker/worker as request_tracker_worker
@@ -47,6 +49,7 @@ pub type Dependencies {
     app_config_cache: Cache,
     job_tracker: Tracker,
     server_mode: Controller,
+    http_pools: Pools,
   )
 }
 
@@ -108,6 +111,7 @@ pub fn start(config: Config) {
   |> static_supervisor.add(app_config_cache_worker.supervised(
     worker_names.app_config_cache_worker_name,
     app_config_postgres_store.new(db_helpers.new(startup.db)),
+    http_pool_listener.new(dependencies.http_pools),
     dependencies.server_mode,
   ))
   |> static_supervisor.add(log_worker.supervised(
@@ -117,7 +121,7 @@ pub fn start(config: Config) {
   |> static_supervisor.add(language_version_cache_worker.supervised(
     worker_names.language_version_cache_worker_name,
     dependencies.app_config_cache,
-    docker_run_client.new(),
+    docker_run_client.new(dependencies.http_pools.docker_run),
     dependencies.server_mode,
   ))
   |> static_supervisor.add(request_tracker_worker.supervised(

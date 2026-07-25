@@ -12,6 +12,7 @@ import glot_core/admin/debug_config_dto
 import glot_core/admin/docker_run_config_dto
 import glot_core/admin/email_config_dto
 import glot_core/admin/email_template_dto
+import glot_core/admin/http_pool_config_dto
 import glot_core/admin/job_dto
 import glot_core/admin/job_log_dto
 import glot_core/admin/job_type_policy_dto
@@ -45,6 +46,7 @@ pub type ApiResult {
   PasskeyConfigResponse(passkey_config_dto.PasskeyConfigResponse)
   CleanupConfigResponse(cleanup_config_dto.CleanupConfigResponse)
   LogWorkerConfigResponse(log_worker_config_dto.LogWorkerConfigResponse)
+  HttpPoolConfigResponse(http_pool_config_dto.HttpPoolConfigResponse)
   LanguageVersionCacheWorkerConfigResponse(
     language_version_cache_worker_config_dto.LanguageVersionCacheWorkerConfigResponse,
   )

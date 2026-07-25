@@ -23,6 +23,7 @@ pub type State {
 pub type Command {
   ScheduleTick(delay_ms: Int)
   StartFetch
+  ConfigUpdated(config: dynamic_config.DynamicConfig)
   Reply(
     reply_to: process.Subject(cache_worker_support.Lookup(Reply)),
     result: cache_worker_support.Lookup(Reply),
@@ -129,15 +130,15 @@ pub fn on_fetch_completed(
   let waiters = cache_worker_support.fetch_outcome_waiters(fetch_outcome)
 
   case result {
-    Ok(config) -> #(
-      next_state,
-      list.map(waiters, fn(waiter) {
+    Ok(config) -> #(next_state, [
+      ConfigUpdated(config),
+      ..list.map(waiters, fn(waiter) {
         Reply(
           waiter.reply_to,
           cache_worker_support.Lookup(Ok(config), waiter.outcome),
         )
-      }),
-    )
+      })
+    ])
     Error(err) -> {
       #(next_state, [
         LogRefreshError(err),

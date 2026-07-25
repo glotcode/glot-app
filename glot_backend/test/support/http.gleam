@@ -14,6 +14,7 @@ import glot_backend/system/effect/adapter/service_ports as service_ports_adapter
 import glot_backend/system/effect/cache_ports
 import glot_backend/system/effect/runtime.{type Runtime}
 import glot_backend/system/file_system
+import glot_backend/system/http/pool as http_pool
 import glot_backend/system/lifecycle/request_tracker/ports/request_tracker.{
   type RequestTracker,
 }
@@ -97,6 +98,7 @@ pub fn test_runtime(
       ),
       language_version_cache: option.None,
     ),
+    http_pool.new(),
   ))
 }
 

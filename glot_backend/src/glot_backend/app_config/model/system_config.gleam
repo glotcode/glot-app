@@ -2,6 +2,14 @@ pub type DebugConfig {
   DebugConfig(enabled: Bool)
 }
 
+pub type HttpPoolConfig {
+  HttpPoolConfig(
+    docker_run_max_sessions: Int,
+    cloudflare_email_max_sessions: Int,
+    keep_alive_timeout_ms: Int,
+  )
+}
+
 pub type CleanupConfig {
   CleanupConfig(
     api_log_retention_days: Int,

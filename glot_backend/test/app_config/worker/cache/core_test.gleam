@@ -41,6 +41,7 @@ pub fn core_cold_miss_starts_fetch_and_waits_test() {
       1,
       Ok(test_dynamic_config()),
     )
+  assert count_config_updated(completed_commands) == 1
   run_core_commands(completed_commands)
   assert test_process.receive(reply)
     == cache_worker_support.Lookup(
@@ -139,6 +140,19 @@ fn count_reply(commands: List(app_config_cache_worker_core.Command)) -> Int {
   )
 }
 
+fn count_config_updated(
+  commands: List(app_config_cache_worker_core.Command),
+) -> Int {
+  list.length(
+    list.filter(commands, fn(command) {
+      case command {
+        app_config_cache_worker_core.ConfigUpdated(_) -> True
+        _ -> False
+      }
+    }),
+  )
+}
+
 fn run_core_commands(
   commands: List(app_config_cache_worker_core.Command),
 ) -> Nil {
@@ -154,6 +168,7 @@ fn run_core_commands(
 fn test_dynamic_config() -> dynamic_config.DynamicConfig {
   dynamic_config.DynamicConfig(
     debug: system_config.DebugConfig(enabled: False),
+    http_pool: system_config.HttpPoolConfig(16, 4, 120_000),
     availability: request_policy_config.AvailabilityConfig(
       mode: availability_mode.NormalMode,
       message: "glot.io is temporarily unavailable right now.",

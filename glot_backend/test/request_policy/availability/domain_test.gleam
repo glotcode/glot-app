@@ -181,6 +181,7 @@ fn run_app_config_effect(
       next(
         Ok(dynamic_config.DynamicConfig(
           debug: system_config.DebugConfig(enabled: False),
+          http_pool: system_config.HttpPoolConfig(16, 4, 120_000),
           availability: config,
           auth: auth_feature_config.AuthConfig(
             login_token_max_age: 900,

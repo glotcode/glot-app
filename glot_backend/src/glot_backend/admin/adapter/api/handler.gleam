@@ -19,6 +19,8 @@ import glot_backend/admin/domain/config/docker_run/get as get_docker_run_config_
 import glot_backend/admin/domain/config/docker_run/upsert as upsert_docker_run_config_domain
 import glot_backend/admin/domain/config/email/get as get_email_config_domain
 import glot_backend/admin/domain/config/email/upsert as upsert_email_config_domain
+import glot_backend/admin/domain/config/http_pool/get as get_http_pool_config_domain
+import glot_backend/admin/domain/config/http_pool/upsert as upsert_http_pool_config_domain
 import glot_backend/admin/domain/config/language_version_cache_worker/get as get_language_version_cache_worker_config_domain
 import glot_backend/admin/domain/config/language_version_cache_worker/upsert as upsert_language_version_cache_worker_config_domain
 import glot_backend/admin/domain/config/log_worker/get as get_log_worker_config_domain
@@ -122,6 +124,19 @@ pub fn dispatch(
         request,
       )
       |> program.map(api_result.LogWorkerConfigResponse)
+    }
+    admin_action.GetAdminHttpPoolConfigAction ->
+      get_http_pool_config_domain.get_http_pool_config(request_ctx)
+      |> program.map(api_result.HttpPoolConfigResponse)
+    admin_action.UpsertAdminHttpPoolConfigAction -> {
+      use request <- program.and_then(
+        upsert_http_pool_config_domain.request_from_dynamic(data),
+      )
+      upsert_http_pool_config_domain.upsert_http_pool_config(
+        request_ctx,
+        request,
+      )
+      |> program.map(api_result.HttpPoolConfigResponse)
     }
     admin_action.GetAdminLanguageVersionCacheWorkerConfigAction ->
       get_language_version_cache_worker_config_domain.get_language_version_cache_worker_config(

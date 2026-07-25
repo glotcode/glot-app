@@ -6,6 +6,7 @@ import glot_core/admin/cloudflare_config_dto
 import glot_core/admin/debug_config_dto
 import glot_core/admin/docker_run_config_dto
 import glot_core/admin/email_config_dto
+import glot_core/admin/http_pool_config_dto
 import glot_core/admin/job_type_policy_dto
 import glot_core/admin/language_version_cache_worker_config_dto
 import glot_core/admin/log_worker_config_dto
@@ -210,6 +211,20 @@ pub fn get_admin_log_worker_config(
   )
 }
 
+pub fn get_admin_http_pool_config(
+  to_msg: fn(response.Response(http_pool_config_dto.HttpPoolConfigResponse)) ->
+    msg,
+) -> effect.Effect(msg) {
+  let req = request.AdminRequest(admin_action.GetAdminHttpPoolConfigAction, Nil)
+
+  request.send_admin(
+    req,
+    fn(_) { json.null() },
+    http_pool_config_dto.response_decoder(),
+    to_msg,
+  )
+}
+
 pub fn get_admin_language_version_cache_worker_config(
   to_msg: fn(
     response.Response(
@@ -258,6 +273,22 @@ pub fn upsert_admin_log_worker_config(
     req,
     log_worker_config_dto.encode_request,
     log_worker_config_dto.response_decoder(),
+    to_msg,
+  )
+}
+
+pub fn upsert_admin_http_pool_config(
+  request: http_pool_config_dto.UpsertHttpPoolConfigRequest,
+  to_msg: fn(response.Response(http_pool_config_dto.HttpPoolConfigResponse)) ->
+    msg,
+) -> effect.Effect(msg) {
+  let req =
+    request.AdminRequest(admin_action.UpsertAdminHttpPoolConfigAction, request)
+
+  request.send_admin(
+    req,
+    http_pool_config_dto.encode_request,
+    http_pool_config_dto.response_decoder(),
     to_msg,
   )
 }

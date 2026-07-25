@@ -8,6 +8,8 @@ import gleam/json
 import gleam/result
 import gleam/string
 import gleam/uri
+import glot_backend/system/http/pool.{type Pool}
+import glot_backend/system/http/profile_httpc
 
 pub type HttpError {
   BadUrl(String)
@@ -35,6 +37,7 @@ fn ensure_good_status(
 }
 
 pub fn post_json(
+  using pool: Pool,
   url url: String,
   headers headers: dict.Dict(String, String),
   body body: json.Json,
@@ -53,12 +56,9 @@ pub fn post_json(
       request.set_header(acc, key, value)
     })
 
-  let http_config =
-    httpc.configure()
-    |> httpc.timeout(timeout_ms)
-
   use res <- result.try(
-    httpc.dispatch(http_config, req) |> result.map_error(map_http_error),
+    profile_httpc.dispatch(pool, timeout_ms, req)
+    |> result.map_error(map_http_error),
   )
   use _ <- result.try(ensure_good_status(res))
 

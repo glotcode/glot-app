@@ -11,6 +11,14 @@ pub fn debug() -> system_config.DebugConfig {
   system_config.DebugConfig(enabled: False)
 }
 
+pub fn http_pool() -> system_config.HttpPoolConfig {
+  system_config.HttpPoolConfig(
+    docker_run_max_sessions: 16,
+    cloudflare_email_max_sessions: 4,
+    keep_alive_timeout_ms: 120_000,
+  )
+}
+
 pub fn availability() -> request_policy_config.AvailabilityConfig {
   request_policy_config.AvailabilityConfig(
     mode: availability_mode.NormalMode,

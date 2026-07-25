@@ -8,14 +8,18 @@ import glot_backend/email/ports/sender as email_sender
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/infra_error
 import glot_backend/system/http/client as http_client
+import glot_backend/system/http/pool.{type Pool}
 import glot_core/email/email_model
 import wisp
 
-pub fn new() -> email_sender.Sender {
-  email_sender.Sender(send: send_email)
+pub fn new(pool: Pool) -> email_sender.Sender {
+  email_sender.Sender(send: fn(config, message, timeout_ms) {
+    send_email(pool, config, message, timeout_ms)
+  })
 }
 
 pub fn send_email(
+  pool: Pool,
   cfg: email_feature_config.CloudflareConfig,
   message: email_model.Email,
   timeout_ms: Int,
@@ -23,6 +27,7 @@ pub fn send_email(
   let request = cloudflare_email.request_from_email(message)
   let response_result =
     http_client.post_json(
+      using: pool,
       url: "https://api.cloudflare.com/client/v4/accounts/"
         <> cfg.account_id
         <> "/email/sending/send",

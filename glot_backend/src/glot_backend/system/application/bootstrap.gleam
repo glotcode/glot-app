@@ -8,6 +8,8 @@ import gleam/regexp
 import gleam/string
 import gleam/time/timestamp
 import glot_backend/app_config/adapter/cache/worker as app_config_cache_adapter
+import glot_backend/app_config/adapter/http_pool/listener as http_pool_listener
+import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/job/adapter/tracker/worker as job_tracker_adapter
 import glot_backend/logging/ingestion/adapter/worker/sink as logging_worker_sink
 import glot_backend/run_code/adapter/cache/worker as language_version_cache_adapter
@@ -18,6 +20,7 @@ import glot_backend/system/database as db_helpers
 import glot_backend/system/effect/adapter/service_ports as service_ports_adapter
 import glot_backend/system/effect/cache_ports
 import glot_backend/system/effect/runtime
+import glot_backend/system/http/pool as http_pool
 import glot_backend/system/http/response as response_helpers
 import glot_backend/system/lifecycle/request_tracker/adapter/worker as request_tracker_adapter
 import glot_backend/system/lifecycle/server_mode/adapter/worker as server_mode_adapter
@@ -53,6 +56,12 @@ pub fn start() {
   let env_values = dict.merge(default_env, envoy.all())
 
   let assert Ok(config) = context.config_from_dict(env_values)
+  let http_pools = http_pool.new()
+  let assert Ok(Nil) =
+    http_pool.start_all(
+      http_pools,
+      http_pool_listener.pool_config(dynamic_config.empty()),
+    )
   let seeds_directory =
     priv_directory <> "/db/seeds/" <> context.app_env_to_string(config.app_env)
   let postgres_pool_name = process.new_name("postgres_pool")
@@ -87,6 +96,7 @@ pub fn start() {
     runtime.new(service_ports_adapter.new(
       db,
       cache_ports.new(app_config_cache, language_version_cache),
+      http_pools,
     ))
   let mist_handler = fn(conn: request.Request(mist.Connection)) {
     wisp_mist.handler(
@@ -136,6 +146,7 @@ pub fn start() {
         app_config_cache: app_config_cache,
         job_tracker: job_tracker,
         server_mode: server_mode,
+        http_pools: http_pools,
       ),
       worker_names: supervisor.WorkerNames(
         log_worker_name: log_worker_name,

@@ -12,6 +12,7 @@ import glot_core/public_action.{type PublicAction}
 pub type DynamicConfig {
   DynamicConfig(
     debug: system_config_model.DebugConfig,
+    http_pool: system_config_model.HttpPoolConfig,
     availability: request_policy_config.AvailabilityConfig,
     auth: auth_config_model.AuthConfig,
     passkey: auth_config_model.PasskeyConfig,
@@ -31,6 +32,7 @@ pub type DynamicConfig {
 pub fn empty() -> DynamicConfig {
   DynamicConfig(
     debug: defaults.debug(),
+    http_pool: defaults.http_pool(),
     availability: defaults.availability(),
     auth: defaults.auth(),
     passkey: defaults.passkey(),
@@ -96,6 +98,12 @@ pub fn language_version_cache_worker_config(
 
 pub fn debug_config(config: DynamicConfig) -> system_config_model.DebugConfig {
   config.debug
+}
+
+pub fn http_pool_config(
+  config: DynamicConfig,
+) -> system_config_model.HttpPoolConfig {
+  config.http_pool
 }
 
 pub fn availability_config(

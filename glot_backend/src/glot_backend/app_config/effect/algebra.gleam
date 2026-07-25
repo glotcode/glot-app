@@ -45,6 +45,11 @@ pub type AppConfigEffect(next) {
     updated_at: Timestamp,
     next: fn(Result(dynamic_config.DynamicConfig, error.Error)) -> next,
   )
+  UpsertHttpPoolConfig(
+    config: system_config.HttpPoolConfig,
+    updated_at: Timestamp,
+    next: fn(Result(dynamic_config.DynamicConfig, error.Error)) -> next,
+  )
   UpsertLanguageVersionCacheWorkerConfig(
     config: run_code_config.LanguageVersionCacheWorkerConfig,
     updated_at: Timestamp,
@@ -109,6 +114,12 @@ pub fn map(effect: AppConfigEffect(a), f: fn(a) -> b) -> AppConfigEffect(b) {
         updated_at: updated_at,
         next: fn(value) { f(next(value)) },
       )
+    UpsertHttpPoolConfig(config:, updated_at:, next:) ->
+      UpsertHttpPoolConfig(
+        config: config,
+        updated_at: updated_at,
+        next: fn(value) { f(next(value)) },
+      )
     UpsertLanguageVersionCacheWorkerConfig(config:, updated_at:, next:) ->
       UpsertLanguageVersionCacheWorkerConfig(
         config: config,
@@ -149,6 +160,7 @@ pub type EffectName {
   UpsertPasskeyConfigEffectName
   UpsertCleanupConfigEffectName
   UpsertLogWorkerConfigEffectName
+  UpsertHttpPoolConfigEffectName
   UpsertLanguageVersionCacheWorkerConfigEffectName
   UpsertRateLimitPolicyEffectName
   UpsertDockerRunConfigEffectName
@@ -165,6 +177,7 @@ pub fn effect_name_to_string(name: EffectName) -> String {
     UpsertPasskeyConfigEffectName -> "upsert_passkey_config"
     UpsertCleanupConfigEffectName -> "upsert_cleanup_config"
     UpsertLogWorkerConfigEffectName -> "upsert_log_worker_config"
+    UpsertHttpPoolConfigEffectName -> "upsert_http_pool_config"
     UpsertLanguageVersionCacheWorkerConfigEffectName ->
       "upsert_language_version_cache_worker_config"
     UpsertRateLimitPolicyEffectName -> "upsert_rate_limit_policy"

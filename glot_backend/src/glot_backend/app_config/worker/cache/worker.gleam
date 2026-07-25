@@ -6,6 +6,7 @@ import gleam/result
 import gleam/string
 import glot_backend/app_config/decoder/config as config_decoder
 import glot_backend/app_config/model/config as dynamic_config
+import glot_backend/app_config/ports/listener.{type Listener}
 import glot_backend/app_config/ports/store.{type Store}
 import glot_backend/app_config/worker/cache/core
 import glot_backend/system/cache/worker/support as cache_worker_support
@@ -46,6 +47,7 @@ pub type Deps {
     fetch_config: fn() ->
       Result(dynamic_config.DynamicConfig, db_error.DbQueryError),
     now_ns: fn() -> Int,
+    config_updated: fn(dynamic_config.DynamicConfig) -> Result(Nil, String),
   )
 }
 
@@ -61,6 +63,7 @@ type State {
 pub fn start(
   name: process.Name(Message),
   store: Store,
+  listener: Listener,
   server_mode: Controller,
 ) {
   start_with_deps(
@@ -75,6 +78,7 @@ pub fn start(
         })
       },
       now_ns: erlang.perf_counter_ns,
+      config_updated: listener.updated,
     ),
   )
 }
@@ -104,9 +108,10 @@ pub fn start_with_deps(
 pub fn supervised(
   name: process.Name(Message),
   store: Store,
+  listener: Listener,
   server_mode: Controller,
 ) {
-  supervision.worker(fn() { start(name, store, server_mode) })
+  supervision.worker(fn() { start(name, store, listener, server_mode) })
 }
 
 pub fn get_config(
@@ -180,6 +185,14 @@ fn run_commands(state: State, commands: List(core.Command)) -> State {
               RefreshCompleted(fetched_at_ns:, result: result),
             )
           })
+        state
+      }
+      core.ConfigUpdated(config) -> {
+        case state.deps.config_updated(config) {
+          Ok(Nil) -> Nil
+          Error(message) ->
+            wisp.log_warning("Failed to apply dynamic app config: " <> message)
+        }
         state
       }
       core.Reply(reply, result) -> {

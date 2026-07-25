@@ -291,6 +291,7 @@ pub fn repeat_string(value: String, count: Int) -> String {
 pub fn test_dynamic_config() -> dynamic_config.DynamicConfig {
   dynamic_config.DynamicConfig(
     debug: system_config.DebugConfig(enabled: False),
+    http_pool: system_config.HttpPoolConfig(16, 4, 120_000),
     availability: test_availability_config(),
     auth: test_auth_config(),
     passkey: test_passkey_config(),

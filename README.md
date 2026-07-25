@@ -123,6 +123,17 @@ The backend defaults to `localhost:3000`. Override that with
 `LISTENING_ADDRESS` and `LISTENING_PORT`. `STATIC_BASE_PATH` can override the
 directory served for frontend assets.
 
+Outbound HTTP connections use independent pools for Docker-run and Cloudflare
+email. They are controlled by dynamic app config entries in the `http_pool`
+namespace and can be edited from the HTTP pools card on the admin App Config
+page. When entries are absent, the backend uses these defaults:
+
+| Key | Default | Purpose |
+| --- | --- | --- |
+| `docker_run_max_sessions` | `16` | Maximum persistent Docker-run connections |
+| `cloudflare_email_max_sessions` | `4` | Maximum persistent Cloudflare email connections |
+| `keep_alive_timeout_ms` | `120000` | Idle connection lifetime for both pools |
+
 ## Tests
 
 Run the Gleam test suites from their application directories:

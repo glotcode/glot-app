@@ -14,6 +14,7 @@ import glot_core/admin/debug_config_dto
 import glot_core/admin/docker_run_config_dto
 import glot_core/admin/email_config_dto
 import glot_core/admin/email_template_dto
+import glot_core/admin/http_pool_config_dto
 import glot_core/admin/job_dto
 import glot_core/admin/job_log_dto
 import glot_core/admin/job_type_policy_dto
@@ -110,6 +111,8 @@ fn success(request: wisp.Request, result: ApiResult) -> wisp.Response {
       success_body(cleanup_config_dto.encode_response(value))
     api_result.LogWorkerConfigResponse(value) ->
       success_body(log_worker_config_dto.encode_response(value))
+    api_result.HttpPoolConfigResponse(value) ->
+      success_body(http_pool_config_dto.encode_response(value))
     api_result.LanguageVersionCacheWorkerConfigResponse(value) ->
       success_body(language_version_cache_worker_config_dto.encode_response(
         value,

@@ -2,7 +2,7 @@ import gleam/result
 import glot_backend/app_config/decoder/value
 import glot_backend/app_config/model/entry.{type AppConfigEntry}
 import glot_backend/app_config/model/system_config.{
-  type CleanupConfig, type DebugConfig,
+  type CleanupConfig, type DebugConfig, type HttpPoolConfig,
 }
 
 pub fn debug(
@@ -13,6 +13,39 @@ pub fn debug(
 
   case entry.key {
     "enabled" -> Ok(system_config.DebugConfig(enabled: decoded))
+    _ -> Ok(current)
+  }
+}
+
+pub fn http_pool(
+  current: HttpPoolConfig,
+  entry: AppConfigEntry,
+) -> Result(HttpPoolConfig, String) {
+  use decoded <- result.try(value.int("http_pool", entry))
+  use _ <- result.try(case decoded > 0 {
+    True -> Ok(Nil)
+    False -> Error("http_pool:" <> entry.key <> " must be greater than zero")
+  })
+
+  case entry.key {
+    "docker_run_max_sessions" ->
+      Ok(
+        system_config.HttpPoolConfig(
+          ..current,
+          docker_run_max_sessions: decoded,
+        ),
+      )
+    "cloudflare_email_max_sessions" ->
+      Ok(
+        system_config.HttpPoolConfig(
+          ..current,
+          cloudflare_email_max_sessions: decoded,
+        ),
+      )
+    "keep_alive_timeout_ms" ->
+      Ok(
+        system_config.HttpPoolConfig(..current, keep_alive_timeout_ms: decoded),
+      )
     _ -> Ok(current)
   }
 }

@@ -24,6 +24,7 @@ pub fn from_entries(
 fn empty() -> DynamicConfig {
   config.DynamicConfig(
     debug: defaults.debug(),
+    http_pool: defaults.http_pool(),
     availability: defaults.availability(),
     auth: defaults.auth(),
     passkey: defaults.passkey(),
@@ -45,6 +46,13 @@ fn apply_entry(
     "debug" -> {
       use debug <- result.try(system_decoder.debug(config.debug, entry))
       Ok(config.DynamicConfig(..config, debug: debug))
+    }
+    "http_pool" -> {
+      use http_pool <- result.try(system_decoder.http_pool(
+        config.http_pool,
+        entry,
+      ))
+      Ok(config.DynamicConfig(..config, http_pool: http_pool))
     }
     "availability" -> {
       use availability <- result.try(request_policy_decoder.availability(

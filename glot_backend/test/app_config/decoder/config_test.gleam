@@ -124,3 +124,53 @@ pub fn app_config_uses_default_debug_config_test() {
   assert dynamic_config.debug_config(config)
     == system_config.DebugConfig(enabled: False)
 }
+
+pub fn app_config_decodes_http_pool_config_test() {
+  let assert Ok(config) =
+    config_decoder.from_entries([
+      app_config.AppConfigEntry(
+        namespace: "http_pool",
+        key: "docker_run_max_sessions",
+        value: "24",
+      ),
+      app_config.AppConfigEntry(
+        namespace: "http_pool",
+        key: "cloudflare_email_max_sessions",
+        value: "6",
+      ),
+      app_config.AppConfigEntry(
+        namespace: "http_pool",
+        key: "keep_alive_timeout_ms",
+        value: "90000",
+      ),
+    ])
+
+  assert dynamic_config.http_pool_config(config)
+    == system_config.HttpPoolConfig(
+      docker_run_max_sessions: 24,
+      cloudflare_email_max_sessions: 6,
+      keep_alive_timeout_ms: 90_000,
+    )
+}
+
+pub fn app_config_uses_default_http_pool_config_test() {
+  let assert Ok(config) = config_decoder.from_entries([])
+
+  assert dynamic_config.http_pool_config(config)
+    == system_config.HttpPoolConfig(
+      docker_run_max_sessions: 16,
+      cloudflare_email_max_sessions: 4,
+      keep_alive_timeout_ms: 120_000,
+    )
+}
+
+pub fn app_config_rejects_non_positive_http_pool_config_test() {
+  assert config_decoder.from_entries([
+      app_config.AppConfigEntry(
+        namespace: "http_pool",
+        key: "docker_run_max_sessions",
+        value: "0",
+      ),
+    ])
+    == Error("http_pool:docker_run_max_sessions must be greater than zero")
+}

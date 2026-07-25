@@ -16,6 +16,8 @@ pub type AdminAction {
   UpsertAdminCleanupConfigAction
   GetAdminLogWorkerConfigAction
   UpsertAdminLogWorkerConfigAction
+  GetAdminHttpPoolConfigAction
+  UpsertAdminHttpPoolConfigAction
   GetAdminLanguageVersionCacheWorkerConfigAction
   UpsertAdminLanguageVersionCacheWorkerConfigAction
   GetAdminPeriodicJobsAction
@@ -66,6 +68,8 @@ pub fn list() -> List(AdminAction) {
     UpsertAdminCleanupConfigAction,
     GetAdminLogWorkerConfigAction,
     UpsertAdminLogWorkerConfigAction,
+    GetAdminHttpPoolConfigAction,
+    UpsertAdminHttpPoolConfigAction,
     GetAdminLanguageVersionCacheWorkerConfigAction,
     UpsertAdminLanguageVersionCacheWorkerConfigAction,
     GetAdminPeriodicJobsAction,
@@ -130,6 +134,8 @@ pub fn to_string(action: AdminAction) -> String {
     UpsertAdminCleanupConfigAction -> "upsert_admin_cleanup_config"
     GetAdminLogWorkerConfigAction -> "get_admin_log_worker_config"
     UpsertAdminLogWorkerConfigAction -> "upsert_admin_log_worker_config"
+    GetAdminHttpPoolConfigAction -> "get_admin_http_pool_config"
+    UpsertAdminHttpPoolConfigAction -> "upsert_admin_http_pool_config"
     GetAdminLanguageVersionCacheWorkerConfigAction ->
       "get_admin_language_version_cache_worker_config"
     UpsertAdminLanguageVersionCacheWorkerConfigAction ->
@@ -186,6 +192,9 @@ pub fn from_string(action: String) -> option.Option(AdminAction) {
     "get_admin_log_worker_config" -> option.Some(GetAdminLogWorkerConfigAction)
     "upsert_admin_log_worker_config" ->
       option.Some(UpsertAdminLogWorkerConfigAction)
+    "get_admin_http_pool_config" -> option.Some(GetAdminHttpPoolConfigAction)
+    "upsert_admin_http_pool_config" ->
+      option.Some(UpsertAdminHttpPoolConfigAction)
     "get_admin_language_version_cache_worker_config" ->
       option.Some(GetAdminLanguageVersionCacheWorkerConfigAction)
     "upsert_admin_language_version_cache_worker_config" ->

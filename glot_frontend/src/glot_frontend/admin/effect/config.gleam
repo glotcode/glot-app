@@ -5,6 +5,7 @@ import glot_core/admin/cloudflare_config_dto
 import glot_core/admin/debug_config_dto
 import glot_core/admin/docker_run_config_dto
 import glot_core/admin/email_config_dto
+import glot_core/admin/http_pool_config_dto
 import glot_core/admin/job_type_policy_dto
 import glot_core/admin/language_version_cache_worker_config_dto as language_cache_dto
 import glot_core/admin/log_worker_config_dto
@@ -57,6 +58,9 @@ pub type Command(msg) {
   GetLogWorker(
     fn(response.Response(log_worker_config_dto.LogWorkerConfigResponse)) -> msg,
   )
+  GetHttpPool(
+    fn(response.Response(http_pool_config_dto.HttpPoolConfigResponse)) -> msg,
+  )
   GetLanguageCache(
     fn(
       response.Response(
@@ -71,6 +75,10 @@ pub type Command(msg) {
   UpsertLogWorker(
     log_worker_config_dto.UpsertLogWorkerConfigRequest,
     fn(response.Response(log_worker_config_dto.LogWorkerConfigResponse)) -> msg,
+  )
+  UpsertHttpPool(
+    http_pool_config_dto.UpsertHttpPoolConfigRequest,
+    fn(response.Response(http_pool_config_dto.HttpPoolConfigResponse)) -> msg,
   )
   UpsertLanguageCache(
     language_cache_dto.UpsertLanguageVersionCacheWorkerConfigRequest,
@@ -123,11 +131,14 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
       UpsertPasskey(request, mapped(done, transform))
     GetCleanup(done) -> GetCleanup(mapped(done, transform))
     GetLogWorker(done) -> GetLogWorker(mapped(done, transform))
+    GetHttpPool(done) -> GetHttpPool(mapped(done, transform))
     GetLanguageCache(done) -> GetLanguageCache(mapped(done, transform))
     UpsertCleanup(request, done) ->
       UpsertCleanup(request, mapped(done, transform))
     UpsertLogWorker(request, done) ->
       UpsertLogWorker(request, mapped(done, transform))
+    UpsertHttpPool(request, done) ->
+      UpsertHttpPool(request, mapped(done, transform))
     UpsertLanguageCache(request, done) ->
       UpsertLanguageCache(request, mapped(done, transform))
     UpsertRateLimit(request, done) ->

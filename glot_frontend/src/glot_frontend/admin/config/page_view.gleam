@@ -5,6 +5,7 @@ import glot_frontend/admin/config/cloudflare_view as cloudflare
 import glot_frontend/admin/config/debug_view as debug
 import glot_frontend/admin/config/docker_run_view as docker_run
 import glot_frontend/admin/config/email_view as email
+import glot_frontend/admin/config/http_pool_view as http_pool
 import glot_frontend/admin/config/language_version_cache_worker_view as language_version_cache_worker
 import glot_frontend/admin/config/log_worker_view as log_worker
 import glot_frontend/admin/config/passkey_view as passkey
@@ -15,8 +16,8 @@ import lustre/element/html
 
 import glot_frontend/admin/config/page_message.{
   type Msg, AuthMsg, AvailabilityMsg, CleanupMsg, CloudflareMsg, DebugMsg,
-  DockerRunMsg, EmailMsg, LanguageVersionCacheWorkerMsg, LogWorkerMsg,
-  PasskeyMsg,
+  DockerRunMsg, EmailMsg, HttpPoolMsg, LanguageVersionCacheWorkerMsg,
+  LogWorkerMsg, PasskeyMsg,
 }
 import glot_frontend/admin/config/page_model.{type Model}
 
@@ -30,6 +31,7 @@ pub fn view(model: Model) -> Element(Msg) {
         passkey.view(model.passkey) |> element.map(PasskeyMsg),
         cleanup.view(model.cleanup) |> element.map(CleanupMsg),
         log_worker.view(model.log_worker) |> element.map(LogWorkerMsg),
+        http_pool.view(model.http_pool) |> element.map(HttpPoolMsg),
         language_version_cache_worker.view(model.language_version_cache_worker)
           |> element.map(LanguageVersionCacheWorkerMsg),
         docker_run.view(model.docker_run) |> element.map(DockerRunMsg),
