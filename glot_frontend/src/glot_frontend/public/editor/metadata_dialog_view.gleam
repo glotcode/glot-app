@@ -1,4 +1,5 @@
 import gleam/dynamic/decode
+import gleam/option
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/dialog_controls
 import glot_frontend/public/editor/ids
@@ -48,41 +49,7 @@ pub fn view(model: RealModel) -> Element(Msg) {
               event.on_input(TitleDraftChanged),
             ]),
           ]),
-          html.div([attribute.class("editor-page__dialog-section")], [
-            html.p([attribute.class("editor-page__dialog-sublabel")], [
-              html.text("Visibility"),
-            ]),
-            html.div(
-              [
-                attribute.class("editor-page__dialog-panel"),
-                attribute.attribute("role", "group"),
-                attribute.attribute("aria-label", "Visibility"),
-              ],
-              [
-                dialog_controls.visibility_option(
-                  "Public",
-                  "Visible to everyone.",
-                  snippet_model.Public,
-                  model.save_visibility_draft,
-                  EditMetadataVisibilitySelected,
-                ),
-                dialog_controls.visibility_option(
-                  "Unlisted",
-                  "Available through the link only.",
-                  snippet_model.Unlisted,
-                  model.save_visibility_draft,
-                  EditMetadataVisibilitySelected,
-                ),
-                dialog_controls.visibility_option(
-                  "Secret",
-                  "Visible only to you.",
-                  snippet_model.Secret,
-                  model.save_visibility_draft,
-                  EditMetadataVisibilitySelected,
-                ),
-              ],
-            ),
-          ]),
+          visibility_section(model),
           html.div([attribute.class("editor-page__dialog-actions")], [
             html.button(
               [
@@ -106,4 +73,46 @@ pub fn view(model: RealModel) -> Element(Msg) {
       ),
     ],
   )
+}
+
+fn visibility_section(model: RealModel) -> Element(Msg) {
+  case model.slug {
+    option.None -> html.div([], [])
+    option.Some(_) ->
+      html.div([attribute.class("editor-page__dialog-section")], [
+        html.p([attribute.class("editor-page__dialog-sublabel")], [
+          html.text("Visibility"),
+        ]),
+        html.div(
+          [
+            attribute.class("editor-page__dialog-panel"),
+            attribute.attribute("role", "group"),
+            attribute.attribute("aria-label", "Visibility"),
+          ],
+          [
+            dialog_controls.visibility_option(
+              "Public",
+              "Visible to everyone.",
+              snippet_model.Public,
+              model.save_visibility_draft,
+              EditMetadataVisibilitySelected,
+            ),
+            dialog_controls.visibility_option(
+              "Unlisted",
+              "Available through the link only.",
+              snippet_model.Unlisted,
+              model.save_visibility_draft,
+              EditMetadataVisibilitySelected,
+            ),
+            dialog_controls.visibility_option(
+              "Secret",
+              "Visible only to you.",
+              snippet_model.Secret,
+              model.save_visibility_draft,
+              EditMetadataVisibilitySelected,
+            ),
+          ],
+        ),
+      ])
+  }
 }

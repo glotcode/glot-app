@@ -5,6 +5,7 @@ import gleam/time/timestamp
 import glot_core/language
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/message
+import glot_frontend/public/editor/metadata_dialog_view
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/view
@@ -214,6 +215,22 @@ pub fn metadata_submission_updates_rendering_and_persists_the_draft_test() {
   assert editor.visibility == snippet_model.Public
   assert has_draft_save(editor_scenario.observed(scenario))
   assert string.contains(render(scenario), ">New title</h1>")
+}
+
+pub fn metadata_visibility_is_only_shown_for_existing_snippets_test() {
+  let assert model.SupportedLanguage(new_editor) =
+    editor_scenario.new_editor(language.JavaScript)
+  let new_dialog =
+    metadata_dialog_view.view(new_editor)
+    |> element.to_document_string
+  assert !string.contains(new_dialog, "aria-label=\"Visibility\"")
+
+  let existing_dialog =
+    metadata_dialog_view.view(
+      model.RealModel(..new_editor, slug: option.Some("visibility-fixture")),
+    )
+    |> element.to_document_string
+  assert string.contains(existing_dialog, "aria-label=\"Visibility\"")
 }
 
 pub fn metadata_cancel_and_close_restore_drafts_and_focus_editor_test() {
