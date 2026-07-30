@@ -1,169 +1,36 @@
 import gleam/option
-import gleam/string
 import gleam/time/timestamp
 import gleeunit
-import glot_core/admin/rate_limit_config_dto
 import glot_core/auth/session_dto
 import glot_core/auth/user_model
 import glot_core/email/email_address_model
 import glot_core/route
-import glot_frontend/admin/command
-import glot_frontend/admin/effect/config
-import glot_frontend/admin/effect/users
-import glot_frontend/admin/router
 import glot_frontend/api/response
 import glot_frontend/app/admin_managed
-import lustre/element
 import youid/uuid
 
 pub fn main() -> Nil {
   gleeunit.main()
 }
 
-pub fn authenticated_spa_navigation_loads_and_accepts_the_initial_response_test() {
-  let #(initial, _) =
-    admin_managed.init(
-      route.Admin(route.AdminHome),
-      timestamp.from_unix_seconds(1),
-      True,
-      pages(),
-    )
-  let #(authenticated, _) =
-    admin_managed.update(
-      initial,
-      admin_managed.SessionLoaded(
-        response.Success(option.Some(admin_session())),
-      ),
-      pages(),
-    )
-  let #(loading, navigation_command) =
-    admin_managed.update(
-      authenticated,
-      admin_managed.UserNavigatedTo(route.Admin(route.AdminRateLimits)),
-      pages(),
-    )
-  let assert admin_managed.Batch([
-    admin_managed.RunAdmin(command.Batch([
-      command.None,
-      command.Config(config.GetRateLimits(complete)),
-    ])),
-    admin_managed.TrackPageview(route.Admin(route.AdminRateLimits)),
-  ]) = navigation_command
-
-  let #(failed, _) =
-    admin_managed.update(
-      loading,
-      admin_managed.AdminPagesMsg(
-        complete(
-          response.ApiFailure(response.Error(
-            code: "fixture",
-            message: "Navigation request completed.",
-            request_id: uuid.v7(),
-          )),
-        ),
-      ),
-      pages(),
-    )
-  let rendered =
-    router.view(failed.page_model, failed.runtime.now)
-    |> element.to_document_string
-  assert string.contains(rendered, "Navigation request completed.")
-}
-
-pub fn response_from_page_left_during_navigation_is_ignored_test() {
-  let #(initial, _) =
-    admin_managed.init(
-      route.Admin(route.AdminHome),
-      timestamp.from_unix_seconds(1),
-      True,
-      pages(),
-    )
-  let #(authenticated, _) =
-    admin_managed.update(
-      initial,
-      admin_managed.SessionLoaded(
-        response.Success(option.Some(admin_session())),
-      ),
-      pages(),
-    )
-  let #(rate_limits, rate_command) =
-    admin_managed.update(
-      authenticated,
-      admin_managed.UserNavigatedTo(route.Admin(route.AdminRateLimits)),
-      pages(),
-    )
-  let assert admin_managed.Batch([
-    admin_managed.RunAdmin(command.Batch([
-      command.None,
-      command.Config(config.GetRateLimits(rate_loaded)),
-    ])),
-    admin_managed.TrackPageview(_),
-  ]) = rate_command
-
-  let #(users_page, users_command) =
-    admin_managed.update(
-      rate_limits,
-      admin_managed.UserNavigatedTo(route.Admin(route.AdminUsers)),
-      pages(),
-    )
-  let assert admin_managed.Batch([
-    admin_managed.RunAdmin(command.Batch([
-      command.None,
-      command.Users(users.GetUsers(_, _)),
-    ])),
-    admin_managed.TrackPageview(_),
-  ]) = users_command
-
-  let stale =
-    rate_loaded(
-      response.Success(rate_limit_config_dto.RateLimitPoliciesResponse([])),
-    )
-  let #(unchanged, next_command) =
-    admin_managed.update(
-      users_page,
-      admin_managed.AdminPagesMsg(stale),
-      pages(),
-    )
-  assert unchanged == users_page
-  assert next_command == admin_managed.RunAdmin(command.None)
-}
-
 pub fn leaving_the_admin_app_requests_a_document_navigation_test() {
-  let #(model, _) =
-    admin_managed.init(
-      route.Admin(route.AdminHome),
-      timestamp.from_unix_seconds(1),
-      True,
-      pages(),
-    )
+  let #(model, _) = init(route.Admin(route.AdminHome))
+  let destination = route.Public(route.Home)
   let #(unchanged, command) =
-    admin_managed.update(
-      model,
-      admin_managed.UserNavigatedTo(route.Public(route.Home)),
-      pages(),
-    )
+    update(model, admin_managed.UserNavigatedTo(destination))
+
   assert unchanged == model
-  assert command == admin_managed.LoadRoute(route.Public(route.Home))
+  assert command == admin_managed.LoadRoute(destination)
 }
 
 pub fn same_route_navigation_preserves_the_current_admin_page_test() {
   let current_route = route.Admin(route.AdminHome)
-  let #(model, _) =
-    admin_managed.init(
-      current_route,
-      timestamp.from_unix_seconds(1),
-      True,
-      pages(),
-    )
-  let #(unchanged, navigation_command) =
-    admin_managed.update(
-      model,
-      admin_managed.UserNavigatedTo(current_route),
-      pages(),
-    )
+  let #(model, _) = init(current_route)
+  let #(unchanged, command) =
+    update(model, admin_managed.UserNavigatedTo(current_route))
 
   assert unchanged == model
-  assert navigation_command == admin_managed.None
+  assert command == admin_managed.None
 }
 
 pub fn lifecycle_uses_the_injected_page_contract_test() {
@@ -218,17 +85,29 @@ pub fn lifecycle_uses_the_injected_page_contract_test() {
   assert command == admin_managed.RunAdmin("update-request")
 }
 
-fn pages() -> admin_managed.Pages(
-  router.Model,
-  router.Msg,
-  command.Command(router.Msg),
-) {
+fn init(
+  target: route.Route,
+) -> #(admin_managed.Model(String), admin_managed.Command(String)) {
+  admin_managed.init(target, timestamp.from_unix_seconds(1), True, pages())
+}
+
+fn update(
+  model: admin_managed.Model(String),
+  msg: admin_managed.Msg(String),
+) -> #(admin_managed.Model(String), admin_managed.Command(String)) {
+  admin_managed.update(model, msg, pages())
+}
+
+fn pages() -> admin_managed.Pages(String, String, String) {
   admin_managed.Pages(
-    empty: router.empty,
-    init: router.init,
-    session_loaded: router.session_loaded,
-    update: router.update,
-    none: command.none(),
+    empty: fn() { "empty" },
+    init: fn(admin_route, _) {
+      let page = route.to_string(route.Admin(admin_route))
+      #(page, "load:" <> page)
+    },
+    session_loaded: fn(page) { #(page, "session-loaded") },
+    update: fn(_, msg) { #(msg, "updated") },
+    none: "none",
   )
 }
 

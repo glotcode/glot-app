@@ -39,7 +39,8 @@ pub fn api_log_screen_is_driven_by_a_typed_admin_fixture_test() {
   assert loading_model.log == loadable.Loading
   let scenario =
     managed_scenario.start(loading_model, request_command, interpret_api_log)
-  let assert [request_command] = managed_scenario.pending(scenario)
+  let #(request_command, scenario) =
+    managed_scenario.take_next_pending(scenario)
   let assert command.Logs(logs.GetApiLog(request, complete)) = request_command
   assert request.id == id
 
@@ -50,8 +51,8 @@ pub fn api_log_screen_is_driven_by_a_typed_admin_fixture_test() {
       request_id: id,
     ))
   let scenario =
-    managed_scenario.replace_pending(scenario, [])
-    |> managed_scenario.dispatch(
+    managed_scenario.dispatch(
+      scenario,
       complete(failure),
       detail.update,
       interpret_api_log,
