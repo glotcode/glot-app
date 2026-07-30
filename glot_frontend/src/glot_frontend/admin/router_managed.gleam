@@ -67,255 +67,220 @@ fn init_page(
   admin_route: route.AdminRoute,
 ) -> #(PageModel, admin_effect.Command(Msg)) {
   case admin_route {
-    route.AdminHome -> {
-      let #(m, eff) = admin_page.init()
-      #(AdminPage(m), admin_effect.map(eff, AdminPageMsg))
-    }
-    route.AdminApiLogs -> {
-      let #(m, eff) = admin_api_logs_page.init()
-      #(AdminApiLogsPage(m), admin_effect.map(eff, AdminApiLogsPageMsg))
-    }
-    route.AdminApiLog(id) -> {
-      let #(m, eff) = admin_api_log_page.init(id)
-      #(AdminApiLogPage(m), admin_effect.map(eff, AdminApiLogPageMsg))
-    }
-    route.AdminRunLogs -> {
-      let #(m, eff) = admin_run_logs_page.init()
-      #(AdminRunLogsPage(m), admin_effect.map(eff, AdminRunLogsPageMsg))
-    }
-    route.AdminRunLog(id) -> {
-      let #(m, eff) = admin_run_log_page.init(id)
-      #(AdminRunLogPage(m), admin_effect.map(eff, AdminRunLogPageMsg))
-    }
-    route.AdminPeriodicJobs -> {
-      let #(m, eff) = admin_periodic_jobs_page.init()
-      #(
-        AdminPeriodicJobsPage(m),
-        admin_effect.map(eff, AdminPeriodicJobsPageMsg),
+    route.AdminHome -> lift_page(admin_page.init(), AdminPage, AdminPageMsg)
+    route.AdminApiLogs ->
+      lift_page(
+        admin_api_logs_page.init(),
+        AdminApiLogsPage,
+        AdminApiLogsPageMsg,
       )
-    }
-    route.AdminPeriodicJob(id) -> {
-      let #(m, eff) = admin_periodic_job_page.init(id)
-      #(AdminPeriodicJobPage(m), admin_effect.map(eff, AdminPeriodicJobPageMsg))
-    }
-    route.AdminUsers -> {
-      let #(m, eff) = admin_users_page.init()
-      #(AdminUsersPage(m), admin_effect.map(eff, AdminUsersPageMsg))
-    }
-    route.AdminUser(id) -> {
-      let #(m, eff) = admin_user_page.init(id)
-      #(AdminUserPage(m), admin_effect.map(eff, AdminUserPageMsg))
-    }
-    route.AdminJobs -> {
-      let #(m, eff) = admin_jobs_page.init()
-      #(AdminJobsPage(m), admin_effect.map(eff, AdminJobsPageMsg))
-    }
-    route.AdminJob(job_id) -> {
-      let #(m, eff) = admin_job_page.init(job_id)
-      #(AdminJobPage(m), admin_effect.map(eff, AdminJobPageMsg))
-    }
-    route.AdminEmailTemplates -> {
-      let #(m, eff) = admin_email_templates_page.init()
-      #(
-        AdminEmailTemplatesPage(m),
-        admin_effect.map(eff, AdminEmailTemplatesPageMsg),
+    route.AdminApiLog(id) ->
+      lift_page(
+        admin_api_log_page.init(id),
+        AdminApiLogPage,
+        AdminApiLogPageMsg,
       )
-    }
-    route.AdminEmailTemplate(name) -> {
-      let #(m, eff) = admin_email_template_page.init(name)
-      #(
-        AdminEmailTemplatePage(m),
-        admin_effect.map(eff, AdminEmailTemplatePageMsg),
+    route.AdminRunLogs ->
+      lift_page(
+        admin_run_logs_page.init(),
+        AdminRunLogsPage,
+        AdminRunLogsPageMsg,
       )
-    }
-    route.AdminSnippets -> {
-      let #(m, eff) = admin_snippets_page.init()
-      #(AdminSnippetsPage(m), admin_effect.map(eff, AdminSnippetsPageMsg))
-    }
-    route.AdminSnippet(slug) -> {
-      let #(m, eff) = admin_snippet_page.init(slug)
-      #(AdminSnippetPage(m), admin_effect.map(eff, AdminSnippetPageMsg))
-    }
-    route.AdminJobLogs -> {
-      let #(m, eff) = admin_job_logs_page.init()
-      #(AdminJobLogsPage(m), admin_effect.map(eff, AdminJobLogsPageMsg))
-    }
-    route.AdminJobLog(id) -> {
-      let #(m, eff) = admin_job_log_page.init(id)
-      #(AdminJobLogPage(m), admin_effect.map(eff, AdminJobLogPageMsg))
-    }
-    route.AdminConfig -> {
-      let #(m, eff) = admin_config_page.init()
-      #(AdminConfigPage(m), admin_effect.map(eff, AdminConfigPageMsg))
-    }
-    route.AdminRateLimits -> {
-      let #(m, eff) = admin_rate_limits_page.init()
-      #(AdminRateLimitsPage(m), admin_effect.map(eff, AdminRateLimitsPageMsg))
-    }
-    route.AdminJobTypePolicies -> {
-      let #(m, eff) = admin_job_type_policies_page.init()
-      #(
-        AdminJobTypePoliciesPage(m),
-        admin_effect.map(eff, AdminJobTypePoliciesPageMsg),
+    route.AdminRunLog(id) ->
+      lift_page(
+        admin_run_log_page.init(id),
+        AdminRunLogPage,
+        AdminRunLogPageMsg,
       )
-    }
+    route.AdminPeriodicJobs ->
+      lift_page(
+        admin_periodic_jobs_page.init(),
+        AdminPeriodicJobsPage,
+        AdminPeriodicJobsPageMsg,
+      )
+    route.AdminPeriodicJob(id) ->
+      lift_page(
+        admin_periodic_job_page.init(id),
+        AdminPeriodicJobPage,
+        AdminPeriodicJobPageMsg,
+      )
+    route.AdminUsers ->
+      lift_page(admin_users_page.init(), AdminUsersPage, AdminUsersPageMsg)
+    route.AdminUser(id) ->
+      lift_page(admin_user_page.init(id), AdminUserPage, AdminUserPageMsg)
+    route.AdminJobs ->
+      lift_page(admin_jobs_page.init(), AdminJobsPage, AdminJobsPageMsg)
+    route.AdminJob(job_id) ->
+      lift_page(admin_job_page.init(job_id), AdminJobPage, AdminJobPageMsg)
+    route.AdminEmailTemplates ->
+      lift_page(
+        admin_email_templates_page.init(),
+        AdminEmailTemplatesPage,
+        AdminEmailTemplatesPageMsg,
+      )
+    route.AdminEmailTemplate(name) ->
+      lift_page(
+        admin_email_template_page.init(name),
+        AdminEmailTemplatePage,
+        AdminEmailTemplatePageMsg,
+      )
+    route.AdminSnippets ->
+      lift_page(
+        admin_snippets_page.init(),
+        AdminSnippetsPage,
+        AdminSnippetsPageMsg,
+      )
+    route.AdminSnippet(slug) ->
+      lift_page(
+        admin_snippet_page.init(slug),
+        AdminSnippetPage,
+        AdminSnippetPageMsg,
+      )
+    route.AdminJobLogs ->
+      lift_page(
+        admin_job_logs_page.init(),
+        AdminJobLogsPage,
+        AdminJobLogsPageMsg,
+      )
+    route.AdminJobLog(id) ->
+      lift_page(
+        admin_job_log_page.init(id),
+        AdminJobLogPage,
+        AdminJobLogPageMsg,
+      )
+    route.AdminConfig ->
+      lift_page(admin_config_page.init(), AdminConfigPage, AdminConfigPageMsg)
+    route.AdminRateLimits ->
+      lift_page(
+        admin_rate_limits_page.init(),
+        AdminRateLimitsPage,
+        AdminRateLimitsPageMsg,
+      )
+    route.AdminJobTypePolicies ->
+      lift_page(
+        admin_job_type_policies_page.init(),
+        AdminJobTypePoliciesPage,
+        AdminJobTypePoliciesPageMsg,
+      )
   }
 }
 
 pub fn session_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
   case router_state.page(model) {
-    AdminApiLogsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_api_logs_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminApiLogsPage(new_page_model)),
-        admin_effect.map(page_effect, AdminApiLogsPageMsg),
+    AdminApiLogsPage(page_model) ->
+      lift_router_page(
+        admin_api_logs_page.ensure_loaded(page_model),
+        AdminApiLogsPage,
+        AdminApiLogsPageMsg,
       )
-    }
-    AdminApiLogPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_api_log_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminApiLogPage(new_page_model)),
-        admin_effect.map(page_effect, AdminApiLogPageMsg),
+    AdminApiLogPage(page_model) ->
+      lift_router_page(
+        admin_api_log_page.ensure_loaded(page_model),
+        AdminApiLogPage,
+        AdminApiLogPageMsg,
       )
-    }
-    AdminRunLogsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_run_logs_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminRunLogsPage(new_page_model)),
-        admin_effect.map(page_effect, AdminRunLogsPageMsg),
+    AdminRunLogsPage(page_model) ->
+      lift_router_page(
+        admin_run_logs_page.ensure_loaded(page_model),
+        AdminRunLogsPage,
+        AdminRunLogsPageMsg,
       )
-    }
-    AdminRunLogPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_run_log_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminRunLogPage(new_page_model)),
-        admin_effect.map(page_effect, AdminRunLogPageMsg),
+    AdminRunLogPage(page_model) ->
+      lift_router_page(
+        admin_run_log_page.ensure_loaded(page_model),
+        AdminRunLogPage,
+        AdminRunLogPageMsg,
       )
-    }
-    AdminPeriodicJobsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_periodic_jobs_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminPeriodicJobsPage(new_page_model)),
-        admin_effect.map(page_effect, AdminPeriodicJobsPageMsg),
+    AdminPeriodicJobsPage(page_model) ->
+      lift_router_page(
+        admin_periodic_jobs_page.ensure_loaded(page_model),
+        AdminPeriodicJobsPage,
+        AdminPeriodicJobsPageMsg,
       )
-    }
-    AdminPeriodicJobPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_periodic_job_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminPeriodicJobPage(new_page_model)),
-        admin_effect.map(page_effect, AdminPeriodicJobPageMsg),
+    AdminPeriodicJobPage(page_model) ->
+      lift_router_page(
+        admin_periodic_job_page.ensure_loaded(page_model),
+        AdminPeriodicJobPage,
+        AdminPeriodicJobPageMsg,
       )
-    }
-    AdminUsersPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_users_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminUsersPage(new_page_model)),
-        admin_effect.map(page_effect, AdminUsersPageMsg),
+    AdminUsersPage(page_model) ->
+      lift_router_page(
+        admin_users_page.ensure_loaded(page_model),
+        AdminUsersPage,
+        AdminUsersPageMsg,
       )
-    }
-    AdminUserPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_user_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminUserPage(new_page_model)),
-        admin_effect.map(page_effect, AdminUserPageMsg),
+    AdminUserPage(page_model) ->
+      lift_router_page(
+        admin_user_page.ensure_loaded(page_model),
+        AdminUserPage,
+        AdminUserPageMsg,
       )
-    }
-    AdminJobsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_jobs_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminJobsPage(new_page_model)),
-        admin_effect.map(page_effect, AdminJobsPageMsg),
+    AdminJobsPage(page_model) ->
+      lift_router_page(
+        admin_jobs_page.ensure_loaded(page_model),
+        AdminJobsPage,
+        AdminJobsPageMsg,
       )
-    }
-    AdminJobPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_job_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminJobPage(new_page_model)),
-        admin_effect.map(page_effect, AdminJobPageMsg),
+    AdminJobPage(page_model) ->
+      lift_router_page(
+        admin_job_page.ensure_loaded(page_model),
+        AdminJobPage,
+        AdminJobPageMsg,
       )
-    }
-    AdminEmailTemplatesPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_email_templates_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminEmailTemplatesPage(new_page_model)),
-        admin_effect.map(page_effect, AdminEmailTemplatesPageMsg),
+    AdminEmailTemplatesPage(page_model) ->
+      lift_router_page(
+        admin_email_templates_page.ensure_loaded(page_model),
+        AdminEmailTemplatesPage,
+        AdminEmailTemplatesPageMsg,
       )
-    }
-    AdminEmailTemplatePage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_email_template_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminEmailTemplatePage(new_page_model)),
-        admin_effect.map(page_effect, AdminEmailTemplatePageMsg),
+    AdminEmailTemplatePage(page_model) ->
+      lift_router_page(
+        admin_email_template_page.ensure_loaded(page_model),
+        AdminEmailTemplatePage,
+        AdminEmailTemplatePageMsg,
       )
-    }
-    AdminSnippetsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_snippets_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminSnippetsPage(new_page_model)),
-        admin_effect.map(page_effect, AdminSnippetsPageMsg),
+    AdminSnippetsPage(page_model) ->
+      lift_router_page(
+        admin_snippets_page.ensure_loaded(page_model),
+        AdminSnippetsPage,
+        AdminSnippetsPageMsg,
       )
-    }
-    AdminSnippetPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_snippet_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminSnippetPage(new_page_model)),
-        admin_effect.map(page_effect, AdminSnippetPageMsg),
+    AdminSnippetPage(page_model) ->
+      lift_router_page(
+        admin_snippet_page.ensure_loaded(page_model),
+        AdminSnippetPage,
+        AdminSnippetPageMsg,
       )
-    }
-    AdminJobLogsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_job_logs_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminJobLogsPage(new_page_model)),
-        admin_effect.map(page_effect, AdminJobLogsPageMsg),
+    AdminJobLogsPage(page_model) ->
+      lift_router_page(
+        admin_job_logs_page.ensure_loaded(page_model),
+        AdminJobLogsPage,
+        AdminJobLogsPageMsg,
       )
-    }
-    AdminJobLogPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_job_log_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminJobLogPage(new_page_model)),
-        admin_effect.map(page_effect, AdminJobLogPageMsg),
+    AdminJobLogPage(page_model) ->
+      lift_router_page(
+        admin_job_log_page.ensure_loaded(page_model),
+        AdminJobLogPage,
+        AdminJobLogPageMsg,
       )
-    }
-    AdminConfigPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_config_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminConfigPage(new_page_model)),
-        admin_effect.map(page_effect, AdminConfigPageMsg),
+    AdminConfigPage(page_model) ->
+      lift_router_page(
+        admin_config_page.ensure_loaded(page_model),
+        AdminConfigPage,
+        AdminConfigPageMsg,
       )
-    }
-    AdminRateLimitsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_rate_limits_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminRateLimitsPage(new_page_model)),
-        admin_effect.map(page_effect, AdminRateLimitsPageMsg),
+    AdminRateLimitsPage(page_model) ->
+      lift_router_page(
+        admin_rate_limits_page.ensure_loaded(page_model),
+        AdminRateLimitsPage,
+        AdminRateLimitsPageMsg,
       )
-    }
-    AdminJobTypePoliciesPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_job_type_policies_page.ensure_loaded(page_model)
-      #(
-        router_state.new(AdminJobTypePoliciesPage(new_page_model)),
-        admin_effect.map(page_effect, AdminJobTypePoliciesPageMsg),
+    AdminJobTypePoliciesPage(page_model) ->
+      lift_router_page(
+        admin_job_type_policies_page.ensure_loaded(page_model),
+        AdminJobTypePoliciesPage,
+        AdminJobTypePoliciesPageMsg,
       )
-    }
 
     AdminPage(_) | EmptyPageModel -> #(model, admin_effect.none())
   }
@@ -323,147 +288,145 @@ pub fn session_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
 
 pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
   case msg, router_state.page(model) {
-    AdminPageMsg(page_msg), AdminPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminPageMsg))
-    }
-
-    AdminApiLogsPageMsg(page_msg), AdminApiLogsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_api_logs_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminApiLogsPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminApiLogsPageMsg))
-    }
-
-    AdminApiLogPageMsg(page_msg), AdminApiLogPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_api_log_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminApiLogPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminApiLogPageMsg))
-    }
-
-    AdminRunLogsPageMsg(page_msg), AdminRunLogsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_run_logs_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminRunLogsPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminRunLogsPageMsg))
-    }
-
-    AdminRunLogPageMsg(page_msg), AdminRunLogPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_run_log_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminRunLogPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminRunLogPageMsg))
-    }
-
-    AdminPeriodicJobsPageMsg(page_msg), AdminPeriodicJobsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_periodic_jobs_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminPeriodicJobsPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminPeriodicJobsPageMsg))
-    }
-
-    AdminPeriodicJobPageMsg(page_msg), AdminPeriodicJobPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_periodic_job_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminPeriodicJobPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminPeriodicJobPageMsg))
-    }
-
-    AdminUsersPageMsg(page_msg), AdminUsersPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_users_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminUsersPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminUsersPageMsg))
-    }
-
-    AdminUserPageMsg(page_msg), AdminUserPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_user_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminUserPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminUserPageMsg))
-    }
-
-    AdminJobsPageMsg(page_msg), AdminJobsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_jobs_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminJobsPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminJobsPageMsg))
-    }
-
-    AdminJobPageMsg(page_msg), AdminJobPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_job_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminJobPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminJobPageMsg))
-    }
-
-    AdminEmailTemplatesPageMsg(page_msg), AdminEmailTemplatesPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_email_templates_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminEmailTemplatesPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminEmailTemplatesPageMsg))
-    }
-
-    AdminEmailTemplatePageMsg(page_msg), AdminEmailTemplatePage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_email_template_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminEmailTemplatePage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminEmailTemplatePageMsg))
-    }
-
-    AdminSnippetsPageMsg(page_msg), AdminSnippetsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_snippets_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminSnippetsPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminSnippetsPageMsg))
-    }
-
-    AdminSnippetPageMsg(page_msg), AdminSnippetPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_snippet_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminSnippetPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminSnippetPageMsg))
-    }
-
-    AdminJobLogsPageMsg(page_msg), AdminJobLogsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_job_logs_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminJobLogsPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminJobLogsPageMsg))
-    }
-
-    AdminJobLogPageMsg(page_msg), AdminJobLogPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_job_log_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminJobLogPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminJobLogPageMsg))
-    }
-
-    AdminConfigPageMsg(page_msg), AdminConfigPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_config_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminConfigPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminConfigPageMsg))
-    }
-
-    AdminRateLimitsPageMsg(page_msg), AdminRateLimitsPage(page_model) -> {
-      let #(new_page_model, page_effect) =
-        admin_rate_limits_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminRateLimitsPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminRateLimitsPageMsg))
-    }
-
+    AdminPageMsg(page_msg), AdminPage(page_model) ->
+      lift_router_page(
+        admin_page.update(page_model, page_msg),
+        AdminPage,
+        AdminPageMsg,
+      )
+    AdminApiLogsPageMsg(page_msg), AdminApiLogsPage(page_model) ->
+      lift_router_page(
+        admin_api_logs_page.update(page_model, page_msg),
+        AdminApiLogsPage,
+        AdminApiLogsPageMsg,
+      )
+    AdminApiLogPageMsg(page_msg), AdminApiLogPage(page_model) ->
+      lift_router_page(
+        admin_api_log_page.update(page_model, page_msg),
+        AdminApiLogPage,
+        AdminApiLogPageMsg,
+      )
+    AdminRunLogsPageMsg(page_msg), AdminRunLogsPage(page_model) ->
+      lift_router_page(
+        admin_run_logs_page.update(page_model, page_msg),
+        AdminRunLogsPage,
+        AdminRunLogsPageMsg,
+      )
+    AdminRunLogPageMsg(page_msg), AdminRunLogPage(page_model) ->
+      lift_router_page(
+        admin_run_log_page.update(page_model, page_msg),
+        AdminRunLogPage,
+        AdminRunLogPageMsg,
+      )
+    AdminPeriodicJobsPageMsg(page_msg), AdminPeriodicJobsPage(page_model) ->
+      lift_router_page(
+        admin_periodic_jobs_page.update(page_model, page_msg),
+        AdminPeriodicJobsPage,
+        AdminPeriodicJobsPageMsg,
+      )
+    AdminPeriodicJobPageMsg(page_msg), AdminPeriodicJobPage(page_model) ->
+      lift_router_page(
+        admin_periodic_job_page.update(page_model, page_msg),
+        AdminPeriodicJobPage,
+        AdminPeriodicJobPageMsg,
+      )
+    AdminUsersPageMsg(page_msg), AdminUsersPage(page_model) ->
+      lift_router_page(
+        admin_users_page.update(page_model, page_msg),
+        AdminUsersPage,
+        AdminUsersPageMsg,
+      )
+    AdminUserPageMsg(page_msg), AdminUserPage(page_model) ->
+      lift_router_page(
+        admin_user_page.update(page_model, page_msg),
+        AdminUserPage,
+        AdminUserPageMsg,
+      )
+    AdminJobsPageMsg(page_msg), AdminJobsPage(page_model) ->
+      lift_router_page(
+        admin_jobs_page.update(page_model, page_msg),
+        AdminJobsPage,
+        AdminJobsPageMsg,
+      )
+    AdminJobPageMsg(page_msg), AdminJobPage(page_model) ->
+      lift_router_page(
+        admin_job_page.update(page_model, page_msg),
+        AdminJobPage,
+        AdminJobPageMsg,
+      )
+    AdminEmailTemplatesPageMsg(page_msg), AdminEmailTemplatesPage(page_model) ->
+      lift_router_page(
+        admin_email_templates_page.update(page_model, page_msg),
+        AdminEmailTemplatesPage,
+        AdminEmailTemplatesPageMsg,
+      )
+    AdminEmailTemplatePageMsg(page_msg), AdminEmailTemplatePage(page_model) ->
+      lift_router_page(
+        admin_email_template_page.update(page_model, page_msg),
+        AdminEmailTemplatePage,
+        AdminEmailTemplatePageMsg,
+      )
+    AdminSnippetsPageMsg(page_msg), AdminSnippetsPage(page_model) ->
+      lift_router_page(
+        admin_snippets_page.update(page_model, page_msg),
+        AdminSnippetsPage,
+        AdminSnippetsPageMsg,
+      )
+    AdminSnippetPageMsg(page_msg), AdminSnippetPage(page_model) ->
+      lift_router_page(
+        admin_snippet_page.update(page_model, page_msg),
+        AdminSnippetPage,
+        AdminSnippetPageMsg,
+      )
+    AdminJobLogsPageMsg(page_msg), AdminJobLogsPage(page_model) ->
+      lift_router_page(
+        admin_job_logs_page.update(page_model, page_msg),
+        AdminJobLogsPage,
+        AdminJobLogsPageMsg,
+      )
+    AdminJobLogPageMsg(page_msg), AdminJobLogPage(page_model) ->
+      lift_router_page(
+        admin_job_log_page.update(page_model, page_msg),
+        AdminJobLogPage,
+        AdminJobLogPageMsg,
+      )
+    AdminConfigPageMsg(page_msg), AdminConfigPage(page_model) ->
+      lift_router_page(
+        admin_config_page.update(page_model, page_msg),
+        AdminConfigPage,
+        AdminConfigPageMsg,
+      )
+    AdminRateLimitsPageMsg(page_msg), AdminRateLimitsPage(page_model) ->
+      lift_router_page(
+        admin_rate_limits_page.update(page_model, page_msg),
+        AdminRateLimitsPage,
+        AdminRateLimitsPageMsg,
+      )
     AdminJobTypePoliciesPageMsg(page_msg), AdminJobTypePoliciesPage(page_model)
-    -> {
-      let #(new_page_model, page_effect) =
-        admin_job_type_policies_page.update(page_model, page_msg)
-      let new_model = router_state.new(AdminJobTypePoliciesPage(new_page_model))
-      #(new_model, admin_effect.map(page_effect, AdminJobTypePoliciesPageMsg))
-    }
-
+    ->
+      lift_router_page(
+        admin_job_type_policies_page.update(page_model, page_msg),
+        AdminJobTypePoliciesPage,
+        AdminJobTypePoliciesPageMsg,
+      )
     _, _ -> #(model, admin_effect.none())
   }
+}
+
+fn lift_page(
+  transition: #(child_model, admin_effect.Command(child_msg)),
+  wrap_model: fn(child_model) -> PageModel,
+  wrap_msg: fn(child_msg) -> Msg,
+) -> #(PageModel, admin_effect.Command(Msg)) {
+  let #(model, command) = transition
+  #(wrap_model(model), admin_effect.map(command, wrap_msg))
+}
+
+fn lift_router_page(
+  transition: #(child_model, admin_effect.Command(child_msg)),
+  wrap_model: fn(child_model) -> PageModel,
+  wrap_msg: fn(child_msg) -> Msg,
+) -> #(Model, admin_effect.Command(Msg)) {
+  let #(page_model, command) = lift_page(transition, wrap_model, wrap_msg)
+  #(router_state.new(page_model), command)
 }

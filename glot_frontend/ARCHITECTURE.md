@@ -66,7 +66,10 @@ initialization, session resolution, and update orchestration in
 the sum types and page dispatch view; and `router.gleam` remains a thin stable
 facade. The managed router imports child model, message, and managed modules
 directly so its transitive dependency graph does not pass through presentation
-facades. Application session, heartbeat, and navigation transitions live in
+facades. Its exhaustive route and message branches declare the child transition
+and matching model/message constructors; shared typed lifting helpers perform
+the mechanical state rebuilding and command mapping. Application session,
+heartbeat, and navigation transitions live in
 `app/admin_managed` and the generic `app/public_managed` lifecycle reducer.
 The admin lifecycle receives a generic `Pages` contract, so its transitive
 dependency graph remains independent of the concrete router and presentation.
