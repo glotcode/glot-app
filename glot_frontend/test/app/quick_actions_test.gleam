@@ -1,7 +1,11 @@
+import gleam/list
 import gleam/option
 import gleeunit
+import glot_core/route
+import glot_frontend/app/public_quick_actions
 import glot_frontend/app/quick_actions
 import glot_frontend/app/quick_actions_managed
+import glot_frontend/app/runtime
 import glot_web/page/top_bar
 
 pub fn main() -> Nil {
@@ -72,6 +76,36 @@ pub fn managed_dismissal_resets_state_and_requests_dialog_close_test() {
 
   assert model == quick_actions.init()
   assert command == quick_actions_managed.CloseDialog
+}
+
+pub fn initial_home_actions_keep_the_default_navigation_test() {
+  let actions =
+    public_quick_actions.sections(
+      runtime.LoadingSession,
+      route.Public(route.Home),
+      "",
+      [],
+      route.to_string,
+    )
+
+  assert list.length(actions) == 2
+  let assert [top_bar.Section(title: "Navigation", ..), ..] = actions
+}
+
+pub fn page_actions_participate_in_filtering_and_selection_test() {
+  let page_action = action("Fixture action", "fixture")
+  let sections =
+    public_quick_actions.sections(
+      runtime.LoadingSession,
+      route.Public(route.Contact),
+      "fixture",
+      [page_action],
+      route.to_string,
+    )
+  let assert option.Some(top_bar.Action(msg: selected, ..)) =
+    public_quick_actions.selected(quick_actions.init(), sections)
+
+  assert selected == "fixture"
 }
 
 fn sections() -> List(top_bar.Section(String)) {

@@ -4,6 +4,7 @@
       "name": "account",
       "modules": [
         "src/glot_frontend/account/command.gleam",
+        "src/glot_frontend/account/managed.gleam",
         "src/glot_frontend/account/message.gleam",
         "src/glot_frontend/account/model.gleam",
         "src/glot_frontend/account/update.gleam"
@@ -13,9 +14,23 @@
       "name": "application lifecycle",
       "modules": [
         "src/glot_frontend/app/admin_managed.gleam",
+        "src/glot_frontend/app/public_page_actions.gleam",
+        "src/glot_frontend/app/public_page_command.gleam",
+        "src/glot_frontend/app/public_page_managed.gleam",
+        "src/glot_frontend/app/public_page_message.gleam",
+        "src/glot_frontend/app/public_page_state.gleam",
+        "src/glot_frontend/app/public_root_managed.gleam",
         "src/glot_frontend/app/public_managed.gleam",
         "src/glot_frontend/app/quick_actions_managed.gleam",
         "src/glot_frontend/app/runtime.gleam"
+      ]
+    },
+    {
+      "name": "public home",
+      "modules": [
+        "src/glot_frontend/public/home/managed.gleam",
+        "src/glot_frontend/public/home/message.gleam",
+        "src/glot_frontend/public/home/model.gleam"
       ]
     },
     {

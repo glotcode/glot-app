@@ -140,36 +140,27 @@ pub fn respond_to_environment(
   raw_ssr: String,
   settings: settings.EditorSettings,
 ) -> Scenario {
-  let assert [LoadEnvironment(complete), ..remaining] = pending(scenario)
-  Scenario(
-    ..scenario,
-    core: managed_scenario.replace_pending(scenario.core, remaining),
-  )
-  |> dispatch(complete(raw_ssr, settings))
+  let #(effect, scenario) = take_next_pending(scenario)
+  let assert LoadEnvironment(complete) = effect
+  dispatch(scenario, complete(raw_ssr, settings))
 }
 
 pub fn respond_to_new_draft(
   scenario: Scenario,
   fixture: option.Option(draft.StoredEditorDraft),
 ) -> Scenario {
-  let assert [LoadNewDraft(_, complete), ..remaining] = pending(scenario)
-  Scenario(
-    ..scenario,
-    core: managed_scenario.replace_pending(scenario.core, remaining),
-  )
-  |> dispatch(complete(fixture))
+  let #(effect, scenario) = take_next_pending(scenario)
+  let assert LoadNewDraft(_, complete) = effect
+  dispatch(scenario, complete(fixture))
 }
 
 pub fn respond_to_get_snippet(
   scenario: Scenario,
   fixture: response.Response(snippet_dto.SnippetResponse),
 ) -> Scenario {
-  let assert [GetSnippet(_, complete), ..remaining] = pending(scenario)
-  Scenario(
-    ..scenario,
-    core: managed_scenario.replace_pending(scenario.core, remaining),
-  )
-  |> dispatch(complete(fixture))
+  let #(effect, scenario) = take_next_pending(scenario)
+  let assert GetSnippet(_, complete) = effect
+  dispatch(scenario, complete(fixture))
 }
 
 /// Complete a particular pending run. This is useful for proving that stale,
@@ -179,28 +170,18 @@ pub fn respond_to_run_at(
   index: Int,
   fixture: response.Response(run.RunResult),
 ) -> Scenario {
-  let #(before, selected_and_after) = list.split(pending(scenario), index)
-  let assert [RunCode(_, complete), ..after] = selected_and_after
-  Scenario(
-    ..scenario,
-    core: managed_scenario.replace_pending(
-      scenario.core,
-      list.append(before, after),
-    ),
-  )
-  |> dispatch(complete(fixture))
+  let #(effect, scenario) = take_pending_at(scenario, index)
+  let assert RunCode(_, complete) = effect
+  dispatch(scenario, complete(fixture))
 }
 
 pub fn respond_to_language_version(
   scenario: Scenario,
   fixture: response.Response(run.RunResult),
 ) -> Scenario {
-  let assert [GetLanguageVersion(_, complete), ..remaining] = pending(scenario)
-  Scenario(
-    ..scenario,
-    core: managed_scenario.replace_pending(scenario.core, remaining),
-  )
-  |> dispatch(complete(fixture))
+  let #(effect, scenario) = take_next_pending(scenario)
+  let assert GetLanguageVersion(_, complete) = effect
+  dispatch(scenario, complete(fixture))
 }
 
 pub fn respond_to_create(
@@ -215,16 +196,9 @@ pub fn respond_to_create_at(
   index: Int,
   fixture: response.Response(snippet_dto.SnippetResponse),
 ) -> Scenario {
-  let #(before, selected_and_after) = list.split(pending(scenario), index)
-  let assert [CreateSnippet(_, complete), ..after] = selected_and_after
-  Scenario(
-    ..scenario,
-    core: managed_scenario.replace_pending(
-      scenario.core,
-      list.append(before, after),
-    ),
-  )
-  |> dispatch(complete(fixture))
+  let #(effect, scenario) = take_pending_at(scenario, index)
+  let assert CreateSnippet(_, complete) = effect
+  dispatch(scenario, complete(fixture))
 }
 
 pub fn respond_to_update(
@@ -239,28 +213,30 @@ pub fn respond_to_update_at(
   index: Int,
   fixture: response.Response(snippet_dto.SnippetResponse),
 ) -> Scenario {
-  let #(before, selected_and_after) = list.split(pending(scenario), index)
-  let assert [UpdateSnippet(_, complete), ..after] = selected_and_after
-  Scenario(
-    ..scenario,
-    core: managed_scenario.replace_pending(
-      scenario.core,
-      list.append(before, after),
-    ),
-  )
-  |> dispatch(complete(fixture))
+  let #(effect, scenario) = take_pending_at(scenario, index)
+  let assert UpdateSnippet(_, complete) = effect
+  dispatch(scenario, complete(fixture))
 }
 
 pub fn respond_to_existing_draft(
   scenario: Scenario,
   fixture: option.Option(draft.StoredEditorDraft),
 ) -> Scenario {
-  let assert [LoadExistingDraft(_, complete), ..remaining] = pending(scenario)
-  Scenario(
-    ..scenario,
-    core: managed_scenario.replace_pending(scenario.core, remaining),
-  )
-  |> dispatch(complete(fixture))
+  let #(effect, scenario) = take_next_pending(scenario)
+  let assert LoadExistingDraft(_, complete) = effect
+  dispatch(scenario, complete(fixture))
+}
+
+fn take_next_pending(scenario: Scenario) -> #(PendingEffect, Scenario) {
+  take_pending_at(scenario, 0)
+}
+
+fn take_pending_at(
+  scenario: Scenario,
+  index: Int,
+) -> #(PendingEffect, Scenario) {
+  let #(effect, core) = managed_scenario.take_pending_at(scenario.core, index)
+  #(effect, Scenario(..scenario, core:))
 }
 
 /// Use at the end of a scenario to reject forgotten or unexpected API work.

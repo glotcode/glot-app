@@ -71,8 +71,15 @@ facades. Application session, heartbeat, and navigation transitions live in
 The admin lifecycle receives a generic `Pages` contract, so its transitive
 dependency graph remains independent of the concrete router and presentation.
 Their command values are interpreted only by the application production
-boundary. Public route-to-page composition lives in `app/public_page`, while
-top-bar search and selection presentation lives in `app/public_quick_actions`.
+boundary. Public application composition lives in the pure
+`app/public_root_managed` reducer. It owns lifecycle, page, and quick-action
+coordination and emits one application command algebra. `app/public` is only
+the Lustre bootstrap shell, and `app/public_root_production` is the production
+interpreter. Public route-to-page state, messages, managed transitions,
+commands, presentation, and production interpretation are split across the
+focused `app/public_page_*` modules; `app/public_page` remains their stable
+facade. Top-bar search and selection presentation lives in
+`app/public_quick_actions`.
 `app/runtime` is pure shared state; HTTP-backed pageview and app-event operations
 live in `app/runtime_production`.
 

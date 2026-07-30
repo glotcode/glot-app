@@ -1,11 +1,8 @@
 import gleam/option
-import glot_core/auth/session_dto.{type SessionResponse}
 import glot_core/pageview_dto
 import glot_core/route
-import glot_frontend/api/account
 import glot_frontend/api/public
 import glot_frontend/api/response
-import glot_frontend/app/event
 import lustre/effect.{type Effect}
 import youid/uuid
 
@@ -26,16 +23,4 @@ pub fn track_pageview(
     ),
     callback,
   )
-}
-
-pub fn apply_app_event(
-  page_effect: Effect(msg),
-  app_event: event.AppEvent,
-  session_loaded: fn(response.Response(option.Option(SessionResponse))) -> msg,
-) -> Effect(msg) {
-  case app_event {
-    event.NoAppEvent -> page_effect
-    event.RefreshSession ->
-      effect.batch([page_effect, account.get_session(session_loaded)])
-  }
 }

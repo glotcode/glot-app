@@ -1,29 +1,32 @@
-import glot_web/page/home
+import glot_frontend/public/home/managed
+import glot_frontend/public/home/message
+import glot_frontend/public/home/model
+import glot_frontend/public/home/view as home_view
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 
-pub type Model {
-  Model
-}
+pub type Model =
+  model.Model
+
+pub type Msg =
+  message.Msg
 
 pub fn init() -> #(Model, Effect(Msg)) {
-  let model = Model
-
-  #(model, effect.none())
+  #(managed.init(), effect.none())
 }
 
-pub type Msg {
-  Increment
+pub fn init_managed() -> Model {
+  managed.init()
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
-  case msg {
-    Increment -> {
-      #(model, effect.none())
-    }
-  }
+  #(managed.update(model, msg), effect.none())
 }
 
-pub fn view(_model: Model) -> Element(Msg) {
-  home.view(load_ad: True)
+pub fn update_managed(model: Model, msg: Msg) -> Model {
+  managed.update(model, msg)
+}
+
+pub fn view(model: Model) -> Element(Msg) {
+  home_view.view(model)
 }
