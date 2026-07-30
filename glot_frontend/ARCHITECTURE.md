@@ -81,6 +81,10 @@ and production interpretation are split across the focused `app/public_page_*`
 modules; `app/public_page` remains their stable facade. The admin root composes
 the existing pure admin router modules directly. Top-bar search and selection
 presentation lives in `app/public_quick_actions`.
+Public page transitions report metadata changes as transition data. Editor
+transitions derive that flag by comparing the pure metadata projection before
+and after the state change, so metadata invalidation follows rendered SEO state
+instead of duplicating it in a message classification.
 `app/runtime` is pure shared state; HTTP-backed pageview and app-event operations
 live in `app/runtime_production`.
 

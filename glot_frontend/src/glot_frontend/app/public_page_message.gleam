@@ -15,15 +15,3 @@ pub type Msg {
   SnippetsPageMsg(snippets_message.Msg)
   EditorPageMsg(editor_message.Msg)
 }
-
-pub fn affects_metadata(msg: Msg) -> Bool {
-  case msg {
-    EditorPageMsg(editor_msg) -> editor_message.affects_metadata(editor_msg)
-    HomePageMsg(_)
-    | ContactPageMsg(_)
-    | LoginPageMsg(_)
-    | AccountPageMsg(_)
-    | ManageSnippetsPageMsg(_)
-    | SnippetsPageMsg(_) -> False
-  }
-}

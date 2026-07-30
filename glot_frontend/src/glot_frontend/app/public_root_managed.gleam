@@ -139,17 +139,17 @@ fn update_page(
     )
   {
     option.None -> #(model, None)
-    option.Some(#(page_model, page_command, app_event)) -> {
-      let next_model = with_page_model(model, page_model)
-      let metadata_command = case public_page_message.affects_metadata(msg) {
+    option.Some(transition) -> {
+      let next_model = with_page_model(model, transition.model)
+      let metadata_command = case transition.metadata_changed {
         True -> ApplyMetadata
         False -> None
       }
       #(
         next_model,
         batch([
-          run_page(page_command),
-          command_for_app_event(app_event),
+          run_page(transition.command),
+          command_for_app_event(transition.event),
           metadata_command,
         ]),
       )

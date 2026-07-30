@@ -15,11 +15,21 @@ import glot_frontend/app/public_page_state.{
 import glot_frontend/app/runtime
 import glot_frontend/public/contact/managed as contact_managed
 import glot_frontend/public/editor/initialization as editor_initialization
+import glot_frontend/public/editor/metadata as editor_metadata
 import glot_frontend/public/editor/model.{ExistingEditor, NewEditor}
 import glot_frontend/public/editor/update as editor_update
 import glot_frontend/public/home/managed as home_managed
 import glot_frontend/public/login/managed as login_managed
 import glot_frontend/public/snippets/managed as snippets_managed
+
+pub type Transition {
+  Transition(
+    model: Model,
+    command: command.Command,
+    event: AppEvent,
+    metadata_changed: Bool,
+  )
+}
 
 pub fn init(
   target: route.Route,
@@ -90,40 +100,44 @@ pub fn update(
   model: Model,
   msg: Msg,
   session: runtime.SessionState,
-) -> option.Option(#(Model, command.Command, AppEvent)) {
+) -> option.Option(Transition) {
   case model, msg {
     Home(page_model), HomePageMsg(page_msg) ->
-      option.Some(#(
+      unchanged_metadata(
         Home(home_managed.update(page_model, page_msg)),
         command.None,
         NoAppEvent,
-      ))
+      )
     Contact(page_model), ContactPageMsg(page_msg) -> {
       let #(next_model, next) = contact_managed.update(page_model, page_msg)
-      option.Some(#(Contact(next_model), command.Contact(next), NoAppEvent))
+      unchanged_metadata(Contact(next_model), command.Contact(next), NoAppEvent)
     }
     Login(page_model), LoginPageMsg(page_msg) -> {
       let #(next_model, next, event) =
         login_managed.update(page_model, page_msg)
-      option.Some(#(Login(next_model), command.Login(next), event))
+      unchanged_metadata(Login(next_model), command.Login(next), event)
     }
     Account(page_model), AccountPageMsg(page_msg) -> {
       let #(next_model, next, event) =
         account_managed.update(page_model, page_msg)
-      option.Some(#(Account(next_model), command.Account(next), event))
+      unchanged_metadata(Account(next_model), command.Account(next), event)
     }
     ManageSnippets(page_model), ManageSnippetsPageMsg(page_msg) -> {
       let #(next_model, next) =
         account_snippets_managed.update(page_model, page_msg)
-      option.Some(#(
+      unchanged_metadata(
         ManageSnippets(next_model),
         command.ManageSnippets(next),
         NoAppEvent,
-      ))
+      )
     }
     Snippets(page_model), SnippetsPageMsg(page_msg) -> {
       let #(next_model, next) = snippets_managed.update(page_model, page_msg)
-      option.Some(#(Snippets(next_model), command.Snippets(next), NoAppEvent))
+      unchanged_metadata(
+        Snippets(next_model),
+        command.Snippets(next),
+        NoAppEvent,
+      )
     }
     Editor(page_model), EditorPageMsg(page_msg) -> {
       let current_user_id = runtime.current_user_id(session)
@@ -134,8 +148,21 @@ pub fn update(
         option.None ->
           editor_update.update(page_model, page_msg, current_user_id)
       }
-      option.Some(#(Editor(next_model), command.Editor(next), NoAppEvent))
+      option.Some(Transition(
+        model: Editor(next_model),
+        command: command.Editor(next),
+        event: NoAppEvent,
+        metadata_changed: editor_metadata.changed(page_model, next_model),
+      ))
     }
     _, _ -> option.None
   }
+}
+
+fn unchanged_metadata(
+  model: Model,
+  next: command.Command,
+  event: AppEvent,
+) -> option.Option(Transition) {
+  option.Some(Transition(model:, command: next, event:, metadata_changed: False))
 }

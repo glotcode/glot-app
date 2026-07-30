@@ -62,13 +62,3 @@ pub type Msg {
   VersionRunFinished(language.Language, api_response.Response(run.RunResult))
   SaveFinished(Int, api_response.Response(snippet_dto.SnippetResponse))
 }
-
-pub fn affects_metadata(msg: Msg) -> Bool {
-  case msg {
-    EnvironmentLoaded(_, _, _)
-    | SnippetLoaded(_, _)
-    | EditMetadataSubmitted
-    | SaveFinished(_, _) -> True
-    _ -> False
-  }
-}

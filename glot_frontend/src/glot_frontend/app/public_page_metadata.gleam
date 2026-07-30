@@ -3,7 +3,7 @@ import glot_frontend/app/public_page_state.{
   type Model, Account, Contact, Editor, Empty, Home, Login, ManageSnippets,
   Privacy, Snippets,
 }
-import glot_frontend/public/editor/page as editor_page
+import glot_frontend/public/editor/metadata as editor_metadata
 import glot_frontend/public/snippets/view as snippets_view
 import glot_web/page/seo
 
@@ -15,7 +15,7 @@ pub fn metadata(model: Model, current_route: route.Route) -> seo.Metadata {
     Login(_) -> seo.login()
     Snippets(page_model) ->
       snippets_view.metadata(page_model, route.to_string(current_route))
-    Editor(page_model) -> editor_page.metadata(page_model)
+    Editor(page_model) -> editor_metadata.metadata(page_model)
     Account(_) ->
       private_metadata(
         "Account | glot.io",

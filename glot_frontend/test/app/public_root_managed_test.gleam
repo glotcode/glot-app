@@ -7,6 +7,9 @@ import glot_frontend/app/public_page_command
 import glot_frontend/app/public_page_message
 import glot_frontend/app/public_page_state
 import glot_frontend/app/public_root_managed
+import glot_frontend/public/editor/message as editor_message
+import glot_frontend/public/editor/model as editor_model
+import glot_frontend/public/editor/settings as editor_settings
 import glot_frontend/public/home/message
 import glot_frontend/public/login/message as login_message
 
@@ -107,6 +110,29 @@ pub fn page_app_events_are_lifted_into_root_commands_test() {
   let assert public_root_managed.Batch([
     public_root_managed.RunPage(public_page_command.Login(_)),
     public_root_managed.GetSession,
+  ]) = command
+}
+
+pub fn editor_metadata_is_applied_when_the_resulting_state_changes_it_test() {
+  let target = route.Public(route.NewSnippet("javascript"))
+  let #(initial, _) = init(target)
+  let #(loaded, command) =
+    public_root_managed.update(
+      initial,
+      public_root_managed.PageMsg(
+        public_page_message.EditorPageMsg(editor_message.EnvironmentLoaded(
+          editor_model.NewEditor("javascript"),
+          "",
+          editor_settings.defaults(),
+        )),
+      ),
+    )
+
+  let assert public_page_state.Editor(editor_model.SupportedLanguage(_)) =
+    loaded.lifecycle.page_model
+  let assert public_root_managed.Batch([
+    public_root_managed.RunPage(public_page_command.Editor(_)),
+    public_root_managed.ApplyMetadata,
   ]) = command
 }
 

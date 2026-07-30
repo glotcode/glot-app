@@ -60,7 +60,11 @@ pub fn update_managed(
   session: runtime.SessionState,
 ) -> #(Model, Command, AppEvent) {
   case public_page_managed.update(model, msg, session) {
-    option.Some(result) -> result
+    option.Some(transition) -> #(
+      transition.model,
+      transition.command,
+      transition.event,
+    )
     option.None -> #(model, public_page_command.None, event.NoAppEvent)
   }
 }
