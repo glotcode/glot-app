@@ -1,6 +1,6 @@
 import gleam/option
 import glot_core/snippet/snippet_model
-import glot_frontend/public/editor/model.{type RealModel}
+import glot_frontend/public/editor/model.{type Editor}
 import youid/uuid.{type Uuid}
 
 pub type SaveOperation {
@@ -8,50 +8,47 @@ pub type SaveOperation {
   UpdateSnippet(String)
 }
 
-pub fn is_owner(
-  model: RealModel,
-  current_user_id: option.Option(Uuid),
-) -> Bool {
-  model.owner_user_id == current_user_id
+pub fn is_owner(model: Editor, current_user_id: option.Option(Uuid)) -> Bool {
+  model.snippet.owner_user_id == current_user_id
 }
 
 pub fn can_choose_visibility(
-  model: RealModel,
+  model: Editor,
   current_user_id: option.Option(Uuid),
 ) -> Bool {
   case current_user_id {
     option.None -> False
     option.Some(_) ->
-      model.slug == option.None || is_owner(model, current_user_id)
+      model.snippet.slug == option.None || is_owner(model, current_user_id)
   }
 }
 
 pub fn save_operation(
-  model: RealModel,
+  model: Editor,
   current_user_id: option.Option(Uuid),
 ) -> SaveOperation {
-  case model.slug, is_owner(model, current_user_id) {
+  case model.snippet.slug, is_owner(model, current_user_id) {
     option.Some(slug), True -> UpdateSnippet(slug)
     _, _ -> CreateSnippet
   }
 }
 
 pub fn visibility(
-  model: RealModel,
+  model: Editor,
   current_user_id: option.Option(Uuid),
 ) -> snippet_model.Visibility {
-  case model.slug {
-    option.Some(_) -> model.visibility
+  case model.snippet.slug {
+    option.Some(_) -> model.snippet.visibility
     option.None ->
       case can_choose_visibility(model, current_user_id) {
-        True -> model.save_visibility_draft
-        False -> model.visibility
+        True -> model.save_draft.visibility
+        False -> model.snippet.visibility
       }
   }
 }
 
 pub fn action_name(
-  model: RealModel,
+  model: Editor,
   current_user_id: option.Option(Uuid),
 ) -> String {
   case save_operation(model, current_user_id) {

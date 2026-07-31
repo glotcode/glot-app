@@ -2,23 +2,23 @@ import gleam/dynamic/decode
 import glot_frontend/public/editor/dialog_controls
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
-  type Msg, RunInstructionsBuildCommandsDraftChanged,
+  type SettingsMsg, RunInstructionsBuildCommandsDraftChanged,
   RunInstructionsModeDraftChanged, RunInstructionsRunCommandDraftChanged,
   SettingsCancelled, SettingsDialogClosed, SettingsSubmitted,
 }
 import glot_frontend/public/editor/model.{
-  type RealModel, CustomRunInstructions, DefaultRunInstructions,
+  type Editor, CustomRunInstructions, DefaultRunInstructions,
 }
+import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/settings as editor_settings
-import glot_frontend/public/editor/workspace_view
 import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 
-pub fn view(model: RealModel) -> Element(Msg) {
+pub fn view(model: Editor) -> Element(SettingsMsg) {
   let custom_run_instructions =
-    model.run_instructions_mode_draft == CustomRunInstructions
+    model.settings_draft.run_instructions_mode == CustomRunInstructions
 
   html.dialog(
     [
@@ -48,19 +48,19 @@ pub fn view(model: RealModel) -> Element(Msg) {
                 "Default",
                 "Standard CodeMirror shortcuts.",
                 editor_settings.DefaultBindings,
-                model.editor_settings_draft.keyboard_bindings,
+                model.settings_draft.editor_settings.keyboard_bindings,
               ),
               dialog_controls.keyboard_bindings_option(
                 "Emacs",
                 "Enable Emacs-style editing commands.",
                 editor_settings.EmacsBindings,
-                model.editor_settings_draft.keyboard_bindings,
+                model.settings_draft.editor_settings.keyboard_bindings,
               ),
               dialog_controls.keyboard_bindings_option(
                 "Vim",
                 "Enable modal Vim keybindings.",
                 editor_settings.VimBindings,
-                model.editor_settings_draft.keyboard_bindings,
+                model.settings_draft.editor_settings.keyboard_bindings,
               ),
             ],
           ),
@@ -82,8 +82,8 @@ pub fn view(model: RealModel) -> Element(Msg) {
                   attribute.name("run_instructions_mode"),
                   attribute.class("editor-page__dialog-select"),
                   attribute.value(
-                    workspace_view.run_instructions_mode_to_string(
-                      model.run_instructions_mode_draft,
+                    run_instructions.run_instructions_mode_to_string(
+                      model.settings_draft.run_instructions_mode,
                     ),
                   ),
                   event.on_input(RunInstructionsModeDraftChanged),
@@ -93,7 +93,7 @@ pub fn view(model: RealModel) -> Element(Msg) {
                     [
                       attribute.value("default"),
                       attribute.selected(
-                        model.run_instructions_mode_draft
+                        model.settings_draft.run_instructions_mode
                         == DefaultRunInstructions,
                       ),
                     ],
@@ -103,7 +103,7 @@ pub fn view(model: RealModel) -> Element(Msg) {
                     [
                       attribute.value("custom"),
                       attribute.selected(
-                        model.run_instructions_mode_draft
+                        model.settings_draft.run_instructions_mode
                         == CustomRunInstructions,
                       ),
                     ],
@@ -129,7 +129,7 @@ pub fn view(model: RealModel) -> Element(Msg) {
                   attribute.disabled(!custom_run_instructions),
                   event.on_input(RunInstructionsBuildCommandsDraftChanged),
                 ],
-                model.run_instructions_draft.build_commands_text,
+                model.settings_draft.run_instructions.build_commands_text,
               ),
               html.p([attribute.class("editor-page__dialog-helper-text")], [
                 html.text(
@@ -147,7 +147,9 @@ pub fn view(model: RealModel) -> Element(Msg) {
                 attribute.id("editor-page-run-command-input"),
                 attribute.name("run_command"),
                 attribute.type_("text"),
-                attribute.value(model.run_instructions_draft.run_command),
+                attribute.value(
+                  model.settings_draft.run_instructions.run_command,
+                ),
                 attribute.class("editor-page__dialog-input"),
                 attribute.disabled(!custom_run_instructions),
                 event.on_input(RunInstructionsRunCommandDraftChanged),

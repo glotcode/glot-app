@@ -7,9 +7,9 @@ import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response
 import glot_frontend/public/editor/execution
+import glot_frontend/public/editor/lifecycle
+import glot_frontend/public/editor/managed
 import glot_frontend/public/editor/message
-import glot_frontend/public/editor/model
-import glot_frontend/public/editor/page
 import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/view
 import lustre/element
@@ -21,25 +21,25 @@ pub fn existing_save_failure_can_retry_without_losing_edits_test() {
   let original = editor_fixture.snippet("save-retry", "console.log('old')")
   let scenario =
     ready_existing(original, option.Some(editor_fixture.owner_id()))
-    |> editor_scenario.dispatch(message.SourceCodeChanged(
+    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
       "console.log('retained')",
       1,
     ))
-    |> editor_scenario.dispatch(message.SaveClicked)
+    |> editor_scenario.dispatch_save(message.SaveClicked)
     |> editor_scenario.respond_to_update(editor_fixture.api_failure(
       "Update rejected.",
     ))
-  let assert model.SupportedLanguage(failed) = editor_scenario.model(scenario)
-  let assert execution.SaveError(error) = failed.save_state
+  let failed = editor_scenario.editor(scenario)
+  let assert execution.SaveError(error) = failed.operations.save_state
   assert string.contains(error, "Update rejected.")
-  assert failed.files
+  assert failed.snippet.files
     == [snippet_model.File("main.js", "console.log('retained')")]
   assert string.contains(
     render(scenario, editor_fixture.owner_id()),
     "SAVE FAILED",
   )
 
-  let scenario = editor_scenario.dispatch(scenario, message.SaveClicked)
+  let scenario = editor_scenario.dispatch_save(scenario, message.SaveClicked)
   let assert [editor_scenario.UpdateSnippet(request, _)] =
     editor_scenario.pending(scenario)
   let scenario =
@@ -47,8 +47,8 @@ pub fn existing_save_failure_can_retry_without_losing_edits_test() {
       scenario,
       response.Success(editor_fixture.updated(original, request.data)),
     )
-  let assert model.SupportedLanguage(saved) = editor_scenario.model(scenario)
-  assert saved.save_state == execution.Saved(original.slug)
+  let saved = editor_scenario.editor(scenario)
+  assert saved.operations.save_state == execution.Saved(original.slug)
   assert observed_draft_clear(editor_scenario.observed(scenario))
   editor_scenario.assert_no_pending_effects(scenario)
 }
@@ -57,10 +57,10 @@ pub fn stale_existing_save_response_cannot_overwrite_latest_success_test() {
   let original = editor_fixture.snippet("stale-save", "before")
   let scenario =
     ready_existing(original, option.Some(editor_fixture.owner_id()))
-    |> editor_scenario.dispatch(message.SourceCodeChanged("first", 1))
-    |> editor_scenario.dispatch(message.SaveClicked)
-    |> editor_scenario.dispatch(message.SourceCodeChanged("second", 2))
-    |> editor_scenario.dispatch(message.SaveClicked)
+    |> editor_scenario.dispatch_execution(message.SourceCodeChanged("first", 1))
+    |> editor_scenario.dispatch_save(message.SaveClicked)
+    |> editor_scenario.dispatch_execution(message.SourceCodeChanged("second", 2))
+    |> editor_scenario.dispatch_save(message.SaveClicked)
   let assert [
     editor_scenario.UpdateSnippet(_, _),
     editor_scenario.UpdateSnippet(latest, _),
@@ -75,9 +75,9 @@ pub fn stale_existing_save_response_cannot_overwrite_latest_success_test() {
       0,
       editor_fixture.api_failure("Stale failure."),
     )
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.save_state == execution.Saved(original.slug)
-  assert editor.files == [snippet_model.File("main.js", "second")]
+  let editor = editor_scenario.editor(scenario)
+  assert editor.operations.save_state == execution.Saved(original.slug)
+  assert editor.snippet.files == [snippet_model.File("main.js", "second")]
   editor_scenario.assert_no_pending_effects(scenario)
 }
 
@@ -87,7 +87,7 @@ pub fn anonymous_existing_save_opens_login_dialog_without_api_work_test() {
       editor_fixture.snippet("anonymous-save", "source"),
       option.None,
     )
-    |> editor_scenario.dispatch(message.SaveClicked)
+    |> editor_scenario.dispatch_save(message.SaveClicked)
   assert editor_scenario.pending(scenario) == []
   assert string.contains(
     render_anonymous(scenario),
@@ -104,9 +104,9 @@ pub fn non_owner_save_creates_a_copy_instead_of_updating_test() {
   let current_user = editor_fixture.other_user_id()
   let scenario =
     ready_existing(original, option.Some(current_user))
-    |> editor_scenario.dispatch(message.SaveClicked)
+    |> editor_scenario.dispatch_save(message.SaveClicked)
   assert string.contains(render(scenario, current_user), "create a new snippet")
-  let scenario = editor_scenario.dispatch(scenario, message.SaveConfirmed)
+  let scenario = editor_scenario.dispatch_save(scenario, message.SaveConfirmed)
   let assert [editor_scenario.CreateSnippet(request, _)] =
     editor_scenario.pending(scenario)
   assert request.data.files == original.data.files
@@ -118,11 +118,11 @@ pub fn create_uses_selected_visibility_and_can_retry_after_failure_test() {
   let scenario =
     editor_scenario.new_editor(language.JavaScript)
     |> editor_scenario.start(option.Some(current_user))
-    |> editor_scenario.dispatch(message.SaveClicked)
-    |> editor_scenario.dispatch(message.SaveVisibilityDraftSelected(
+    |> editor_scenario.dispatch_save(message.SaveClicked)
+    |> editor_scenario.dispatch_save(message.SaveVisibilityDraftSelected(
       snippet_model.Secret,
     ))
-    |> editor_scenario.dispatch(message.SaveConfirmed)
+    |> editor_scenario.dispatch_save(message.SaveConfirmed)
   let assert [editor_scenario.CreateSnippet(first_request, _)] =
     editor_scenario.pending(scenario)
   assert first_request.data.visibility == snippet_model.Secret
@@ -131,19 +131,19 @@ pub fn create_uses_selected_visibility_and_can_retry_after_failure_test() {
       scenario,
       editor_fixture.api_failure("Create rejected."),
     )
-  let assert model.SupportedLanguage(failed) = editor_scenario.model(scenario)
-  let assert execution.SaveError(_) = failed.save_state
+  let failed = editor_scenario.editor(scenario)
+  let assert execution.SaveError(_) = failed.operations.save_state
 
   let scenario =
-    editor_scenario.dispatch(scenario, message.SaveClicked)
-    |> editor_scenario.dispatch(message.SaveConfirmed)
+    editor_scenario.dispatch_save(scenario, message.SaveClicked)
+    |> editor_scenario.dispatch_save(message.SaveConfirmed)
   let assert [editor_scenario.CreateSnippet(retry, _)] =
     editor_scenario.pending(scenario)
   let created = created_from_request("created-after-retry", retry)
   let scenario =
     editor_scenario.respond_to_create(scenario, response.Success(created))
-  let assert model.SupportedLanguage(saved) = editor_scenario.model(scenario)
-  assert saved.save_state == execution.Saved("created-after-retry")
+  let saved = editor_scenario.editor(scenario)
+  assert saved.operations.save_state == execution.Saved("created-after-retry")
   assert observed_navigation(
     editor_scenario.observed(scenario),
     "/snippets/created-after-retry",
@@ -157,24 +157,27 @@ pub fn cancelling_and_closing_save_dialog_restore_visibility_draft_test() {
   let scenario =
     editor_scenario.new_editor(language.JavaScript)
     |> editor_scenario.start(option.Some(current_user))
-    |> editor_scenario.dispatch(message.SaveClicked)
-    |> editor_scenario.dispatch(message.SaveVisibilityDraftSelected(
+    |> editor_scenario.dispatch_metadata(message.EditMetadataVisibilitySelected(
       snippet_model.Public,
     ))
-    |> editor_scenario.dispatch(message.SaveCancelled)
-  let assert model.SupportedLanguage(cancelled) =
-    editor_scenario.model(scenario)
-  assert cancelled.save_visibility_draft == cancelled.visibility
+    |> editor_scenario.dispatch_save(message.SaveClicked)
+    |> editor_scenario.dispatch_save(message.SaveVisibilityDraftSelected(
+      snippet_model.Secret,
+    ))
+    |> editor_scenario.dispatch_save(message.SaveCancelled)
+  let cancelled = editor_scenario.editor(scenario)
+  assert cancelled.save_draft.visibility == cancelled.snippet.visibility
+  assert cancelled.metadata_draft.visibility == snippet_model.Public
   assert editor_scenario.pending(scenario) == []
 
   let scenario =
-    editor_scenario.dispatch(scenario, message.SaveClicked)
-    |> editor_scenario.dispatch(message.SaveVisibilityDraftSelected(
+    editor_scenario.dispatch_save(scenario, message.SaveClicked)
+    |> editor_scenario.dispatch_save(message.SaveVisibilityDraftSelected(
       snippet_model.Public,
     ))
-    |> editor_scenario.dispatch(message.SaveDialogClosed)
-  let assert model.SupportedLanguage(closed) = editor_scenario.model(scenario)
-  assert closed.save_visibility_draft == closed.visibility
+    |> editor_scenario.dispatch_save(message.SaveDialogClosed)
+  let closed = editor_scenario.editor(scenario)
+  assert closed.save_draft.visibility == closed.snippet.visibility
   assert list.contains(
     editor_scenario.observed(scenario),
     editor_scenario.ElementFocused("editor-page-codemirror"),
@@ -186,9 +189,9 @@ pub fn stale_create_response_cannot_repeat_navigation_or_draft_clear_test() {
   let scenario =
     editor_scenario.new_editor(language.JavaScript)
     |> editor_scenario.start(option.Some(current_user))
-    |> editor_scenario.dispatch(message.SaveConfirmed)
-    |> editor_scenario.dispatch(message.SourceCodeChanged("newer", 1))
-    |> editor_scenario.dispatch(message.SaveConfirmed)
+    |> editor_scenario.dispatch_save(message.SaveConfirmed)
+    |> editor_scenario.dispatch_execution(message.SourceCodeChanged("newer", 1))
+    |> editor_scenario.dispatch_save(message.SaveConfirmed)
   let assert [
     editor_scenario.CreateSnippet(_, _),
     editor_scenario.CreateSnippet(latest, _),
@@ -201,7 +204,7 @@ pub fn stale_create_response_cannot_repeat_navigation_or_draft_clear_test() {
       1,
       response.Success(latest_response),
     )
-    |> editor_scenario.dispatch(message.SourceCodeChanged(
+    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
       "unsaved after latest response",
       2,
     ))
@@ -210,8 +213,8 @@ pub fn stale_create_response_cannot_repeat_navigation_or_draft_clear_test() {
   assert count_navigations(effects) == 1
   assert count_draft_clears(effects) == 1
   assert observed_navigation(effects, "/snippets/latest")
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.files
+  let editor = editor_scenario.editor(scenario)
+  assert editor.snippet.files
     == [snippet_model.File("main.js", "unsaved after latest response")]
   editor_scenario.assert_no_pending_effects(scenario)
 }
@@ -221,13 +224,13 @@ pub fn save_after_run_becomes_the_latest_console_feedback_test() {
   let scenario =
     editor_scenario.new_editor(language.JavaScript)
     |> editor_scenario.start(option.Some(current_user))
-    |> editor_scenario.dispatch(message.RunSubmitted)
+    |> editor_scenario.dispatch_execution(message.RunSubmitted)
     |> editor_scenario.respond_to_run(editor_fixture.successful_run(
       stdout: "run output",
       stderr: "",
       error: "",
     ))
-    |> editor_scenario.dispatch(message.SaveConfirmed)
+    |> editor_scenario.dispatch_save(message.SaveConfirmed)
   assert string.contains(render(scenario, current_user), "Saving snippet...")
   let assert [editor_scenario.CreateSnippet(request, _)] =
     editor_scenario.pending(scenario)
@@ -246,9 +249,9 @@ pub fn saving_state_disables_save_button_and_renders_progress_test() {
   let scenario =
     editor_scenario.new_editor(language.JavaScript)
     |> editor_scenario.start(option.Some(owner))
-    |> editor_scenario.dispatch(message.SaveConfirmed)
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.save_state == execution.Saving
+    |> editor_scenario.dispatch_save(message.SaveConfirmed)
+  let editor = editor_scenario.editor(scenario)
+  assert editor.operations.save_state == execution.Saving
   let rendered = render(scenario, owner)
   assert string.contains(
     rendered,
@@ -262,11 +265,11 @@ pub fn saved_existing_snippet_runs_the_saved_code_and_renders_stdout_test() {
   let owner = editor_fixture.owner_id()
   let scenario =
     ready_existing(original, option.Some(owner))
-    |> editor_scenario.dispatch(message.SourceCodeChanged(
+    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
       "console.log('saved output')",
       1,
     ))
-    |> editor_scenario.dispatch(message.SaveClicked)
+    |> editor_scenario.dispatch_save(message.SaveClicked)
   let assert [editor_scenario.UpdateSnippet(update_request, _)] =
     editor_scenario.pending(scenario)
   let scenario =
@@ -274,7 +277,7 @@ pub fn saved_existing_snippet_runs_the_saved_code_and_renders_stdout_test() {
       scenario,
       response.Success(editor_fixture.updated(original, update_request.data)),
     )
-    |> editor_scenario.dispatch(message.RunSubmitted)
+    |> editor_scenario.dispatch_execution(message.RunSubmitted)
   let assert [editor_scenario.RunCode(run_request, _)] =
     editor_scenario.pending(scenario)
   assert run_request.payload.files == update_request.data.files
@@ -287,8 +290,8 @@ pub fn saved_existing_snippet_runs_the_saved_code_and_renders_stdout_test() {
         error: "",
       ),
     )
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  let assert execution.Completed(Ok(result)) = editor.run_state
+  let editor = editor_scenario.editor(scenario)
+  let assert execution.Completed(Ok(result)) = editor.operations.run_state
   assert result.stdout == "saved output\n"
   let rendered = render(scenario, owner)
   assert string.contains(rendered, "saved output")
@@ -301,7 +304,7 @@ fn ready_existing(
   current_user: option.Option(Uuid),
 ) -> editor_scenario.Scenario {
   let #(initial, initial_command) =
-    page.init_managed(model.ExistingEditor(fixture.slug))
+    managed.init(lifecycle.ExistingEditor(fixture.slug))
   editor_scenario.start_with_command(initial, current_user, initial_command)
   |> editor_scenario.respond_to_environment("", settings.defaults())
   |> editor_scenario.deliver_next_scheduled

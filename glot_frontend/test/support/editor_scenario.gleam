@@ -1,17 +1,16 @@
 import gleam/list
 import gleam/option
-import gleam/string
 import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_dto
-import glot_core/snippet/snippet_model
 import glot_frontend/api/response
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft
-import glot_frontend/public/editor/execution
+import glot_frontend/public/editor/draft_persistence
+import glot_frontend/public/editor/managed
 import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
-import glot_frontend/public/editor/page
+import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/settings
 import support/managed_scenario
 import youid/uuid.{type Uuid}
@@ -20,8 +19,8 @@ import youid/uuid.{type Uuid}
 /// The callback is the same callback used by the production interpreter.
 pub type PendingEffect {
   LoadEnvironment(fn(String, settings.EditorSettings) -> message.Msg)
-  LoadNewDraft(
-    String,
+  LoadDraft(
+    draft_persistence.Target,
     fn(option.Option(draft.StoredEditorDraft)) -> message.Msg,
   )
   GetSnippet(
@@ -41,18 +40,13 @@ pub type PendingEffect {
     snippet_dto.UpdateSnippetRequest,
     fn(response.Response(snippet_dto.SnippetResponse)) -> message.Msg,
   )
-  LoadExistingDraft(
-    String,
-    fn(option.Option(draft.StoredEditorDraft)) -> message.Msg,
-  )
 }
 
 /// Browser effects are recorded as data so scenarios can assert user-visible
 /// consequences without installing a DOM, navigation, or storage mock.
 pub type ObservedEffect {
-  DraftSaved(model.RealModel)
-  DraftCleared(model.RealModel)
-  ExistingDraftCleared(String)
+  DraftSaved(draft_persistence.Write)
+  DraftCleared(draft_persistence.Target)
   SettingsSaved(settings.EditorSettings)
   DialogOpened(String)
   DialogOpenedNextFrame(String)
@@ -94,7 +88,7 @@ pub fn start_with_command(
 /// API commands remain pending until completed with one of the response helpers.
 pub fn dispatch(scenario: Scenario, msg: message.Msg) -> Scenario {
   let update = fn(model, msg) {
-    page.update_managed(model, msg, scenario.current_user_id)
+    managed.update(model, msg, scenario.current_user_id)
   }
   let #(next_model, next_command) = update(model(scenario), msg)
   interpret(
@@ -106,8 +100,65 @@ pub fn dispatch(scenario: Scenario, msg: message.Msg) -> Scenario {
   )
 }
 
+pub fn dispatch_lifecycle(
+  scenario: Scenario,
+  msg: message.LifecycleMsg,
+) -> Scenario {
+  dispatch(scenario, message.Lifecycle(msg))
+}
+
+pub fn dispatch_restore_draft(
+  scenario: Scenario,
+  msg: message.RestoreDraftMsg,
+) -> Scenario {
+  dispatch(scenario, message.Editor(message.RestoreDraft(msg)))
+}
+
+pub fn dispatch_metadata(
+  scenario: Scenario,
+  msg: message.MetadataMsg,
+) -> Scenario {
+  dispatch(scenario, message.Editor(message.Metadata(msg)))
+}
+
+pub fn dispatch_file(scenario: Scenario, msg: message.FileMsg) -> Scenario {
+  dispatch(scenario, message.Editor(message.File(msg)))
+}
+
+pub fn dispatch_settings(
+  scenario: Scenario,
+  msg: message.SettingsMsg,
+) -> Scenario {
+  dispatch(scenario, message.Editor(message.Settings(msg)))
+}
+
+pub fn dispatch_save(scenario: Scenario, msg: message.SaveMsg) -> Scenario {
+  dispatch(scenario, message.Editor(message.Save(msg)))
+}
+
+pub fn dispatch_snippet_info(
+  scenario: Scenario,
+  msg: message.SnippetInfoMsg,
+) -> Scenario {
+  dispatch(scenario, message.Editor(message.SnippetInfo(msg)))
+}
+
+pub fn dispatch_execution(
+  scenario: Scenario,
+  msg: message.ExecutionMsg,
+) -> Scenario {
+  dispatch(scenario, message.Editor(message.Execution(msg)))
+}
+
 pub fn model(scenario: Scenario) -> model.Model {
   managed_scenario.model(scenario.core)
+}
+
+/// Return the loaded editor for workflow scenarios whose setup guarantees that
+/// lifecycle initialization has completed.
+pub fn editor(scenario: Scenario) -> model.Editor {
+  let assert model.Ready(editor) = model(scenario)
+  editor
 }
 
 pub fn pending(scenario: Scenario) -> List(PendingEffect) {
@@ -150,7 +201,7 @@ pub fn respond_to_new_draft(
   fixture: option.Option(draft.StoredEditorDraft),
 ) -> Scenario {
   let #(effect, scenario) = take_next_pending(scenario)
-  let assert LoadNewDraft(_, complete) = effect
+  let assert LoadDraft(draft_persistence.NewSnippet(_), complete) = effect
   dispatch(scenario, complete(fixture))
 }
 
@@ -223,7 +274,7 @@ pub fn respond_to_existing_draft(
   fixture: option.Option(draft.StoredEditorDraft),
 ) -> Scenario {
   let #(effect, scenario) = take_next_pending(scenario)
-  let assert LoadExistingDraft(_, complete) = effect
+  let assert LoadDraft(draft_persistence.ExistingSnippet(_), complete) = effect
   dispatch(scenario, complete(fixture))
 }
 
@@ -247,42 +298,7 @@ pub fn assert_no_pending_effects(scenario: Scenario) -> Nil {
 }
 
 pub fn new_editor(lang: language.Language) -> model.Model {
-  let file = snippet_model.default_file(lang)
-  let run_instructions = language.run_instructions(lang, file.name, [])
-  model.SupportedLanguage(model.RealModel(
-    slug: option.None,
-    owner_user_id: option.None,
-    owner_username: option.None,
-    title: "Hello World",
-    title_draft: "Hello World",
-    language: lang,
-    visibility: snippet_model.Unlisted,
-    created_at: option.None,
-    updated_at: option.None,
-    files: [file],
-    stdin: option.None,
-    editor_revision: 0,
-    editor_external_revision: 0,
-    selected_tab: model.FileTab(0),
-    add_entry_kind: model.AddFileEntry,
-    add_entry_filename: "",
-    edit_entry_filename: file.name,
-    editor_settings: settings.defaults(),
-    editor_settings_draft: settings.defaults(),
-    run_instructions_override: option.None,
-    run_instructions_mode_draft: model.DefaultRunInstructions,
-    run_instructions_draft: model.RunInstructionsDraft(
-      build_commands_text: string.join(run_instructions.build_commands, "\n"),
-      run_command: run_instructions.run_command,
-    ),
-    save_visibility_draft: snippet_model.Unlisted,
-    pending_restore_draft: option.None,
-    version_info: option.None,
-    run_generation: 0,
-    run_state: execution.Idle,
-    save_generation: 0,
-    save_state: execution.SaveIdle,
-  ))
+  model.Ready(ready.new(lang, settings.defaults()))
 }
 
 fn interpret(
@@ -294,8 +310,8 @@ fn interpret(
     command.Batch(commands) -> list.fold(commands, scenario, interpret)
     command.LoadEnvironment(complete) ->
       append_pending(scenario, LoadEnvironment(complete))
-    command.LoadNewDraft(language_slug, complete) ->
-      append_pending(scenario, LoadNewDraft(language_slug, complete))
+    command.LoadDraft(target, complete) ->
+      append_pending(scenario, LoadDraft(target, complete))
     command.GetSnippet(request, complete) ->
       append_pending(scenario, GetSnippet(request, complete))
     command.RunCode(request, complete) ->
@@ -306,12 +322,9 @@ fn interpret(
       append_pending(scenario, CreateSnippet(request, complete))
     command.UpdateSnippet(request, complete) ->
       append_pending(scenario, UpdateSnippet(request, complete))
-    command.LoadExistingDraft(slug, complete) ->
-      append_pending(scenario, LoadExistingDraft(slug, complete))
-    command.SaveDraft(value) -> append_observed(scenario, DraftSaved(value))
-    command.ClearDraft(value) -> append_observed(scenario, DraftCleared(value))
-    command.ClearExistingDraft(slug) ->
-      append_observed(scenario, ExistingDraftCleared(slug))
+    command.SaveDraft(write) -> append_observed(scenario, DraftSaved(write))
+    command.ClearDraft(target) ->
+      append_observed(scenario, DraftCleared(target))
     command.SaveSettings(value) ->
       append_observed(scenario, SettingsSaved(value))
     command.OpenDialog(id) -> append_observed(scenario, DialogOpened(id))

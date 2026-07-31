@@ -1,12 +1,12 @@
 import gleam/list
 import gleam/option
 import glot_frontend/public/editor/message.{
-  type Msg, AddEntryClicked, EditMetadataClicked, RunSubmitted, SaveClicked,
-  SettingsClicked, SnippetInfoClicked,
+  type EditorMsg, type Msg, AddEntryClicked, EditMetadataClicked,
+  Editor as EditorMessage, Execution, File, Metadata, RunSubmitted, Save,
+  SaveClicked, Settings, SettingsClicked, SnippetInfo, SnippetInfoClicked,
 }
 import glot_frontend/public/editor/model.{
-  type Model, type RealModel, Initializing, LoadError, LoadingSnippet,
-  SupportedLanguage, UnsupportedLanguage,
+  type Editor, type Model, Lifecycle, Ready,
 }
 import glot_frontend/public/editor/policy
 import glot_web/page/top_bar
@@ -17,64 +17,63 @@ pub fn actions(
   current_user_id: option.Option(Uuid),
 ) -> List(top_bar.Action(Msg)) {
   case model {
-    SupportedLanguage(model) -> actions_for_model(model, current_user_id)
-    Initializing(_)
-    | UnsupportedLanguage(_)
-    | LoadingSnippet(_, _, _)
-    | LoadError(_) -> []
+    Ready(model) ->
+      actions_for_model(model, current_user_id)
+      |> list.map(fn(action) { top_bar.map_action(action, EditorMessage) })
+    Lifecycle(_) -> []
   }
 }
 
 fn actions_for_model(
-  model: RealModel,
+  model: Editor,
   current_user_id: option.Option(Uuid),
-) -> List(top_bar.Action(Msg)) {
+) -> List(top_bar.Action(EditorMsg)) {
   let base_actions = [
     top_bar.Action(
       label: "Run code",
       description: "Execute the current snippet.",
       shortcut: ["cmd+enter", "ctrl+enter"],
       target_route: option.None,
-      msg: RunSubmitted,
+      msg: Execution(RunSubmitted),
     ),
     top_bar.Action(
       label: policy.action_name(model, current_user_id),
       description: "Save the current snippet state.",
       shortcut: [],
       target_route: option.None,
-      msg: SaveClicked,
+      msg: Save(SaveClicked),
     ),
     top_bar.Action(
       label: "New file",
       description: "Add a new file or stdin input entry.",
       shortcut: [],
       target_route: option.None,
-      msg: AddEntryClicked,
+      msg: File(AddEntryClicked),
     ),
     top_bar.Action(
       label: "Settings",
       description: "Open editor settings.",
       shortcut: [],
       target_route: option.None,
-      msg: SettingsClicked,
+      msg: Settings(SettingsClicked),
     ),
   ]
 
-  let info_actions = case model.slug != option.None {
+  let info_actions = case model.snippet.slug != option.None {
     True -> [
       top_bar.Action(
         label: "Snippet info",
         description: "View snippet metadata.",
         shortcut: [],
         target_route: option.None,
-        msg: SnippetInfoClicked,
+        msg: SnippetInfo(SnippetInfoClicked),
       ),
     ]
     False -> []
   }
 
   let title_actions = case
-    model.slug == option.None || policy.is_owner(model, current_user_id)
+    model.snippet.slug == option.None || policy.is_owner(model, current_user_id)
   {
     True -> [
       top_bar.Action(
@@ -82,7 +81,7 @@ fn actions_for_model(
         description: "Edit the current snippet's metadata.",
         shortcut: [],
         target_route: option.None,
-        msg: EditMetadataClicked,
+        msg: Metadata(EditMetadataClicked),
       ),
     ]
     False -> []

@@ -6,25 +6,23 @@ import glot_core/public_action
 import glot_core/run
 import glot_frontend/api/response as api_response
 import glot_frontend/public/editor/command
-import glot_frontend/public/editor/document
+import glot_frontend/public/editor/draft_projection
 import glot_frontend/public/editor/execution
 import glot_frontend/public/editor/file_workflow
 import glot_frontend/public/editor/message.{
-  type Msg, RunFinished, RunSubmitted, SourceCodeChanged, TabKeyPressed,
+  type ExecutionMsg, RunFinished, RunSubmitted, SourceCodeChanged, TabKeyPressed,
   TabSelected, VersionRunFinished,
 }
 import glot_frontend/public/editor/model.{
-  type EditorTab, type RealModel, RealModel,
+  type Editor, type EditorTab, Editor, Operations, Workspace,
 }
 import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/tab_semantics
-import youid/uuid.{type Uuid}
 
 pub fn update(
-  model: RealModel,
-  msg: Msg,
-  _current_user_id: option.Option(Uuid),
-) -> #(RealModel, command.Command(Msg)) {
+  model: Editor,
+  msg: ExecutionMsg,
+) -> #(Editor, command.Command(ExecutionMsg)) {
   case msg {
     TabSelected(tab) -> #(select_tab(model, tab), command.none())
 
@@ -42,62 +40,85 @@ pub fn update(
     SourceCodeChanged(source_code, revision) -> {
       let next_model =
         file_workflow.update_selected_tab_content(model, source_code)
-        |> fn(model) { RealModel(..model, editor_revision: revision) }
-      #(next_model, command.SaveDraft(next_model))
+        |> fn(model) {
+          Editor(
+            ..model,
+            workspace: Workspace(..model.workspace, editor_revision: revision),
+          )
+        }
+      #(next_model, command.SaveDraft(draft_projection.write(next_model)))
     }
 
     RunSubmitted -> {
-      let generation = model.run_generation + 1
+      let generation = model.operations.run_generation + 1
       let request =
         run.RunRequest(
-          image: language.container_image(model.language),
+          image: language.container_image(model.snippet.language),
           payload: run.RunRequestPayload(
             run_instructions: run_instructions.effective_run_instructions(model),
-            files: model.files,
-            stdin: model.stdin,
+            files: model.snippet.files,
+            stdin: model.snippet.stdin,
           ),
         )
 
       #(
-        RealModel(
+        Editor(
           ..model,
-          run_generation: generation,
-          run_state: execution.Running,
-          // A new run becomes the active console operation. Without clearing
-          // completed save feedback, "Saved" masks the eventual run output.
-          save_state: execution.SaveIdle,
+          operations: Operations(
+            ..model.operations,
+            run_generation: generation,
+            run_state: execution.Running,
+            // A new run becomes the active console operation. Without clearing
+            // completed save feedback, "Saved" masks the eventual run output.
+            save_state: execution.SaveIdle,
+          ),
         ),
         command.RunCode(request, fn(result) { RunFinished(generation, result) }),
       )
     }
 
-    RunFinished(generation, _) if generation != model.run_generation -> #(
-      model,
-      command.none(),
-    )
+    RunFinished(generation, _)
+      if generation != model.operations.run_generation
+    -> #(model, command.none())
 
     RunFinished(_, result) -> {
       case result {
         api_response.Success(run_result) -> #(
-          RealModel(..model, run_state: execution.Completed(run_result)),
+          Editor(
+            ..model,
+            operations: Operations(
+              ..model.operations,
+              run_state: execution.Completed(run_result),
+            ),
+          ),
           command.none(),
         )
 
         api_response.ApiFailure(error) -> #(
-          RealModel(
+          Editor(
             ..model,
-            run_state: execution.RequestError(api_response.error_message(error)),
+            operations: Operations(
+              ..model.operations,
+              run_state: execution.RequestError(api_response.error_message(
+                error,
+              )),
+            ),
           ),
           command.none(),
         )
 
         api_response.HttpFailure(_) -> #(
-          RealModel(
+          Editor(
             ..model,
-            run_state: execution.RequestError(
-              "Could not complete "
-              <> api_action.to_string(api_action.public(public_action.RunAction))
-              <> ".",
+            operations: Operations(
+              ..model.operations,
+              run_state: execution.RequestError(
+                "Could not complete "
+                <> api_action.to_string(api_action.public(
+                  public_action.RunAction,
+                ))
+                <> ".",
+              ),
             ),
           ),
           command.none(),
@@ -105,7 +126,7 @@ pub fn update(
       }
     }
 
-    VersionRunFinished(language, _) if language != model.language -> #(
+    VersionRunFinished(language, _) if language != model.snippet.language -> #(
       model,
       command.none(),
     )
@@ -116,7 +137,13 @@ pub fn update(
           case stdout == "" {
             True -> #(model, command.none())
             False -> #(
-              RealModel(..model, version_info: option.Some(stdout)),
+              Editor(
+                ..model,
+                operations: Operations(
+                  ..model.operations,
+                  version_info: option.Some(stdout),
+                ),
+              ),
               command.none(),
             )
           }
@@ -124,23 +151,23 @@ pub fn update(
         _ -> #(model, command.none())
       }
     }
-
-    _ -> #(model, command.none())
   }
 }
 
-fn select_tab(model: RealModel, tab: EditorTab) -> RealModel {
-  RealModel(
+fn select_tab(model: Editor, tab: EditorTab) -> Editor {
+  Editor(
     ..model,
-    selected_tab: tab,
-    edit_entry_filename: document.default_file_name(model.files, tab),
-    editor_external_revision: model.editor_external_revision + 1,
+    workspace: Workspace(
+      ..model.workspace,
+      selected_tab: tab,
+      editor_external_revision: model.workspace.editor_external_revision + 1,
+    ),
   )
 }
 
-fn editor_tabs(model: RealModel) -> List(EditorTab) {
-  let file_tabs = file_tabs(list.length(model.files), 0)
-  case model.stdin {
+fn editor_tabs(model: Editor) -> List(EditorTab) {
+  let file_tabs = file_tabs(list.length(model.snippet.files), 0)
+  case model.snippet.stdin {
     option.Some(_) -> list.append(file_tabs, [model.StdinTab])
     option.None -> file_tabs
   }

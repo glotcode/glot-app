@@ -21,6 +21,20 @@ pub type SaveState {
   SaveError(String)
 }
 
+pub fn run_button_text(run_state: RunState) -> String {
+  case run_state {
+    Running -> "Running..."
+    _ -> "Run"
+  }
+}
+
+pub fn save_button_text(save_state: SaveState) -> String {
+  case save_state {
+    Saving -> "Saving..."
+    _ -> "Save"
+  }
+}
+
 pub fn view(
   version_info: option.Option(String),
   run_state: RunState,

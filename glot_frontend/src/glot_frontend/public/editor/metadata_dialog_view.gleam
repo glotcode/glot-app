@@ -4,16 +4,16 @@ import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/dialog_controls
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
-  type Msg, EditMetadataCancelled, EditMetadataDialogClosed,
+  type MetadataMsg, EditMetadataCancelled, EditMetadataDialogClosed,
   EditMetadataSubmitted, EditMetadataVisibilitySelected, TitleDraftChanged,
 }
-import glot_frontend/public/editor/model.{type RealModel}
+import glot_frontend/public/editor/model.{type Editor}
 import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 
-pub fn view(model: RealModel) -> Element(Msg) {
+pub fn view(model: Editor) -> Element(MetadataMsg) {
   html.dialog(
     [
       attribute.id(ids.edit_metadata_dialog),
@@ -43,7 +43,7 @@ pub fn view(model: RealModel) -> Element(Msg) {
               attribute.id("editor-page-title-input"),
               attribute.name("title"),
               attribute.type_("text"),
-              attribute.value(model.title_draft),
+              attribute.value(model.metadata_draft.title),
               attribute.autofocus(True),
               attribute.class("editor-page__dialog-input"),
               event.on_input(TitleDraftChanged),
@@ -75,8 +75,8 @@ pub fn view(model: RealModel) -> Element(Msg) {
   )
 }
 
-fn visibility_section(model: RealModel) -> Element(Msg) {
-  case model.slug {
+fn visibility_section(model: Editor) -> Element(MetadataMsg) {
+  case model.snippet.slug {
     option.None -> html.div([], [])
     option.Some(_) ->
       html.div([attribute.class("editor-page__dialog-section")], [
@@ -94,21 +94,21 @@ fn visibility_section(model: RealModel) -> Element(Msg) {
               "Public",
               "Visible to everyone.",
               snippet_model.Public,
-              model.save_visibility_draft,
+              model.metadata_draft.visibility,
               EditMetadataVisibilitySelected,
             ),
             dialog_controls.visibility_option(
               "Unlisted",
               "Available through the link only.",
               snippet_model.Unlisted,
-              model.save_visibility_draft,
+              model.metadata_draft.visibility,
               EditMetadataVisibilitySelected,
             ),
             dialog_controls.visibility_option(
               "Secret",
               "Visible only to you.",
               snippet_model.Secret,
-              model.save_visibility_draft,
+              model.metadata_draft.visibility,
               EditMetadataVisibilitySelected,
             ),
           ],

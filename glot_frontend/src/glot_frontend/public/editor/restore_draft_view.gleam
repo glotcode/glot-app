@@ -4,23 +4,30 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_core/helpers/timestamp_helpers
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
-  type Msg, RestoreDraftAccepted, RestoreDraftClosed, RestoreDraftDeclined,
+  type RestoreDraftMsg, RestoreDraftAccepted, RestoreDraftClosed,
+  RestoreDraftDeclined,
 }
-import glot_frontend/public/editor/model.{type RealModel}
+import glot_frontend/public/editor/model.{
+  type Editor, NoRestoreDraft, RestoreDraftPending,
+}
 import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 
-pub fn view(model: RealModel, now: Timestamp) -> Element(Msg) {
-  let children = case model.pending_restore_draft {
-    option.Some(draft) -> [
+pub fn view(model: Editor, now: Timestamp) -> Element(RestoreDraftMsg) {
+  let children = case model.restore_draft {
+    RestoreDraftPending(draft) -> [
       html.div([attribute.class("editor-page__dialog-form")], [
         html.h2([attribute.class("editor-page__dialog-label")], [
           html.text("Restore draft"),
         ]),
         html.p([attribute.class("editor-page__dialog-copy")], [
-          html.text(restore_draft_copy(model.slug, draft.saved_at_ms, now)),
+          html.text(restore_draft_copy(
+            model.snippet.slug,
+            draft.saved_at_ms,
+            now,
+          )),
         ]),
         html.div([attribute.class("editor-page__dialog-actions")], [
           html.button(
@@ -45,7 +52,7 @@ pub fn view(model: RealModel, now: Timestamp) -> Element(Msg) {
       ]),
     ]
 
-    option.None -> []
+    NoRestoreDraft -> []
   }
 
   html.dialog(

@@ -7,7 +7,6 @@ import glot_core/run
 import glot_frontend/api/response
 import glot_frontend/public/editor/execution
 import glot_frontend/public/editor/message
-import glot_frontend/public/editor/model
 import glot_frontend/public/editor/view
 import lustre/element
 import rsvp
@@ -20,8 +19,8 @@ pub fn runtime_failure_result_is_rendered_as_run_failure_test() {
     |> editor_scenario.respond_to_run(editor_fixture.failed_run(
       "Compilation failed on line 1.",
     ))
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  let assert execution.Completed(Error(failure)) = editor.run_state
+  let editor = editor_scenario.editor(scenario)
+  let assert execution.Completed(Error(failure)) = editor.operations.run_state
   assert failure.message == "Compilation failed on line 1."
   let rendered = render(scenario)
   assert string.contains(rendered, "RUN FAILED")
@@ -82,8 +81,8 @@ pub fn http_run_failure_is_visible_and_leaves_no_pending_work_test() {
   let scenario =
     running_scenario()
     |> editor_scenario.respond_to_run(response.HttpFailure(rsvp.BadBody))
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  let assert execution.RequestError(message) = editor.run_state
+  let editor = editor_scenario.editor(scenario)
+  let assert execution.RequestError(message) = editor.operations.run_state
   assert string.contains(message, "Could not complete")
   assert string.contains(render(scenario), "RUN FAILED")
   editor_scenario.assert_no_pending_effects(scenario)
@@ -91,8 +90,8 @@ pub fn http_run_failure_is_visible_and_leaves_no_pending_work_test() {
 
 pub fn running_state_disables_run_button_and_renders_progress_test() {
   let scenario = running_scenario()
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.run_state == execution.Running
+  let editor = editor_scenario.editor(scenario)
+  assert editor.operations.run_state == execution.Running
   let rendered = render(scenario)
   assert string.contains(rendered, "disabled type=\"button\">Running...")
   assert string.contains(rendered, "Running snippet...")
@@ -101,22 +100,28 @@ pub fn running_state_disables_run_button_and_renders_progress_test() {
 pub fn run_request_uses_the_latest_editor_revision_content_test() {
   let scenario =
     new_scenario()
-    |> editor_scenario.dispatch(message.SourceCodeChanged("revision one", 1))
-    |> editor_scenario.dispatch(message.SourceCodeChanged("revision two", 2))
-    |> editor_scenario.dispatch(message.RunSubmitted)
+    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
+      "revision one",
+      1,
+    ))
+    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
+      "revision two",
+      2,
+    ))
+    |> editor_scenario.dispatch_execution(message.RunSubmitted)
   let assert [editor_scenario.RunCode(request, _)] =
     editor_scenario.pending(scenario)
   let assert [latest_file] = request.payload.files
   assert latest_file.content == "revision two"
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.editor_revision == 2
+  let editor = editor_scenario.editor(scenario)
+  assert editor.workspace.editor_revision == 2
 }
 
 pub fn stale_run_response_cannot_overwrite_a_newer_result_test() {
   let scenario =
     new_scenario()
-    |> editor_scenario.dispatch(message.RunSubmitted)
-    |> editor_scenario.dispatch(message.RunSubmitted)
+    |> editor_scenario.dispatch_execution(message.RunSubmitted)
+    |> editor_scenario.dispatch_execution(message.RunSubmitted)
     |> editor_scenario.respond_to_run_at(
       1,
       editor_fixture.successful_run(stdout: "new result", stderr: "", error: ""),
@@ -129,8 +134,8 @@ pub fn stale_run_response_cannot_overwrite_a_newer_result_test() {
         error: "",
       ),
     )
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  let assert execution.Completed(Ok(result)) = editor.run_state
+  let editor = editor_scenario.editor(scenario)
+  let assert execution.Completed(Ok(result)) = editor.operations.run_state
   assert result.stdout == "new result"
   assert string.contains(render(scenario), "new result")
   assert !string.contains(render(scenario), "stale result")
@@ -151,7 +156,7 @@ fn assert_streams(
 }
 
 fn running_scenario() {
-  new_scenario() |> editor_scenario.dispatch(message.RunSubmitted)
+  new_scenario() |> editor_scenario.dispatch_execution(message.RunSubmitted)
 }
 
 fn new_scenario() {

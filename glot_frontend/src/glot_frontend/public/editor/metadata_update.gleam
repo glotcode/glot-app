@@ -1,34 +1,50 @@
 import glot_frontend/public/editor/command
+import glot_frontend/public/editor/draft_projection
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
-  type Msg, EditMetadataCancelled, EditMetadataClicked, EditMetadataDialogClosed,
-  EditMetadataSubmitted, EditMetadataVisibilitySelected, TitleDraftChanged,
+  type MetadataMsg, EditMetadataCancelled, EditMetadataClicked,
+  EditMetadataDialogClosed, EditMetadataSubmitted,
+  EditMetadataVisibilitySelected, TitleDraftChanged,
 }
-import glot_frontend/public/editor/model.{type RealModel, RealModel}
-import youid/uuid.{type Uuid}
+import glot_frontend/public/editor/model.{
+  type Editor, Editor, MetadataDraft, Snippet,
+}
 
 pub fn update(
-  model: RealModel,
-  msg: Msg,
-  _current_user_id: option.Option(Uuid),
-) -> #(RealModel, command.Command(Msg)) {
+  model: Editor,
+  msg: MetadataMsg,
+) -> #(Editor, command.Command(MetadataMsg)) {
   case msg {
     EditMetadataClicked -> #(
-      RealModel(
+      Editor(
         ..model,
-        title_draft: model.title,
-        save_visibility_draft: model.visibility,
+        metadata_draft: MetadataDraft(
+          title: model.snippet.title,
+          visibility: model.snippet.visibility,
+        ),
       ),
       command.OpenDialog(ids.edit_metadata_dialog),
     )
 
     TitleDraftChanged(title_draft) -> #(
-      RealModel(..model, title_draft: title_draft),
+      Editor(
+        ..model,
+        metadata_draft: MetadataDraft(
+          ..model.metadata_draft,
+          title: title_draft,
+        ),
+      ),
       command.none(),
     )
 
     EditMetadataVisibilitySelected(visibility) -> #(
-      RealModel(..model, save_visibility_draft: visibility),
+      Editor(
+        ..model,
+        metadata_draft: MetadataDraft(
+          ..model.metadata_draft,
+          visibility: visibility,
+        ),
+      ),
       command.none(),
     )
 
@@ -39,16 +55,19 @@ pub fn update(
 
     EditMetadataSubmitted -> {
       let next_model =
-        RealModel(
+        Editor(
           ..model,
-          title: model.title_draft,
-          visibility: model.save_visibility_draft,
+          snippet: Snippet(
+            ..model.snippet,
+            title: model.metadata_draft.title,
+            visibility: model.metadata_draft.visibility,
+          ),
         )
       #(
         next_model,
         command.batch([
           command.CloseDialog(ids.edit_metadata_dialog),
-          command.SaveDraft(next_model),
+          command.SaveDraft(draft_projection.write(next_model)),
         ]),
       )
     }
@@ -57,7 +76,6 @@ pub fn update(
       reset_edit_metadata_draft(model),
       focus_editor(),
     )
-    _ -> #(model, command.none())
   }
 }
 
@@ -65,12 +83,12 @@ fn focus_editor() -> command.Command(msg) {
   command.Focus(ids.editor)
 }
 
-fn reset_edit_metadata_draft(model: RealModel) -> RealModel {
-  RealModel(
+fn reset_edit_metadata_draft(model: Editor) -> Editor {
+  Editor(
     ..model,
-    title_draft: model.title,
-    save_visibility_draft: model.visibility,
+    metadata_draft: MetadataDraft(
+      title: model.snippet.title,
+      visibility: model.snippet.visibility,
+    ),
   )
 }
-
-import gleam/option

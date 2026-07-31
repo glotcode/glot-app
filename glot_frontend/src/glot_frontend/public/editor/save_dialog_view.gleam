@@ -5,10 +5,10 @@ import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/dialog_controls
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
-  type Msg, SaveCancelled, SaveConfirmed, SaveDialogClosed,
+  type SaveMsg, SaveCancelled, SaveConfirmed, SaveDialogClosed,
   SaveVisibilityDraftSelected,
 }
-import glot_frontend/public/editor/model.{type RealModel}
+import glot_frontend/public/editor/model.{type Editor}
 import glot_frontend/public/editor/policy
 import glot_web/route as web_route
 import lustre/attribute
@@ -18,9 +18,9 @@ import lustre/event
 import youid/uuid.{type Uuid}
 
 pub fn view(
-  model: RealModel,
+  model: Editor,
   current_user_id: option.Option(Uuid),
-) -> Element(Msg) {
+) -> Element(SaveMsg) {
   let children = case current_user_id {
     option.None -> [
       html.div(
@@ -52,9 +52,9 @@ pub fn view(
 }
 
 fn save_dialog_children(
-  model: RealModel,
+  model: Editor,
   current_user_id: option.Option(Uuid),
-) -> List(Element(Msg)) {
+) -> List(Element(SaveMsg)) {
   case current_user_id {
     option.None -> [
       html.h2([attribute.class("editor-page__dialog-label")], [
@@ -102,21 +102,21 @@ fn save_dialog_children(
                 "Public",
                 "Visible to everyone.",
                 snippet_model.Public,
-                model.save_visibility_draft,
+                model.save_draft.visibility,
                 SaveVisibilityDraftSelected,
               ),
               dialog_controls.visibility_option(
                 "Unlisted",
                 "Available through the link only.",
                 snippet_model.Unlisted,
-                model.save_visibility_draft,
+                model.save_draft.visibility,
                 SaveVisibilityDraftSelected,
               ),
               dialog_controls.visibility_option(
                 "Secret",
                 "Visible only to you.",
                 snippet_model.Secret,
-                model.save_visibility_draft,
+                model.save_draft.visibility,
                 SaveVisibilityDraftSelected,
               ),
             ],

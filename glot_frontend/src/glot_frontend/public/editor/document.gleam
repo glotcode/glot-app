@@ -32,3 +32,18 @@ pub fn default_file_name(
     StdinTab -> ""
   }
 }
+
+pub fn selected_content(
+  files_list: List(snippet_model.File),
+  stdin: option.Option(String),
+  tab: EditorTab,
+) -> String {
+  case tab {
+    FileTab(index) -> files.content_at(files_list, index)
+    StdinTab ->
+      case stdin {
+        option.Some(content) -> content
+        option.None -> ""
+      }
+  }
+}

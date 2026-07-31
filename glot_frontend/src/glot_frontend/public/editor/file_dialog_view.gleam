@@ -1,22 +1,22 @@
 import gleam/dynamic/decode
 import gleam/list
 import glot_frontend/public/editor/dialog_controls
+import glot_frontend/public/editor/file_policy
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
-  type Msg, AddEntryCancelled, AddEntryDialogClosed, AddEntryFilenameChanged,
+  type FileMsg, AddEntryCancelled, AddEntryDialogClosed, AddEntryFilenameChanged,
   AddEntrySubmitted, EditEntryCancelled, EditEntryDeleted, EditEntryDialogClosed,
   EditEntryFilenameChanged, EditEntrySubmitted,
 }
 import glot_frontend/public/editor/model.{
-  type RealModel, AddFileEntry, AddStdinEntry, FileTab, StdinTab,
+  type Editor, AddFileEntry, AddStdinEntry, FileTab, StdinTab,
 }
-import glot_frontend/public/editor/workspace_view
 import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 
-pub fn add_dialog(model: RealModel) -> Element(Msg) {
+pub fn add_dialog(model: Editor) -> Element(FileMsg) {
   html.dialog(
     [
       attribute.id(ids.add_entry_dialog),
@@ -40,12 +40,12 @@ pub fn add_dialog(model: RealModel) -> Element(Msg) {
             [
               dialog_controls.entry_kind_toggle(
                 "File",
-                model.add_entry_kind == AddFileEntry,
+                model.entry_drafts.add.kind == AddFileEntry,
                 AddFileEntry,
               ),
               dialog_controls.entry_kind_toggle(
                 "stdin",
-                model.add_entry_kind == AddStdinEntry,
+                model.entry_drafts.add.kind == AddStdinEntry,
                 AddStdinEntry,
               ),
             ],
@@ -66,7 +66,7 @@ pub fn add_dialog(model: RealModel) -> Element(Msg) {
               [
                 attribute.type_("submit"),
                 attribute.class("editor-page__dialog-button"),
-                attribute.disabled(!workspace_view.can_submit_add_entry(model)),
+                attribute.disabled(!file_policy.can_submit_add_entry(model)),
               ],
               [html.text("Add")],
             ),
@@ -77,7 +77,7 @@ pub fn add_dialog(model: RealModel) -> Element(Msg) {
   )
 }
 
-pub fn edit_dialog(model: RealModel) -> Element(Msg) {
+pub fn edit_dialog(model: Editor) -> Element(FileMsg) {
   html.dialog(
     [
       attribute.id(ids.edit_entry_dialog),
@@ -97,8 +97,8 @@ pub fn edit_dialog(model: RealModel) -> Element(Msg) {
   )
 }
 
-fn edit_entry_dialog_children(model: RealModel) -> List(Element(Msg)) {
-  case model.selected_tab {
+fn edit_entry_dialog_children(model: Editor) -> List(Element(FileMsg)) {
+  case model.workspace.selected_tab {
     FileTab(_) -> [
       html.label(
         [
@@ -112,7 +112,7 @@ fn edit_entry_dialog_children(model: RealModel) -> List(Element(Msg)) {
         attribute.name("filename"),
         attribute.type_("text"),
         attribute.maxlength(30),
-        attribute.value(model.edit_entry_filename),
+        attribute.value(model.entry_drafts.edit.filename),
         attribute.autofocus(True),
         attribute.class("editor-page__dialog-input"),
         event.on_input(EditEntryFilenameChanged),
@@ -153,8 +153,8 @@ fn edit_entry_dialog_children(model: RealModel) -> List(Element(Msg)) {
   }
 }
 
-fn file_edit_actions(model: RealModel) -> List(Element(Msg)) {
-  let delete_button = case workspace_view.can_delete_selected_file(model) {
+fn file_edit_actions(model: Editor) -> List(Element(FileMsg)) {
+  let delete_button = case file_policy.can_delete_selected_file(model) {
     True -> [
       html.button(
         [
@@ -186,15 +186,15 @@ fn file_edit_actions(model: RealModel) -> List(Element(Msg)) {
       [
         attribute.type_("submit"),
         attribute.class("editor-page__dialog-button"),
-        attribute.disabled(!workspace_view.can_submit_edit_entry(model)),
+        attribute.disabled(!file_policy.can_submit_edit_entry(model)),
       ],
       [html.text("Save")],
     ),
   ])
 }
 
-fn add_entry_fields_view(model: RealModel) -> Element(Msg) {
-  case model.add_entry_kind {
+fn add_entry_fields_view(model: Editor) -> Element(FileMsg) {
+  case model.entry_drafts.add.kind {
     AddFileEntry ->
       html.div([attribute.class("editor-page__dialog-panel")], [
         html.label(
@@ -209,7 +209,7 @@ fn add_entry_fields_view(model: RealModel) -> Element(Msg) {
           attribute.name("filename"),
           attribute.type_("text"),
           attribute.maxlength(30),
-          attribute.value(model.add_entry_filename),
+          attribute.value(model.entry_drafts.add.filename),
           attribute.autofocus(True),
           attribute.class("editor-page__dialog-input"),
           event.on_input(AddEntryFilenameChanged),
@@ -219,7 +219,7 @@ fn add_entry_fields_view(model: RealModel) -> Element(Msg) {
     AddStdinEntry ->
       html.div([attribute.class("editor-page__dialog-panel")], [
         html.p([attribute.class("editor-page__dialog-copy")], [
-          html.text(workspace_view.add_stdin_message(model.stdin)),
+          html.text(file_policy.add_stdin_message(model.snippet.stdin)),
         ]),
       ])
   }

@@ -7,6 +7,7 @@ import glot_frontend/app/public_page_command
 import glot_frontend/app/public_page_message
 import glot_frontend/app/public_page_state
 import glot_frontend/app/public_root_managed
+import glot_frontend/public/editor/lifecycle as editor_lifecycle
 import glot_frontend/public/editor/message as editor_message
 import glot_frontend/public/editor/model as editor_model
 import glot_frontend/public/editor/settings as editor_settings
@@ -120,15 +121,17 @@ pub fn editor_metadata_is_applied_when_the_resulting_state_changes_it_test() {
     public_root_managed.update(
       initial,
       public_root_managed.PageMsg(
-        public_page_message.EditorPageMsg(editor_message.EnvironmentLoaded(
-          editor_model.NewEditor("javascript"),
-          "",
-          editor_settings.defaults(),
-        )),
+        public_page_message.EditorPageMsg(
+          editor_message.Lifecycle(editor_message.EnvironmentLoaded(
+            editor_lifecycle.NewEditor("javascript"),
+            "",
+            editor_settings.defaults(),
+          )),
+        ),
       ),
     )
 
-  let assert public_page_state.Editor(editor_model.SupportedLanguage(_)) =
+  let assert public_page_state.Editor(editor_model.Ready(_)) =
     loaded.lifecycle.page_model
   let assert public_root_managed.Batch([
     public_root_managed.RunPage(public_page_command.Editor(_)),

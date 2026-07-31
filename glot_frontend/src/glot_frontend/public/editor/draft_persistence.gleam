@@ -2,9 +2,13 @@ import gleam/json
 import gleam/option
 import glot_frontend/public/editor/draft
 
-pub type Key {
+pub type Target {
   NewSnippet(language_slug: String)
   ExistingSnippet(slug: String)
+}
+
+pub type Write {
+  Write(target: Target, value: draft.EditorDraft)
 }
 
 pub type ReadDecision {
@@ -13,8 +17,8 @@ pub type ReadDecision {
   RemoveStoredDraft
 }
 
-pub fn storage_key(key: Key) -> String {
-  case key {
+pub fn storage_key(target: Target) -> String {
+  case target {
     NewSnippet(language_slug) -> "glot.editor.draft.new." <> language_slug
     ExistingSnippet(slug) -> "glot.editor.draft.snippet." <> slug
   }

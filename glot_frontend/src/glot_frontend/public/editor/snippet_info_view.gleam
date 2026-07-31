@@ -9,9 +9,9 @@ import glot_core/route
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
-  type Msg, SnippetInfoClosed, SnippetInfoDismissed,
+  type SnippetInfoMsg, SnippetInfoClosed, SnippetInfoDismissed,
 }
-import glot_frontend/public/editor/model.{type RealModel}
+import glot_frontend/public/editor/model.{type Editor}
 import glot_web/page/editor_layout
 import lustre/attribute
 import lustre/element.{type Element}
@@ -19,7 +19,7 @@ import lustre/element/html
 import lustre/event
 import youid/uuid
 
-pub fn dialog(model: RealModel) -> Element(Msg) {
+pub fn dialog(model: Editor) -> Element(SnippetInfoMsg) {
   html.dialog(
     [
       attribute.id(ids.snippet_info_dialog),
@@ -31,12 +31,12 @@ pub fn dialog(model: RealModel) -> Element(Msg) {
   )
 }
 
-fn children(model: RealModel) -> List(Element(Msg)) {
+fn children(model: Editor) -> List(Element(SnippetInfoMsg)) {
   let common_rows = [
-    info_row("Title", model.title),
-    info_row("Language", language.name(model.language)),
+    info_row("Title", model.snippet.title),
+    info_row("Language", language.name(model.snippet.language)),
   ]
-  case model.slug {
+  case model.snippet.slug {
     option.Some(_) -> [
       editor_layout.dialog_form([
         editor_layout.dialog_info_heading(),
@@ -45,12 +45,18 @@ fn children(model: RealModel) -> List(Element(Msg)) {
             info_row("Author", owner_label(model)),
             info_row(
               "Visibility",
-              snippet_model.visibility_to_string(model.visibility)
+              snippet_model.visibility_to_string(model.snippet.visibility)
                 |> string.uppercase,
             ),
             info_row("URL", snippet_url(model)),
-            info_row("Created", optional_timestamp_label(model.created_at)),
-            info_row("Updated", optional_timestamp_label(model.updated_at)),
+            info_row(
+              "Created",
+              optional_timestamp_label(model.snippet.created_at),
+            ),
+            info_row(
+              "Updated",
+              optional_timestamp_label(model.snippet.updated_at),
+            ),
           ]),
         ),
         close_actions(),
@@ -69,7 +75,7 @@ fn children(model: RealModel) -> List(Element(Msg)) {
   }
 }
 
-fn close_actions() -> Element(Msg) {
+fn close_actions() -> Element(SnippetInfoMsg) {
   editor_layout.dialog_actions([
     html.button(
       [
@@ -84,23 +90,23 @@ fn close_actions() -> Element(Msg) {
   ])
 }
 
-fn info_row(label: String, value: String) -> Element(Msg) {
+fn info_row(label: String, value: String) -> Element(msg) {
   editor_layout.dialog_info_row(label, value)
 }
 
-fn snippet_url(model: RealModel) -> String {
-  case model.slug {
+fn snippet_url(model: Editor) -> String {
+  case model.snippet.slug {
     option.Some(slug) ->
       "https://glot.io" <> route.to_string(route.Public(route.Snippet(slug)))
     option.None -> ""
   }
 }
 
-fn owner_label(model: RealModel) -> String {
-  case model.owner_username {
+fn owner_label(model: Editor) -> String {
+  case model.snippet.owner_username {
     option.Some(username) -> username
     option.None ->
-      model.owner_user_id
+      model.snippet.owner_user_id
       |> option.map(uuid.to_string)
       |> option.unwrap("Unknown")
   }

@@ -6,9 +6,11 @@ import glot_core/run
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/files as editor_files
-import glot_frontend/public/editor/message.{type Msg, VersionRunFinished}
+import glot_frontend/public/editor/message.{
+  type ExecutionMsg, VersionRunFinished,
+}
 import glot_frontend/public/editor/model.{
-  type RealModel, type RunInstructionsDraft, type RunInstructionsMode,
+  type Editor, type RunInstructionsDraft, type RunInstructionsMode,
   CustomRunInstructions, DefaultRunInstructions, RunInstructionsDraft,
 }
 
@@ -24,8 +26,14 @@ pub fn run_instructions_to_draft(
   )
 }
 
-pub fn run_instructions_mode(model: RealModel) -> RunInstructionsMode {
-  case model.run_instructions_override {
+pub fn run_instructions_mode(model: Editor) -> RunInstructionsMode {
+  run_instructions_mode_from_override(model.snippet.run_instructions_override)
+}
+
+pub fn run_instructions_mode_from_override(
+  override: option.Option(language.RunInstructions),
+) -> RunInstructionsMode {
+  case override {
     option.Some(_) -> CustomRunInstructions
     option.None -> DefaultRunInstructions
   }
@@ -35,6 +43,13 @@ pub fn run_instructions_mode_from_string(value: String) -> RunInstructionsMode {
   case value {
     "custom" -> CustomRunInstructions
     _ -> DefaultRunInstructions
+  }
+}
+
+pub fn run_instructions_mode_to_string(mode: RunInstructionsMode) -> String {
+  case mode {
+    DefaultRunInstructions -> "default"
+    CustomRunInstructions -> "custom"
   }
 }
 
@@ -64,26 +79,29 @@ pub fn default_run_instructions(
   language.run_instructions(lang, main_file, other_files)
 }
 
-pub fn effective_run_instructions(
-  model: RealModel,
-) -> language.RunInstructions {
-  case model.run_instructions_override {
+pub fn effective_run_instructions(model: Editor) -> language.RunInstructions {
+  case model.snippet.run_instructions_override {
     option.Some(run_instructions) -> run_instructions
-    option.None -> default_run_instructions(model.language, model.files)
+    option.None ->
+      default_run_instructions(model.snippet.language, model.snippet.files)
   }
 }
 
 pub fn run_instructions_override_from_draft(
-  model: RealModel,
+  model: Editor,
 ) -> option.Option(language.RunInstructions) {
-  case model.run_instructions_mode_draft {
+  case model.settings_draft.run_instructions_mode {
     DefaultRunInstructions -> option.None
     CustomRunInstructions ->
-      option.Some(run_instructions_from_draft(model.run_instructions_draft))
+      option.Some(run_instructions_from_draft(
+        model.settings_draft.run_instructions,
+      ))
   }
 }
 
-pub fn version_run_command(lang: language.Language) -> command.Command(Msg) {
+pub fn version_run_command(
+  lang: language.Language,
+) -> command.Command(ExecutionMsg) {
   command.GetLanguageVersion(
     run.GetLanguageVersionRequest(language: lang),
     fn(result) { VersionRunFinished(lang, result) },

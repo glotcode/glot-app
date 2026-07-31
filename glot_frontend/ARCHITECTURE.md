@@ -103,14 +103,57 @@ Admin reusable controls are imported directly from the focused `layout`,
 aggregate UI facade: ownership and dependency intent stay explicit at every
 call site.
 
-The editor reducer delegates cohesive state transitions to `draft_update`,
-`metadata_update`, `file_update`, `settings_update`, `save_update`, and
-`execution_update`. Presentation is similarly split: `workspace_view` owns
-tabs and editor-workspace rules; metadata, file, settings, save, restore-draft,
-and snippet-information dialogs each own their presentation module; and
-`dialog_controls` owns reusable choices. The root update and view modules
-remain exhaustive dispatchers, making every new message visibly assigned to a
-workflow.
+The editor reducer delegates cohesive state transitions to
+`restore_draft_update`, `metadata_update`, `file_update`, `settings_update`,
+`save_update`, `snippet_info_update`, and `execution_update`. Presentation is
+similarly split: `tab_navigation_view` emits only execution messages,
+`workspace_toolbar_view` composes and maps tab, file, and settings controls,
+and each metadata, file, settings, save, restore-draft, and
+snippet-information dialog owns its presentation module. `dialog_controls`
+owns reusable choices. The root update and view modules remain exhaustive
+dispatchers, making every new message visibly assigned to a workflow. The root
+`Msg` algebra separates `LifecycleMsg` from `EditorMsg`; `EditorMsg` then wraps
+the focused restore-draft, metadata, file, settings, save, snippet-information,
+and execution message types. The ready editor reducer and view accept only
+`EditorMsg`, so lifecycle messages cannot cross into workflow code. Each
+workflow reducer accepts only its own message type and is exhaustive over that
+type. Workflow commands are lifted first into `EditorMsg` and then into the
+page-wide algebra with `command.map`, so asynchronous callbacks retain the same
+ownership boundary.
+
+The page model separates `Lifecycle(lifecycle.Model)` from `Ready(Editor)`.
+`lifecycle.Model` owns initialization, loading, unsupported-language, and load
+error states, while `lifecycle.Target` identifies new and existing editor
+routes. `model.Editor` composes focused
+`Snippet`, `Workspace`, `EntryDrafts`, `MetadataDraft`, `SaveDraft`,
+`SettingsDraft`, and `Operations` records instead of exposing one flat bag of
+fields. `Workspace` contains only document navigation and revision state;
+`EntryDrafts` owns independent add-entry and edit-entry drafts. Tab navigation
+cannot mutate those dialog drafts, and `entry_drafts` centralizes their
+initialization after loading or restoring content. Save-dialog
+choices and metadata-editing choices have independent drafts, so cancelling
+one workflow cannot reset the other. Reducers update the owning submodel
+explicitly, and persistence, metadata, and views read from the same
+domain-oriented structure. The pure `ready` module is the single constructor
+for new and existing loaded editors, keeping initial workspace, draft, and
+operation invariants consistent across SSR and API initialization paths. SSR
+and API loading also share the same existing-editor transition, including
+version loading and draft restoration commands, through
+`existing_editor_transition`.
+
+`lifecycle_resolution` purely decodes and reconciles SSR data with the current
+route, producing a typed plan to start a new editor, start from existing SSR,
+fetch an existing snippet, or show a terminal lifecycle state. Stale existing
+SSR for another slug is never accepted. `lifecycle_update` executes that plan
+and exclusively owns environment loading, snippet loading, delayed-loading
+visibility, and transitions into `Ready`. It accepts only `lifecycle.Model`,
+so a ready editor cannot enter lifecycle transition code. Existing SSR and API
+responses share validation and normalization through
+`existing_editor_transition`. `lifecycle_view` owns all non-ready
+presentation. The pure `editor/managed` boundary exhaustively routes the two
+page-state variants against lifecycle and editor messages. Both the production
+page and application-level managed routing reuse this boundary instead of
+duplicating lifecycle dispatch.
 
 Large admin detail pages keep data transformations and validation in focused
 pure policy modules, such as `jobs/create_job_policy`,
@@ -191,11 +234,15 @@ app -> features -> api / ui / platform -> glot_web -> glot_core
   `draft` and `settings` are pure, while `draft_store` and `settings_store`
   own browser persistence.
 - Editor draft persistence is split further by responsibility:
-  `draft_persistence` owns stable keys, serialization, corruption detection,
-  and expiration decisions; `draft_repository` executes those decisions
-  against injected synchronous storage functions; and `draft_store` only
-  assembles the production clock and local-storage implementations. Tests use
-  repository functions directly and never invoke browser FFI.
+  `draft_projection` projects loaded editor state into a focused persistence
+  target and write value; `draft_persistence` owns those target/write types,
+  stable keys, serialization, corruption detection, and expiration decisions;
+  `draft_repository` executes those decisions against injected synchronous
+  storage functions; and `draft_store` only assembles the production clock and
+  local-storage implementations. The command algebra exposes one `LoadDraft`,
+  `SaveDraft(Write)`, and `ClearDraft(Target)` interface, so loaded editor UI
+  state never crosses the effect boundary. Tests use repository functions
+  directly and never invoke browser FFI.
 - Use `Loadable(a)` for asynchronous reads and `MutationState` for writes.
 - A child owns request validation and maps successful responses back into its
   saved and draft state.
@@ -274,7 +321,7 @@ mutation scenarios are split across `test/admin/jobs`, `periodic_jobs`,
 workflow being exercised.
 
 The editor is treated as a critical workflow. Its integration coverage is
-split by initialization and draft recovery, editing and settings, execution,
+split by lifecycle and draft recovery, editing and settings, execution,
 and saving. Each scenario asserts typed request payloads, reducer state,
 observable browser commands, rendered user feedback, and pending-effect
 exhaustion where the workflow is complete. Editor markup is also audited across

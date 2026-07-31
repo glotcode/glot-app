@@ -12,7 +12,7 @@ pub type Storage {
 }
 
 pub fn load(
-  key: draft_persistence.Key,
+  key: draft_persistence.Target,
   using storage: Storage,
 ) -> option.Option(draft.StoredEditorDraft) {
   let storage_key = draft_persistence.storage_key(key)
@@ -32,7 +32,7 @@ pub fn load(
 }
 
 pub fn save(
-  key: draft_persistence.Key,
+  key: draft_persistence.Target,
   value: draft.EditorDraft,
   using storage: Storage,
 ) -> Bool {
@@ -42,6 +42,6 @@ pub fn save(
   )
 }
 
-pub fn clear(key: draft_persistence.Key, using storage: Storage) -> Bool {
+pub fn clear(key: draft_persistence.Target, using storage: Storage) -> Bool {
   storage.remove(draft_persistence.storage_key(key))
 }

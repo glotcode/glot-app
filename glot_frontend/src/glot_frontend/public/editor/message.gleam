@@ -6,23 +6,49 @@ import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response as api_response
 import glot_frontend/public/editor/draft
-import glot_frontend/public/editor/model.{
-  type AddEntryKind, type EditorTab, type InitTarget,
-}
+import glot_frontend/public/editor/lifecycle.{type Target}
+import glot_frontend/public/editor/model.{type AddEntryKind, type EditorTab}
 import glot_frontend/public/editor/settings
 
 pub type Msg {
-  EnvironmentLoaded(InitTarget, String, settings.EditorSettings)
-  NewDraftLoaded(String, option.Option(draft.StoredEditorDraft))
+  Lifecycle(LifecycleMsg)
+  Editor(EditorMsg)
+}
+
+pub type EditorMsg {
+  RestoreDraft(RestoreDraftMsg)
+  Metadata(MetadataMsg)
+  File(FileMsg)
+  Settings(SettingsMsg)
+  Save(SaveMsg)
+  SnippetInfo(SnippetInfoMsg)
+  Execution(ExecutionMsg)
+}
+
+pub type LifecycleMsg {
+  EnvironmentLoaded(Target, String, settings.EditorSettings)
   SnippetLoaded(String, api_response.Response(snippet_dto.SnippetResponse))
   SnippetLoadingDelayElapsed(String, Int)
+}
+
+pub type RestoreDraftMsg {
+  NewDraftLoaded(String, option.Option(draft.StoredEditorDraft))
   ExistingDraftLoaded(String, Timestamp, option.Option(draft.StoredEditorDraft))
+  RestoreDraftAccepted
+  RestoreDraftDeclined
+  RestoreDraftClosed
+}
+
+pub type MetadataMsg {
   EditMetadataClicked
   TitleDraftChanged(String)
   EditMetadataVisibilitySelected(snippet_model.Visibility)
   EditMetadataCancelled
   EditMetadataSubmitted
   EditMetadataDialogClosed
+}
+
+pub type FileMsg {
   AddEntryClicked
   AddEntryKindSelected(AddEntryKind)
   AddEntryFilenameChanged(String)
@@ -35,6 +61,9 @@ pub type Msg {
   EditEntrySubmitted
   EditEntryDeleted
   EditEntryDialogClosed
+}
+
+pub type SettingsMsg {
   SettingsClicked
   KeyboardBindingsDraftSelected(settings.KeyboardBindings)
   RunInstructionsModeDraftChanged(String)
@@ -43,22 +72,28 @@ pub type Msg {
   SettingsCancelled
   SettingsSubmitted
   SettingsDialogClosed
+}
+
+pub type SaveMsg {
   SaveClicked
   SaveVisibilityDraftSelected(snippet_model.Visibility)
   SaveCancelled
   SaveConfirmed
   SaveDialogClosed
-  RestoreDraftAccepted
-  RestoreDraftDeclined
-  RestoreDraftClosed
+  SaveFinished(Int, api_response.Response(snippet_dto.SnippetResponse))
+}
+
+pub type SnippetInfoMsg {
   SnippetInfoClicked
   SnippetInfoDismissed
   SnippetInfoClosed
+}
+
+pub type ExecutionMsg {
   TabSelected(EditorTab)
   TabKeyPressed(EditorTab, String)
   SourceCodeChanged(String, Int)
   RunSubmitted
   RunFinished(Int, api_response.Response(run.RunResult))
   VersionRunFinished(language.Language, api_response.Response(run.RunResult))
-  SaveFinished(Int, api_response.Response(snippet_dto.SnippetResponse))
 }

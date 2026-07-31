@@ -27,17 +27,35 @@ pub fn routes_owned_by_the_other_application_initialize_empty_test() {
 pub fn editor_metadata_changes_follow_committed_state_not_message_names_test() {
   let initial = existing_editor()
   let draft_changed =
-    update_editor(initial, editor_message.TitleDraftChanged("Renamed"))
+    update_editor(
+      initial,
+      editor_message.Editor(
+        editor_message.Metadata(editor_message.TitleDraftChanged("Renamed")),
+      ),
+    )
 
   assert !draft_changed.metadata_changed
 
   let submitted =
-    update_editor(draft_changed.model, editor_message.EditMetadataSubmitted)
+    update_editor(
+      draft_changed.model,
+      editor_message.Editor(editor_message.Metadata(
+        editor_message.EditMetadataSubmitted,
+      )),
+    )
 
   assert submitted.metadata_changed
 
   let source_changed =
-    update_editor(initial, editor_message.SourceCodeChanged("new source", 1))
+    update_editor(
+      initial,
+      editor_message.Editor(
+        editor_message.Execution(editor_message.SourceCodeChanged(
+          "new source",
+          1,
+        )),
+      ),
+    )
 
   assert !source_changed.metadata_changed
 }
@@ -46,22 +64,35 @@ pub fn editor_metadata_detects_indirect_changes_to_the_projection_test() {
   let filename_changed =
     update_editor(
       existing_editor(),
-      editor_message.AddEntryFilenameChanged("second.js"),
+      editor_message.Editor(
+        editor_message.File(editor_message.AddEntryFilenameChanged("second.js")),
+      ),
     )
 
   assert !filename_changed.metadata_changed
 
   let file_added =
-    update_editor(filename_changed.model, editor_message.AddEntrySubmitted)
+    update_editor(
+      filename_changed.model,
+      editor_message.Editor(editor_message.File(
+        editor_message.AddEntrySubmitted,
+      )),
+    )
 
   assert file_added.metadata_changed
 }
 
 fn existing_editor() -> public_page_state.Model {
-  let assert editor_model.SupportedLanguage(editor) =
+  let assert editor_model.Ready(editor) =
     editor_scenario.new_editor(language.JavaScript)
-  public_page_state.Editor(editor_model.SupportedLanguage(
-    editor_model.RealModel(..editor, slug: option.Some("metadata-fixture")),
+  public_page_state.Editor(editor_model.Ready(
+    editor_model.Editor(
+      ..editor,
+      snippet: editor_model.Snippet(
+        ..editor.snippet,
+        slug: option.Some("metadata-fixture"),
+      ),
+    ),
   ))
 }
 

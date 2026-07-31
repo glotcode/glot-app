@@ -12,8 +12,7 @@ pub fn run(
     command.Batch(commands) ->
       effect.batch(list.map(commands, fn(command) { run(command, ports) }))
     command.LoadEnvironment(complete) -> ports.load_environment(complete)
-    command.LoadNewDraft(language_slug, complete) ->
-      ports.load_new_draft(language_slug, complete)
+    command.LoadDraft(target, complete) -> ports.load_draft(target, complete)
     command.GetSnippet(request, complete) ->
       ports.get_snippet(request, complete)
     command.RunCode(request, complete) -> ports.run_code(request, complete)
@@ -23,11 +22,8 @@ pub fn run(
       ports.create_snippet(request, complete)
     command.UpdateSnippet(request, complete) ->
       ports.update_snippet(request, complete)
-    command.LoadExistingDraft(slug, complete) ->
-      ports.load_existing_draft(slug, complete)
-    command.SaveDraft(model) -> ports.save_draft(model)
-    command.ClearDraft(model) -> ports.clear_draft(model)
-    command.ClearExistingDraft(slug) -> ports.clear_existing_draft(slug)
+    command.SaveDraft(write) -> ports.save_draft(write)
+    command.ClearDraft(target) -> ports.clear_draft(target)
     command.SaveSettings(value) -> ports.save_settings(value)
     command.OpenDialog(id) -> ports.open_dialog(id)
     command.OpenDialogNextFrame(id) -> ports.open_dialog_next_frame(id)

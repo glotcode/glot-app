@@ -1,8 +1,8 @@
 import gleam/option
 import glot_core/route
+import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/model.{
-  type InitTarget, type Model, type RealModel, ExistingEditor, Initializing,
-  LoadError, LoadingSnippet, NewEditor, SupportedLanguage, UnsupportedLanguage,
+  type Editor, type Model, Lifecycle, Ready,
 }
 import glot_web/page/editor as editor_ssr
 import glot_web/page/seo
@@ -13,10 +13,17 @@ pub fn changed(before: Model, after: Model) -> Bool {
 
 pub fn metadata(model: Model) -> seo.Metadata {
   case model {
-    Initializing(target) -> initializing_metadata(target)
-    UnsupportedLanguage(language_slug) ->
+    Lifecycle(model) -> lifecycle_metadata(model)
+    Ready(model) -> editor_ssr.metadata(to_ssr_view_model(model))
+  }
+}
+
+fn lifecycle_metadata(model: lifecycle.Model) -> seo.Metadata {
+  case model {
+    lifecycle.Initializing(target) -> initializing_metadata(target)
+    lifecycle.UnsupportedLanguage(language_slug) ->
       editor_ssr.metadata(editor_ssr.UnsupportedLanguage(language_slug))
-    LoadingSnippet(slug, _, _) ->
+    lifecycle.LoadingSnippet(slug, _, _) ->
       seo.metadata(
         title: "Loading snippet | glot.io",
         description: "Loading a code snippet on glot.io.",
@@ -24,38 +31,39 @@ pub fn metadata(model: Model) -> seo.Metadata {
         index: False,
         open_graph_type: "website",
       )
-    LoadError(message) -> editor_ssr.metadata(editor_ssr.LoadError(message))
-    SupportedLanguage(model) -> editor_ssr.metadata(to_ssr_view_model(model))
+    lifecycle.LoadError(message) ->
+      editor_ssr.metadata(editor_ssr.LoadError(message))
   }
 }
 
-fn to_ssr_view_model(model: RealModel) -> editor_ssr.ViewModel {
+fn to_ssr_view_model(model: Editor) -> editor_ssr.ViewModel {
   let ssr_model =
     editor_ssr.EditorModel(
-      slug: model.slug,
-      owner_user_id: model.owner_user_id,
-      owner_username: model.owner_username,
-      title: model.title,
-      language: model.language,
-      visibility: option.Some(model.visibility),
-      created_at: model.created_at,
-      updated_at: model.updated_at,
-      run_instructions_override: model.run_instructions_override,
-      files: model.files,
-      stdin: model.stdin,
+      slug: model.snippet.slug,
+      owner_user_id: model.snippet.owner_user_id,
+      owner_username: model.snippet.owner_username,
+      title: model.snippet.title,
+      language: model.snippet.language,
+      visibility: option.Some(model.snippet.visibility),
+      created_at: model.snippet.created_at,
+      updated_at: model.snippet.updated_at,
+      run_instructions_override: model.snippet.run_instructions_override,
+      files: model.snippet.files,
+      stdin: model.snippet.stdin,
     )
 
-  case model.slug {
+  case model.snippet.slug {
     option.Some(_) -> editor_ssr.ExistingSnippet(ssr_model)
     option.None -> editor_ssr.NewSnippet(ssr_model)
   }
 }
 
-fn initializing_metadata(target: InitTarget) -> seo.Metadata {
+fn initializing_metadata(target: lifecycle.Target) -> seo.Metadata {
   let canonical_path = case target {
-    NewEditor(language) ->
+    lifecycle.NewEditor(language) ->
       route.to_string(route.Public(route.NewSnippet(language)))
-    ExistingEditor(slug) -> route.to_string(route.Public(route.Snippet(slug)))
+    lifecycle.ExistingEditor(slug) ->
+      route.to_string(route.Public(route.Snippet(slug)))
   }
   seo.metadata(
     title: "Loading editor | glot.io",

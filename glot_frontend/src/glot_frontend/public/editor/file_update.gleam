@@ -1,39 +1,54 @@
 import gleam/option
 import glot_frontend/public/editor/command
-import glot_frontend/public/editor/document
+import glot_frontend/public/editor/draft_projection
+import glot_frontend/public/editor/entry_drafts
 import glot_frontend/public/editor/file_workflow
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
-  type Msg, AddEntryCancelled, AddEntryClicked, AddEntryDialogClosed,
+  type FileMsg, AddEntryCancelled, AddEntryClicked, AddEntryDialogClosed,
   AddEntryFilenameChanged, AddEntryKindSelected, AddEntrySubmitted,
   EditEntryCancelled, EditEntryDeleted, EditEntryDialogClosed,
   EditEntryFilenameChanged, EditEntrySubmitted, SelectedTabActionClicked,
 }
-import glot_frontend/public/editor/model.{type RealModel, RealModel}
-import youid/uuid.{type Uuid}
+import glot_frontend/public/editor/model.{
+  type Editor, AddEntryDraft, EditEntryDraft, Editor, EntryDrafts,
+}
 
 pub fn update(
-  model: RealModel,
-  msg: Msg,
-  _current_user_id: option.Option(Uuid),
-) -> #(RealModel, command.Command(Msg)) {
+  model: Editor,
+  msg: FileMsg,
+) -> #(Editor, command.Command(FileMsg)) {
   case msg {
     AddEntryClicked -> #(
-      RealModel(
+      Editor(
         ..model,
-        add_entry_kind: document.default_add_entry_kind(model.stdin),
-        add_entry_filename: "",
+        entry_drafts: EntryDrafts(
+          ..model.entry_drafts,
+          add: entry_drafts.add(model.snippet.stdin),
+        ),
       ),
       command.OpenDialog(ids.add_entry_dialog),
     )
 
     AddEntryKindSelected(kind) -> #(
-      RealModel(..model, add_entry_kind: kind),
+      Editor(
+        ..model,
+        entry_drafts: EntryDrafts(
+          ..model.entry_drafts,
+          add: AddEntryDraft(..model.entry_drafts.add, kind: kind),
+        ),
+      ),
       command.none(),
     )
 
     AddEntryFilenameChanged(filename) -> #(
-      RealModel(..model, add_entry_filename: filename),
+      Editor(
+        ..model,
+        entry_drafts: EntryDrafts(
+          ..model.entry_drafts,
+          add: AddEntryDraft(..model.entry_drafts.add, filename: filename),
+        ),
+      ),
       command.none(),
     )
 
@@ -48,7 +63,7 @@ pub fn update(
           next_model,
           command.batch([
             command.CloseDialog(ids.add_entry_dialog),
-            command.SaveDraft(next_model),
+            command.SaveDraft(draft_projection.write(next_model)),
           ]),
         )
 
@@ -62,18 +77,27 @@ pub fn update(
     )
 
     SelectedTabActionClicked -> #(
-      RealModel(
+      Editor(
         ..model,
-        edit_entry_filename: document.default_file_name(
-          model.files,
-          model.selected_tab,
+        entry_drafts: EntryDrafts(
+          ..model.entry_drafts,
+          edit: entry_drafts.edit(
+            model.snippet.files,
+            model.workspace.selected_tab,
+          ),
         ),
       ),
       command.OpenDialog(ids.edit_entry_dialog),
     )
 
     EditEntryFilenameChanged(filename) -> #(
-      RealModel(..model, edit_entry_filename: filename),
+      Editor(
+        ..model,
+        entry_drafts: EntryDrafts(
+          ..model.entry_drafts,
+          edit: EditEntryDraft(filename: filename),
+        ),
+      ),
       command.none(),
     )
 
@@ -88,7 +112,7 @@ pub fn update(
           next_model,
           command.batch([
             command.CloseDialog(ids.edit_entry_dialog),
-            command.SaveDraft(next_model),
+            command.SaveDraft(draft_projection.write(next_model)),
           ]),
         )
 
@@ -102,7 +126,7 @@ pub fn update(
           next_model,
           command.batch([
             command.CloseDialog(ids.edit_entry_dialog),
-            command.SaveDraft(next_model),
+            command.SaveDraft(draft_projection.write(next_model)),
           ]),
         )
 
@@ -114,7 +138,6 @@ pub fn update(
       file_workflow.reset_edit_entry_draft(model),
       focus_editor(),
     )
-    _ -> #(model, command.none())
   }
 }
 

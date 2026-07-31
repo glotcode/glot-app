@@ -2,134 +2,172 @@ import gleam/list
 import gleam/option
 import gleam/string
 import glot_core/snippet/snippet_model
-import glot_frontend/public/editor/document
+import glot_frontend/public/editor/entry_drafts
 import glot_frontend/public/editor/files as editor_files
 import glot_frontend/public/editor/model.{
-  type RealModel, AddFileEntry, AddStdinEntry, FileTab, RealModel, StdinTab,
+  type Editor, AddFileEntry, AddStdinEntry, Editor, EntryDrafts, FileTab,
+  Snippet, StdinTab, Workspace,
 }
 
-pub fn reset_add_entry_draft(model: RealModel) -> RealModel {
-  RealModel(
+pub fn reset_add_entry_draft(model: Editor) -> Editor {
+  Editor(
     ..model,
-    add_entry_kind: document.default_add_entry_kind(model.stdin),
-    add_entry_filename: "",
-  )
-}
-
-pub fn reset_edit_entry_draft(model: RealModel) -> RealModel {
-  RealModel(
-    ..model,
-    edit_entry_filename: document.default_file_name(
-      model.files,
-      model.selected_tab,
+    entry_drafts: EntryDrafts(
+      ..model.entry_drafts,
+      add: entry_drafts.add(model.snippet.stdin),
     ),
   )
 }
 
-pub fn add_entry(model: RealModel) -> option.Option(RealModel) {
-  case model.add_entry_kind {
+pub fn reset_edit_entry_draft(model: Editor) -> Editor {
+  Editor(
+    ..model,
+    entry_drafts: EntryDrafts(
+      ..model.entry_drafts,
+      edit: entry_drafts.edit(model.snippet.files, model.workspace.selected_tab),
+    ),
+  )
+}
+
+pub fn add_entry(model: Editor) -> option.Option(Editor) {
+  case model.entry_drafts.add.kind {
     AddFileEntry -> add_file_entry(model)
     AddStdinEntry -> add_stdin_entry(model)
   }
 }
 
-pub fn add_file_entry(model: RealModel) -> option.Option(RealModel) {
-  let filename = string.trim(model.add_entry_filename)
+pub fn add_file_entry(model: Editor) -> option.Option(Editor) {
+  let filename = string.trim(model.entry_drafts.add.filename)
   case
     !editor_files.valid_name(filename)
-    || editor_files.name_exists(model.files, filename)
+    || editor_files.name_exists(model.snippet.files, filename)
   {
     True -> option.None
     False -> {
-      let next_index = list.length(model.files)
+      let next_index = list.length(model.snippet.files)
       let next_file = snippet_model.File(name: filename, content: "")
       option.Some(
-        RealModel(
+        Editor(
           ..model,
-          files: list.append(model.files, [next_file]),
-          selected_tab: FileTab(next_index),
-          add_entry_filename: "",
-          editor_external_revision: model.editor_external_revision + 1,
+          snippet: Snippet(
+            ..model.snippet,
+            files: list.append(model.snippet.files, [next_file]),
+          ),
+          workspace: Workspace(
+            ..model.workspace,
+            selected_tab: FileTab(next_index),
+            editor_external_revision: model.workspace.editor_external_revision
+              + 1,
+          ),
+          entry_drafts: EntryDrafts(
+            add: entry_drafts.add(model.snippet.stdin),
+            edit: entry_drafts.edit(
+              list.append(model.snippet.files, [next_file]),
+              FileTab(next_index),
+            ),
+          ),
         ),
       )
     }
   }
 }
 
-pub fn add_stdin_entry(model: RealModel) -> option.Option(RealModel) {
-  case model.stdin {
+pub fn add_stdin_entry(model: Editor) -> option.Option(Editor) {
+  case model.snippet.stdin {
     option.Some(_) -> option.None
     option.None ->
       option.Some(
-        RealModel(
+        Editor(
           ..model,
-          stdin: option.Some(""),
-          selected_tab: StdinTab,
-          add_entry_filename: "",
-          editor_external_revision: model.editor_external_revision + 1,
+          snippet: Snippet(..model.snippet, stdin: option.Some("")),
+          workspace: Workspace(
+            ..model.workspace,
+            selected_tab: StdinTab,
+            editor_external_revision: model.workspace.editor_external_revision
+              + 1,
+          ),
+          entry_drafts: EntryDrafts(
+            add: entry_drafts.add(option.Some("")),
+            edit: entry_drafts.edit(model.snippet.files, StdinTab),
+          ),
         ),
       )
   }
 }
 
-pub fn rename_selected_file(model: RealModel) -> option.Option(RealModel) {
-  case model.selected_tab {
+pub fn rename_selected_file(model: Editor) -> option.Option(Editor) {
+  case model.workspace.selected_tab {
     StdinTab -> option.None
     FileTab(index) -> {
-      let filename = string.trim(model.edit_entry_filename)
+      let filename = string.trim(model.entry_drafts.edit.filename)
       case
         !editor_files.valid_name(filename)
-        || editor_files.name_exists_except(model.files, filename, index)
+        || editor_files.name_exists_except(model.snippet.files, filename, index)
       {
         True -> option.None
-        False ->
+        False -> {
+          let files =
+            editor_files.rename_at(model.snippet.files, index, filename)
           option.Some(
-            RealModel(
+            Editor(
               ..model,
-              files: editor_files.rename_at(model.files, index, filename),
+              snippet: Snippet(..model.snippet, files: files),
+              entry_drafts: EntryDrafts(
+                ..model.entry_drafts,
+                edit: entry_drafts.edit(files, model.workspace.selected_tab),
+              ),
             ),
           )
+        }
       }
     }
   }
 }
 
-pub fn delete_selected_entry(model: RealModel) -> option.Option(RealModel) {
-  case model.selected_tab {
+pub fn delete_selected_entry(model: Editor) -> option.Option(Editor) {
+  case model.workspace.selected_tab {
     StdinTab ->
       option.Some(
-        RealModel(
+        Editor(
           ..model,
-          stdin: option.None,
-          selected_tab: FileTab(0),
-          edit_entry_filename: document.default_file_name(
-            model.files,
-            FileTab(0),
+          snippet: Snippet(..model.snippet, stdin: option.None),
+          workspace: Workspace(
+            ..model.workspace,
+            selected_tab: FileTab(0),
+            editor_external_revision: model.workspace.editor_external_revision
+              + 1,
           ),
-          editor_external_revision: model.editor_external_revision + 1,
+          entry_drafts: EntryDrafts(
+            add: entry_drafts.add(option.None),
+            edit: entry_drafts.edit(model.snippet.files, FileTab(0)),
+          ),
         ),
       )
 
     FileTab(index) ->
-      case list.length(model.files) > 1 {
+      case list.length(model.snippet.files) > 1 {
         False -> option.None
         True -> {
-          let next_files = editor_files.remove_at(model.files, index)
+          let next_files = editor_files.remove_at(model.snippet.files, index)
           let next_tab = case index >= list.length(next_files) {
             True -> FileTab(list.length(next_files) - 1)
             False -> FileTab(index)
           }
 
           option.Some(
-            RealModel(
+            Editor(
               ..model,
-              files: next_files,
-              selected_tab: next_tab,
-              edit_entry_filename: document.default_file_name(
-                next_files,
-                next_tab,
+              snippet: Snippet(..model.snippet, files: next_files),
+              workspace: Workspace(
+                ..model.workspace,
+                selected_tab: next_tab,
+                editor_external_revision: model.workspace.editor_external_revision
+                  + 1,
               ),
-              editor_external_revision: model.editor_external_revision + 1,
+              entry_drafts: EntryDrafts(
+                ..model.entry_drafts,
+                edit: entry_drafts.edit(next_files, next_tab),
+              ),
             ),
           )
         }
@@ -137,16 +175,24 @@ pub fn delete_selected_entry(model: RealModel) -> option.Option(RealModel) {
   }
 }
 
-pub fn update_selected_tab_content(
-  model: RealModel,
-  content: String,
-) -> RealModel {
-  case model.selected_tab {
+pub fn update_selected_tab_content(model: Editor, content: String) -> Editor {
+  case model.workspace.selected_tab {
     FileTab(index) ->
-      RealModel(
+      Editor(
         ..model,
-        files: editor_files.update_content_at(model.files, index, content),
+        snippet: Snippet(
+          ..model.snippet,
+          files: editor_files.update_content_at(
+            model.snippet.files,
+            index,
+            content,
+          ),
+        ),
       )
-    StdinTab -> RealModel(..model, stdin: option.Some(content))
+    StdinTab ->
+      Editor(
+        ..model,
+        snippet: Snippet(..model.snippet, stdin: option.Some(content)),
+      )
   }
 }

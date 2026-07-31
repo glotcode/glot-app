@@ -14,10 +14,9 @@ import glot_frontend/app/public_page_state.{
 }
 import glot_frontend/app/runtime
 import glot_frontend/public/contact/managed as contact_managed
-import glot_frontend/public/editor/initialization as editor_initialization
+import glot_frontend/public/editor/lifecycle as editor_lifecycle
+import glot_frontend/public/editor/managed as editor_managed
 import glot_frontend/public/editor/metadata as editor_metadata
-import glot_frontend/public/editor/model.{ExistingEditor, NewEditor}
-import glot_frontend/public/editor/update as editor_update
 import glot_frontend/public/home/managed as home_managed
 import glot_frontend/public/login/managed as login_managed
 import glot_frontend/public/snippets/managed as snippets_managed
@@ -62,11 +61,13 @@ fn init_public(
       #(Snippets(model), command.Snippets(next))
     }
     route.NewSnippet(language) -> {
-      let #(model, next) = editor_initialization.start(NewEditor(language))
+      let #(model, next) =
+        editor_managed.init(editor_lifecycle.NewEditor(language))
       #(Editor(model), command.Editor(next))
     }
     route.Snippet(slug) -> {
-      let #(model, next) = editor_initialization.start(ExistingEditor(slug))
+      let #(model, next) =
+        editor_managed.init(editor_lifecycle.ExistingEditor(slug))
       #(Editor(model), command.Editor(next))
     }
   }
@@ -141,13 +142,8 @@ pub fn update(
     }
     Editor(page_model), EditorPageMsg(page_msg) -> {
       let current_user_id = runtime.current_user_id(session)
-      let #(next_model, next) = case
-        editor_initialization.update(page_model, page_msg)
-      {
-        option.Some(result) -> result
-        option.None ->
-          editor_update.update(page_model, page_msg, current_user_id)
-      }
+      let #(next_model, next) =
+        editor_managed.update(page_model, page_msg, current_user_id)
       option.Some(Transition(
         model: Editor(next_model),
         command: command.Editor(next),

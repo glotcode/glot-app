@@ -1,53 +1,58 @@
 import glot_frontend/public/editor/command
+import glot_frontend/public/editor/draft_projection
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
-  type Msg, KeyboardBindingsDraftSelected,
+  type SettingsMsg, KeyboardBindingsDraftSelected,
   RunInstructionsBuildCommandsDraftChanged, RunInstructionsModeDraftChanged,
   RunInstructionsRunCommandDraftChanged, SettingsCancelled, SettingsClicked,
   SettingsDialogClosed, SettingsSubmitted,
 }
 import glot_frontend/public/editor/model.{
-  type RealModel, RealModel, RunInstructionsDraft,
+  type Editor, Editor, RunInstructionsDraft, SettingsDraft, Snippet,
 }
 import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/settings as editor_settings
-import youid/uuid.{type Uuid}
 
 pub fn update(
-  model: RealModel,
-  msg: Msg,
-  _current_user_id: option.Option(Uuid),
-) -> #(RealModel, command.Command(Msg)) {
+  model: Editor,
+  msg: SettingsMsg,
+) -> #(Editor, command.Command(SettingsMsg)) {
   case msg {
     SettingsClicked -> #(
-      RealModel(
+      Editor(
         ..model,
-        editor_settings_draft: model.editor_settings,
-        run_instructions_mode_draft: run_instructions.run_instructions_mode(
-          model,
-        ),
-        run_instructions_draft: run_instructions.run_instructions_to_draft(
-          run_instructions.effective_run_instructions(model),
+        settings_draft: SettingsDraft(
+          editor_settings: model.editor_settings,
+          run_instructions_mode: run_instructions.run_instructions_mode(model),
+          run_instructions: run_instructions.run_instructions_to_draft(
+            run_instructions.effective_run_instructions(model),
+          ),
         ),
       ),
       command.OpenDialog(ids.settings_dialog),
     )
 
     KeyboardBindingsDraftSelected(bindings) -> #(
-      RealModel(
+      Editor(
         ..model,
-        editor_settings_draft: editor_settings.EditorSettings(
-          keyboard_bindings: bindings,
+        settings_draft: SettingsDraft(
+          ..model.settings_draft,
+          editor_settings: editor_settings.EditorSettings(
+            keyboard_bindings: bindings,
+          ),
         ),
       ),
       command.none(),
     )
 
     RunInstructionsModeDraftChanged(value) -> #(
-      RealModel(
+      Editor(
         ..model,
-        run_instructions_mode_draft: run_instructions.run_instructions_mode_from_string(
-          value,
+        settings_draft: SettingsDraft(
+          ..model.settings_draft,
+          run_instructions_mode: run_instructions.run_instructions_mode_from_string(
+            value,
+          ),
         ),
       ),
       command.none(),
@@ -55,11 +60,14 @@ pub fn update(
 
     RunInstructionsBuildCommandsDraftChanged(build_commands_text) -> {
       #(
-        RealModel(
+        Editor(
           ..model,
-          run_instructions_draft: RunInstructionsDraft(
-            build_commands_text: build_commands_text,
-            run_command: model.run_instructions_draft.run_command,
+          settings_draft: SettingsDraft(
+            ..model.settings_draft,
+            run_instructions: RunInstructionsDraft(
+              build_commands_text: build_commands_text,
+              run_command: model.settings_draft.run_instructions.run_command,
+            ),
           ),
         ),
         command.none(),
@@ -68,11 +76,14 @@ pub fn update(
 
     RunInstructionsRunCommandDraftChanged(run_command) -> {
       #(
-        RealModel(
+        Editor(
           ..model,
-          run_instructions_draft: RunInstructionsDraft(
-            build_commands_text: model.run_instructions_draft.build_commands_text,
-            run_command: run_command,
+          settings_draft: SettingsDraft(
+            ..model.settings_draft,
+            run_instructions: RunInstructionsDraft(
+              build_commands_text: model.settings_draft.run_instructions.build_commands_text,
+              run_command: run_command,
+            ),
           ),
         ),
         command.none(),
@@ -80,14 +91,14 @@ pub fn update(
     }
 
     SettingsCancelled -> #(
-      RealModel(
+      Editor(
         ..model,
-        editor_settings_draft: model.editor_settings,
-        run_instructions_mode_draft: run_instructions.run_instructions_mode(
-          model,
-        ),
-        run_instructions_draft: run_instructions.run_instructions_to_draft(
-          run_instructions.effective_run_instructions(model),
+        settings_draft: SettingsDraft(
+          editor_settings: model.editor_settings,
+          run_instructions_mode: run_instructions.run_instructions_mode(model),
+          run_instructions: run_instructions.run_instructions_to_draft(
+            run_instructions.effective_run_instructions(model),
+          ),
         ),
       ),
       command.CloseDialog(ids.settings_dialog),
@@ -95,11 +106,14 @@ pub fn update(
 
     SettingsSubmitted -> {
       let next_model =
-        RealModel(
+        Editor(
           ..model,
-          editor_settings: model.editor_settings_draft,
-          run_instructions_override: run_instructions.run_instructions_override_from_draft(
-            model,
+          editor_settings: model.settings_draft.editor_settings,
+          snippet: Snippet(
+            ..model.snippet,
+            run_instructions_override: run_instructions.run_instructions_override_from_draft(
+              model,
+            ),
           ),
         )
 
@@ -107,31 +121,28 @@ pub fn update(
         next_model,
         command.batch([
           command.CloseDialog(ids.settings_dialog),
-          command.SaveSettings(model.editor_settings_draft),
-          command.SaveDraft(next_model),
+          command.SaveSettings(model.settings_draft.editor_settings),
+          command.SaveDraft(draft_projection.write(next_model)),
         ]),
       )
     }
 
     SettingsDialogClosed -> #(
-      RealModel(
+      Editor(
         ..model,
-        editor_settings_draft: model.editor_settings,
-        run_instructions_mode_draft: run_instructions.run_instructions_mode(
-          model,
-        ),
-        run_instructions_draft: run_instructions.run_instructions_to_draft(
-          run_instructions.effective_run_instructions(model),
+        settings_draft: SettingsDraft(
+          editor_settings: model.editor_settings,
+          run_instructions_mode: run_instructions.run_instructions_mode(model),
+          run_instructions: run_instructions.run_instructions_to_draft(
+            run_instructions.effective_run_instructions(model),
+          ),
         ),
       ),
       focus_editor(),
     )
-    _ -> #(model, command.none())
   }
 }
 
 fn focus_editor() -> command.Command(msg) {
   command.Focus(ids.editor)
 }
-
-import gleam/option

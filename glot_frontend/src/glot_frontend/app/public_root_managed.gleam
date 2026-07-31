@@ -99,7 +99,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
         public_page_state.Editor(_) ->
           update_page(
             model,
-            public_page_message.EditorPageMsg(editor_message.RunSubmitted),
+            public_page_message.EditorPageMsg(
+              editor_message.Editor(editor_message.Execution(
+                editor_message.RunSubmitted,
+              )),
+            ),
           )
         _ -> #(model, None)
       }

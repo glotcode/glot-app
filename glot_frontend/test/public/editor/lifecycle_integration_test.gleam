@@ -9,9 +9,11 @@ import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response
 import glot_frontend/public/editor/draft
+import glot_frontend/public/editor/draft_persistence
+import glot_frontend/public/editor/lifecycle
+import glot_frontend/public/editor/managed
 import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
-import glot_frontend/public/editor/page
 import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/view
 import glot_frontend/ui/delayed_loading
@@ -21,13 +23,15 @@ import rsvp
 import support/editor_fixture
 import support/editor_scenario
 
+/// Lifecycle scenarios cover initialization, loading, and draft recovery.
 pub fn existing_snippet_api_failure_renders_load_error_test() {
   let scenario =
     loading_existing("api-failure")
     |> editor_scenario.respond_to_get_snippet(editor_fixture.api_failure(
       "Snippet unavailable.",
     ))
-  let assert model.LoadError(message) = editor_scenario.model(scenario)
+  let assert model.Lifecycle(lifecycle.LoadError(message)) =
+    editor_scenario.model(scenario)
   assert string.contains(message, "Snippet unavailable.")
   assert string.contains(render(scenario), "Snippet unavailable.")
   editor_scenario.assert_no_pending_effects(scenario)
@@ -38,7 +42,7 @@ pub fn existing_snippet_http_failure_renders_stable_load_error_test() {
     loading_existing("http-failure")
     |> editor_scenario.respond_to_get_snippet(response.HttpFailure(rsvp.BadBody))
   assert editor_scenario.model(scenario)
-    == model.LoadError("Could not load snippet.")
+    == model.Lifecycle(lifecycle.LoadError("Could not load snippet."))
   assert string.contains(render(scenario), "Could not load snippet.")
   editor_scenario.assert_no_pending_effects(scenario)
 }
@@ -47,15 +51,15 @@ pub fn stale_snippet_and_loading_timer_messages_for_another_slug_are_ignored_tes
   let fixture = editor_fixture.snippet("current-slug", "current")
   let scenario =
     loading_existing(fixture.slug)
-    |> editor_scenario.dispatch(message.SnippetLoaded(
+    |> editor_scenario.dispatch_lifecycle(message.SnippetLoaded(
       "other-slug",
       response.Success(editor_fixture.snippet("other-slug", "stale")),
     ))
-    |> editor_scenario.dispatch(message.SnippetLoadingDelayElapsed(
+    |> editor_scenario.dispatch_lifecycle(message.SnippetLoadingDelayElapsed(
       "other-slug",
       1,
     ))
-  let assert model.LoadingSnippet(slug, _, indicator) =
+  let assert model.Lifecycle(lifecycle.LoadingSnippet(slug, _, indicator)) =
     editor_scenario.model(scenario)
   assert slug == fixture.slug
   assert delayed_loading.is_visible(indicator)
@@ -67,8 +71,8 @@ pub fn stale_snippet_and_loading_timer_messages_for_another_slug_are_ignored_tes
       editor_fixture.successful_run(stdout: "v22", stderr: "", error: ""),
     )
     |> editor_scenario.respond_to_existing_draft(option.None)
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.slug == option.Some(fixture.slug)
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.snippet.slug == option.Some(fixture.slug)
 }
 
 pub fn newer_existing_draft_restores_all_recoverable_fields_test() {
@@ -90,16 +94,25 @@ pub fn newer_existing_draft_restores_all_recoverable_fields_test() {
     editor_scenario.observed(scenario),
     editor_scenario.DialogOpenedNextFrame("editor-page-restore-draft-dialog"),
   )
+  let assert model.Ready(pending_editor) = editor_scenario.model(scenario)
+  let assert model.RestoreDraftPending(pending_draft) =
+    pending_editor.restore_draft
+  assert pending_draft == stored
   let scenario =
-    editor_scenario.dispatch(scenario, message.RestoreDraftAccepted)
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.title == "Recovered existing draft"
-  assert editor.files
+    editor_scenario.dispatch_restore_draft(
+      scenario,
+      message.RestoreDraftAccepted,
+    )
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.snippet.title == "Recovered existing draft"
+  assert editor.snippet.files
     == [snippet_model.File("recovered.js", "recovered source")]
-  assert editor.stdin == option.Some("recovered input")
-  assert editor.run_instructions_override == option.Some(custom)
-  assert editor.pending_restore_draft == option.None
-  assert editor.editor_external_revision == 1
+  assert editor.snippet.stdin == option.Some("recovered input")
+  assert editor.snippet.run_instructions_override == option.Some(custom)
+  assert editor.restore_draft == model.NoRestoreDraft
+  assert editor.workspace.editor_external_revision == 1
+  assert editor.entry_drafts.add.filename == ""
+  assert editor.entry_drafts.edit.filename == "recovered.js"
 }
 
 pub fn older_existing_draft_is_cleared_without_opening_restore_dialog_test() {
@@ -118,20 +131,26 @@ pub fn older_existing_draft_is_cleared_without_opening_restore_dialog_test() {
     )
   assert list.contains(
     editor_scenario.observed(scenario),
-    editor_scenario.ExistingDraftCleared("old-draft"),
+    editor_scenario.DraftCleared(draft_persistence.ExistingSnippet("old-draft")),
   )
   assert !has_restore_open(editor_scenario.observed(scenario))
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.pending_restore_draft == option.None
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.restore_draft == model.NoRestoreDraft
 }
 
 pub fn declining_new_draft_restoration_clears_storage_and_pending_state_test() {
   let scenario = new_with_draft()
   let scenario =
-    editor_scenario.dispatch(scenario, message.RestoreDraftDeclined)
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.pending_restore_draft == option.None
-  assert has_draft_clear(editor_scenario.observed(scenario))
+    editor_scenario.dispatch_restore_draft(
+      scenario,
+      message.RestoreDraftDeclined,
+    )
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.restore_draft == model.NoRestoreDraft
+  assert list.contains(
+    editor_scenario.observed(scenario),
+    editor_scenario.DraftCleared(draft_persistence.NewSnippet("javascript")),
+  )
   assert list.contains(
     editor_scenario.observed(scenario),
     editor_scenario.DialogClosed("editor-page-restore-draft-dialog"),
@@ -141,9 +160,9 @@ pub fn declining_new_draft_restoration_clears_storage_and_pending_state_test() {
 pub fn closing_restore_dialog_discards_pending_choice_and_focuses_editor_test() {
   let scenario =
     new_with_draft()
-    |> editor_scenario.dispatch(message.RestoreDraftClosed)
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.pending_restore_draft == option.None
+    |> editor_scenario.dispatch_restore_draft(message.RestoreDraftClosed)
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.restore_draft == model.NoRestoreDraft
   assert !has_draft_clear(editor_scenario.observed(scenario))
   assert list.contains(
     editor_scenario.observed(scenario),
@@ -156,8 +175,8 @@ pub fn filtered_or_absent_new_draft_does_not_open_restore_dialog_test() {
     ready_new_with_version(
       response.Success(Ok(run.SuccessfulRun(1, "v22", "", ""))),
     )
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.pending_restore_draft == option.None
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.restore_draft == model.NoRestoreDraft
   assert !has_restore_open(editor_scenario.observed(scenario))
   editor_scenario.assert_no_pending_effects(scenario)
 }
@@ -169,14 +188,12 @@ pub fn empty_and_failed_language_version_fixtures_leave_editor_usable_test() {
       stderr: "",
       error: "",
     ))
-  let assert model.SupportedLanguage(empty_editor) =
-    editor_scenario.model(empty)
-  assert empty_editor.version_info == option.None
+  let assert model.Ready(empty_editor) = editor_scenario.model(empty)
+  assert empty_editor.operations.version_info == option.None
 
   let failed = ready_new_with_version(editor_fixture.api_failure("No version."))
-  let assert model.SupportedLanguage(failed_editor) =
-    editor_scenario.model(failed)
-  assert failed_editor.version_info == option.None
+  let assert model.Ready(failed_editor) = editor_scenario.model(failed)
+  assert failed_editor.operations.version_info == option.None
   assert string.contains(render(failed), "editor-page")
 }
 
@@ -184,7 +201,7 @@ pub fn stale_language_version_from_previous_language_is_ignored_test() {
   let base = editor_scenario.new_editor(language.JavaScript)
   let scenario =
     editor_scenario.start(base, option.None)
-    |> editor_scenario.dispatch(message.VersionRunFinished(
+    |> editor_scenario.dispatch_execution(message.VersionRunFinished(
       language.Python,
       editor_fixture.successful_run(
         stdout: "Python 3 stale",
@@ -192,13 +209,13 @@ pub fn stale_language_version_from_previous_language_is_ignored_test() {
         error: "",
       ),
     ))
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.version_info == option.None
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.operations.version_info == option.None
 }
 
 pub fn unsupported_language_and_ssr_load_error_render_user_visible_states_test() {
   let #(unsupported_model, unsupported_command) =
-    page.init_managed(model.NewEditor("not-a-language"))
+    managed.init(lifecycle.NewEditor("not-a-language"))
   let unsupported =
     editor_scenario.start_with_command(
       unsupported_model,
@@ -216,7 +233,7 @@ pub fn unsupported_language_and_ssr_load_error_render_user_visible_states_test()
     |> editor_ssr.encode
     |> json.to_string
   let #(error_model, error_command) =
-    page.init_managed(model.ExistingEditor("ssr-error"))
+    managed.init(lifecycle.ExistingEditor("ssr-error"))
   let error_scenario =
     editor_scenario.start_with_command(error_model, option.None, error_command)
     |> editor_scenario.respond_to_environment(raw_ssr, settings.defaults())
@@ -226,7 +243,7 @@ pub fn unsupported_language_and_ssr_load_error_render_user_visible_states_test()
 }
 
 pub fn invalid_ssr_falls_back_to_environment_settings_and_storage_fixtures_test() {
-  let #(initial, command) = page.init_managed(model.NewEditor("javascript"))
+  let #(initial, command) = managed.init(lifecycle.NewEditor("javascript"))
   let scenario =
     editor_scenario.start_with_command(initial, option.None, command)
     |> editor_scenario.respond_to_environment(
@@ -237,31 +254,112 @@ pub fn invalid_ssr_falls_back_to_environment_settings_and_storage_fixtures_test(
       editor_fixture.successful_run(stdout: "v22", stderr: "", error: ""),
     )
     |> editor_scenario.respond_to_new_draft(option.None)
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.language == language.JavaScript
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.snippet.language == language.JavaScript
   assert editor.editor_settings.keyboard_bindings == settings.VimBindings
   editor_scenario.assert_no_pending_effects(scenario)
 }
 
-pub fn stale_environment_fixture_for_another_route_is_ignored_test() {
-  let target = model.NewEditor("javascript")
-  let #(initial, command) = page.init_managed(target)
+pub fn valid_existing_ssr_uses_the_shared_existing_editor_transition_test() {
+  let fixture = editor_fixture.snippet("ssr-existing", "server source")
+  let raw_ssr =
+    fixture
+    |> editor_ssr.from_snippet
+    |> editor_ssr.encode
+    |> json.to_string
+  let #(initial, command) = managed.init(lifecycle.ExistingEditor(fixture.slug))
   let scenario =
     editor_scenario.start_with_command(initial, option.None, command)
-    |> editor_scenario.dispatch(message.EnvironmentLoaded(
-      model.ExistingEditor("other"),
+    |> editor_scenario.respond_to_environment(
+      raw_ssr,
+      settings.EditorSettings(settings.VimBindings),
+    )
+    |> editor_scenario.respond_to_language_version(
+      editor_fixture.successful_run(stdout: "v22", stderr: "", error: ""),
+    )
+    |> editor_scenario.respond_to_existing_draft(option.None)
+  let editor = editor_scenario.editor(scenario)
+
+  assert editor.snippet.slug == option.Some(fixture.slug)
+  assert editor.snippet.files == fixture.data.files
+  assert editor.editor_settings.keyboard_bindings == settings.VimBindings
+  editor_scenario.assert_no_pending_effects(scenario)
+}
+
+pub fn incomplete_existing_ssr_becomes_a_stable_load_error_test() {
+  let fixture = editor_fixture.snippet("incomplete-ssr", "server source")
+  let assert editor_ssr.ExistingSnippet(ssr_model) =
+    editor_ssr.from_snippet(fixture)
+  let raw_ssr =
+    editor_ssr.ExistingSnippet(
+      editor_ssr.EditorModel(..ssr_model, updated_at: option.None),
+    )
+    |> editor_ssr.encode
+    |> json.to_string
+  let #(initial, command) = managed.init(lifecycle.ExistingEditor(fixture.slug))
+  let scenario =
+    editor_scenario.start_with_command(initial, option.None, command)
+    |> editor_scenario.respond_to_environment(raw_ssr, settings.defaults())
+
+  assert editor_scenario.model(scenario)
+    == model.Lifecycle(lifecycle.LoadError("Could not load snippet."))
+  editor_scenario.assert_no_pending_effects(scenario)
+}
+
+pub fn stale_environment_fixture_for_another_route_is_ignored_test() {
+  let target = lifecycle.NewEditor("javascript")
+  let #(initial, command) = managed.init(target)
+  let scenario =
+    editor_scenario.start_with_command(initial, option.None, command)
+    |> editor_scenario.dispatch_lifecycle(message.EnvironmentLoaded(
+      lifecycle.ExistingEditor("other"),
       "",
       settings.defaults(),
     ))
-  assert editor_scenario.model(scenario) == model.Initializing(target)
+  assert editor_scenario.model(scenario)
+    == model.Lifecycle(lifecycle.Initializing(target))
   let scenario =
     editor_scenario.respond_to_environment(scenario, "", settings.defaults())
     |> editor_scenario.respond_to_language_version(
       editor_fixture.successful_run(stdout: "v22", stderr: "", error: ""),
     )
     |> editor_scenario.respond_to_new_draft(option.None)
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.language == language.JavaScript
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.snippet.language == language.JavaScript
+}
+
+pub fn editor_workflow_messages_are_ignored_before_the_editor_is_ready_test() {
+  let target = lifecycle.NewEditor("javascript")
+  let #(initial, _) = managed.init(target)
+  let scenario =
+    editor_scenario.start(initial, option.None)
+    |> editor_scenario.dispatch_execution(message.RunSubmitted)
+
+  assert editor_scenario.model(scenario)
+    == model.Lifecycle(lifecycle.Initializing(target))
+  editor_scenario.assert_no_pending_effects(scenario)
+}
+
+pub fn stale_lifecycle_messages_are_ignored_after_the_editor_is_ready_test() {
+  let scenario =
+    ready_new_with_version(editor_fixture.successful_run(
+      stdout: "v22",
+      stderr: "",
+      error: "",
+    ))
+  let before = editor_scenario.editor(scenario)
+  let scenario =
+    editor_scenario.dispatch_lifecycle(
+      scenario,
+      message.EnvironmentLoaded(
+        lifecycle.NewEditor("javascript"),
+        "",
+        settings.defaults(),
+      ),
+    )
+
+  assert editor_scenario.editor(scenario) == before
+  editor_scenario.assert_no_pending_effects(scenario)
 }
 
 pub fn ssr_unsupported_language_fixture_controls_initial_state_test() {
@@ -269,23 +367,23 @@ pub fn ssr_unsupported_language_fixture_controls_initial_state_test() {
     editor_ssr.UnsupportedLanguage("server-language")
     |> editor_ssr.encode
     |> json.to_string
-  let #(initial, command) = page.init_managed(model.NewEditor("javascript"))
+  let #(initial, command) = managed.init(lifecycle.NewEditor("javascript"))
   let scenario =
     editor_scenario.start_with_command(initial, option.None, command)
     |> editor_scenario.respond_to_environment(raw_ssr, settings.defaults())
   assert editor_scenario.model(scenario)
-    == model.UnsupportedLanguage("server-language")
+    == model.Lifecycle(lifecycle.UnsupportedLanguage("server-language"))
   editor_scenario.assert_no_pending_effects(scenario)
 }
 
 pub fn accepting_new_draft_restores_content_and_closes_dialog_test() {
   let scenario =
     new_with_draft()
-    |> editor_scenario.dispatch(message.RestoreDraftAccepted)
-  let assert model.SupportedLanguage(editor) = editor_scenario.model(scenario)
-  assert editor.title == "New draft"
-  assert editor.files == [snippet_model.File("main.js", "draft")]
-  assert editor.pending_restore_draft == option.None
+    |> editor_scenario.dispatch_restore_draft(message.RestoreDraftAccepted)
+  let assert model.Ready(editor) = editor_scenario.model(scenario)
+  assert editor.snippet.title == "New draft"
+  assert editor.snippet.files == [snippet_model.File("main.js", "draft")]
+  assert editor.restore_draft == model.NoRestoreDraft
   assert list.contains(
     editor_scenario.observed(scenario),
     editor_scenario.DialogClosed("editor-page-restore-draft-dialog"),
@@ -293,7 +391,7 @@ pub fn accepting_new_draft_restores_content_and_closes_dialog_test() {
 }
 
 fn loading_existing(slug: String) -> editor_scenario.Scenario {
-  let #(initial, command) = page.init_managed(model.ExistingEditor(slug))
+  let #(initial, command) = managed.init(lifecycle.ExistingEditor(slug))
   editor_scenario.start_with_command(initial, option.None, command)
   |> editor_scenario.respond_to_environment("", settings.defaults())
   |> editor_scenario.deliver_next_scheduled
@@ -322,7 +420,7 @@ fn new_with_draft() -> editor_scenario.Scenario {
       stdin: option.None,
       run_instructions: option.None,
     )
-  let #(initial, command) = page.init_managed(model.NewEditor("javascript"))
+  let #(initial, command) = managed.init(lifecycle.NewEditor("javascript"))
   editor_scenario.start_with_command(initial, option.None, command)
   |> editor_scenario.respond_to_environment("", settings.defaults())
   |> editor_scenario.respond_to_language_version(editor_fixture.successful_run(
@@ -336,7 +434,7 @@ fn new_with_draft() -> editor_scenario.Scenario {
 fn ready_new_with_version(
   version_fixture: response.Response(run.RunResult),
 ) -> editor_scenario.Scenario {
-  let #(initial, command) = page.init_managed(model.NewEditor("javascript"))
+  let #(initial, command) = managed.init(lifecycle.NewEditor("javascript"))
   editor_scenario.start_with_command(initial, option.None, command)
   |> editor_scenario.respond_to_environment("", settings.defaults())
   |> editor_scenario.respond_to_language_version(version_fixture)

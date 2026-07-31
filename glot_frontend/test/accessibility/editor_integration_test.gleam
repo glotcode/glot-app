@@ -6,6 +6,7 @@ import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/execution
+import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/view
@@ -17,52 +18,83 @@ import support/editor_scenario
 
 pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() {
   let supported = editor_scenario_model()
-  let assert model.SupportedLanguage(editor) = supported
+  let assert model.Ready(editor) = supported
   let #(loading, generation) = delayed_loading.begin(delayed_loading.idle())
   let visible_loading = delayed_loading.reveal(loading, generation)
   let completed =
-    model.SupportedLanguage(
-      model.RealModel(
+    model.Ready(
+      model.Editor(
         ..editor,
-        run_state: execution.Completed(
-          Ok(run.SuccessfulRun(
-            duration: 1,
-            stdout: "output",
-            stderr: "warning",
-            error: "",
-          )),
+        operations: model.Operations(
+          ..editor.operations,
+          run_state: execution.Completed(
+            Ok(run.SuccessfulRun(
+              duration: 1,
+              stdout: "output",
+              stderr: "warning",
+              error: "",
+            )),
+          ),
         ),
       ),
     )
   let saving =
-    model.SupportedLanguage(
-      model.RealModel(..editor, save_state: execution.Saving),
+    model.Ready(
+      model.Editor(
+        ..editor,
+        operations: model.Operations(
+          ..editor.operations,
+          save_state: execution.Saving,
+        ),
+      ),
     )
   let save_error =
-    model.SupportedLanguage(
-      model.RealModel(..editor, save_state: execution.SaveError("Save failed.")),
+    model.Ready(
+      model.Editor(
+        ..editor,
+        operations: model.Operations(
+          ..editor.operations,
+          save_state: execution.SaveError("Save failed."),
+        ),
+      ),
     )
 
   [
-    model.Initializing(model.NewEditor("javascript")),
-    model.LoadingSnippet("fixture", settings.defaults(), visible_loading),
-    model.LoadError("Could not load snippet."),
-    model.UnsupportedLanguage("fixture"),
+    model.Lifecycle(lifecycle.Initializing(lifecycle.NewEditor("javascript"))),
+    model.Lifecycle(lifecycle.LoadingSnippet(
+      "fixture",
+      settings.defaults(),
+      visible_loading,
+    )),
+    model.Lifecycle(lifecycle.LoadError("Could not load snippet.")),
+    model.Lifecycle(lifecycle.UnsupportedLanguage("fixture")),
     supported,
-    model.SupportedLanguage(
-      model.RealModel(..editor, run_state: execution.Running),
-    ),
-    completed,
-    model.SupportedLanguage(
-      model.RealModel(
+    model.Ready(
+      model.Editor(
         ..editor,
-        run_state: execution.Completed(Error(run.FailedRun("Run failed."))),
+        operations: model.Operations(
+          ..editor.operations,
+          run_state: execution.Running,
+        ),
       ),
     ),
-    model.SupportedLanguage(
-      model.RealModel(
+    completed,
+    model.Ready(
+      model.Editor(
         ..editor,
-        run_state: execution.RequestError("Request failed."),
+        operations: model.Operations(
+          ..editor.operations,
+          run_state: execution.Completed(Error(run.FailedRun("Run failed."))),
+        ),
+      ),
+    ),
+    model.Ready(
+      model.Editor(
+        ..editor,
+        operations: model.Operations(
+          ..editor.operations,
+          run_state: execution.RequestError("Request failed."),
+        ),
       ),
     ),
     saving,
@@ -72,7 +104,7 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
 }
 
 pub fn populated_editor_dialogs_satisfy_the_markup_accessibility_contract_test() {
-  let assert model.SupportedLanguage(base) = editor_scenario_model()
+  let assert model.Ready(base) = editor_scenario_model()
   let stored =
     editor_fixture.stored_draft(
       saved_at_ms: 300_000,
@@ -82,23 +114,37 @@ pub fn populated_editor_dialogs_satisfy_the_markup_accessibility_contract_test()
       run_instructions: option.Some(language.RunInstructions([], "node main.js")),
     )
   let populated =
-    model.SupportedLanguage(
-      model.RealModel(
+    model.Ready(
+      model.Editor(
         ..base,
-        slug: option.Some("accessible-editor"),
-        owner_user_id: option.Some(editor_fixture.owner_id()),
-        owner_username: option.Some("fixture-owner"),
-        created_at: option.Some(timestamp.from_unix_seconds(100)),
-        updated_at: option.Some(timestamp.from_unix_seconds(200)),
-        stdin: option.Some("input"),
-        selected_tab: model.StdinTab,
-        pending_restore_draft: option.Some(stored),
-        add_entry_kind: model.AddFileEntry,
-        add_entry_filename: "extra.js",
-        run_instructions_mode_draft: model.CustomRunInstructions,
-        run_instructions_draft: model.RunInstructionsDraft(
-          "npm run build",
-          "node main.js",
+        snippet: model.Snippet(
+          ..base.snippet,
+          slug: option.Some("accessible-editor"),
+          owner_user_id: option.Some(editor_fixture.owner_id()),
+          owner_username: option.Some("fixture-owner"),
+          created_at: option.Some(timestamp.from_unix_seconds(100)),
+          updated_at: option.Some(timestamp.from_unix_seconds(200)),
+          stdin: option.Some("input"),
+        ),
+        workspace: model.Workspace(
+          ..base.workspace,
+          selected_tab: model.StdinTab,
+        ),
+        entry_drafts: model.EntryDrafts(
+          ..base.entry_drafts,
+          add: model.AddEntryDraft(
+            kind: model.AddFileEntry,
+            filename: "extra.js",
+          ),
+        ),
+        restore_draft: model.RestoreDraftPending(stored),
+        settings_draft: model.SettingsDraft(
+          ..base.settings_draft,
+          run_instructions_mode: model.CustomRunInstructions,
+          run_instructions: model.RunInstructionsDraft(
+            "npm run build",
+            "node main.js",
+          ),
         ),
       ),
     )
@@ -107,14 +153,14 @@ pub fn populated_editor_dialogs_satisfy_the_markup_accessibility_contract_test()
 
 pub fn editor_states_keep_landmarks_and_expose_a_complete_tab_pattern_test() {
   let error_document =
-    model.LoadError("Could not load snippet.")
+    model.Lifecycle(lifecycle.LoadError("Could not load snippet."))
     |> render
   assert string.contains(error_document, "<main ")
   assert string.contains(error_document, "id=\"main-content\"")
   assert string.contains(error_document, "<h1>Snippet unavailable</h1>")
 
   let unsupported_document =
-    model.UnsupportedLanguage("fixture")
+    model.Lifecycle(lifecycle.UnsupportedLanguage("fixture"))
     |> render
   assert string.contains(unsupported_document, "<main ")
   assert string.contains(unsupported_document, "id=\"main-content\"")

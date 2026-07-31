@@ -3,17 +3,19 @@ import gleam/int
 import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
+import glot_frontend/public/editor/document
 import glot_frontend/public/editor/execution
 import glot_frontend/public/editor/file_dialog_view
 import glot_frontend/public/editor/ids
+import glot_frontend/public/editor/lifecycle_view
 import glot_frontend/public/editor/message.{
-  type Msg, EditMetadataClicked, RunSubmitted, SaveClicked, SnippetInfoClicked,
-  SourceCodeChanged,
+  type EditorMsg, type Msg, EditMetadataClicked, Editor as EditorMessage,
+  Execution, File, Metadata, RestoreDraft, RunSubmitted, Save, SaveClicked,
+  Settings, SnippetInfo, SnippetInfoClicked, SourceCodeChanged,
 }
 import glot_frontend/public/editor/metadata_dialog_view
 import glot_frontend/public/editor/model.{
-  type Model, type RealModel, Initializing, LoadError, LoadingSnippet,
-  SupportedLanguage, UnsupportedLanguage,
+  type Editor, type Model, Lifecycle, Ready,
 }
 import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/restore_draft_view
@@ -22,8 +24,7 @@ import glot_frontend/public/editor/settings as editor_settings
 import glot_frontend/public/editor/settings_dialog_view
 import glot_frontend/public/editor/snippet_info_view
 import glot_frontend/public/editor/tab_semantics
-import glot_frontend/public/editor/workspace_view
-import glot_frontend/ui/delayed_loading
+import glot_frontend/public/editor/workspace_toolbar_view
 import glot_web/page/editor_layout
 import lustre/attribute
 import lustre/element.{type Element}
@@ -37,75 +38,25 @@ pub fn view(
   now: Timestamp,
 ) -> Element(Msg) {
   case model {
-    Initializing(_) -> element.none()
-    UnsupportedLanguage(lang) ->
-      unavailable_view("Unsupported language", "Unsupported language: " <> lang)
-    LoadingSnippet(_, _, loading_indicator) ->
-      loading_snippet_view(delayed_loading.is_visible(loading_indicator))
-    LoadError(message) -> unavailable_view("Snippet unavailable", message)
-    SupportedLanguage(model) -> view_helper(model, current_user_id, now)
-  }
-}
-
-fn unavailable_view(title: String, message: String) -> Element(msg) {
-  html.div([attribute.class("app-page")], [
-    html.div([attribute.class("app-page__screen-glow")], []),
-    html.main(
-      [
-        attribute.id("main-content"),
-        attribute.attribute("tabindex", "-1"),
-        attribute.class("app-shell app-shell--narrow"),
-      ],
-      [
-        html.section([attribute.class("app-panel")], [
-          html.h1([], [html.text(title)]),
-          html.p([], [html.text(message)]),
-        ]),
-      ],
-    ),
-  ])
-}
-
-fn loading_snippet_view(show_loading: Bool) -> Element(msg) {
-  case show_loading {
-    False -> element.none()
-    True ->
-      html.div([attribute.class("app-page")], [
-        html.div([attribute.class("app-page__screen-glow")], []),
-        html.main(
-          [
-            attribute.id("main-content"),
-            attribute.attribute("tabindex", "-1"),
-            attribute.class("app-shell app-shell--narrow"),
-          ],
-          [
-            html.div([attribute.class("app-panel")], [
-              html.p(
-                [
-                  attribute.class("editor-page__loading"),
-                  attribute.attribute("role", "status"),
-                ],
-                [html.text("Loading snippet...")],
-              ),
-            ]),
-          ],
-        ),
-      ])
+    Lifecycle(model) -> lifecycle_view.view(model)
+    Ready(model) ->
+      view_helper(model, current_user_id, now)
+      |> element.map(EditorMessage)
   }
 }
 
 fn view_helper(
-  model: RealModel,
+  model: Editor,
   current_user_id: option.Option(Uuid),
   now: Timestamp,
-) -> Element(Msg) {
+) -> Element(EditorMsg) {
   let can_edit_title =
-    model.slug == option.None || policy.is_owner(model, current_user_id)
-  let show_snippet_info = model.slug != option.None
+    model.snippet.slug == option.None || policy.is_owner(model, current_user_id)
+  let show_snippet_info = model.snippet.slug != option.None
 
   editor_layout.shell(
     load_ad: True,
-    title: model.title,
+    title: model.snippet.title,
     title_actions: [
       case show_snippet_info {
         True ->
@@ -114,7 +65,7 @@ fn view_helper(
             aria_label: "Snippet info",
             hint_class: "editor-page__title-hint editor-page__title-hint--info",
             hint_label: "Info",
-            attributes: [event.on_click(SnippetInfoClicked)],
+            attributes: [event.on_click(SnippetInfo(SnippetInfoClicked))],
           )
 
         False -> html.div([], [])
@@ -126,38 +77,48 @@ fn view_helper(
             aria_label: "Edit snippet metadata",
             hint_class: "editor-page__title-hint",
             hint_label: "Edit",
-            attributes: [event.on_click(EditMetadataClicked)],
+            attributes: [event.on_click(Metadata(EditMetadataClicked))],
           )
 
         False -> html.div([], [])
       },
     ],
     pre_tabbar_children: [
-      metadata_dialog_view.view(model),
-      file_dialog_view.add_dialog(model),
-      file_dialog_view.edit_dialog(model),
-      settings_dialog_view.view(model),
-      save_dialog_view.view(model, current_user_id),
-      restore_draft_view.view(model, now),
-      snippet_info_view.dialog(model),
+      metadata_dialog_view.view(model) |> element.map(Metadata),
+      file_dialog_view.add_dialog(model) |> element.map(File),
+      file_dialog_view.edit_dialog(model) |> element.map(File),
+      settings_dialog_view.view(model) |> element.map(Settings),
+      save_dialog_view.view(model, current_user_id) |> element.map(Save),
+      restore_draft_view.view(model, now) |> element.map(RestoreDraft),
+      snippet_info_view.dialog(model) |> element.map(SnippetInfo),
     ],
-    tabbar_children: workspace_view.tabbar_children(model),
-    active_tab_id: tab_semantics.tab_id(model.selected_tab),
+    tabbar_children: workspace_toolbar_view.view(model),
+    active_tab_id: tab_semantics.tab_id(model.workspace.selected_tab),
     editor: element.element(
       "glot-codemirror",
       [
         attribute.id(ids.editor),
         attribute.class("editor-shell__codemirror"),
-        attribute.attribute("language", language.to_string(model.language)),
+        attribute.attribute(
+          "language",
+          language.to_string(model.snippet.language),
+        ),
         attribute.attribute(
           "editor-external-revision",
-          int.to_string(model.editor_external_revision),
+          int.to_string(model.workspace.editor_external_revision),
         ),
         attribute.attribute(
           "editor-revision",
-          int.to_string(model.editor_revision),
+          int.to_string(model.workspace.editor_revision),
         ),
-        attribute.attribute("value", workspace_view.selected_tab_content(model)),
+        attribute.attribute(
+          "value",
+          document.selected_content(
+            model.snippet.files,
+            model.snippet.stdin,
+            model.workspace.selected_tab,
+          ),
+        ),
         attribute.attribute(
           "keyboard-bindings",
           model.editor_settings.keyboard_bindings
@@ -166,30 +127,30 @@ fn view_helper(
         event.on("change", {
           use value <- decode.subfield(["detail", "value"], decode.string)
           use revision <- decode.subfield(["detail", "revision"], decode.int)
-          decode.success(SourceCodeChanged(value, revision))
+          decode.success(Execution(SourceCodeChanged(value, revision)))
         }),
-        event.on("editor-run", decode.success(RunSubmitted)),
+        event.on("editor-run", decode.success(Execution(RunSubmitted))),
       ],
       [],
     ),
     action_buttons: [
       action_button(
         "editor-shell__action-button",
-        workspace_view.run_button_text(model.run_state),
-        model.run_state == execution.Running,
-        RunSubmitted,
+        execution.run_button_text(model.operations.run_state),
+        model.operations.run_state == execution.Running,
+        Execution(RunSubmitted),
       ),
       action_button(
         "editor-shell__action-button",
-        workspace_view.save_button_text(model.save_state),
-        model.save_state == execution.Saving,
-        SaveClicked,
+        execution.save_button_text(model.operations.save_state),
+        model.operations.save_state == execution.Saving,
+        Save(SaveClicked),
       ),
     ],
     console: execution.view(
-      model.version_info,
-      model.run_state,
-      model.save_state,
+      model.operations.version_info,
+      model.operations.run_state,
+      model.operations.save_state,
     ),
   )
 }
@@ -198,8 +159,8 @@ fn action_button(
   class_name: String,
   label: String,
   disabled: Bool,
-  msg: Msg,
-) -> Element(Msg) {
+  msg: EditorMsg,
+) -> Element(EditorMsg) {
   editor_layout.shell_button(
     class_name: class_name,
     attributes: [attribute.disabled(disabled), event.on_click(msg)],

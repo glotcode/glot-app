@@ -1,6 +1,7 @@
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/message.{
-  type Msg, AddEntryKindSelected, KeyboardBindingsDraftSelected,
+  type FileMsg, type SettingsMsg, AddEntryKindSelected,
+  KeyboardBindingsDraftSelected,
 }
 import glot_frontend/public/editor/model.{type AddEntryKind}
 import glot_frontend/public/editor/settings
@@ -13,7 +14,7 @@ pub fn entry_kind_toggle(
   label: String,
   is_selected: Bool,
   kind: AddEntryKind,
-) -> Element(Msg) {
+) -> Element(FileMsg) {
   html.button(
     [
       attribute.type_("button"),
@@ -30,7 +31,7 @@ pub fn keyboard_bindings_option(
   description: String,
   value: settings.KeyboardBindings,
   selected: settings.KeyboardBindings,
-) -> Element(Msg) {
+) -> Element(SettingsMsg) {
   option_button(
     label,
     description,
@@ -44,8 +45,8 @@ pub fn visibility_option(
   description: String,
   value: snippet_model.Visibility,
   selected: snippet_model.Visibility,
-  on_select: fn(snippet_model.Visibility) -> Msg,
-) -> Element(Msg) {
+  on_select: fn(snippet_model.Visibility) -> msg,
+) -> Element(msg) {
   option_button(label, description, value == selected, on_select(value))
 }
 
@@ -53,8 +54,8 @@ fn option_button(
   label: String,
   description: String,
   is_selected: Bool,
-  message: Msg,
-) -> Element(Msg) {
+  message: msg,
+) -> Element(msg) {
   let class_name = case is_selected {
     True ->
       "editor-page__settings-option editor-page__settings-option--selected"

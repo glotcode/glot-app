@@ -4,22 +4,60 @@ import glot_core/language
 import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/command
-import glot_frontend/public/editor/document
-import glot_frontend/public/editor/execution
-import glot_frontend/public/editor/message.{type Msg, ExistingDraftLoaded}
-import glot_frontend/public/editor/model.{
-  type Model, CustomRunInstructions, DefaultRunInstructions, RealModel,
-  SupportedLanguage,
+import glot_frontend/public/editor/draft_persistence
+import glot_frontend/public/editor/message.{
+  type Msg, Editor, Execution, ExistingDraftLoaded, RestoreDraft,
 }
+import glot_frontend/public/editor/model.{type Model, Ready}
+import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/settings as editor_settings
+import glot_web/page/editor as editor_ssr
 import youid/uuid.{type Uuid}
 
-pub fn existing_model_from_response(
+pub fn from_ssr(
+  model: editor_ssr.EditorModel,
+  settings: editor_settings.EditorSettings,
+) -> Result(#(Model, command.Command(Msg)), String) {
+  let editor_ssr.EditorModel(
+    slug: slug,
+    owner_user_id: owner_user_id,
+    owner_username: owner_username,
+    title: title,
+    language: language,
+    visibility: visibility,
+    created_at: created_at,
+    updated_at: updated_at,
+    run_instructions_override: run_instructions_override,
+    files: files,
+    stdin: stdin,
+  ) = model
+
+  case slug, visibility, updated_at {
+    option.Some(slug), option.Some(visibility), option.Some(updated_at) ->
+      Ok(from_data(
+        slug: slug,
+        owner_user_id: owner_user_id,
+        owner_username: owner_username,
+        title: title,
+        language: language,
+        visibility: visibility,
+        created_at: created_at,
+        updated_at: updated_at,
+        run_instructions_override: run_instructions_override,
+        files: files,
+        stdin: stdin,
+        settings: settings,
+      ))
+    _, _, _ -> Error("Could not load snippet.")
+  }
+}
+
+pub fn from_response(
   response: snippet_dto.SnippetResponse,
   settings: editor_settings.EditorSettings,
 ) -> #(Model, command.Command(Msg)) {
-  existing_model_from_data(
+  from_data(
     slug: response.slug,
     owner_user_id: option.Some(response.user.id),
     owner_username: option.Some(response.user.username),
@@ -35,7 +73,7 @@ pub fn existing_model_from_response(
   )
 }
 
-pub fn existing_model_from_data(
+pub fn from_data(
   slug slug: String,
   owner_user_id owner_user_id: option.Option(Uuid),
   owner_username owner_username: option.Option(String),
@@ -51,71 +89,42 @@ pub fn existing_model_from_data(
   stdin stdin: option.Option(String),
   settings settings: editor_settings.EditorSettings,
 ) -> #(Model, command.Command(Msg)) {
-  let run_instructions_mode_draft = case run_instructions_override {
-    option.Some(_) -> CustomRunInstructions
-    option.None -> DefaultRunInstructions
-  }
-  let run_instructions_draft = case run_instructions_override {
-    option.Some(run_instructions) ->
-      run_instructions.run_instructions_to_draft(run_instructions)
-    option.None ->
-      run_instructions.run_instructions_to_draft(
-        run_instructions.default_run_instructions(language, files),
-      )
-  }
-  let selected_tab = document.initial_tab(files, stdin)
   let next_model =
-    SupportedLanguage(RealModel(
-      slug: option.Some(slug),
+    Ready(ready.existing(
+      slug: slug,
       owner_user_id: owner_user_id,
       owner_username: owner_username,
       title: title,
-      title_draft: title,
       language: language,
       visibility: visibility,
       created_at: created_at,
-      updated_at: option.Some(updated_at),
+      updated_at: updated_at,
       files: files,
       stdin: stdin,
-      editor_revision: 0,
-      editor_external_revision: 0,
-      selected_tab: selected_tab,
-      add_entry_kind: document.default_add_entry_kind(stdin),
-      add_entry_filename: "",
-      edit_entry_filename: document.default_file_name(files, selected_tab),
-      editor_settings: settings,
-      editor_settings_draft: settings,
       run_instructions_override: run_instructions_override,
-      run_instructions_mode_draft: run_instructions_mode_draft,
-      run_instructions_draft: run_instructions_draft,
-      save_visibility_draft: visibility,
-      pending_restore_draft: option.None,
-      version_info: option.None,
-      run_generation: 0,
-      run_state: execution.Idle,
-      save_generation: 0,
-      save_state: execution.SaveIdle,
+      editor_settings: settings,
     ))
 
   #(
     next_model,
     command.batch([
-      run_instructions.version_run_command(language),
-      command.LoadExistingDraft(slug, fn(stored) {
-        ExistingDraftLoaded(slug, updated_at, stored)
+      run_instructions.version_run_command(language)
+        |> command.map(fn(msg) { Editor(Execution(msg)) }),
+      command.LoadDraft(draft_persistence.ExistingSnippet(slug), fn(stored) {
+        Editor(RestoreDraft(ExistingDraftLoaded(slug, updated_at, stored)))
       }),
     ]),
   )
 }
 
-pub fn title_or_default(title: String) -> String {
+fn title_or_default(title: String) -> String {
   case title == "" {
     True -> "Hello World"
     False -> title
   }
 }
 
-pub fn stdin_option(stdin: String) -> option.Option(String) {
+fn stdin_option(stdin: String) -> option.Option(String) {
   case stdin == "" {
     True -> option.None
     False -> option.Some(stdin)

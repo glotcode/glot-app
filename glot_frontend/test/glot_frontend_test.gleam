@@ -10,6 +10,7 @@ import glot_frontend/account/page as account_page
 import glot_frontend/public/contact/message as contact_message
 import glot_frontend/public/contact/model as contact_model
 import glot_frontend/public/contact/page as contact_page
+import glot_frontend/public/editor/lifecycle as editor_lifecycle
 import glot_frontend/public/editor/message as editor_message
 import glot_frontend/public/editor/model as editor_model
 import glot_frontend/public/editor/page as editor_page
@@ -81,22 +82,32 @@ pub fn snippets_page_ignores_loading_timer_from_previous_route_test() {
 }
 
 pub fn editor_page_ignores_loading_timer_from_previous_slug_test() {
-  let target = editor_model.ExistingEditor("second")
+  let target = editor_lifecycle.ExistingEditor("second")
   let #(initializing, _) = editor_page.init_managed(target)
   let #(model, _) =
     editor_page.update_managed(
       initializing,
-      editor_message.EnvironmentLoaded(target, "", editor_settings.defaults()),
+      editor_message.Lifecycle(editor_message.EnvironmentLoaded(
+        target,
+        "",
+        editor_settings.defaults(),
+      )),
       option.None,
     )
   let #(model_after_old_timer, _) =
     editor_page.update(
       model,
-      editor_message.SnippetLoadingDelayElapsed("first", 1),
+      editor_message.Lifecycle(editor_message.SnippetLoadingDelayElapsed(
+        "first",
+        1,
+      )),
       option.None,
     )
-  let assert editor_model.LoadingSnippet(_, _, loading_indicator) =
-    model_after_old_timer
+  let assert editor_model.Lifecycle(editor_lifecycle.LoadingSnippet(
+    _,
+    _,
+    loading_indicator,
+  )) = model_after_old_timer
 
   assert !delayed_loading.is_visible(loading_indicator)
 }

@@ -3,21 +3,25 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/document
 import glot_frontend/public/editor/draft as editor_draft
+import glot_frontend/public/editor/draft_persistence
 import glot_frontend/public/editor/draft_policy
+import glot_frontend/public/editor/entry_drafts
 import glot_frontend/public/editor/ids
-import glot_frontend/public/editor/message.{type Msg}
+import glot_frontend/public/editor/message.{type RestoreDraftMsg}
 import glot_frontend/public/editor/model.{
-  type RealModel, CustomRunInstructions, DefaultRunInstructions, RealModel,
+  type Editor, CustomRunInstructions, DefaultRunInstructions, Editor,
+  MetadataDraft, NoRestoreDraft, RestoreDraftPending, SettingsDraft, Snippet,
+  Workspace,
 }
 import glot_frontend/public/editor/run_instructions
 
 pub fn apply_loaded_draft(
-  model: RealModel,
+  model: Editor,
   slug: String,
   updated_at: Timestamp,
   stored: option.Option(editor_draft.StoredEditorDraft),
-) -> #(RealModel, command.Command(Msg)) {
-  case model.slug, model.updated_at {
+) -> #(Editor, command.Command(RestoreDraftMsg)) {
+  case model.snippet.slug, model.snippet.updated_at {
     option.Some(current_slug), option.Some(current_updated_at)
       if current_slug == slug && current_updated_at == updated_at
     ->
@@ -30,10 +34,13 @@ pub fn apply_loaded_draft(
             )
           {
             True -> #(
-              RealModel(..model, pending_restore_draft: option.Some(stored)),
+              Editor(..model, restore_draft: RestoreDraftPending(stored)),
               command.OpenDialogNextFrame(ids.restore_draft_dialog),
             )
-            False -> #(model, command.ClearExistingDraft(slug))
+            False -> #(
+              model,
+              command.ClearDraft(draft_persistence.ExistingSnippet(slug)),
+            )
           }
         option.None -> #(model, command.none())
       }
@@ -42,9 +49,9 @@ pub fn apply_loaded_draft(
 }
 
 pub fn apply_editor_draft(
-  model: RealModel,
+  model: Editor,
   draft: editor_draft.EditorDraft,
-) -> RealModel {
+) -> Editor {
   let files = draft.files
   let stdin = draft.stdin
   let selected_tab = document.initial_tab(files, stdin)
@@ -55,25 +62,33 @@ pub fn apply_editor_draft(
       run_instructions.default_run_instructions(draft.language, files)
   }
 
-  RealModel(
+  Editor(
     ..model,
-    title: draft.title,
-    title_draft: draft.title,
-    language: draft.language,
-    files: files,
-    stdin: stdin,
-    editor_external_revision: model.editor_external_revision + 1,
-    selected_tab: selected_tab,
-    add_entry_kind: document.default_add_entry_kind(stdin),
-    edit_entry_filename: document.default_file_name(files, selected_tab),
-    run_instructions_override: run_instructions_override,
-    run_instructions_mode_draft: case run_instructions_override {
-      option.Some(_) -> CustomRunInstructions
-      option.None -> DefaultRunInstructions
-    },
-    run_instructions_draft: run_instructions.run_instructions_to_draft(
-      run_instructions,
+    snippet: Snippet(
+      ..model.snippet,
+      title: draft.title,
+      language: draft.language,
+      files: files,
+      stdin: stdin,
+      run_instructions_override: run_instructions_override,
     ),
-    pending_restore_draft: option.None,
+    workspace: Workspace(
+      ..model.workspace,
+      editor_external_revision: model.workspace.editor_external_revision + 1,
+      selected_tab: selected_tab,
+    ),
+    entry_drafts: entry_drafts.initial(files, stdin, selected_tab),
+    metadata_draft: MetadataDraft(..model.metadata_draft, title: draft.title),
+    settings_draft: SettingsDraft(
+      ..model.settings_draft,
+      run_instructions_mode: case run_instructions_override {
+        option.Some(_) -> CustomRunInstructions
+        option.None -> DefaultRunInstructions
+      },
+      run_instructions: run_instructions.run_instructions_to_draft(
+        run_instructions,
+      ),
+    ),
+    restore_draft: NoRestoreDraft,
   )
 }
