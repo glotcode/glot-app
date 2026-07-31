@@ -6,8 +6,8 @@ import glot_frontend/public/editor/document
 import glot_frontend/public/editor/entry_drafts
 import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/model.{
-  type Editor, type Snippet, Editor, MetadataDraft, NoRestoreDraft, Operations,
-  SaveDraft, SettingsDraft, Snippet, Workspace,
+  type Editor, type Snippet, Editor, ExecutionConsole, MetadataDraft,
+  NoRestoreDraft, Operations, SaveDraft, SettingsDraft, Snippet, Workspace,
 }
 import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/save_operation
@@ -110,6 +110,7 @@ fn build(snippet: Snippet, editor_settings: settings.EditorSettings) -> Editor {
     operations: Operations(
       execution: execution_operation.initial(),
       save: save_operation.initial(),
+      console_owner: ExecutionConsole,
     ),
   )
 }

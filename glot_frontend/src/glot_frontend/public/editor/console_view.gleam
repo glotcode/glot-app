@@ -2,6 +2,9 @@ import gleam/option
 import gleam/string
 import glot_core/run
 import glot_frontend/public/editor/execution_operation
+import glot_frontend/public/editor/model.{
+  type ConsoleOwner, ExecutionConsole, SaveConsole,
+}
 import glot_frontend/public/editor/save_operation
 import glot_frontend/ui/duration_label
 import glot_web/page/editor_layout
@@ -9,40 +12,25 @@ import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
 
-pub fn run_button_text(run_state: execution_operation.State) -> String {
-  case run_state {
-    execution_operation.Running -> "Running..."
-    _ -> "Run"
-  }
-}
-
-pub fn save_button_text(save_state: save_operation.State) -> String {
-  case save_state {
-    save_operation.Saving -> "Saving..."
-    _ -> "Save"
-  }
-}
-
 pub fn view(
+  owner: ConsoleOwner,
   version_info: option.Option(String),
   run_state: execution_operation.State,
   save_state: save_operation.State,
 ) -> Element(msg) {
   editor_layout.console_shell(
-    header: header(version_info, run_state, save_state),
-    body: content(version_info, run_state, save_state),
+    header: header(owner, run_state),
+    body: content(owner, version_info, run_state, save_state),
   )
 }
 
 fn header(
-  version_info: option.Option(String),
+  owner: ConsoleOwner,
   run_state: execution_operation.State,
-  save_state: save_operation.State,
 ) -> Element(msg) {
-  case save_state, run_state, version_info {
-    save_operation.SaveIdle, execution_operation.Completed(Ok(_)), _ ->
-      html.div([], [])
-    _, _, _ ->
+  case owner, run_state {
+    ExecutionConsole, execution_operation.Completed(Ok(_)) -> html.div([], [])
+    _, _ ->
       html.div([attribute.class("editor-shell__console-header")], [
         html.text("INFO"),
       ])
@@ -50,15 +38,23 @@ fn header(
 }
 
 fn content(
+  owner: ConsoleOwner,
   version_info: option.Option(String),
   run_state: execution_operation.State,
   save_state: save_operation.State,
 ) -> Element(msg) {
+  case owner {
+    ExecutionConsole -> run_content(version_info, run_state)
+    SaveConsole -> save_content(save_state)
+  }
+}
+
+fn save_content(save_state: save_operation.State) -> Element(msg) {
   case save_state {
     save_operation.SaveError(message) -> block("SAVE FAILED", message)
     save_operation.Saving -> block("", "Saving snippet...")
     save_operation.Saved(_) -> block("", "Saved")
-    save_operation.SaveIdle -> run_content(version_info, run_state)
+    save_operation.SaveIdle -> html.div([], [])
   }
 }
 

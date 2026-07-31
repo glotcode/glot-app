@@ -14,10 +14,9 @@ import glot_frontend/public/editor/message.{
   TabSelected, VersionRunFinished,
 }
 import glot_frontend/public/editor/model.{
-  type Editor, type EditorTab, Editor, Operations, Workspace,
+  type Editor, type EditorTab, Editor, ExecutionConsole, Operations, Workspace,
 }
 import glot_frontend/public/editor/run_instructions
-import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/tab_semantics
 
 pub fn update(
@@ -67,10 +66,9 @@ pub fn update(
         Editor(
           ..model,
           operations: Operations(
+            ..model.operations,
             execution: next_execution,
-            // A new run becomes the active console operation. Without clearing
-            // completed save feedback, "Saved" masks the eventual run output.
-            save: save_operation.reset_feedback(model.operations.save),
+            console_owner: ExecutionConsole,
           ),
         ),
         command.RunCode(request, fn(result) { RunFinished(generation, result) }),

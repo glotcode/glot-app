@@ -130,7 +130,11 @@ routes. `model.Editor` composes focused
 fields. `Operations` composes opaque `execution_operation.Operation` and
 `save_operation.Operation` values. Those focused modules own their generation,
 state transitions, stale-response checks, and view-facing accessors; reducers
-never advance or compare operation generations directly. `Workspace` contains
+never advance or compare operation generations directly. `Operations` also
+owns an explicit console owner selected when a run or save starts. Completing
+an older operation cannot take console feedback away from the newer operation.
+`console_view` renders the selected operation and has no operation-state
+ownership. `Workspace` contains
 only document navigation and revision state;
 `EntryDrafts` owns independent add-entry and edit-entry drafts. Tab navigation
 cannot mutate those dialog drafts, and `entry_drafts` centralizes their

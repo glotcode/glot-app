@@ -89,7 +89,13 @@ pub type Operations {
   Operations(
     execution: execution_operation.Operation,
     save: save_operation.Operation,
+    console_owner: ConsoleOwner,
   )
+}
+
+pub type ConsoleOwner {
+  ExecutionConsole
+  SaveConsole
 }
 
 pub type RunInstructionsDraft {

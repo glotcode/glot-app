@@ -3,8 +3,8 @@ import gleam/int
 import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
+import glot_frontend/public/editor/console_view
 import glot_frontend/public/editor/document
-import glot_frontend/public/editor/execution
 import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/file_dialog_view
 import glot_frontend/public/editor/ids
@@ -140,23 +140,38 @@ fn view_helper(
     action_buttons: [
       action_button(
         "editor-shell__action-button",
-        execution.run_button_text(run_state),
+        run_button_text(model.operations.execution),
         execution_operation.is_running(model.operations.execution),
         Execution(RunSubmitted),
       ),
       action_button(
         "editor-shell__action-button",
-        execution.save_button_text(save_state),
+        save_button_text(model.operations.save),
         save_operation.is_saving(model.operations.save),
         Save(SaveClicked),
       ),
     ],
-    console: execution.view(
+    console: console_view.view(
+      model.operations.console_owner,
       execution_operation.version_info(model.operations.execution),
       run_state,
       save_state,
     ),
   )
+}
+
+fn run_button_text(operation: execution_operation.Operation) -> String {
+  case execution_operation.is_running(operation) {
+    True -> "Running..."
+    False -> "Run"
+  }
+}
+
+fn save_button_text(operation: save_operation.Operation) -> String {
+  case save_operation.is_saving(operation) {
+    True -> "Saving..."
+    False -> "Save"
+  }
 }
 
 fn action_button(

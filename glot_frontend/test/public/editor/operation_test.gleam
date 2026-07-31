@@ -51,11 +51,3 @@ pub fn save_operation_owns_generation_and_save_state_test() {
   assert save_operation.state(failed)
     == save_operation.SaveError("Save failed.")
 }
-
-pub fn resetting_save_feedback_preserves_request_identity_test() {
-  let #(saving, generation) = save_operation.initial() |> save_operation.begin
-  let reset = save_operation.reset_feedback(saving)
-
-  assert save_operation.state(reset) == save_operation.SaveIdle
-  assert save_operation.is_current(reset, generation)
-}

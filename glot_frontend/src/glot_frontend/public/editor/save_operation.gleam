@@ -39,10 +39,6 @@ pub fn fail(operation: Operation, message: String) -> Operation {
   Operation(..operation, state: SaveError(message))
 }
 
-pub fn reset_feedback(operation: Operation) -> Operation {
-  Operation(..operation, state: SaveIdle)
-}
-
 pub fn state(operation: Operation) -> State {
   operation.state
 }

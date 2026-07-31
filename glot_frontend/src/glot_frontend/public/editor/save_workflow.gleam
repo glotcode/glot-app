@@ -4,7 +4,7 @@ import glot_frontend/public/editor/command
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{type SaveMsg, SaveFinished}
 import glot_frontend/public/editor/model.{
-  type Editor, Editor, Operations, Snippet,
+  type Editor, Editor, Operations, SaveConsole, Snippet,
 }
 import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/save_operation
@@ -50,7 +50,11 @@ pub fn save_snippet(
     Editor(
       ..model,
       snippet: Snippet(..model.snippet, visibility: visibility),
-      operations: Operations(..model.operations, save: next_save),
+      operations: Operations(
+        ..model.operations,
+        save: next_save,
+        console_owner: SaveConsole,
+      ),
     ),
     combined_command,
   )
