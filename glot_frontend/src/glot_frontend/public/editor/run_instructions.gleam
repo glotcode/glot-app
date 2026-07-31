@@ -26,10 +26,6 @@ pub fn run_instructions_to_draft(
   )
 }
 
-pub fn run_instructions_mode(model: Editor) -> RunInstructionsMode {
-  run_instructions_mode_from_override(model.snippet.run_instructions_override)
-}
-
 pub fn run_instructions_mode_from_override(
   override: option.Option(language.RunInstructions),
 ) -> RunInstructionsMode {

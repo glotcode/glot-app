@@ -12,6 +12,7 @@ import glot_frontend/public/editor/model.{
 }
 import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/settings as editor_settings
+import glot_frontend/public/editor/settings_draft
 
 pub fn update(
   model: Editor,
@@ -19,16 +20,7 @@ pub fn update(
 ) -> #(Editor, command.Command(SettingsMsg)) {
   case msg {
     SettingsClicked -> #(
-      Editor(
-        ..model,
-        settings_draft: SettingsDraft(
-          editor_settings: model.editor_settings,
-          run_instructions_mode: run_instructions.run_instructions_mode(model),
-          run_instructions: run_instructions.run_instructions_to_draft(
-            run_instructions.effective_run_instructions(model),
-          ),
-        ),
-      ),
+      Editor(..model, settings_draft: settings_draft.from_editor(model)),
       command.OpenDialog(ids.settings_dialog),
     )
 
@@ -91,16 +83,7 @@ pub fn update(
     }
 
     SettingsCancelled -> #(
-      Editor(
-        ..model,
-        settings_draft: SettingsDraft(
-          editor_settings: model.editor_settings,
-          run_instructions_mode: run_instructions.run_instructions_mode(model),
-          run_instructions: run_instructions.run_instructions_to_draft(
-            run_instructions.effective_run_instructions(model),
-          ),
-        ),
-      ),
+      Editor(..model, settings_draft: settings_draft.from_editor(model)),
       command.CloseDialog(ids.settings_dialog),
     )
 
@@ -128,16 +111,7 @@ pub fn update(
     }
 
     SettingsDialogClosed -> #(
-      Editor(
-        ..model,
-        settings_draft: SettingsDraft(
-          editor_settings: model.editor_settings,
-          run_instructions_mode: run_instructions.run_instructions_mode(model),
-          run_instructions: run_instructions.run_instructions_to_draft(
-            run_instructions.effective_run_instructions(model),
-          ),
-        ),
-      ),
+      Editor(..model, settings_draft: settings_draft.from_editor(model)),
       focus_editor(),
     )
   }

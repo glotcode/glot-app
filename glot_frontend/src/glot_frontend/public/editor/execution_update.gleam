@@ -1,13 +1,13 @@
 import gleam/list
 import gleam/option
 import glot_core/api_action
-import glot_core/language
 import glot_core/public_action
 import glot_core/run
 import glot_frontend/api/response as api_response
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_projection
 import glot_frontend/public/editor/execution_operation
+import glot_frontend/public/editor/execution_workflow
 import glot_frontend/public/editor/file_workflow
 import glot_frontend/public/editor/message.{
   type ExecutionMsg, RunFinished, RunSubmitted, SourceCodeChanged, TabKeyPressed,
@@ -17,7 +17,6 @@ import glot_frontend/public/editor/model.{
   type Editor, type EditorTab, Editor, Workspace,
 }
 import glot_frontend/public/editor/operations
-import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/tab_semantics
 import glot_frontend/request_generation.{type Generation}
 
@@ -51,24 +50,7 @@ pub fn update(
       #(next_model, command.SaveDraft(draft_projection.write(next_model)))
     }
 
-    RunSubmitted -> {
-      let #(next_operations, generation) =
-        operations.begin_execution(model.operations)
-      let request =
-        run.RunRequest(
-          image: language.container_image(model.snippet.language),
-          payload: run.RunRequestPayload(
-            run_instructions: run_instructions.effective_run_instructions(model),
-            files: model.snippet.files,
-            stdin: model.snippet.stdin,
-          ),
-        )
-
-      #(
-        Editor(..model, operations: next_operations),
-        command.RunCode(request, fn(result) { RunFinished(generation, result) }),
-      )
-    }
+    RunSubmitted -> execution_workflow.run_snippet(model)
 
     RunFinished(generation, result) -> finish_run(model, generation, result)
 

@@ -1,3 +1,4 @@
+import gleam/list
 import gleam/option
 import gleam/string
 import glot_core/run
@@ -83,33 +84,29 @@ fn run_content(
 
 fn successful(success: run.SuccessfulRun) -> Element(msg) {
   let run.SuccessfulRun(duration:, stdout:, stderr:, error:) = success
-  case stdout != "" {
-    True ->
-      html.div([], [
-        result_panel("stdout", stdout, option.Some(duration)),
-        optional_result_panel("stderr", stderr),
-        optional_result_panel("error", error),
-      ])
-    False ->
-      case stderr != "" {
-        True ->
-          html.div([], [
-            result_panel("stderr", stderr, option.Some(duration)),
-            optional_result_panel("error", error),
-          ])
-        False ->
-          case error != "" {
-            True -> result_panel("error", error, option.Some(duration))
-            False -> block("", "READY.")
-          }
-      }
-  }
+  [
+    ResultStream("stdout", stdout),
+    ResultStream("stderr", stderr),
+    ResultStream("error", error),
+  ]
+  |> list.filter(fn(output) { output.content != "" })
+  |> output_panels(duration)
 }
 
-fn optional_result_panel(label: String, content: String) -> Element(msg) {
-  case content == "" {
-    True -> html.div([], [])
-    False -> result_panel(label, content, option.None)
+type ResultStream {
+  ResultStream(label: String, content: String)
+}
+
+fn output_panels(outputs: List(ResultStream), duration: Int) -> Element(msg) {
+  case outputs {
+    [] -> block("", "READY.")
+    [first, ..remaining] ->
+      html.div([], [
+        result_panel(first.label, first.content, option.Some(duration)),
+        ..list.map(remaining, fn(output) {
+          result_panel(output.label, output.content, option.None)
+        })
+      ])
   }
 }
 

@@ -1,12 +1,9 @@
 import gleam/option
 import gleam/string
-import gleam/time/timestamp
 import glot_core/language
 import glot_core/snippet/snippet_dto
 import glot_frontend/api/response
 import glot_frontend/public/editor/message
-import glot_frontend/public/editor/view
-import lustre/element
 import support/editor_fixture
 import support/editor_scenario
 
@@ -30,7 +27,7 @@ pub fn older_save_completion_cannot_hide_newer_run_feedback_test() {
         error: "",
       ),
     )
-  assert string.contains(render(scenario), "newer run output")
+  assert string.contains(editor_scenario.render(scenario), "newer run output")
 
   let scenario =
     editor_scenario.respond_to_create_at(
@@ -38,7 +35,7 @@ pub fn older_save_completion_cannot_hide_newer_run_feedback_test() {
       0,
       response.Success(created_from_request("older-save", create_request)),
     )
-  let rendered = render(scenario)
+  let rendered = editor_scenario.render(scenario)
   assert string.contains(rendered, "newer run output")
   assert !string.contains(rendered, "Saved")
   editor_scenario.assert_no_pending_effects(scenario)
@@ -60,7 +57,7 @@ pub fn older_run_completion_cannot_hide_newer_save_feedback_test() {
       1,
       response.Success(created_from_request("newer-save", create_request)),
     )
-  assert string.contains(render(scenario), "Saved")
+  assert string.contains(editor_scenario.render(scenario), "Saved")
 
   let scenario =
     editor_scenario.respond_to_run_at(
@@ -72,15 +69,17 @@ pub fn older_run_completion_cannot_hide_newer_save_feedback_test() {
         error: "",
       ),
     )
-  let rendered = render(scenario)
+  let rendered = editor_scenario.render(scenario)
   assert string.contains(rendered, "Saved")
   assert !string.contains(rendered, "older run output")
   editor_scenario.assert_no_pending_effects(scenario)
 }
 
 fn new_scenario() -> editor_scenario.Scenario {
-  editor_scenario.new_editor(language.JavaScript)
-  |> editor_scenario.start(option.Some(editor_fixture.owner_id()))
+  editor_scenario.start_new_editor(
+    language.JavaScript,
+    option.Some(editor_fixture.owner_id()),
+  )
 }
 
 fn created_from_request(
@@ -88,13 +87,4 @@ fn created_from_request(
   request: snippet_dto.CreateSnippetRequest,
 ) -> snippet_dto.SnippetResponse {
   editor_fixture.updated(editor_fixture.snippet(slug, ""), request.data)
-}
-
-fn render(scenario: editor_scenario.Scenario) -> String {
-  view.view(
-    editor_scenario.model(scenario),
-    option.Some(editor_fixture.owner_id()),
-    timestamp.from_unix_seconds(300),
-  )
-  |> element.to_document_string
 }

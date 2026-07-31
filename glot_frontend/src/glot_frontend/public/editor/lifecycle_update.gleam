@@ -13,7 +13,7 @@ import glot_frontend/public/editor/message.{
   NewDraftLoaded, RestoreDraft, SnippetLoaded, SnippetLoadingDelayElapsed,
 }
 import glot_frontend/public/editor/model.{
-  type Editor, type Model, Lifecycle as LifecycleModel, Ready,
+  type Model, Lifecycle as LifecycleModel, Ready,
 }
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/run_instructions
@@ -125,7 +125,7 @@ fn init_supported_new(
   language: language.Language,
   editor_settings: settings.EditorSettings,
 ) -> #(Model, command.Command(Msg)) {
-  let model = Ready(new_editor_model(language, editor_settings))
+  let model = Ready(ready.new(language, editor_settings))
   let language_slug = language.to_string(language)
   #(
     model,
@@ -137,11 +137,4 @@ fn init_supported_new(
       }),
     ]),
   )
-}
-
-fn new_editor_model(
-  lang: language.Language,
-  editor_settings: settings.EditorSettings,
-) -> Editor {
-  ready.new(lang, editor_settings)
 }

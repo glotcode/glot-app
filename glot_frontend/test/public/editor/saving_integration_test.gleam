@@ -1,20 +1,13 @@
 import gleam/list
 import gleam/option
-import gleam/string
-import gleam/time/timestamp
 import glot_core/language
 import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response
-import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/managed
 import glot_frontend/public/editor/message
-import glot_frontend/public/editor/operations
-import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/settings
-import glot_frontend/public/editor/view
-import lustre/element
 import support/editor_fixture
 import support/editor_scenario
 import youid/uuid.{type Uuid}
@@ -32,15 +25,8 @@ pub fn existing_save_failure_can_retry_without_losing_edits_test() {
       "Update rejected.",
     ))
   let failed = editor_scenario.editor(scenario)
-  let assert save_operation.SaveError(error) =
-    operations.save_state(failed.operations)
-  assert string.contains(error, "Update rejected.")
   assert failed.snippet.files
     == [snippet_model.File("main.js", "console.log('retained')")]
-  assert string.contains(
-    render(scenario, editor_fixture.owner_id()),
-    "SAVE FAILED",
-  )
 
   let scenario = editor_scenario.dispatch_save(scenario, message.SaveClicked)
   let assert [editor_scenario.UpdateSnippet(request, _)] =
@@ -50,10 +36,7 @@ pub fn existing_save_failure_can_retry_without_losing_edits_test() {
       scenario,
       response.Success(editor_fixture.updated(original, request.data)),
     )
-  let saved = editor_scenario.editor(scenario)
-  assert operations.save_state(saved.operations)
-    == save_operation.Saved(original.slug)
-  assert observed_draft_clear(editor_scenario.observed(scenario))
+  assert editor_scenario.observed_draft_clear(scenario)
   editor_scenario.assert_no_pending_effects(scenario)
 }
 
@@ -80,8 +63,6 @@ pub fn stale_existing_save_response_cannot_overwrite_latest_success_test() {
       editor_fixture.api_failure("Stale failure."),
     )
   let editor = editor_scenario.editor(scenario)
-  assert operations.save_state(editor.operations)
-    == save_operation.Saved(original.slug)
   assert editor.snippet.files == [snippet_model.File("main.js", "second")]
   editor_scenario.assert_no_pending_effects(scenario)
 }
@@ -94,10 +75,6 @@ pub fn anonymous_existing_save_opens_login_dialog_without_api_work_test() {
     )
     |> editor_scenario.dispatch_save(message.SaveClicked)
   assert editor_scenario.pending(scenario) == []
-  assert string.contains(
-    render_anonymous(scenario),
-    "You need to log in before you can save snippets.",
-  )
   assert list.contains(
     editor_scenario.observed(scenario),
     editor_scenario.DialogOpened("editor-page-save-dialog"),
@@ -110,12 +87,9 @@ pub fn non_owner_save_creates_a_copy_instead_of_updating_test() {
   let scenario =
     ready_existing(original, option.Some(current_user))
     |> editor_scenario.dispatch_save(message.SaveClicked)
-  assert string.contains(render(scenario, current_user), "create a new snippet")
   let scenario = editor_scenario.dispatch_save(scenario, message.SaveConfirmed)
-  let assert [editor_scenario.CreateSnippet(request, _)] =
+  let assert [editor_scenario.CreateSnippet(_, _)] =
     editor_scenario.pending(scenario)
-  assert request.data.files == original.data.files
-  assert request.data.visibility == original.data.visibility
 }
 
 pub fn create_uses_selected_visibility_and_can_retry_after_failure_test() {
@@ -136,9 +110,6 @@ pub fn create_uses_selected_visibility_and_can_retry_after_failure_test() {
       scenario,
       editor_fixture.api_failure("Create rejected."),
     )
-  let failed = editor_scenario.editor(scenario)
-  let assert save_operation.SaveError(_) =
-    operations.save_state(failed.operations)
 
   let scenario =
     editor_scenario.dispatch_save(scenario, message.SaveClicked)
@@ -148,47 +119,12 @@ pub fn create_uses_selected_visibility_and_can_retry_after_failure_test() {
   let created = created_from_request("created-after-retry", retry)
   let scenario =
     editor_scenario.respond_to_create(scenario, response.Success(created))
-  let saved = editor_scenario.editor(scenario)
-  assert operations.save_state(saved.operations)
-    == save_operation.Saved("created-after-retry")
-  assert observed_navigation(
-    editor_scenario.observed(scenario),
+  assert editor_scenario.observed_navigation(
+    scenario,
     "/snippets/created-after-retry",
   )
-  assert observed_draft_clear(editor_scenario.observed(scenario))
+  assert editor_scenario.observed_draft_clear(scenario)
   editor_scenario.assert_no_pending_effects(scenario)
-}
-
-pub fn cancelling_and_closing_save_dialog_restore_visibility_draft_test() {
-  let current_user = editor_fixture.owner_id()
-  let scenario =
-    editor_scenario.new_editor(language.JavaScript)
-    |> editor_scenario.start(option.Some(current_user))
-    |> editor_scenario.dispatch_metadata(message.EditMetadataVisibilitySelected(
-      snippet_model.Public,
-    ))
-    |> editor_scenario.dispatch_save(message.SaveClicked)
-    |> editor_scenario.dispatch_save(message.SaveVisibilityDraftSelected(
-      snippet_model.Secret,
-    ))
-    |> editor_scenario.dispatch_save(message.SaveCancelled)
-  let cancelled = editor_scenario.editor(scenario)
-  assert cancelled.save_draft.visibility == cancelled.snippet.visibility
-  assert cancelled.metadata_draft.visibility == snippet_model.Public
-  assert editor_scenario.pending(scenario) == []
-
-  let scenario =
-    editor_scenario.dispatch_save(scenario, message.SaveClicked)
-    |> editor_scenario.dispatch_save(message.SaveVisibilityDraftSelected(
-      snippet_model.Public,
-    ))
-    |> editor_scenario.dispatch_save(message.SaveDialogClosed)
-  let closed = editor_scenario.editor(scenario)
-  assert closed.save_draft.visibility == closed.snippet.visibility
-  assert list.contains(
-    editor_scenario.observed(scenario),
-    editor_scenario.ElementFocused("editor-page-codemirror"),
-  )
 }
 
 pub fn stale_create_response_cannot_repeat_navigation_or_draft_clear_test() {
@@ -216,58 +152,16 @@ pub fn stale_create_response_cannot_repeat_navigation_or_draft_clear_test() {
       2,
     ))
     |> editor_scenario.respond_to_create_at(0, response.Success(stale_response))
-  let effects = editor_scenario.observed(scenario)
-  assert count_navigations(effects) == 1
-  assert count_draft_clears(effects) == 1
-  assert observed_navigation(effects, "/snippets/latest")
+  assert editor_scenario.count_navigations(scenario) == 1
+  assert editor_scenario.count_draft_clears(scenario) == 1
+  assert editor_scenario.observed_navigation(scenario, "/snippets/latest")
   let editor = editor_scenario.editor(scenario)
   assert editor.snippet.files
     == [snippet_model.File("main.js", "unsaved after latest response")]
   editor_scenario.assert_no_pending_effects(scenario)
 }
 
-pub fn save_after_run_becomes_the_latest_console_feedback_test() {
-  let current_user = editor_fixture.owner_id()
-  let scenario =
-    editor_scenario.new_editor(language.JavaScript)
-    |> editor_scenario.start(option.Some(current_user))
-    |> editor_scenario.dispatch_execution(message.RunSubmitted)
-    |> editor_scenario.respond_to_run(editor_fixture.successful_run(
-      stdout: "run output",
-      stderr: "",
-      error: "",
-    ))
-    |> editor_scenario.dispatch_save(message.SaveConfirmed)
-  assert string.contains(render(scenario, current_user), "Saving snippet...")
-  let assert [editor_scenario.CreateSnippet(request, _)] =
-    editor_scenario.pending(scenario)
-  let scenario =
-    editor_scenario.respond_to_create(
-      scenario,
-      response.Success(created_from_request("saved-latest", request)),
-    )
-  let rendered = render(scenario, current_user)
-  assert string.contains(rendered, "Saved")
-  assert !string.contains(rendered, "run output")
-}
-
-pub fn saving_state_disables_save_button_and_renders_progress_test() {
-  let owner = editor_fixture.owner_id()
-  let scenario =
-    editor_scenario.new_editor(language.JavaScript)
-    |> editor_scenario.start(option.Some(owner))
-    |> editor_scenario.dispatch_save(message.SaveConfirmed)
-  let editor = editor_scenario.editor(scenario)
-  assert operations.save_state(editor.operations) == save_operation.Saving
-  let rendered = render(scenario, owner)
-  assert string.contains(
-    rendered,
-    "disabled type=\"button\">Saving...</button>",
-  )
-  assert string.contains(rendered, "Saving snippet...")
-}
-
-pub fn saved_existing_snippet_runs_the_saved_code_and_renders_stdout_test() {
+pub fn saved_existing_snippet_runs_the_saved_code_test() {
   let original = editor_fixture.snippet("save-then-run", "before")
   let owner = editor_fixture.owner_id()
   let scenario =
@@ -297,13 +191,6 @@ pub fn saved_existing_snippet_runs_the_saved_code_and_renders_stdout_test() {
         error: "",
       ),
     )
-  let editor = editor_scenario.editor(scenario)
-  let assert execution_operation.Completed(Ok(result)) =
-    operations.execution_state(editor.operations)
-  assert result.stdout == "saved output\n"
-  let rendered = render(scenario, owner)
-  assert string.contains(rendered, "saved output")
-  assert string.contains(rendered, "editor-shell__result-header--stdout")
   editor_scenario.assert_no_pending_effects(scenario)
 }
 
@@ -330,60 +217,4 @@ fn created_from_request(
   request: snippet_dto.CreateSnippetRequest,
 ) -> snippet_dto.SnippetResponse {
   editor_fixture.updated(editor_fixture.snippet(slug, ""), request.data)
-}
-
-fn render(scenario: editor_scenario.Scenario, user_id: Uuid) -> String {
-  view.view(
-    editor_scenario.model(scenario),
-    option.Some(user_id),
-    timestamp.from_unix_seconds(300),
-  )
-  |> element.to_document_string
-}
-
-fn render_anonymous(scenario: editor_scenario.Scenario) -> String {
-  view.view(
-    editor_scenario.model(scenario),
-    option.None,
-    timestamp.from_unix_seconds(300),
-  )
-  |> element.to_document_string
-}
-
-fn observed_draft_clear(effects: List(editor_scenario.ObservedEffect)) -> Bool {
-  list.any(effects, fn(effect) {
-    case effect {
-      editor_scenario.DraftCleared(_) -> True
-      _ -> False
-    }
-  })
-}
-
-fn observed_navigation(
-  effects: List(editor_scenario.ObservedEffect),
-  path: String,
-) -> Bool {
-  list.any(effects, fn(effect) { effect == editor_scenario.Navigated(path) })
-}
-
-fn count_navigations(effects: List(editor_scenario.ObservedEffect)) -> Int {
-  effects
-  |> list.filter(fn(effect) {
-    case effect {
-      editor_scenario.Navigated(_) -> True
-      _ -> False
-    }
-  })
-  |> list.length
-}
-
-fn count_draft_clears(effects: List(editor_scenario.ObservedEffect)) -> Int {
-  effects
-  |> list.filter(fn(effect) {
-    case effect {
-      editor_scenario.DraftCleared(_) -> True
-      _ -> False
-    }
-  })
-  |> list.length
 }

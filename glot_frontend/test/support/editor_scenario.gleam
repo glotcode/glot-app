@@ -1,5 +1,6 @@
 import gleam/list
 import gleam/option
+import gleam/time/timestamp
 import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_dto
@@ -12,6 +13,8 @@ import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/settings
+import glot_frontend/public/editor/view
+import lustre/element
 import support/managed_scenario
 import youid/uuid.{type Uuid}
 
@@ -161,12 +164,72 @@ pub fn editor(scenario: Scenario) -> model.Editor {
   editor
 }
 
+/// Render a scenario with the same authenticated user and stable clock used by
+/// its managed update boundary.
+pub fn render(scenario: Scenario) -> String {
+  view.view(
+    model(scenario),
+    scenario.current_user_id,
+    timestamp.from_unix_seconds(300),
+  )
+  |> element.to_document_string
+}
+
 pub fn pending(scenario: Scenario) -> List(PendingEffect) {
   managed_scenario.pending(scenario.core)
 }
 
 pub fn observed(scenario: Scenario) -> List(ObservedEffect) {
   managed_scenario.observed(scenario.core)
+}
+
+pub fn observed_draft_save(scenario: Scenario) -> Bool {
+  list.any(observed(scenario), fn(effect) {
+    case effect {
+      DraftSaved(_) -> True
+      _ -> False
+    }
+  })
+}
+
+pub fn observed_draft_clear(scenario: Scenario) -> Bool {
+  list.any(observed(scenario), fn(effect) {
+    case effect {
+      DraftCleared(_) -> True
+      _ -> False
+    }
+  })
+}
+
+pub fn observed_settings_save(scenario: Scenario) -> Bool {
+  list.any(observed(scenario), fn(effect) {
+    case effect {
+      SettingsSaved(_) -> True
+      _ -> False
+    }
+  })
+}
+
+pub fn observed_navigation(scenario: Scenario, path: String) -> Bool {
+  list.contains(observed(scenario), Navigated(path))
+}
+
+pub fn count_navigations(scenario: Scenario) -> Int {
+  count_observed(scenario, fn(effect) {
+    case effect {
+      Navigated(_) -> True
+      _ -> False
+    }
+  })
+}
+
+pub fn count_draft_clears(scenario: Scenario) -> Int {
+  count_observed(scenario, fn(effect) {
+    case effect {
+      DraftCleared(_) -> True
+      _ -> False
+    }
+  })
 }
 
 pub fn scheduled(scenario: Scenario) -> List(ScheduledEffect) {
@@ -299,6 +362,23 @@ pub fn assert_no_pending_effects(scenario: Scenario) -> Nil {
 
 pub fn new_editor(lang: language.Language) -> model.Model {
   model.Ready(ready.new(lang, settings.defaults()))
+}
+
+pub fn start_new_editor(
+  lang: language.Language,
+  current_user_id: option.Option(Uuid),
+) -> Scenario {
+  new_editor(lang)
+  |> start(current_user_id)
+}
+
+fn count_observed(
+  scenario: Scenario,
+  predicate: fn(ObservedEffect) -> Bool,
+) -> Int {
+  observed(scenario)
+  |> list.filter(predicate)
+  |> list.length
 }
 
 fn interpret(

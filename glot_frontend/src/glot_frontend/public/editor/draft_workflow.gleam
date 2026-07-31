@@ -8,12 +8,11 @@ import glot_frontend/public/editor/draft_policy
 import glot_frontend/public/editor/entry_drafts
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{type RestoreDraftMsg}
+import glot_frontend/public/editor/metadata_draft
 import glot_frontend/public/editor/model.{
-  type Editor, CustomRunInstructions, DefaultRunInstructions, Editor,
-  MetadataDraft, NoRestoreDraft, RestoreDraftPending, SettingsDraft, Snippet,
-  Workspace,
+  type Editor, Editor, NoRestoreDraft, RestoreDraftPending, Snippet, Workspace,
 }
-import glot_frontend/public/editor/run_instructions
+import glot_frontend/public/editor/settings_draft
 
 pub fn apply_loaded_draft(
   model: Editor,
@@ -56,11 +55,6 @@ pub fn apply_editor_draft(
   let stdin = draft.stdin
   let selected_tab = document.initial_tab(files, stdin)
   let run_instructions_override = draft.run_instructions_override
-  let run_instructions = case run_instructions_override {
-    option.Some(instructions) -> instructions
-    option.None ->
-      run_instructions.default_run_instructions(draft.language, files)
-  }
 
   Editor(
     ..model,
@@ -78,16 +72,12 @@ pub fn apply_editor_draft(
       selected_tab: selected_tab,
     ),
     entry_drafts: entry_drafts.initial(files, stdin, selected_tab),
-    metadata_draft: MetadataDraft(..model.metadata_draft, title: draft.title),
-    settings_draft: SettingsDraft(
-      ..model.settings_draft,
-      run_instructions_mode: case run_instructions_override {
-        option.Some(_) -> CustomRunInstructions
-        option.None -> DefaultRunInstructions
-      },
-      run_instructions: run_instructions.run_instructions_to_draft(
-        run_instructions,
-      ),
+    metadata_draft: metadata_draft.new(draft.title, model.snippet.visibility),
+    settings_draft: settings_draft.new(
+      model.editor_settings,
+      draft.language,
+      files,
+      run_instructions_override,
     ),
     restore_draft: NoRestoreDraft,
   )

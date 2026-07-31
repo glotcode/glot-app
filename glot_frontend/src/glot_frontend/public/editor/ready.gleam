@@ -4,13 +4,14 @@ import glot_core/language
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/document
 import glot_frontend/public/editor/entry_drafts
+import glot_frontend/public/editor/metadata_draft
 import glot_frontend/public/editor/model.{
-  type Editor, type Snippet, Editor, MetadataDraft, NoRestoreDraft, SaveDraft,
-  SettingsDraft, Snippet, Workspace,
+  type Editor, type Snippet, Editor, NoRestoreDraft, SaveDraft, Snippet,
+  Workspace,
 }
 import glot_frontend/public/editor/operations
-import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/settings
+import glot_frontend/public/editor/settings_draft
 import youid/uuid.{type Uuid}
 
 pub fn new(
@@ -72,11 +73,6 @@ pub fn existing(
 
 fn build(snippet: Snippet, editor_settings: settings.EditorSettings) -> Editor {
   let selected_tab = document.initial_tab(snippet.files, snippet.stdin)
-  let effective_run_instructions = case snippet.run_instructions_override {
-    option.Some(instructions) -> instructions
-    option.None ->
-      run_instructions.default_run_instructions(snippet.language, snippet.files)
-  }
 
   Editor(
     snippet: snippet,
@@ -91,19 +87,13 @@ fn build(snippet: Snippet, editor_settings: settings.EditorSettings) -> Editor {
       selected_tab,
     ),
     editor_settings: editor_settings,
-    settings_draft: SettingsDraft(
-      editor_settings: editor_settings,
-      run_instructions_mode: run_instructions.run_instructions_mode_from_override(
-        snippet.run_instructions_override,
-      ),
-      run_instructions: run_instructions.run_instructions_to_draft(
-        effective_run_instructions,
-      ),
+    settings_draft: settings_draft.new(
+      editor_settings,
+      snippet.language,
+      snippet.files,
+      snippet.run_instructions_override,
     ),
-    metadata_draft: MetadataDraft(
-      title: snippet.title,
-      visibility: snippet.visibility,
-    ),
+    metadata_draft: metadata_draft.new(snippet.title, snippet.visibility),
     save_draft: SaveDraft(visibility: snippet.visibility),
     restore_draft: NoRestoreDraft,
     operations: operations.initial(),

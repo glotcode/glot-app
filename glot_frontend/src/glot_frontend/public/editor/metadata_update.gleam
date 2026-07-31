@@ -6,6 +6,7 @@ import glot_frontend/public/editor/message.{
   EditMetadataDialogClosed, EditMetadataSubmitted,
   EditMetadataVisibilitySelected, TitleDraftChanged,
 }
+import glot_frontend/public/editor/metadata_draft
 import glot_frontend/public/editor/model.{
   type Editor, Editor, MetadataDraft, Snippet,
 }
@@ -16,13 +17,7 @@ pub fn update(
 ) -> #(Editor, command.Command(MetadataMsg)) {
   case msg {
     EditMetadataClicked -> #(
-      Editor(
-        ..model,
-        metadata_draft: MetadataDraft(
-          title: model.snippet.title,
-          visibility: model.snippet.visibility,
-        ),
-      ),
+      Editor(..model, metadata_draft: metadata_draft.from_editor(model)),
       command.OpenDialog(ids.edit_metadata_dialog),
     )
 
@@ -49,7 +44,7 @@ pub fn update(
     )
 
     EditMetadataCancelled -> #(
-      reset_edit_metadata_draft(model),
+      Editor(..model, metadata_draft: metadata_draft.from_editor(model)),
       command.CloseDialog(ids.edit_metadata_dialog),
     )
 
@@ -73,7 +68,7 @@ pub fn update(
     }
 
     EditMetadataDialogClosed -> #(
-      reset_edit_metadata_draft(model),
+      Editor(..model, metadata_draft: metadata_draft.from_editor(model)),
       focus_editor(),
     )
   }
@@ -81,14 +76,4 @@ pub fn update(
 
 fn focus_editor() -> command.Command(msg) {
   command.Focus(ids.editor)
-}
-
-fn reset_edit_metadata_draft(model: Editor) -> Editor {
-  Editor(
-    ..model,
-    metadata_draft: MetadataDraft(
-      title: model.snippet.title,
-      visibility: model.snippet.visibility,
-    ),
-  )
 }
