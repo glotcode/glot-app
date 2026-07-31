@@ -1,39 +1,66 @@
 # Frontend architecture
 
-The frontend is a pair of Lustre applications: a public application and an
-administration application. They share runtime capabilities, UI primitives,
-and HTTP transport, while their feature state machines remain independent.
+The frontend contains two Lustre applications: a public application and an
+administration application. They share runtime capabilities, transport, and UI
+primitives while keeping their feature state machines independent.
 
 ## Design goals
 
-- A feature's state, messages, update logic, views, validation, and endpoint
-  definitions are easy to find together.
-- Application roots compose features and cross-cutting runtime capabilities;
-  they do not contain feature business rules.
-- Browser APIs and JavaScript interop are isolated behind small platform
-  modules.
-- HTTP transport is independent from endpoint definitions.
-- Shared abstractions remove mechanical repetition without hiding state
-  transitions or effects.
-- Server and client rendering can share presentation without making domain
-  modules depend on presentation code.
+- Keep feature state, messages, transitions, commands, and presentation close
+  to the feature that owns them.
+- Keep application roots focused on composition and cross-cutting lifecycle
+  concerns rather than feature rules.
+- Make state transitions and effects explicit, deterministic, and testable
+  without a browser.
+- Isolate HTTP, browser APIs, storage, timers, and JavaScript interop behind
+  narrow production boundaries.
+- Share mechanical infrastructure without erasing domain-specific types or
+  hiding important behavior.
 
 ## Source layout
 
 ```text
 src/glot_frontend/
-  app/       Application roots and shared runtime state machines.
-  public/    Public features, including the editor and snippet browser.
+  app/       Application composition and shared runtime state machines.
+  public/    Public features.
   account/   Authenticated account features.
-  admin/     Administration features and their router.
-  api/       HTTP client, response types, and endpoint modules.
+  admin/     Administration features and routing.
+  api/       HTTP transport, response types, and endpoint modules.
   ui/        Reusable presentation and UI-state helpers.
   platform/  Browser capabilities and their FFIs.
 ```
 
-Feature directories expose a small root module and keep implementation modules
-below it. A stateful feature exposes a deterministic managed reducer and a thin
-Lustre wrapper. The managed surface normally has this shape:
+Feature directories expose a small, stable public surface and keep their
+models, messages, transitions, commands, policies, and views in focused
+modules. Feature roots compose those modules; they should not become a second
+home for their implementation.
+
+## Dependency direction
+
+```text
+app -> features -> api / ui / platform -> glot_web -> glot_core
+                                \---------------------> glot_core
+```
+
+- Application modules may import the features they compose.
+- Features may import their own child modules and shared API, UI, platform,
+  presentation, and domain modules.
+- Features must not depend on unrelated features. Shared behavior belongs in
+  the narrowest appropriate shared layer.
+- `api/client` owns HTTP transport. Endpoint modules own action selection and
+  DTO codecs. UI modules do not construct HTTP requests.
+- `platform` is the only frontend layer that binds browser APIs through FFI.
+- `glot_core` remains presentation-free. Shared server/client presentation
+  belongs to `glot_web`; browser-only behavior belongs to the frontend.
+
+## State and effects
+
+Stateful features separate deterministic transitions from production effects.
+A managed reducer receives a model and message and returns the next model plus
+a typed command. A thin production interpreter executes those commands using
+feature-owned runtime ports and maps results back into messages.
+
+The usual managed surface is:
 
 ```gleam
 pub opaque type Model
@@ -43,338 +70,72 @@ pub fn init_managed(...) -> #(Model, Command(Msg))
 pub fn update_managed(model: Model, msg: Msg, ...) -> #(Model, Command(Msg))
 ```
 
-The page wrapper interprets commands with production ports and exposes the
-Lustre `Effect`-returning API. Child state machines use the managed shape. The
-feature root maps child messages and commands. Models are opaque outside their
-owning feature unless callers have a concrete need to inspect them.
+- Messages describe events; update branches make the resulting transition and
+  command visible.
+- Commands contain typed requests and response-to-message callbacks.
+- Managed reducers remain transitively independent of Lustre `Effect`, HTTP
+  interpreters, browser APIs, navigation implementations, timers, and storage
+  adapters.
+- Runtime dependencies are assembled in feature- or application-owned port
+  bundles at the production boundary.
+- Pure models, codecs, policies, and projections remain separate from their
+  runtime adapters.
+- Parent reducers map child messages and commands explicitly. Child state
+  machines own their internal invariants.
+- Asynchronous work carries typed identity or generation state when stale or
+  reordered responses are possible.
+- Shared abstractions are introduced after repeated pure transitions reveal a
+  stable common structure; feature-specific state and message types remain
+  explicit.
 
-Stateful admin features use the same separation with an explicit directory
-layout: `model.gleam` owns state, `message.gleam` owns events and callbacks,
-`managed.gleam` owns pure initialization and updates, `view.gleam` owns Lustre
-presentation, and the feature's `page.gleam` or `detail.gleam` is the thin
-public facade. Shared DOM identifiers live in a feature-local constants module
-when both the reducer and view need them.
-
-Admin areas with distinct list and detail subfeatures use the equivalent
-`list_model`, `list_message`, `list_managed`, and `list_view` naming (and the
-matching `detail_*` modules). `list.gleam` and `detail.gleam` remain stable,
-thin router-facing entry points; they do not own state transitions or markup.
-
-Large composition points follow the same rule. The admin router keeps route
-initialization, session resolution, and update orchestration in
-`admin/router_managed`; `router_state`, `router_message`, and `router_view` own
-the sum types and page dispatch view; and `router.gleam` remains a thin stable
-facade. The managed router imports child model, message, and managed modules
-directly so its transitive dependency graph does not pass through presentation
-facades. Its exhaustive route and message branches declare the child transition
-and matching model/message constructors; shared typed lifting helpers perform
-the mechanical state rebuilding and command mapping. Application session,
-heartbeat, and navigation transitions live in
-`app/admin_managed` and the generic `app/public_managed` lifecycle reducer.
-The admin lifecycle receives a generic `Pages` contract, so its transitive
-dependency graph remains independent of the concrete router and presentation.
-Their command values are interpreted only by the application production
-boundary. Application composition lives in the pure `app/public_root_managed`
-and `app/admin_root_managed` reducers. They own lifecycle and quick-action
-coordination and emit application command algebras. `app/public` and
-`app/admin` are only Lustre bootstrap shells; the matching
-`app/*_root_production` modules are their production interpreters. Public
-route-to-page state, messages, managed transitions, commands, presentation,
-and production interpretation are split across the focused `app/public_page_*`
-modules; `app/public_page` remains their stable facade. The admin root composes
-the existing pure admin router modules directly. Top-bar search and selection
-presentation lives in `app/public_quick_actions`.
-Public page transitions report metadata changes as transition data. Editor
-transitions derive that flag by comparing the pure metadata projection before
-and after the state change, so metadata invalidation follows rendered SEO state
-instead of duplicating it in a message classification.
-`app/runtime` is pure shared state; HTTP-backed pageview and app-event operations
-live in `app/runtime_production`.
-
-Quick-action interaction state is shared by both applications through
-`app/quick_actions_managed`. It emits typed dialog, scrolling, and selected-action
-commands. `app/quick_actions_root_managed` coordinates that state with an
-application root through an explicit typed contract: roots provide model access,
-available sections, command constructors, and target execution, while the
-coordinator owns query clearing, dialog-command ordering, and navigation reset.
-
-Admin reusable controls are imported directly from the focused `layout`,
-`status`, `dialog`, `filter`, `form`, and `pagination` modules. There is no
-aggregate UI facade: ownership and dependency intent stay explicit at every
-call site.
-
-The editor reducer delegates cohesive state transitions to
-`restore_draft_update`, `metadata_update`, `file_update`, `settings_update`,
-`save_update`, `snippet_info_update`, and `execution_update`. Presentation is
-similarly split: `tab_navigation_view` emits only execution messages,
-`workspace_toolbar_view` composes and maps tab, file, and settings controls,
-and each metadata, file, settings, save, restore-draft, and
-snippet-information dialog owns its presentation module. `dialog_controls`
-owns reusable choices. The root update and view modules remain exhaustive
-dispatchers, making every new message visibly assigned to a workflow. The root
-`Msg` algebra separates `LifecycleMsg` from `EditorMsg`; `EditorMsg` then wraps
-the focused restore-draft, metadata, file, settings, save, snippet-information,
-and execution message types. The ready editor reducer and view accept only
-`EditorMsg`, so lifecycle messages cannot cross into workflow code. Each
-workflow reducer accepts only its own message type and is exhaustive over that
-type. Workflow commands are lifted first into `EditorMsg` and then into the
-page-wide algebra with `command.map`, so asynchronous callbacks retain the same
-ownership boundary.
-
-The page model separates `Lifecycle(lifecycle.Model)` from `Ready(Editor)`.
-`lifecycle.Model` owns initialization, loading, unsupported-language, and load
-error states, while `lifecycle.Target` identifies new and existing editor
-routes. `model.Editor` composes focused
-`Snippet`, `Workspace`, `EntryDrafts`, `MetadataDraft`, `SaveDraft`,
-`SettingsDraft`, and an opaque `operations.Operations` value instead of
-exposing one flat bag of fields. The aggregate composes opaque
-`execution_operation.Operation` and `save_operation.Operation` values. It
-atomically starts operations and selects their console, accepts typed
-completions, rejects stale generations, and exposes read-only state accessors.
-Reducers never construct operation state or advance or compare generations.
-Completing an older operation cannot take console feedback away from the newer
-operation. `console_view` renders the selected operation and has no
-operation-state ownership. `Workspace` contains
-only document navigation and revision state;
-`EntryDrafts` owns independent add-entry and edit-entry drafts. Tab navigation
-cannot mutate those dialog drafts, and `entry_drafts` centralizes their
-initialization after loading or restoring content. Save-dialog
-choices and metadata-editing choices have independent drafts, so cancelling
-one workflow cannot reset the other. Reducers update the owning submodel
-explicitly, and persistence, metadata, and views read from the same
-domain-oriented structure. The pure `ready` module is the single constructor
-for new and existing loaded editors, keeping initial workspace, draft, and
-operation invariants consistent across SSR and API initialization paths. SSR
-and API loading also share the same existing-editor transition, including
-version loading and draft restoration commands, through
-`existing_editor_transition`.
-
-`lifecycle_resolution` purely decodes and reconciles SSR data with the current
-route, producing a typed plan to start a new editor, start from existing SSR,
-fetch an existing snippet, or show a terminal lifecycle state. Stale existing
-SSR for another slug is never accepted. `lifecycle_update` executes that plan
-and exclusively owns environment loading, snippet loading, delayed-loading
-visibility, and transitions into `Ready`. It accepts only `lifecycle.Model`,
-so a ready editor cannot enter lifecycle transition code. Existing SSR and API
-responses share validation and normalization through
-`existing_editor_transition`. `lifecycle_view` owns all non-ready
-presentation. The pure `editor/managed` boundary exhaustively routes the two
-page-state variants against lifecycle and editor messages. Both the production
-page and application-level managed routing reuse this boundary instead of
-duplicating lifecycle dispatch.
-
-Large admin detail pages keep data transformations and validation in focused
-pure policy modules, such as `jobs/create_job_policy`,
-`periodic_jobs/editor_policy`, `rate_limits/policy`, and
-`users/editor_policy`. Modal and form markup lives in matching focused view
-modules. Their root managed reducers are exhaustive dispatchers: loading and
-pagination, editor/save, and destructive or creation workflows live in
-focused `*_update` modules. Login and account snippet management follow the
-same workflow ownership. Managed reducers own lifecycle and commands; they do
-not accumulate request mapping, validation, or large presentation helpers. Pure filter
-classification shared by a reducer and view belongs in a feature-local policy
-module such as `users/list_filter`.
-
-Admin configuration follows the same dependency boundary at two levels.
-`config/page_managed`, `page_model`, and `page_message` compose section state
-and commands without importing Lustre presentation; `page_view` composes the
-section views. Every nontrivial configuration section separates its pure form
-policy from orchestration and presentation. Matching `*_policy` modules own
-fields, defaults, edits, validation, and DTO conversion; feature modules own
-messages and command selection; and `*_view` modules own markup.
-The managed-boundary checker transitively prevents policy modules from
-depending on commands, section lifecycle, transport responses, generations, or
-Lustre presentation.
-`config/section` contains the generic pure form state machine and exclusively
-owns its opaque load and save request cursors. Starting a
-request returns the advanced model together with the exact generation to place
-in its completion message; completion transitions reject stale generations,
-and edits or resets invalidate pending saves. All configuration forms,
-including debug configuration, use this shared lifecycle.
-`config/section_managed` maps admin commands and transport responses onto that
-pure state machine. Its shared `Event` type carries load and save completions,
-and opaque required or optional completion policies own DTO projection, HTTP
-failure messages, and the explicit missing-resource behavior used by optional
-configuration. Feature reducers wrap completions in one section-event branch;
-they do not expose generation or transport-response details.
-`config/section_view` contains the reusable card and status presentation.
-
-Job-type policies and periodic-job lists use the standard focused naming:
-model, message, managed reducer, pure policy where applicable, and view. Their
-root modules are stable facades only. The managed admin router imports the
-focused modules directly, preserving a presentation-free transitive graph.
-
-The account reducer follows the same workflow decomposition. Its root update is
-an exhaustive dispatcher, while initialization, profile, session, passkey, and
-account-access/deletion transitions live in focused workflow modules. New
-account messages must be assigned explicitly in the root dispatcher.
-Account session and passkey presentation uses explicit `*_view` modules beside
-their workflow modules. Login, public snippets, and account snippet management
-also keep Lustre markup in `view.gleam`; their `page.gleam` modules only expose
-stable lifecycle facades and interpret production commands.
-
-## Dependency direction
-
-```text
-app -> features -> api / ui / platform -> glot_web -> glot_core
-                                \---------------------> glot_core
-```
-
-- `app` may import any feature that it composes.
-- A feature may import its own child modules, `api`, `ui`, `platform`, and
-  domain/contracts from `glot_core`. Shared server/client presentation comes
-  from `glot_web`.
-- Features must not import unrelated features. Shared behavior moves to the
-  narrowest appropriate `ui`, `platform`, or domain module.
-- `api/client` owns transport. Endpoint modules own action selection and DTO
-  codecs. UI modules do not construct HTTP requests.
-- `platform` modules are the only frontend modules that directly bind browser
-  APIs through FFI.
-- Domain modules must not import frontend presentation or platform modules.
-- `glot_core` is presentation-free. Lustre elements, attributes, and shared
-  page views belong to `glot_web`; browser-only effects belong to the
-  frontend.
-
-## State and effects
-
-- Updates remain explicit. A message should make the triggering event clear,
-  and the corresponding branch should make both the state transition and
-  effect visible.
-- Features with multi-step workflows should return a feature-owned command
-  algebra from their reducer. Keep browser and HTTP execution in one thin
-  production interpreter so the reducer remains deterministic and an
-  in-memory interpreter can drive integration scenarios.
-- Commands contain typed requests and response-to-message callbacks. Do not
-  duplicate endpoint behavior in tests or replace typed commands with string
-  operation names.
-- Keep managed initialization and reducers transitively free of browser APIs,
-  HTTP endpoint interpreters, navigation, and `Effect`. Pure models, codecs,
-  policies, and UI state may be shared with them; storage and timer adapters
-  may not.
-- Put runtime capabilities in a feature-owned `Ports` bundle. The production
-  ports module is the only feature module that assembles API, storage, dialog,
-  timer, focus, and navigation implementations for the interpreter.
-- Split pure state and codecs from their runtime adapters. For example,
-  `draft` and `settings` are pure, while `draft_store` and `settings_store`
-  own browser persistence.
-- Editor draft persistence is split further by responsibility:
-  `draft_projection` projects loaded editor state into a focused persistence
-  target and write value; `draft_persistence` owns those target/write types,
-  stable keys, serialization, corruption detection, and expiration decisions;
-  `draft_repository` executes those decisions against injected synchronous
-  storage functions; and `draft_store` only assembles the production clock and
-  local-storage implementations. The command algebra exposes one `LoadDraft`,
-  `SaveDraft(Write)`, and `ClearDraft(Target)` interface, so loaded editor UI
-  state never crosses the effect boundary. Tests use repository functions
-  directly and never invoke browser FFI.
-- Use `Loadable(a)` for asynchronous reads and `MutationState` for writes.
-- A child owns request validation and maps successful responses back into its
-  saved and draft state.
-- Stale asynchronous responses must carry enough identity or generation data
-  to be rejected safely. The global opaque
-  `request_generation.Generation(stream)` type owns advancement and current
-  generation checks. Phantom stream markers distinguish operations where
-  cross-stream mixing is possible. Editor runs and saves and admin models with
-  multiple request streams use feature-owned markers for each operation. The
-  shared marker is reserved for single-stream boundaries where the surrounding
-  domain type already provides the operation identity. Admin cursor lists
-  additionally own an opaque
-  `admin/cursor_request.State`; `cursor_request.begin` advances that state and
-  returns its global generation. Delayed-loading timers also carry global
-  generations rather than raw integers. Features never construct or increment
-  raw generation integers.
-- Extract pure state transitions before introducing a generic abstraction.
-  Do not build schema-driven forms or erase feature-specific message types.
+Application roots use the same separation. Pure root reducers coordinate
+application lifecycle, routing, and shared interactions; bootstrap modules and
+production interpreters are thin effectful shells.
 
 ## Presentation
 
 - Feature views live with their feature. Reusable, domain-neutral controls live
   under `ui`.
-- CSS keeps its explicit cascade layers. Page-specific styles may remain in
-  feature-named stylesheets; moving Gleam modules does not require bundling CSS
-  into components. `css/ARCHITECTURE.md` defines ownership and
-  `npm run check:css` enforces the layer, entry-point, color-token, and
-  accessibility-media contracts.
-- Shared server/client Lustre views live in the shared web presentation area,
-  separate from pure domain and API contract modules.
+- Views render state and emit messages; they do not own transport or browser
+  effects.
+- Shared server/client Lustre views live in `glot_web`, separate from pure
+  domain and API contract modules.
+- CSS retains explicit cascade layers and may remain organized independently
+  from Gleam modules. `css/ARCHITECTURE.md` defines CSS ownership and enforced
+  constraints.
 
-## Tests
+## Testing and enforcement
 
-The `test` tree mirrors `src`. Prefer focused tests for pure policies,
-transitions, and feature reducers over broad markup snapshots. Every stateful feature should
-cover loading, success, failure, editing, reset, mutation success/failure, and
-stale-response behavior where applicable. Transport decoding is tested
-separately from endpoint construction.
+The `test` tree mirrors `src`. Prefer focused tests of pure policies and
+reducers, supplemented by browserless integration scenarios that drive the
+same messages, commands, callbacks, and views used in production.
 
-Integration scenarios run without a browser. They dispatch the same messages
-as the UI, execute the production reducer, inspect typed commands, complete API
-commands with fixture responses, and render the resulting Lustre view. The
-scenario interpreter must keep API work pending until a fixture explicitly
-completes it, keep timers pending until explicitly delivered, and fail when a
-scenario leaves unexpected work pending. Environment, SSR, settings, storage,
-and API responses are all fixtures. This also makes response ordering and
-stale-response behavior deterministic.
+Integration interpreters keep external work explicit and pending until a
+fixture completes it. This makes failures, retries, response ordering, stale
+responses, timers, storage, navigation, and observable browser commands
+deterministic. Rendered integration views also run through the shared
+accessibility contract.
 
-Application lifecycle scenarios additionally cover session resolution and
-route transitions. Every data-backed admin route must emit a typed initial
-request when initialized for an authorized administrator. Tests must complete
-at least one navigation-time request through its real callback so request
-generation and retained loading state are exercised together.
-Responses delivered after navigation has replaced the owning page must be
-ignored. Mutation scenarios cover validation or reset/cancel, API failure,
-retry, success, and stale response rejection across admin editors. Account and
-public scenarios apply the same fixture-driven coverage to sessions, passkeys,
-snippet deletion, and login.
+FFI is not mocked at the JavaScript boundary. Tests exercise managed reducers
+and interpret their typed commands as data; only production interpreters call
+platform implementations.
 
-Rendered integration views also run through the browserless accessibility
-contract in `test/support/accessibility.gleam`. It checks explicit button
-types, named form controls, image alternatives, accessible dialog names, and
-resolved ARIA relationships. Representative feature tests and a deliberately
-invalid fixture protect both the application markup and the auditor itself
-without introducing a DOM emulator.
-
-FFI is not mocked at the JavaScript boundary. Managed reducers emit typed
-commands for browser capabilities, and scenario adapters record or schedule
-those commands as data. Production interpreters are the only code that turns
-them into platform calls. This keeps integration tests deterministic while
-testing the same reducer and callback wiring used in production.
-
-`test/support/managed_scenario.gleam` is the shared scenario kernel. It owns
-model state, pending fixture work, observed external effects, dispatch, and
-pending-effect completion. Feature adapters only interpret their own command
-algebra and add feature-specific fixture helpers. The editor adapter is the
-reference for commands that distinguish API work, browser observations, and
-explicitly delivered timers.
-
-Integration suites live under their owning feature path. In particular, admin
-mutation scenarios are split across `test/admin/jobs`, `periodic_jobs`,
-`rate_limits`, and `users`, so fixtures and failures point directly to the
-workflow being exercised.
-
-The editor is treated as a critical workflow. Its integration coverage is
-split by lifecycle and draft recovery, editing and settings, execution,
-and saving. Each scenario asserts typed request payloads, reducer state,
-observable browser commands, rendered user feedback, and pending-effect
-exhaustion where the workflow is complete. Editor markup is also audited across
-lifecycle, failure, result, and populated-dialog states.
-
-`npm run check:boundaries` reads `scripts/managed-boundaries.json`, walks every
-configured feature's transitive imports, and rejects runtime adapters, FFI
-declarations, transport interpreters, and `Effect`. New managed feature modules
-must be added to that configuration. Run it with the normal frontend test
-suite.
+`npm run check:boundaries` enforces that configured managed entry points remain
+transitively independent of runtime adapters, FFI declarations, transport
+interpreters, and Lustre `Effect`. New managed entry points must be added to
+`scripts/managed-boundaries.json`.
 
 ## Change checklist
 
 When adding or changing a feature:
 
-1. Put code in the owning feature namespace rather than the repository root.
-2. Keep the root page focused on composition.
-3. Represent endpoint work in the feature command algebra and execute it from
-   production ports, not from the reducer.
-4. Put browser access behind `platform` and expose it to reducers as commands.
+1. Put code in the owning feature namespace.
+2. Keep application and feature roots focused on composition.
+3. Represent external work in typed commands and execute it at the production
+   boundary.
+4. Put browser access behind `platform`.
 5. Reuse domain types from `glot_core`.
-6. Add policy tests for validation and mapping, plus reducer tests for new state
-   transitions.
-7. Add every managed reducer entry point to `scripts/managed-boundaries.json`.
+6. Add focused policy and reducer tests plus integration coverage proportional
+   to the workflow risk.
+7. Register new managed entry points with the boundary checker.
 8. Run `npm test` and `npm run build`.
