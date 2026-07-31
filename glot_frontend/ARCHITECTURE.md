@@ -127,7 +127,11 @@ error states, while `lifecycle.Target` identifies new and existing editor
 routes. `model.Editor` composes focused
 `Snippet`, `Workspace`, `EntryDrafts`, `MetadataDraft`, `SaveDraft`,
 `SettingsDraft`, and `Operations` records instead of exposing one flat bag of
-fields. `Workspace` contains only document navigation and revision state;
+fields. `Operations` composes opaque `execution_operation.Operation` and
+`save_operation.Operation` values. Those focused modules own their generation,
+state transitions, stale-response checks, and view-facing accessors; reducers
+never advance or compare operation generations directly. `Workspace` contains
+only document navigation and revision state;
 `EntryDrafts` owns independent add-entry and edit-entry drafts. Tab navigation
 cannot mutate those dialog drafts, and `entry_drafts` centralizes their
 initialization after loading or restoring content. Save-dialog

@@ -6,10 +6,10 @@ import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response as api_response
 import glot_frontend/public/editor/draft
+import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle.{type Target}
-import glot_frontend/public/editor/model.{
-  type AddEntryKind, type EditorTab, type RunStream, type SaveStream,
-}
+import glot_frontend/public/editor/model.{type AddEntryKind, type EditorTab}
+import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/settings
 import glot_frontend/request_generation.{type Generation}
 import glot_frontend/ui/delayed_loading
@@ -85,7 +85,7 @@ pub type SaveMsg {
   SaveConfirmed
   SaveDialogClosed
   SaveFinished(
-    Generation(SaveStream),
+    Generation(save_operation.Stream),
     api_response.Response(snippet_dto.SnippetResponse),
   )
 }
@@ -101,6 +101,9 @@ pub type ExecutionMsg {
   TabKeyPressed(EditorTab, String)
   SourceCodeChanged(String, Int)
   RunSubmitted
-  RunFinished(Generation(RunStream), api_response.Response(run.RunResult))
+  RunFinished(
+    Generation(execution_operation.Stream),
+    api_response.Response(run.RunResult),
+  )
   VersionRunFinished(language.Language, api_response.Response(run.RunResult))
 }

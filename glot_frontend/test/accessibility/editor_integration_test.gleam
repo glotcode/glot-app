@@ -5,9 +5,10 @@ import gleam/time/timestamp
 import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_model
-import glot_frontend/public/editor/execution
+import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/model
+import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/view
 import glot_frontend/ui/delayed_loading
@@ -21,20 +22,34 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
   let assert model.Ready(editor) = supported
   let #(loading, generation) = delayed_loading.begin(delayed_loading.idle())
   let visible_loading = delayed_loading.reveal(loading, generation)
+  let #(running_execution, _) =
+    execution_operation.begin(editor.operations.execution)
+  let completed_execution =
+    execution_operation.complete(
+      editor.operations.execution,
+      Ok(run.SuccessfulRun(
+        duration: 1,
+        stdout: "output",
+        stderr: "warning",
+        error: "",
+      )),
+    )
+  let failed_execution =
+    execution_operation.complete(
+      editor.operations.execution,
+      Error(run.FailedRun("Run failed.")),
+    )
+  let request_error_execution =
+    execution_operation.fail(editor.operations.execution, "Request failed.")
+  let #(saving_operation, _) = save_operation.begin(editor.operations.save)
+  let failed_save = save_operation.fail(editor.operations.save, "Save failed.")
   let completed =
     model.Ready(
       model.Editor(
         ..editor,
         operations: model.Operations(
           ..editor.operations,
-          run_state: execution.Completed(
-            Ok(run.SuccessfulRun(
-              duration: 1,
-              stdout: "output",
-              stderr: "warning",
-              error: "",
-            )),
-          ),
+          execution: completed_execution,
         ),
       ),
     )
@@ -44,7 +59,7 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
         ..editor,
         operations: model.Operations(
           ..editor.operations,
-          save_state: execution.Saving,
+          save: saving_operation,
         ),
       ),
     )
@@ -52,10 +67,7 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
     model.Ready(
       model.Editor(
         ..editor,
-        operations: model.Operations(
-          ..editor.operations,
-          save_state: execution.SaveError("Save failed."),
-        ),
+        operations: model.Operations(..editor.operations, save: failed_save),
       ),
     )
 
@@ -74,7 +86,7 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
         ..editor,
         operations: model.Operations(
           ..editor.operations,
-          run_state: execution.Running,
+          execution: running_execution,
         ),
       ),
     ),
@@ -84,7 +96,7 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
         ..editor,
         operations: model.Operations(
           ..editor.operations,
-          run_state: execution.Completed(Error(run.FailedRun("Run failed."))),
+          execution: failed_execution,
         ),
       ),
     ),
@@ -93,7 +105,7 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
         ..editor,
         operations: model.Operations(
           ..editor.operations,
-          run_state: execution.RequestError("Request failed."),
+          execution: request_error_execution,
         ),
       ),
     ),

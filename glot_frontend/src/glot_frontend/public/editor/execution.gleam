@@ -1,44 +1,32 @@
 import gleam/option
 import gleam/string
 import glot_core/run
+import glot_frontend/public/editor/execution_operation
+import glot_frontend/public/editor/save_operation
 import glot_frontend/ui/duration_label
 import glot_web/page/editor_layout
 import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
 
-pub type RunState {
-  Idle
-  Running
-  Completed(run.RunResult)
-  RequestError(String)
-}
-
-pub type SaveState {
-  SaveIdle
-  Saving
-  Saved(slug: String)
-  SaveError(String)
-}
-
-pub fn run_button_text(run_state: RunState) -> String {
+pub fn run_button_text(run_state: execution_operation.State) -> String {
   case run_state {
-    Running -> "Running..."
+    execution_operation.Running -> "Running..."
     _ -> "Run"
   }
 }
 
-pub fn save_button_text(save_state: SaveState) -> String {
+pub fn save_button_text(save_state: save_operation.State) -> String {
   case save_state {
-    Saving -> "Saving..."
+    save_operation.Saving -> "Saving..."
     _ -> "Save"
   }
 }
 
 pub fn view(
   version_info: option.Option(String),
-  run_state: RunState,
-  save_state: SaveState,
+  run_state: execution_operation.State,
+  save_state: save_operation.State,
 ) -> Element(msg) {
   editor_layout.console_shell(
     header: header(version_info, run_state, save_state),
@@ -48,11 +36,12 @@ pub fn view(
 
 fn header(
   version_info: option.Option(String),
-  run_state: RunState,
-  save_state: SaveState,
+  run_state: execution_operation.State,
+  save_state: save_operation.State,
 ) -> Element(msg) {
   case save_state, run_state, version_info {
-    SaveIdle, Completed(Ok(_)), _ -> html.div([], [])
+    save_operation.SaveIdle, execution_operation.Completed(Ok(_)), _ ->
+      html.div([], [])
     _, _, _ ->
       html.div([attribute.class("editor-shell__console-header")], [
         html.text("INFO"),
@@ -62,30 +51,30 @@ fn header(
 
 fn content(
   version_info: option.Option(String),
-  run_state: RunState,
-  save_state: SaveState,
+  run_state: execution_operation.State,
+  save_state: save_operation.State,
 ) -> Element(msg) {
   case save_state {
-    SaveError(message) -> block("SAVE FAILED", message)
-    Saving -> block("", "Saving snippet...")
-    Saved(_) -> block("", "Saved")
-    SaveIdle -> run_content(version_info, run_state)
+    save_operation.SaveError(message) -> block("SAVE FAILED", message)
+    save_operation.Saving -> block("", "Saving snippet...")
+    save_operation.Saved(_) -> block("", "Saved")
+    save_operation.SaveIdle -> run_content(version_info, run_state)
   }
 }
 
 fn run_content(
   version_info: option.Option(String),
-  run_state: RunState,
+  run_state: execution_operation.State,
 ) -> Element(msg) {
   case run_state {
-    Idle ->
+    execution_operation.Idle ->
       case version_info {
         option.Some(stdout) -> block("", stdout <> "\nREADY.")
         option.None -> html.div([], [])
       }
-    Running -> block("", "Running snippet...")
-    RequestError(message) -> block("RUN FAILED", message)
-    Completed(result) ->
+    execution_operation.Running -> block("", "Running snippet...")
+    execution_operation.RequestError(message) -> block("RUN FAILED", message)
+    execution_operation.Completed(result) ->
       case result {
         Ok(success) -> successful(success)
         Error(failure) -> block("RUN FAILED", failure.message)

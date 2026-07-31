@@ -10,6 +10,7 @@ import glot_core/snippet/snippet_model
 import glot_frontend/api/response
 import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/draft_persistence
+import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/managed
 import glot_frontend/public/editor/message
@@ -190,11 +191,13 @@ pub fn empty_and_failed_language_version_fixtures_leave_editor_usable_test() {
       error: "",
     ))
   let assert model.Ready(empty_editor) = editor_scenario.model(empty)
-  assert empty_editor.operations.version_info == option.None
+  assert execution_operation.version_info(empty_editor.operations.execution)
+    == option.None
 
   let failed = ready_new_with_version(editor_fixture.api_failure("No version."))
   let assert model.Ready(failed_editor) = editor_scenario.model(failed)
-  assert failed_editor.operations.version_info == option.None
+  assert execution_operation.version_info(failed_editor.operations.execution)
+    == option.None
   assert string.contains(render(failed), "editor-page")
 }
 
@@ -211,7 +214,8 @@ pub fn stale_language_version_from_previous_language_is_ignored_test() {
       ),
     ))
   let assert model.Ready(editor) = editor_scenario.model(scenario)
-  assert editor.operations.version_info == option.None
+  assert execution_operation.version_info(editor.operations.execution)
+    == option.None
 }
 
 pub fn unsupported_language_and_ssr_load_error_render_user_visible_states_test() {

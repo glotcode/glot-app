@@ -7,7 +7,7 @@ import glot_core/run
 import glot_frontend/api/response as api_response
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_projection
-import glot_frontend/public/editor/execution
+import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/file_workflow
 import glot_frontend/public/editor/message.{
   type ExecutionMsg, RunFinished, RunSubmitted, SourceCodeChanged, TabKeyPressed,
@@ -17,8 +17,8 @@ import glot_frontend/public/editor/model.{
   type Editor, type EditorTab, Editor, Operations, Workspace,
 }
 import glot_frontend/public/editor/run_instructions
+import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/tab_semantics
-import glot_frontend/request_generation
 
 pub fn update(
   model: Editor,
@@ -51,7 +51,8 @@ pub fn update(
     }
 
     RunSubmitted -> {
-      let generation = request_generation.next(model.operations.run_generation)
+      let #(next_execution, generation) =
+        execution_operation.begin(model.operations.execution)
       let request =
         run.RunRequest(
           image: language.container_image(model.snippet.language),
@@ -66,64 +67,22 @@ pub fn update(
         Editor(
           ..model,
           operations: Operations(
-            ..model.operations,
-            run_generation: generation,
-            run_state: execution.Running,
+            execution: next_execution,
             // A new run becomes the active console operation. Without clearing
             // completed save feedback, "Saved" masks the eventual run output.
-            save_state: execution.SaveIdle,
+            save: save_operation.reset_feedback(model.operations.save),
           ),
         ),
         command.RunCode(request, fn(result) { RunFinished(generation, result) }),
       )
     }
 
-    RunFinished(generation, _)
-      if generation != model.operations.run_generation
-    -> #(model, command.none())
-
-    RunFinished(_, result) -> {
-      case result {
-        api_response.Success(run_result) -> #(
-          Editor(
-            ..model,
-            operations: Operations(
-              ..model.operations,
-              run_state: execution.Completed(run_result),
-            ),
-          ),
-          command.none(),
-        )
-
-        api_response.ApiFailure(error) -> #(
-          Editor(
-            ..model,
-            operations: Operations(
-              ..model.operations,
-              run_state: execution.RequestError(api_response.error_message(
-                error,
-              )),
-            ),
-          ),
-          command.none(),
-        )
-
-        api_response.HttpFailure(_) -> #(
-          Editor(
-            ..model,
-            operations: Operations(
-              ..model.operations,
-              run_state: execution.RequestError(
-                "Could not complete "
-                <> api_action.to_string(api_action.public(
-                  public_action.RunAction,
-                ))
-                <> ".",
-              ),
-            ),
-          ),
-          command.none(),
-        )
+    RunFinished(generation, result) -> {
+      case
+        execution_operation.is_current(model.operations.execution, generation)
+      {
+        False -> #(model, command.none())
+        True -> finish_run(model, result)
       }
     }
 
@@ -134,24 +93,74 @@ pub fn update(
 
     VersionRunFinished(_, result) -> {
       case result {
-        api_response.Success(Ok(run.SuccessfulRun(stdout:, ..))) ->
-          case stdout == "" {
-            True -> #(model, command.none())
-            False -> #(
-              Editor(
-                ..model,
-                operations: Operations(
-                  ..model.operations,
-                  version_info: option.Some(stdout),
-                ),
+        api_response.Success(Ok(run.SuccessfulRun(stdout:, ..))) -> #(
+          Editor(
+            ..model,
+            operations: Operations(
+              ..model.operations,
+              execution: execution_operation.record_version_info(
+                model.operations.execution,
+                stdout,
               ),
-              command.none(),
-            )
-          }
+            ),
+          ),
+          command.none(),
+        )
 
         _ -> #(model, command.none())
       }
     }
+  }
+}
+
+fn finish_run(
+  model: Editor,
+  result: api_response.Response(run.RunResult),
+) -> #(Editor, command.Command(ExecutionMsg)) {
+  case result {
+    api_response.Success(run_result) -> #(
+      Editor(
+        ..model,
+        operations: Operations(
+          ..model.operations,
+          execution: execution_operation.complete(
+            model.operations.execution,
+            run_result,
+          ),
+        ),
+      ),
+      command.none(),
+    )
+
+    api_response.ApiFailure(error) -> #(
+      Editor(
+        ..model,
+        operations: Operations(
+          ..model.operations,
+          execution: execution_operation.fail(
+            model.operations.execution,
+            api_response.error_message(error),
+          ),
+        ),
+      ),
+      command.none(),
+    )
+
+    api_response.HttpFailure(_) -> #(
+      Editor(
+        ..model,
+        operations: Operations(
+          ..model.operations,
+          execution: execution_operation.fail(
+            model.operations.execution,
+            "Could not complete "
+              <> api_action.to_string(api_action.public(public_action.RunAction))
+              <> ".",
+          ),
+        ),
+      ),
+      command.none(),
+    )
   }
 }
 

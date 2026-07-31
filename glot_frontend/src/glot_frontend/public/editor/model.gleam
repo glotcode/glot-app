@@ -3,10 +3,10 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/draft
-import glot_frontend/public/editor/execution
+import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle
+import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/settings
-import glot_frontend/request_generation.{type Generation}
 import youid/uuid.{type Uuid}
 
 pub type Model {
@@ -87,20 +87,9 @@ pub type RestoreDraftState {
 
 pub type Operations {
   Operations(
-    version_info: option.Option(String),
-    run_generation: Generation(RunStream),
-    run_state: execution.RunState,
-    save_generation: Generation(SaveStream),
-    save_state: execution.SaveState,
+    execution: execution_operation.Operation,
+    save: save_operation.Operation,
   )
-}
-
-pub type RunStream {
-  RunStream
-}
-
-pub type SaveStream {
-  SaveStream
 }
 
 pub type RunInstructionsDraft {

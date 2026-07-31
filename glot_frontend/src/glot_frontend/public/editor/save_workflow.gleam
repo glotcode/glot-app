@@ -1,14 +1,13 @@
 import gleam/option
 import glot_core/snippet/snippet_dto
 import glot_frontend/public/editor/command
-import glot_frontend/public/editor/execution
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{type SaveMsg, SaveFinished}
 import glot_frontend/public/editor/model.{
   type Editor, Editor, Operations, Snippet,
 }
 import glot_frontend/public/editor/policy
-import glot_frontend/request_generation
+import glot_frontend/public/editor/save_operation
 import youid/uuid.{type Uuid}
 
 pub fn save_snippet(
@@ -17,7 +16,7 @@ pub fn save_snippet(
   close_dialog: Bool,
 ) -> #(Editor, command.Command(SaveMsg)) {
   let visibility = policy.visibility(model, current_user_id)
-  let generation = request_generation.next(model.operations.save_generation)
+  let #(next_save, generation) = save_operation.begin(model.operations.save)
   let data =
     snippet_dto.SnippetData(
       title: model.snippet.title,
@@ -51,11 +50,7 @@ pub fn save_snippet(
     Editor(
       ..model,
       snippet: Snippet(..model.snippet, visibility: visibility),
-      operations: Operations(
-        ..model.operations,
-        save_generation: generation,
-        save_state: execution.Saving,
-      ),
+      operations: Operations(..model.operations, save: next_save),
     ),
     combined_command,
   )

@@ -5,6 +5,7 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
 import glot_frontend/public/editor/document
 import glot_frontend/public/editor/execution
+import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/file_dialog_view
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/lifecycle_view
@@ -20,6 +21,7 @@ import glot_frontend/public/editor/model.{
 import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/restore_draft_view
 import glot_frontend/public/editor/save_dialog_view
+import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/settings as editor_settings
 import glot_frontend/public/editor/settings_dialog_view
 import glot_frontend/public/editor/snippet_info_view
@@ -53,6 +55,8 @@ fn view_helper(
   let can_edit_title =
     model.snippet.slug == option.None || policy.is_owner(model, current_user_id)
   let show_snippet_info = model.snippet.slug != option.None
+  let run_state = execution_operation.state(model.operations.execution)
+  let save_state = save_operation.state(model.operations.save)
 
   editor_layout.shell(
     load_ad: True,
@@ -136,21 +140,21 @@ fn view_helper(
     action_buttons: [
       action_button(
         "editor-shell__action-button",
-        execution.run_button_text(model.operations.run_state),
-        model.operations.run_state == execution.Running,
+        execution.run_button_text(run_state),
+        execution_operation.is_running(model.operations.execution),
         Execution(RunSubmitted),
       ),
       action_button(
         "editor-shell__action-button",
-        execution.save_button_text(model.operations.save_state),
-        model.operations.save_state == execution.Saving,
+        execution.save_button_text(save_state),
+        save_operation.is_saving(model.operations.save),
         Save(SaveClicked),
       ),
     ],
     console: execution.view(
-      model.operations.version_info,
-      model.operations.run_state,
-      model.operations.save_state,
+      execution_operation.version_info(model.operations.execution),
+      run_state,
+      save_state,
     ),
   )
 }
