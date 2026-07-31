@@ -5,10 +5,9 @@ import gleam/time/timestamp
 import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_model
-import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/model
-import glot_frontend/public/editor/save_operation
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/view
 import glot_frontend/ui/delayed_loading
@@ -22,11 +21,12 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
   let assert model.Ready(editor) = supported
   let #(loading, generation) = delayed_loading.begin(delayed_loading.idle())
   let visible_loading = delayed_loading.reveal(loading, generation)
-  let #(running_execution, _) =
-    execution_operation.begin(editor.operations.execution)
-  let completed_execution =
-    execution_operation.complete(
-      editor.operations.execution,
+  let #(running_operations, run_generation) =
+    operations.begin_execution(editor.operations)
+  let assert option.Some(completed_operations) =
+    operations.complete_execution(
+      running_operations,
+      run_generation,
       Ok(run.SuccessfulRun(
         duration: 1,
         stdout: "output",
@@ -34,42 +34,28 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
         error: "",
       )),
     )
-  let failed_execution =
-    execution_operation.complete(
-      editor.operations.execution,
+  let assert option.Some(failed_run_operations) =
+    operations.complete_execution(
+      running_operations,
+      run_generation,
       Error(run.FailedRun("Run failed.")),
     )
-  let request_error_execution =
-    execution_operation.fail(editor.operations.execution, "Request failed.")
-  let #(saving_operation, _) = save_operation.begin(editor.operations.save)
-  let failed_save = save_operation.fail(editor.operations.save, "Save failed.")
+  let assert option.Some(request_error_operations) =
+    operations.fail_execution(
+      running_operations,
+      run_generation,
+      "Request failed.",
+    )
+  let #(saving_operations, save_generation) =
+    operations.begin_save(editor.operations)
+  let assert option.Some(save_error_operations) =
+    operations.fail_save(saving_operations, save_generation, "Save failed.")
   let completed =
-    model.Ready(
-      model.Editor(
-        ..editor,
-        operations: model.Operations(
-          ..editor.operations,
-          execution: completed_execution,
-        ),
-      ),
-    )
+    model.Ready(model.Editor(..editor, operations: completed_operations))
   let saving =
-    model.Ready(
-      model.Editor(
-        ..editor,
-        operations: model.Operations(
-          ..editor.operations,
-          save: saving_operation,
-        ),
-      ),
-    )
+    model.Ready(model.Editor(..editor, operations: saving_operations))
   let save_error =
-    model.Ready(
-      model.Editor(
-        ..editor,
-        operations: model.Operations(..editor.operations, save: failed_save),
-      ),
-    )
+    model.Ready(model.Editor(..editor, operations: save_error_operations))
 
   [
     model.Lifecycle(lifecycle.Initializing(lifecycle.NewEditor("javascript"))),
@@ -81,34 +67,10 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
     model.Lifecycle(lifecycle.LoadError("Could not load snippet.")),
     model.Lifecycle(lifecycle.UnsupportedLanguage("fixture")),
     supported,
-    model.Ready(
-      model.Editor(
-        ..editor,
-        operations: model.Operations(
-          ..editor.operations,
-          execution: running_execution,
-        ),
-      ),
-    ),
+    model.Ready(model.Editor(..editor, operations: running_operations)),
     completed,
-    model.Ready(
-      model.Editor(
-        ..editor,
-        operations: model.Operations(
-          ..editor.operations,
-          execution: failed_execution,
-        ),
-      ),
-    ),
-    model.Ready(
-      model.Editor(
-        ..editor,
-        operations: model.Operations(
-          ..editor.operations,
-          execution: request_error_execution,
-        ),
-      ),
-    ),
+    model.Ready(model.Editor(..editor, operations: failed_run_operations)),
+    model.Ready(model.Editor(..editor, operations: request_error_operations)),
     saving,
     save_error,
   ]

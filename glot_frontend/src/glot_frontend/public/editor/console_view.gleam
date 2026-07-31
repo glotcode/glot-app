@@ -2,7 +2,7 @@ import gleam/option
 import gleam/string
 import glot_core/run
 import glot_frontend/public/editor/execution_operation
-import glot_frontend/public/editor/model.{
+import glot_frontend/public/editor/operations.{
   type ConsoleOwner, ExecutionConsole, SaveConsole,
 }
 import glot_frontend/public/editor/save_operation
@@ -12,15 +12,18 @@ import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
 
-pub fn view(
-  owner: ConsoleOwner,
-  version_info: option.Option(String),
-  run_state: execution_operation.State,
-  save_state: save_operation.State,
-) -> Element(msg) {
+pub fn view(editor_operations: operations.Operations) -> Element(msg) {
+  let owner = operations.console_owner(editor_operations)
+  let run_state = operations.execution_state(editor_operations)
+  let save_state = operations.save_state(editor_operations)
   editor_layout.console_shell(
     header: header(owner, run_state),
-    body: content(owner, version_info, run_state, save_state),
+    body: content(
+      owner,
+      operations.version_info(editor_operations),
+      run_state,
+      save_state,
+    ),
   )
 }
 

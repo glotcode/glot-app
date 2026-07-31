@@ -3,9 +3,8 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/draft
-import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle
-import glot_frontend/public/editor/save_operation
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/settings
 import youid/uuid.{type Uuid}
 
@@ -24,7 +23,7 @@ pub type Editor {
     metadata_draft: MetadataDraft,
     save_draft: SaveDraft,
     restore_draft: RestoreDraftState,
-    operations: Operations,
+    operations: operations.Operations,
   )
 }
 
@@ -83,19 +82,6 @@ pub type SaveDraft {
 pub type RestoreDraftState {
   NoRestoreDraft
   RestoreDraftPending(draft.StoredEditorDraft)
-}
-
-pub type Operations {
-  Operations(
-    execution: execution_operation.Operation,
-    save: save_operation.Operation,
-    console_owner: ConsoleOwner,
-  )
-}
-
-pub type ConsoleOwner {
-  ExecutionConsole
-  SaveConsole
 }
 
 pub type RunInstructionsDraft {

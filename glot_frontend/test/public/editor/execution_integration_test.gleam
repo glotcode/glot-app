@@ -7,6 +7,7 @@ import glot_core/run
 import glot_frontend/api/response
 import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/message
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/view
 import lustre/element
 import rsvp
@@ -21,7 +22,7 @@ pub fn runtime_failure_result_is_rendered_as_run_failure_test() {
     ))
   let editor = editor_scenario.editor(scenario)
   let assert execution_operation.Completed(Error(failure)) =
-    execution_operation.state(editor.operations.execution)
+    operations.execution_state(editor.operations)
   assert failure.message == "Compilation failed on line 1."
   let rendered = render(scenario)
   assert string.contains(rendered, "RUN FAILED")
@@ -84,7 +85,7 @@ pub fn http_run_failure_is_visible_and_leaves_no_pending_work_test() {
     |> editor_scenario.respond_to_run(response.HttpFailure(rsvp.BadBody))
   let editor = editor_scenario.editor(scenario)
   let assert execution_operation.RequestError(message) =
-    execution_operation.state(editor.operations.execution)
+    operations.execution_state(editor.operations)
   assert string.contains(message, "Could not complete")
   assert string.contains(render(scenario), "RUN FAILED")
   editor_scenario.assert_no_pending_effects(scenario)
@@ -93,7 +94,7 @@ pub fn http_run_failure_is_visible_and_leaves_no_pending_work_test() {
 pub fn running_state_disables_run_button_and_renders_progress_test() {
   let scenario = running_scenario()
   let editor = editor_scenario.editor(scenario)
-  assert execution_operation.state(editor.operations.execution)
+  assert operations.execution_state(editor.operations)
     == execution_operation.Running
   let rendered = render(scenario)
   assert string.contains(rendered, "disabled type=\"button\">Running...")
@@ -139,7 +140,7 @@ pub fn stale_run_response_cannot_overwrite_a_newer_result_test() {
     )
   let editor = editor_scenario.editor(scenario)
   let assert execution_operation.Completed(Ok(result)) =
-    execution_operation.state(editor.operations.execution)
+    operations.execution_state(editor.operations)
   assert result.stdout == "new result"
   assert string.contains(render(scenario), "new result")
   assert !string.contains(render(scenario), "stale result")

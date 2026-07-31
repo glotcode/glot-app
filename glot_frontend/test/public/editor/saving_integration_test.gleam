@@ -10,6 +10,7 @@ import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/managed
 import glot_frontend/public/editor/message
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/view
@@ -32,7 +33,7 @@ pub fn existing_save_failure_can_retry_without_losing_edits_test() {
     ))
   let failed = editor_scenario.editor(scenario)
   let assert save_operation.SaveError(error) =
-    save_operation.state(failed.operations.save)
+    operations.save_state(failed.operations)
   assert string.contains(error, "Update rejected.")
   assert failed.snippet.files
     == [snippet_model.File("main.js", "console.log('retained')")]
@@ -50,7 +51,7 @@ pub fn existing_save_failure_can_retry_without_losing_edits_test() {
       response.Success(editor_fixture.updated(original, request.data)),
     )
   let saved = editor_scenario.editor(scenario)
-  assert save_operation.state(saved.operations.save)
+  assert operations.save_state(saved.operations)
     == save_operation.Saved(original.slug)
   assert observed_draft_clear(editor_scenario.observed(scenario))
   editor_scenario.assert_no_pending_effects(scenario)
@@ -79,7 +80,7 @@ pub fn stale_existing_save_response_cannot_overwrite_latest_success_test() {
       editor_fixture.api_failure("Stale failure."),
     )
   let editor = editor_scenario.editor(scenario)
-  assert save_operation.state(editor.operations.save)
+  assert operations.save_state(editor.operations)
     == save_operation.Saved(original.slug)
   assert editor.snippet.files == [snippet_model.File("main.js", "second")]
   editor_scenario.assert_no_pending_effects(scenario)
@@ -137,7 +138,7 @@ pub fn create_uses_selected_visibility_and_can_retry_after_failure_test() {
     )
   let failed = editor_scenario.editor(scenario)
   let assert save_operation.SaveError(_) =
-    save_operation.state(failed.operations.save)
+    operations.save_state(failed.operations)
 
   let scenario =
     editor_scenario.dispatch_save(scenario, message.SaveClicked)
@@ -148,7 +149,7 @@ pub fn create_uses_selected_visibility_and_can_retry_after_failure_test() {
   let scenario =
     editor_scenario.respond_to_create(scenario, response.Success(created))
   let saved = editor_scenario.editor(scenario)
-  assert save_operation.state(saved.operations.save)
+  assert operations.save_state(saved.operations)
     == save_operation.Saved("created-after-retry")
   assert observed_navigation(
     editor_scenario.observed(scenario),
@@ -257,7 +258,7 @@ pub fn saving_state_disables_save_button_and_renders_progress_test() {
     |> editor_scenario.start(option.Some(owner))
     |> editor_scenario.dispatch_save(message.SaveConfirmed)
   let editor = editor_scenario.editor(scenario)
-  assert save_operation.state(editor.operations.save) == save_operation.Saving
+  assert operations.save_state(editor.operations) == save_operation.Saving
   let rendered = render(scenario, owner)
   assert string.contains(
     rendered,
@@ -298,7 +299,7 @@ pub fn saved_existing_snippet_runs_the_saved_code_and_renders_stdout_test() {
     )
   let editor = editor_scenario.editor(scenario)
   let assert execution_operation.Completed(Ok(result)) =
-    execution_operation.state(editor.operations.execution)
+    operations.execution_state(editor.operations)
   assert result.stdout == "saved output\n"
   let rendered = render(scenario, owner)
   assert string.contains(rendered, "saved output")

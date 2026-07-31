@@ -14,10 +14,12 @@ import glot_frontend/public/editor/message.{
   TabSelected, VersionRunFinished,
 }
 import glot_frontend/public/editor/model.{
-  type Editor, type EditorTab, Editor, ExecutionConsole, Operations, Workspace,
+  type Editor, type EditorTab, Editor, Workspace,
 }
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/tab_semantics
+import glot_frontend/request_generation.{type Generation}
 
 pub fn update(
   model: Editor,
@@ -50,8 +52,8 @@ pub fn update(
     }
 
     RunSubmitted -> {
-      let #(next_execution, generation) =
-        execution_operation.begin(model.operations.execution)
+      let #(next_operations, generation) =
+        operations.begin_execution(model.operations)
       let request =
         run.RunRequest(
           image: language.container_image(model.snippet.language),
@@ -63,26 +65,12 @@ pub fn update(
         )
 
       #(
-        Editor(
-          ..model,
-          operations: Operations(
-            ..model.operations,
-            execution: next_execution,
-            console_owner: ExecutionConsole,
-          ),
-        ),
+        Editor(..model, operations: next_operations),
         command.RunCode(request, fn(result) { RunFinished(generation, result) }),
       )
     }
 
-    RunFinished(generation, result) -> {
-      case
-        execution_operation.is_current(model.operations.execution, generation)
-      {
-        False -> #(model, command.none())
-        True -> finish_run(model, result)
-      }
-    }
+    RunFinished(generation, result) -> finish_run(model, generation, result)
 
     VersionRunFinished(language, _) if language != model.snippet.language -> #(
       model,
@@ -94,13 +82,7 @@ pub fn update(
         api_response.Success(Ok(run.SuccessfulRun(stdout:, ..))) -> #(
           Editor(
             ..model,
-            operations: Operations(
-              ..model.operations,
-              execution: execution_operation.record_version_info(
-                model.operations.execution,
-                stdout,
-              ),
-            ),
+            operations: operations.record_version_info(model.operations, stdout),
           ),
           command.none(),
         )
@@ -113,50 +95,31 @@ pub fn update(
 
 fn finish_run(
   model: Editor,
+  generation: Generation(execution_operation.Stream),
   result: api_response.Response(run.RunResult),
 ) -> #(Editor, command.Command(ExecutionMsg)) {
-  case result {
-    api_response.Success(run_result) -> #(
-      Editor(
-        ..model,
-        operations: Operations(
-          ..model.operations,
-          execution: execution_operation.complete(
-            model.operations.execution,
-            run_result,
-          ),
-        ),
-      ),
-      command.none(),
-    )
-
-    api_response.ApiFailure(error) -> #(
-      Editor(
-        ..model,
-        operations: Operations(
-          ..model.operations,
-          execution: execution_operation.fail(
-            model.operations.execution,
-            api_response.error_message(error),
-          ),
-        ),
-      ),
-      command.none(),
-    )
-
-    api_response.HttpFailure(_) -> #(
-      Editor(
-        ..model,
-        operations: Operations(
-          ..model.operations,
-          execution: execution_operation.fail(
-            model.operations.execution,
-            "Could not complete "
-              <> api_action.to_string(api_action.public(public_action.RunAction))
-              <> ".",
-          ),
-        ),
-      ),
+  let next_operations = case result {
+    api_response.Success(run_result) ->
+      operations.complete_execution(model.operations, generation, run_result)
+    api_response.ApiFailure(error) ->
+      operations.fail_execution(
+        model.operations,
+        generation,
+        api_response.error_message(error),
+      )
+    api_response.HttpFailure(_) ->
+      operations.fail_execution(
+        model.operations,
+        generation,
+        "Could not complete "
+          <> api_action.to_string(api_action.public(public_action.RunAction))
+          <> ".",
+      )
+  }
+  case next_operations {
+    option.None -> #(model, command.none())
+    option.Some(next_operations) -> #(
+      Editor(..model, operations: next_operations),
       command.none(),
     )
   }

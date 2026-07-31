@@ -3,11 +3,9 @@ import glot_core/snippet/snippet_dto
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{type SaveMsg, SaveFinished}
-import glot_frontend/public/editor/model.{
-  type Editor, Editor, Operations, SaveConsole, Snippet,
-}
+import glot_frontend/public/editor/model.{type Editor, Editor, Snippet}
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/policy
-import glot_frontend/public/editor/save_operation
 import youid/uuid.{type Uuid}
 
 pub fn save_snippet(
@@ -16,7 +14,7 @@ pub fn save_snippet(
   close_dialog: Bool,
 ) -> #(Editor, command.Command(SaveMsg)) {
   let visibility = policy.visibility(model, current_user_id)
-  let #(next_save, generation) = save_operation.begin(model.operations.save)
+  let #(next_operations, generation) = operations.begin_save(model.operations)
   let data =
     snippet_dto.SnippetData(
       title: model.snippet.title,
@@ -50,11 +48,7 @@ pub fn save_snippet(
     Editor(
       ..model,
       snippet: Snippet(..model.snippet, visibility: visibility),
-      operations: Operations(
-        ..model.operations,
-        save: next_save,
-        console_owner: SaveConsole,
-      ),
+      operations: next_operations,
     ),
     combined_command,
   )

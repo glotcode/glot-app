@@ -9,12 +9,12 @@ import glot_frontend/public/editor/message.{
   type SaveMsg, SaveCancelled, SaveClicked, SaveConfirmed, SaveDialogClosed,
   SaveFinished, SaveVisibilityDraftSelected,
 }
-import glot_frontend/public/editor/model.{
-  type Editor, Editor, Operations, SaveDraft,
-}
+import glot_frontend/public/editor/model.{type Editor, Editor, SaveDraft}
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/policy
-import glot_frontend/public/editor/save_operation
+import glot_frontend/public/editor/save_operation.{type Stream}
 import glot_frontend/public/editor/save_workflow
+import glot_frontend/request_generation.{type Generation}
 import youid/uuid.{type Uuid}
 
 pub fn update(
@@ -51,71 +51,73 @@ pub fn update(
 
     SaveConfirmed -> save_workflow.save_snippet(model, current_user_id, True)
 
-    SaveFinished(generation, result) -> {
-      case save_operation.is_current(model.operations.save, generation) {
-        False -> #(model, command.none())
-        True -> finish_save(model, result, current_user_id)
-      }
-    }
+    SaveFinished(generation, result) ->
+      finish_save(model, generation, result, current_user_id)
   }
 }
 
 fn finish_save(
   model: Editor,
+  generation: Generation(Stream),
   result: api_response.Response(snippet_dto.SnippetResponse),
   current_user_id: option.Option(Uuid),
 ) -> #(Editor, command.Command(SaveMsg)) {
   case result {
     api_response.Success(response) -> {
-      let next_model =
-        Editor(
-          ..model,
-          operations: Operations(
-            ..model.operations,
-            save: save_operation.succeed(model.operations.save, response.slug),
-          ),
-        )
-      let clear_draft_command =
-        command.ClearDraft(draft_projection.target(next_model))
-      case policy.save_operation(model, current_user_id) {
-        policy.UpdateSnippet(_) -> #(next_model, clear_draft_command)
-        policy.CreateSnippet -> {
-          let navigate =
-            command.Navigate(
-              route.to_string(route.Public(route.Snippet(response.slug))),
-            )
-          #(next_model, command.batch([clear_draft_command, navigate]))
+      case
+        operations.succeed_save(model.operations, generation, response.slug)
+      {
+        option.None -> #(model, command.none())
+        option.Some(next_operations) -> {
+          let next_model = Editor(..model, operations: next_operations)
+          let clear_draft_command =
+            command.ClearDraft(draft_projection.target(next_model))
+          case policy.save_operation(model, current_user_id) {
+            policy.UpdateSnippet(_) -> #(next_model, clear_draft_command)
+            policy.CreateSnippet -> {
+              let navigate =
+                command.Navigate(
+                  route.to_string(route.Public(route.Snippet(response.slug))),
+                )
+              #(next_model, command.batch([clear_draft_command, navigate]))
+            }
+          }
         }
       }
     }
 
-    api_response.ApiFailure(error) -> #(
-      Editor(
-        ..model,
-        operations: Operations(
-          ..model.operations,
-          save: save_operation.fail(
-            model.operations.save,
-            api_response.error_message(error),
-          ),
+    api_response.ApiFailure(error) ->
+      update_failed_save(
+        model,
+        operations.fail_save(
+          model.operations,
+          generation,
+          api_response.error_message(error),
         ),
-      ),
-      command.none(),
-    )
+      )
 
-    api_response.HttpFailure(_) -> #(
-      Editor(
-        ..model,
-        operations: Operations(
-          ..model.operations,
-          save: save_operation.fail(
-            model.operations.save,
-            "Could not complete "
-              <> policy.action_name(model, current_user_id)
-              <> ".",
-          ),
+    api_response.HttpFailure(_) ->
+      update_failed_save(
+        model,
+        operations.fail_save(
+          model.operations,
+          generation,
+          "Could not complete "
+            <> policy.action_name(model, current_user_id)
+            <> ".",
         ),
-      ),
+      )
+  }
+}
+
+fn update_failed_save(
+  model: Editor,
+  next_operations: option.Option(operations.Operations),
+) -> #(Editor, command.Command(SaveMsg)) {
+  case next_operations {
+    option.None -> #(model, command.none())
+    option.Some(next_operations) -> #(
+      Editor(..model, operations: next_operations),
       command.none(),
     )
   }

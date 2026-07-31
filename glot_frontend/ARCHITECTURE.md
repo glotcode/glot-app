@@ -126,15 +126,15 @@ The page model separates `Lifecycle(lifecycle.Model)` from `Ready(Editor)`.
 error states, while `lifecycle.Target` identifies new and existing editor
 routes. `model.Editor` composes focused
 `Snippet`, `Workspace`, `EntryDrafts`, `MetadataDraft`, `SaveDraft`,
-`SettingsDraft`, and `Operations` records instead of exposing one flat bag of
-fields. `Operations` composes opaque `execution_operation.Operation` and
-`save_operation.Operation` values. Those focused modules own their generation,
-state transitions, stale-response checks, and view-facing accessors; reducers
-never advance or compare operation generations directly. `Operations` also
-owns an explicit console owner selected when a run or save starts. Completing
-an older operation cannot take console feedback away from the newer operation.
-`console_view` renders the selected operation and has no operation-state
-ownership. `Workspace` contains
+`SettingsDraft`, and an opaque `operations.Operations` value instead of
+exposing one flat bag of fields. The aggregate composes opaque
+`execution_operation.Operation` and `save_operation.Operation` values. It
+atomically starts operations and selects their console, accepts typed
+completions, rejects stale generations, and exposes read-only state accessors.
+Reducers never construct operation state or advance or compare generations.
+Completing an older operation cannot take console feedback away from the newer
+operation. `console_view` renders the selected operation and has no
+operation-state ownership. `Workspace` contains
 only document navigation and revision state;
 `EntryDrafts` owns independent add-entry and edit-entry drafts. Tab navigation
 cannot mutate those dialog drafts, and `entry_drafts` centralizes their

@@ -5,7 +5,6 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
 import glot_frontend/public/editor/console_view
 import glot_frontend/public/editor/document
-import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/file_dialog_view
 import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/lifecycle_view
@@ -18,10 +17,10 @@ import glot_frontend/public/editor/metadata_dialog_view
 import glot_frontend/public/editor/model.{
   type Editor, type Model, Lifecycle, Ready,
 }
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/restore_draft_view
 import glot_frontend/public/editor/save_dialog_view
-import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/settings as editor_settings
 import glot_frontend/public/editor/settings_dialog_view
 import glot_frontend/public/editor/snippet_info_view
@@ -55,9 +54,6 @@ fn view_helper(
   let can_edit_title =
     model.snippet.slug == option.None || policy.is_owner(model, current_user_id)
   let show_snippet_info = model.snippet.slug != option.None
-  let run_state = execution_operation.state(model.operations.execution)
-  let save_state = save_operation.state(model.operations.save)
-
   editor_layout.shell(
     load_ad: True,
     title: model.snippet.title,
@@ -140,35 +136,30 @@ fn view_helper(
     action_buttons: [
       action_button(
         "editor-shell__action-button",
-        run_button_text(model.operations.execution),
-        execution_operation.is_running(model.operations.execution),
+        run_button_text(model.operations),
+        operations.execution_is_running(model.operations),
         Execution(RunSubmitted),
       ),
       action_button(
         "editor-shell__action-button",
-        save_button_text(model.operations.save),
-        save_operation.is_saving(model.operations.save),
+        save_button_text(model.operations),
+        operations.save_is_saving(model.operations),
         Save(SaveClicked),
       ),
     ],
-    console: console_view.view(
-      model.operations.console_owner,
-      execution_operation.version_info(model.operations.execution),
-      run_state,
-      save_state,
-    ),
+    console: console_view.view(model.operations),
   )
 }
 
-fn run_button_text(operation: execution_operation.Operation) -> String {
-  case execution_operation.is_running(operation) {
+fn run_button_text(editor_operations: operations.Operations) -> String {
+  case operations.execution_is_running(editor_operations) {
     True -> "Running..."
     False -> "Run"
   }
 }
 
-fn save_button_text(operation: save_operation.Operation) -> String {
-  case save_operation.is_saving(operation) {
+fn save_button_text(editor_operations: operations.Operations) -> String {
+  case operations.save_is_saving(editor_operations) {
     True -> "Saving..."
     False -> "Save"
   }

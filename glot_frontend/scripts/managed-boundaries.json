@@ -118,6 +118,7 @@
         "src/glot_frontend/public/editor/execution_operation.gleam",
         "src/glot_frontend/public/editor/message.gleam",
         "src/glot_frontend/public/editor/model.gleam",
+        "src/glot_frontend/public/editor/operations.gleam",
         "src/glot_frontend/public/editor/ready.gleam",
         "src/glot_frontend/public/editor/run_instructions.gleam",
         "src/glot_frontend/public/editor/save_operation.gleam",

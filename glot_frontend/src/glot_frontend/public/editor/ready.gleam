@@ -4,13 +4,12 @@ import glot_core/language
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/document
 import glot_frontend/public/editor/entry_drafts
-import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/model.{
-  type Editor, type Snippet, Editor, ExecutionConsole, MetadataDraft,
-  NoRestoreDraft, Operations, SaveDraft, SettingsDraft, Snippet, Workspace,
+  type Editor, type Snippet, Editor, MetadataDraft, NoRestoreDraft, SaveDraft,
+  SettingsDraft, Snippet, Workspace,
 }
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/run_instructions
-import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/settings
 import youid/uuid.{type Uuid}
 
@@ -107,10 +106,6 @@ fn build(snippet: Snippet, editor_settings: settings.EditorSettings) -> Editor {
     ),
     save_draft: SaveDraft(visibility: snippet.visibility),
     restore_draft: NoRestoreDraft,
-    operations: Operations(
-      execution: execution_operation.initial(),
-      save: save_operation.initial(),
-      console_owner: ExecutionConsole,
-    ),
+    operations: operations.initial(),
   )
 }
