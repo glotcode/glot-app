@@ -40,7 +40,12 @@ pub fn stdin_addition_and_deletion_rebuild_selection_and_drafts_test() {
   assert added.workspace.selected_tab == model.StdinTab
   assert added.workspace.editor_external_revision == 1
   assert added.entry_drafts.add.kind == model.AddFileEntry
-  assert file_workflow.add_stdin_entry(added) == option.None
+  assert file_workflow.add_entry(with_add_draft(
+      added,
+      model.AddStdinEntry,
+      "ignored",
+    ))
+    == option.None
 
   let assert option.Some(deleted) = file_workflow.delete_selected_entry(added)
   assert deleted.snippet.stdin == option.None
@@ -93,6 +98,25 @@ pub fn deleting_files_keeps_the_nearest_valid_selection_test() {
   assert first_deleted.snippet.files
     == [snippet_model.File("helper.js", "helper")]
   assert first_deleted.workspace.selected_tab == model.FileTab(0)
+}
+
+pub fn invalid_selected_entries_cannot_report_successful_mutations_test() {
+  let editor = two_file_editor()
+  let invalid =
+    model.Editor(
+      ..editor,
+      workspace: model.Workspace(
+        ..editor.workspace,
+        selected_tab: model.FileTab(5),
+      ),
+      entry_drafts: model.EntryDrafts(
+        ..editor.entry_drafts,
+        edit: model.EditEntryDraft("valid.js"),
+      ),
+    )
+
+  assert file_workflow.rename_selected_file(invalid) == option.None
+  assert file_workflow.delete_selected_entry(invalid) == option.None
 }
 
 pub fn selected_content_updates_only_the_selected_document_test() {
