@@ -12,6 +12,7 @@ import glot_frontend/app/public_page_state
 import glot_frontend/app/public_quick_actions
 import glot_frontend/app/quick_actions
 import glot_frontend/app/quick_actions_managed
+import glot_frontend/app/quick_actions_root_managed
 import glot_frontend/app/runtime
 import glot_frontend/public/editor/message as editor_message
 import glot_web/page/top_bar
@@ -82,14 +83,16 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
     LifecycleMsg(lifecycle_msg) -> update_lifecycle(model, lifecycle_msg)
     PageMsg(page_msg) -> update_page(model, page_msg)
     QuickActionsMsg(quick_action_msg) ->
-      update_quick_actions(model, quick_action_msg)
+      quick_actions_root_managed.update(
+        model,
+        quick_action_msg,
+        using: quick_actions_coordinator(),
+      )
     QuickActionSelected(target) ->
-      handle_quick_action(
-        Model(
-          ..model,
-          quick_actions: quick_actions.clear_query(model.quick_actions),
-        ),
+      quick_actions_root_managed.select(
+        model,
         target,
+        using: quick_actions_coordinator(),
       )
     EditorRunShortcutPressed ->
       case model.lifecycle.page_model {
@@ -117,11 +120,12 @@ fn update_lifecycle(
   let next_model = Model(..model, lifecycle:)
   case msg {
     public_managed.UserNavigatedTo(_) -> {
-      let reset_model = Model(..next_model, quick_actions: quick_actions.init())
-      #(
-        reset_model,
-        batch([CloseQuickActions, from_lifecycle_command(command)]),
-      )
+      let #(reset_model, close_command) =
+        quick_actions_root_managed.reset(
+          next_model,
+          using: quick_actions_coordinator(),
+        )
+      #(reset_model, batch([close_command, from_lifecycle_command(command)]))
     }
     _ -> #(next_model, from_lifecycle_command(command))
   }
@@ -171,43 +175,32 @@ fn with_page_model(model: Model, page_model: public_page_state.Model) -> Model {
   )
 }
 
-fn update_quick_actions(
-  model: Model,
-  msg: quick_actions_managed.Msg,
-) -> #(Model, Command) {
-  let #(quick_actions, command) =
-    quick_actions_managed.update(
-      model.quick_actions,
-      msg,
-      quick_action_sections(model),
-    )
-  let next_model = Model(..model, quick_actions:)
-  case command {
-    quick_actions_managed.None -> #(next_model, None)
-    quick_actions_managed.OpenDialog -> #(next_model, OpenQuickActions)
-    quick_actions_managed.CloseDialog -> #(next_model, CloseQuickActions)
-    quick_actions_managed.ScrollTo(index) -> #(
-      next_model,
-      ScrollToQuickAction(index),
-    )
-    quick_actions_managed.Run(target) -> handle_quick_action(next_model, target)
-  }
-}
-
-fn handle_quick_action(
+fn run_quick_action(
   model: Model,
   target: QuickActionTarget,
 ) -> #(Model, Command) {
   case target {
-    NavigateTo(destination) -> #(
-      model,
-      batch([CloseQuickActions, Navigate(destination)]),
-    )
-    TriggerPageAction(page_msg) -> {
-      let #(next_model, command) = update_page(model, page_msg)
-      #(next_model, batch([CloseQuickActions, command]))
-    }
+    NavigateTo(destination) -> #(model, Navigate(destination))
+    TriggerPageAction(page_msg) -> update_page(model, page_msg)
   }
+}
+
+fn quick_actions_coordinator() -> quick_actions_root_managed.Coordinator(
+  Model,
+  QuickActionTarget,
+  Command,
+) {
+  quick_actions_root_managed.Coordinator(
+    state: fn(model: Model) { model.quick_actions },
+    replace_state: fn(model, quick_actions) { Model(..model, quick_actions:) },
+    sections: quick_action_sections,
+    none: None,
+    open_dialog: OpenQuickActions,
+    close_dialog: CloseQuickActions,
+    scroll_to: ScrollToQuickAction,
+    batch: batch,
+    run: run_quick_action,
+  )
 }
 
 pub fn quick_action_sections(

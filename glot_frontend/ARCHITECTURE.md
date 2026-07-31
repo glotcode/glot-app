@@ -93,8 +93,10 @@ live in `app/runtime_production`.
 
 Quick-action interaction state is shared by both applications through
 `app/quick_actions_managed`. It emits typed dialog, scrolling, and selected-action
-commands; application roots only build their available action sections and
-interpret those commands with platform capabilities.
+commands. `app/quick_actions_root_managed` coordinates that state with an
+application root through an explicit typed contract: roots provide model access,
+available sections, command constructors, and target execution, while the
+coordinator owns query clearing, dialog-command ordering, and navigation reset.
 
 Admin reusable controls are imported directly from the focused `layout`,
 `status`, `dialog`, `filter`, `form`, and `pagination` modules. There is no

@@ -23,6 +23,7 @@
         "src/glot_frontend/app/public_root_managed.gleam",
         "src/glot_frontend/app/public_managed.gleam",
         "src/glot_frontend/app/quick_actions_managed.gleam",
+        "src/glot_frontend/app/quick_actions_root_managed.gleam",
         "src/glot_frontend/app/runtime.gleam"
       ]
     },

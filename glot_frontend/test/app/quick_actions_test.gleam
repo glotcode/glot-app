@@ -5,8 +5,22 @@ import glot_core/route
 import glot_frontend/app/public_quick_actions
 import glot_frontend/app/quick_actions
 import glot_frontend/app/quick_actions_managed
+import glot_frontend/app/quick_actions_root_managed
 import glot_frontend/app/runtime
 import glot_web/page/top_bar
+
+type FixtureModel {
+  FixtureModel(state: quick_actions.Model, ran: List(String))
+}
+
+type FixtureCommand {
+  NoCommand
+  OpenDialog
+  CloseDialog
+  ScrollTo(Int)
+  Run(String)
+  Batch(List(FixtureCommand))
+}
 
 pub fn main() -> Nil {
   gleeunit.main()
@@ -78,6 +92,52 @@ pub fn managed_dismissal_resets_state_and_requests_dialog_close_test() {
   assert command == quick_actions_managed.CloseDialog
 }
 
+pub fn root_coordinator_maps_interactions_into_application_commands_test() {
+  let initial =
+    FixtureModel(
+      state: quick_actions.init() |> quick_actions.set_query("second"),
+      ran: [],
+    )
+  let #(model, command) =
+    quick_actions_root_managed.update(
+      initial,
+      quick_actions_managed.Opened,
+      using: coordinator(),
+    )
+
+  assert model.state == quick_actions.init()
+  assert command == OpenDialog
+}
+
+pub fn root_coordinator_clears_and_closes_before_running_a_target_test() {
+  let initial =
+    FixtureModel(
+      state: quick_actions.init() |> quick_actions.set_query("second"),
+      ran: [],
+    )
+  let #(model, command) =
+    quick_actions_root_managed.select(initial, "selected", using: coordinator())
+
+  assert model.state.query == ""
+  assert model.ran == ["selected"]
+  assert command == Batch([CloseDialog, Run("selected")])
+}
+
+pub fn root_coordinator_resets_navigation_state_and_closes_the_dialog_test() {
+  let initial =
+    FixtureModel(
+      state: quick_actions.init()
+        |> quick_actions.set_query("second")
+        |> quick_actions.select(1),
+      ran: [],
+    )
+  let #(model, command) =
+    quick_actions_root_managed.reset(initial, using: coordinator())
+
+  assert model.state == quick_actions.init()
+  assert command == CloseDialog
+}
+
 pub fn initial_home_actions_keep_the_default_navigation_test() {
   let actions =
     public_quick_actions.sections(
@@ -124,5 +184,25 @@ fn action(label: String, message: String) -> top_bar.Action(String) {
     shortcut: [],
     target_route: option.None,
     msg: message,
+  )
+}
+
+fn coordinator() -> quick_actions_root_managed.Coordinator(
+  FixtureModel,
+  String,
+  FixtureCommand,
+) {
+  quick_actions_root_managed.Coordinator(
+    state: fn(model: FixtureModel) { model.state },
+    replace_state: fn(model, state) { FixtureModel(..model, state:) },
+    sections: fn(_) { sections() },
+    none: NoCommand,
+    open_dialog: OpenDialog,
+    close_dialog: CloseDialog,
+    scroll_to: ScrollTo,
+    batch: Batch,
+    run: fn(model, target) {
+      #(FixtureModel(..model, ran: [target, ..model.ran]), Run(target))
+    },
   )
 }
