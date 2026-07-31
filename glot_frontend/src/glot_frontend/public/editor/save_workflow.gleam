@@ -6,14 +6,13 @@ import glot_frontend/public/editor/message.{type SaveMsg, SaveFinished}
 import glot_frontend/public/editor/model.{type Editor, Editor, Snippet}
 import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/policy
-import youid/uuid.{type Uuid}
 
 pub fn save_snippet(
   model: Editor,
-  current_user_id: option.Option(Uuid),
+  plan: policy.SavePlan,
   close_dialog: Bool,
 ) -> #(Editor, command.Command(SaveMsg)) {
-  let visibility = policy.visibility(model, current_user_id)
+  let visibility = policy.plan_visibility(plan)
   let #(next_operations, generation) = operations.begin_save(model.operations)
   let data =
     snippet_dto.SnippetData(
@@ -25,17 +24,17 @@ pub fn save_snippet(
       files: model.snippet.files,
     )
 
-  let save_command = case policy.save_operation(model, current_user_id) {
-    policy.CreateSnippet ->
+  let save_command = case plan {
+    policy.CreateSnippet(_) ->
       command.CreateSnippet(
         snippet_dto.CreateSnippetRequest(data: data),
-        fn(result) { SaveFinished(generation, result) },
+        fn(result) { SaveFinished(generation, plan, result) },
       )
 
-    policy.UpdateSnippet(slug) ->
+    policy.UpdateSnippet(slug, _) ->
       command.UpdateSnippet(
         snippet_dto.UpdateSnippetRequest(slug: slug, data: data),
-        fn(result) { SaveFinished(generation, result) },
+        fn(result) { SaveFinished(generation, plan, result) },
       )
   }
 

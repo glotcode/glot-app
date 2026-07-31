@@ -55,8 +55,8 @@ fn save_dialog_children(
   model: Editor,
   current_user_id: option.Option(Uuid),
 ) -> List(Element(SaveMsg)) {
-  case current_user_id {
-    option.None -> [
+  case policy.save_decision(model, current_user_id) {
+    policy.LoginRequired -> [
       html.h2([attribute.class("editor-page__dialog-label")], [
         html.text("Save snippet"),
       ]),
@@ -85,92 +85,101 @@ fn save_dialog_children(
       ]),
     ]
 
-    option.Some(_) ->
-      case policy.can_choose_visibility(model, current_user_id) {
-        True -> [
-          html.p([attribute.class("editor-page__dialog-label")], [
-            html.text("Visibility"),
-          ]),
-          html.div(
-            [
-              attribute.class("editor-page__dialog-panel"),
-              attribute.attribute("role", "group"),
-              attribute.attribute("aria-label", "Visibility"),
-            ],
-            [
-              dialog_controls.visibility_option(
-                "Public",
-                "Visible to everyone.",
-                snippet_model.Public,
-                model.save_draft.visibility,
-                SaveVisibilityDraftSelected,
-              ),
-              dialog_controls.visibility_option(
-                "Unlisted",
-                "Available through the link only.",
-                snippet_model.Unlisted,
-                model.save_draft.visibility,
-                SaveVisibilityDraftSelected,
-              ),
-              dialog_controls.visibility_option(
-                "Secret",
-                "Visible only to you.",
-                snippet_model.Secret,
-                model.save_draft.visibility,
-                SaveVisibilityDraftSelected,
-              ),
-            ],
-          ),
-          html.div([attribute.class("editor-page__dialog-actions")], [
-            html.button(
-              [
-                attribute.type_("button"),
-                attribute.class(
-                  "editor-page__dialog-button editor-page__dialog-button--secondary",
-                ),
-                event.on_click(SaveCancelled),
-              ],
-              [html.text("Cancel")],
-            ),
-            html.button(
-              [
-                attribute.type_("submit"),
-                attribute.class("editor-page__dialog-button"),
-              ],
-              [html.text("Save")],
-            ),
-          ]),
-        ]
-
-        False -> [
-          html.h2([attribute.class("editor-page__dialog-label")], [
-            html.text("Save snippet"),
-          ]),
-          html.p([attribute.class("editor-page__dialog-copy")], [
-            html.text(
-              "You do not own this snippet. Saving will create a new snippet in your account.",
-            ),
-          ]),
-          html.div([attribute.class("editor-page__dialog-actions")], [
-            html.button(
-              [
-                attribute.type_("button"),
-                attribute.class(
-                  "editor-page__dialog-button editor-page__dialog-button--secondary",
-                ),
-                event.on_click(SaveCancelled),
-              ],
-              [html.text("Cancel")],
-            ),
-            html.button(
-              [
-                attribute.type_("submit"),
-                attribute.class("editor-page__dialog-button"),
-              ],
-              [html.text("Save new snippet")],
-            ),
-          ]),
-        ]
+    policy.Authorized(policy.CreateSnippet(_)) ->
+      case model.snippet.slug {
+        option.None -> create_snippet_children(model)
+        option.Some(_) -> copy_snippet_children()
       }
+
+    policy.Authorized(policy.UpdateSnippet(_, _)) -> update_snippet_children()
   }
+}
+
+fn create_snippet_children(model: Editor) -> List(Element(SaveMsg)) {
+  [
+    html.p([attribute.class("editor-page__dialog-label")], [
+      html.text("Visibility"),
+    ]),
+    html.div(
+      [
+        attribute.class("editor-page__dialog-panel"),
+        attribute.attribute("role", "group"),
+        attribute.attribute("aria-label", "Visibility"),
+      ],
+      [
+        dialog_controls.visibility_option(
+          "Public",
+          "Visible to everyone.",
+          snippet_model.Public,
+          model.save_draft.visibility,
+          SaveVisibilityDraftSelected,
+        ),
+        dialog_controls.visibility_option(
+          "Unlisted",
+          "Available through the link only.",
+          snippet_model.Unlisted,
+          model.save_draft.visibility,
+          SaveVisibilityDraftSelected,
+        ),
+        dialog_controls.visibility_option(
+          "Secret",
+          "Visible only to you.",
+          snippet_model.Secret,
+          model.save_draft.visibility,
+          SaveVisibilityDraftSelected,
+        ),
+      ],
+    ),
+    save_actions("Save"),
+  ]
+}
+
+fn copy_snippet_children() -> List(Element(SaveMsg)) {
+  [
+    save_heading(),
+    html.p([attribute.class("editor-page__dialog-copy")], [
+      html.text(
+        "You do not own this snippet. Saving will create a new snippet in your account.",
+      ),
+    ]),
+    save_actions("Save new snippet"),
+  ]
+}
+
+fn update_snippet_children() -> List(Element(SaveMsg)) {
+  [
+    save_heading(),
+    html.p([attribute.class("editor-page__dialog-copy")], [
+      html.text("Save changes to this snippet."),
+    ]),
+    save_actions("Save"),
+  ]
+}
+
+fn save_heading() -> Element(SaveMsg) {
+  html.h2([attribute.class("editor-page__dialog-label")], [
+    html.text("Save snippet"),
+  ])
+}
+
+fn save_actions(submit_label: String) -> Element(SaveMsg) {
+  html.div([attribute.class("editor-page__dialog-actions")], [
+    html.button(
+      [
+        attribute.type_("button"),
+        attribute.class(
+          "editor-page__dialog-button editor-page__dialog-button--secondary",
+        ),
+        event.on_click(SaveCancelled),
+      ],
+      [html.text("Cancel")],
+    ),
+    html.button(
+      [
+        attribute.type_("submit"),
+        attribute.class("editor-page__dialog-button"),
+      ],
+      [html.text(submit_label)],
+    ),
+  ])
 }

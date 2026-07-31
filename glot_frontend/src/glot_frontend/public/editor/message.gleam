@@ -9,6 +9,7 @@ import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle.{type Target}
 import glot_frontend/public/editor/model.{type AddEntryKind, type EditorTab}
+import glot_frontend/public/editor/policy.{type SavePlan}
 import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/settings
 import glot_frontend/request_generation.{type Generation}
@@ -86,6 +87,7 @@ pub type SaveMsg {
   SaveDialogClosed
   SaveFinished(
     Generation(save_operation.Stream),
+    SavePlan,
     api_response.Response(snippet_dto.SnippetResponse),
   )
 }

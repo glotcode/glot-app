@@ -7,20 +7,29 @@ import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/settings
 import support/editor_fixture
 
-pub fn save_operation_updates_only_an_owned_existing_snippet_test() {
+pub fn save_decision_requires_login_before_resolving_a_plan_test() {
+  assert policy.save_decision(new_editor(), option.None) == policy.LoginRequired
+  assert !policy.is_owner(new_editor(), option.None)
+}
+
+pub fn authorized_plans_resolve_target_and_visibility_once_test() {
   let owner = editor_fixture.owner_id()
   let editor = existing_editor()
 
-  assert policy.save_operation(editor, option.Some(owner))
-    == policy.UpdateSnippet("save-policy")
-  assert policy.save_operation(
+  assert policy.save_decision(editor, option.Some(owner))
+    == policy.Authorized(policy.UpdateSnippet(
+      "save-policy",
+      snippet_model.Unlisted,
+    ))
+  assert policy.save_decision(
       editor,
       option.Some(editor_fixture.other_user_id()),
     )
-    == policy.CreateSnippet
-  assert policy.save_operation(editor, option.None) == policy.CreateSnippet
-  assert policy.save_operation(new_editor(), option.Some(owner))
-    == policy.CreateSnippet
+    == policy.Authorized(policy.CreateSnippet(snippet_model.Unlisted))
+
+  let new = with_visibility_draft(new_editor(), snippet_model.Secret)
+  assert policy.save_decision(new, option.Some(owner))
+    == policy.Authorized(policy.CreateSnippet(snippet_model.Secret))
 }
 
 pub fn visibility_is_selectable_only_for_an_authenticated_new_snippet_test() {
@@ -28,26 +37,24 @@ pub fn visibility_is_selectable_only_for_an_authenticated_new_snippet_test() {
   let new = with_visibility_draft(new_editor(), snippet_model.Secret)
 
   assert policy.can_choose_visibility(new, option.Some(owner))
-  assert policy.visibility(new, option.Some(owner)) == snippet_model.Secret
   assert !policy.can_choose_visibility(new, option.None)
-  assert policy.visibility(new, option.None) == snippet_model.Unlisted
 
   let existing = with_visibility_draft(existing_editor(), snippet_model.Secret)
-  assert policy.can_choose_visibility(existing, option.Some(owner))
-  assert policy.visibility(existing, option.Some(owner))
-    == snippet_model.Unlisted
+  assert !policy.can_choose_visibility(existing, option.Some(owner))
   assert !policy.can_choose_visibility(
     existing,
     option.Some(editor_fixture.other_user_id()),
   )
-  assert policy.visibility(
-      existing,
-      option.Some(editor_fixture.other_user_id()),
-    )
-    == snippet_model.Unlisted
 }
 
-pub fn action_name_follows_the_resolved_operation_test() {
+pub fn plan_helpers_follow_the_resolved_plan_test() {
+  let create = policy.CreateSnippet(snippet_model.Secret)
+  let update = policy.UpdateSnippet("existing", snippet_model.Public)
+
+  assert policy.plan_visibility(create) == snippet_model.Secret
+  assert policy.plan_visibility(update) == snippet_model.Public
+  assert policy.plan_action_name(create) == "Create snippet"
+  assert policy.plan_action_name(update) == "Update snippet"
   assert policy.action_name(
       existing_editor(),
       option.Some(editor_fixture.owner_id()),
@@ -58,6 +65,7 @@ pub fn action_name_follows_the_resolved_operation_test() {
       option.Some(editor_fixture.other_user_id()),
     )
     == "Create snippet"
+  assert policy.action_name(existing_editor(), option.None) == "Create snippet"
 }
 
 fn new_editor() -> model.Editor {

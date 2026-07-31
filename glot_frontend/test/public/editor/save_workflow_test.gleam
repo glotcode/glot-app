@@ -7,6 +7,7 @@ import glot_frontend/public/editor/command
 import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/operations
+import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/save_workflow
@@ -31,7 +32,7 @@ pub fn create_projects_the_complete_editor_state_into_a_request_test() {
   let #(saving, next_command) =
     save_workflow.save_snippet(
       editor,
-      option.Some(editor_fixture.owner_id()),
+      policy.CreateSnippet(snippet_model.Secret),
       True,
     )
 
@@ -48,7 +49,11 @@ pub fn create_projects_the_complete_editor_state_into_a_request_test() {
   assert request.data.files == [snippet_model.File("app.js", "source")]
   assert request.data.stdin == "input"
   assert request.data.run_instructions == option.Some(custom)
-  assert_callback_generation_is_current(saving, complete)
+  assert_callback_generation_is_current(
+    saving,
+    policy.CreateSnippet(snippet_model.Secret),
+    complete,
+  )
 }
 
 pub fn create_normalizes_absent_stdin_for_the_api_test() {
@@ -56,7 +61,7 @@ pub fn create_normalizes_absent_stdin_for_the_api_test() {
   let #(_, next_command) =
     save_workflow.save_snippet(
       editor,
-      option.Some(editor_fixture.owner_id()),
+      policy.CreateSnippet(snippet_model.Unlisted),
       False,
     )
   let assert command.CreateSnippet(request, _) = next_command
@@ -69,14 +74,18 @@ pub fn owned_existing_snippet_updates_without_closing_the_dialog_test() {
   let #(saving, next_command) =
     save_workflow.save_snippet(
       editor,
-      option.Some(editor_fixture.owner_id()),
+      policy.UpdateSnippet("save-workflow", snippet_model.Public),
       False,
     )
   let assert command.UpdateSnippet(request, complete) = next_command
 
   assert request.slug == "save-workflow"
   assert request.data.visibility == editor.snippet.visibility
-  assert_callback_generation_is_current(saving, complete)
+  assert_callback_generation_is_current(
+    saving,
+    policy.UpdateSnippet("save-workflow", snippet_model.Public),
+    complete,
+  )
 }
 
 pub fn non_owner_existing_snippet_is_created_as_a_copy_test() {
@@ -84,7 +93,7 @@ pub fn non_owner_existing_snippet_is_created_as_a_copy_test() {
   let #(_, next_command) =
     save_workflow.save_snippet(
       editor,
-      option.Some(editor_fixture.other_user_id()),
+      policy.CreateSnippet(snippet_model.Public),
       True,
     )
   let assert command.Batch([
@@ -112,12 +121,14 @@ fn existing_editor() -> model.Editor {
 
 fn assert_callback_generation_is_current(
   editor: model.Editor,
+  expected_plan: policy.SavePlan,
   complete: fn(response.Response(snippet_dto.SnippetResponse)) ->
     message.SaveMsg,
 ) -> Nil {
   let fixture = editor_fixture.snippet("saved", "source")
-  let assert message.SaveFinished(generation, response.Success(_)) =
+  let assert message.SaveFinished(generation, plan, response.Success(_)) =
     complete(response.Success(fixture))
+  assert plan == expected_plan
   let assert option.Some(_) =
     operations.succeed_save(editor.operations, generation, fixture.slug)
   Nil

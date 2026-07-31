@@ -24,14 +24,14 @@ pub fn update(
 ) -> #(Editor, command.Command(SaveMsg)) {
   case msg {
     SaveClicked ->
-      case
-        model.snippet.slug,
-        current_user_id,
-        policy.is_owner(model, current_user_id)
-      {
-        option.Some(_), option.Some(_), True ->
-          save_workflow.save_snippet(model, current_user_id, False)
-        _, _, _ -> #(
+      case policy.save_decision(model, current_user_id) {
+        policy.Authorized(policy.UpdateSnippet(slug, visibility)) ->
+          save_workflow.save_snippet(
+            model,
+            policy.UpdateSnippet(slug, visibility),
+            False,
+          )
+        policy.Authorized(policy.CreateSnippet(_)) | policy.LoginRequired -> #(
           reset_save_dialog_draft(model),
           command.OpenDialog(ids.save_dialog),
         )
@@ -49,18 +49,22 @@ pub fn update(
 
     SaveDialogClosed -> #(reset_save_dialog_draft(model), focus_editor())
 
-    SaveConfirmed -> save_workflow.save_snippet(model, current_user_id, True)
+    SaveConfirmed ->
+      case policy.save_decision(model, current_user_id) {
+        policy.Authorized(plan) -> save_workflow.save_snippet(model, plan, True)
+        policy.LoginRequired -> #(model, command.none())
+      }
 
-    SaveFinished(generation, result) ->
-      finish_save(model, generation, result, current_user_id)
+    SaveFinished(generation, plan, result) ->
+      finish_save(model, generation, plan, result)
   }
 }
 
 fn finish_save(
   model: Editor,
   generation: Generation(Stream),
+  plan: policy.SavePlan,
   result: api_response.Response(snippet_dto.SnippetResponse),
-  current_user_id: option.Option(Uuid),
 ) -> #(Editor, command.Command(SaveMsg)) {
   case result {
     api_response.Success(response) -> {
@@ -72,9 +76,9 @@ fn finish_save(
           let next_model = Editor(..model, operations: next_operations)
           let clear_draft_command =
             command.ClearDraft(draft_projection.target(next_model))
-          case policy.save_operation(model, current_user_id) {
-            policy.UpdateSnippet(_) -> #(next_model, clear_draft_command)
-            policy.CreateSnippet -> {
+          case plan {
+            policy.UpdateSnippet(_, _) -> #(next_model, clear_draft_command)
+            policy.CreateSnippet(_) -> {
               let navigate =
                 command.Navigate(
                   route.to_string(route.Public(route.Snippet(response.slug))),
@@ -102,9 +106,7 @@ fn finish_save(
         operations.fail_save(
           model.operations,
           generation,
-          "Could not complete "
-            <> policy.action_name(model, current_user_id)
-            <> ".",
+          "Could not complete " <> policy.plan_action_name(plan) <> ".",
         ),
       )
   }

@@ -8,6 +8,7 @@ import glot_frontend/public/editor/draft_persistence
 import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/operations
+import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/save_update
@@ -60,7 +61,14 @@ pub fn visibility_selection_changes_only_the_save_draft_test() {
   assert next_command == command.None
 }
 
-pub fn successful_create_clears_the_new_draft_and_navigates_test() {
+pub fn anonymous_confirmation_cannot_start_a_save_test() {
+  let editor = new_editor()
+  assert save_update.update(editor, message.SaveConfirmed, option.None)
+    == #(editor, command.None)
+  assert operations.save_state(editor.operations) == save_operation.SaveIdle
+}
+
+pub fn successful_create_uses_originating_request_after_logout_test() {
   let editor = new_editor()
   let #(saving_operations, generation) =
     operations.begin_save(editor.operations)
@@ -69,8 +77,12 @@ pub fn successful_create_clears_the_new_draft_and_navigates_test() {
   let #(saved, next_command) =
     save_update.update(
       saving,
-      message.SaveFinished(generation, response.Success(created)),
-      option.Some(editor_fixture.owner_id()),
+      message.SaveFinished(
+        generation,
+        policy.CreateSnippet(snippet_model.Unlisted),
+        response.Success(created),
+      ),
+      option.None,
     )
 
   assert next_command
@@ -82,7 +94,7 @@ pub fn successful_create_clears_the_new_draft_and_navigates_test() {
     == save_operation.Saved("created")
 }
 
-pub fn successful_update_clears_the_existing_draft_without_navigation_test() {
+pub fn successful_update_uses_originating_request_after_user_change_test() {
   let editor = existing_editor()
   let #(saving_operations, generation) =
     operations.begin_save(editor.operations)
@@ -91,8 +103,12 @@ pub fn successful_update_clears_the_existing_draft_without_navigation_test() {
   let #(saved, next_command) =
     save_update.update(
       saving,
-      message.SaveFinished(generation, response.Success(updated)),
-      option.Some(editor_fixture.owner_id()),
+      message.SaveFinished(
+        generation,
+        policy.UpdateSnippet("existing", snippet_model.Unlisted),
+        response.Success(updated),
+      ),
+      option.Some(editor_fixture.other_user_id()),
     )
 
   assert next_command
@@ -111,6 +127,7 @@ pub fn stale_save_completion_is_ignored_test() {
       latest_editor,
       message.SaveFinished(
         stale_generation,
+        policy.CreateSnippet(snippet_model.Unlisted),
         response.Success(editor_fixture.snippet("stale", "source")),
       ),
       option.Some(editor_fixture.owner_id()),
@@ -128,6 +145,7 @@ pub fn current_failures_update_save_feedback_without_commands_test() {
       saving,
       message.SaveFinished(
         generation,
+        policy.UpdateSnippet("existing", snippet_model.Unlisted),
         editor_fixture.api_failure("Update rejected."),
       ),
       option.Some(editor_fixture.owner_id()),
@@ -144,7 +162,11 @@ pub fn current_failures_update_save_feedback_without_commands_test() {
   let #(http_failed, http_command) =
     save_update.update(
       saving,
-      message.SaveFinished(generation, response.HttpFailure(rsvp.BadBody)),
+      message.SaveFinished(
+        generation,
+        policy.UpdateSnippet("existing", snippet_model.Unlisted),
+        response.HttpFailure(rsvp.BadBody),
+      ),
       option.Some(editor_fixture.owner_id()),
     )
   assert operations.save_state(http_failed.operations)

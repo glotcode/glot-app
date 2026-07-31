@@ -39,13 +39,14 @@ pub fn non_owners_are_told_that_save_creates_a_copy_test() {
   assert !string.contains(rendered, "aria-label=\"Visibility\"")
 }
 
-pub fn owners_of_existing_snippets_can_choose_visibility_test() {
+pub fn owners_of_existing_snippets_receive_update_confirmation_test() {
   let rendered =
     existing_editor()
     |> render(option.Some(editor_fixture.owner_id()))
 
-  assert_visibility_options(rendered)
+  assert string.contains(rendered, "Save changes to this snippet.")
   assert string.contains(rendered, "type=\"submit\">Save</button>")
+  assert !string.contains(rendered, "aria-label=\"Visibility\"")
   assert !string.contains(rendered, "create a new snippet in your account")
 }
 
