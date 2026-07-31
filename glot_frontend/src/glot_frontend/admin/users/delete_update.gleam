@@ -3,7 +3,6 @@ import glot_core/admin/account_dto
 import glot_core/loadable
 import glot_core/route
 import glot_frontend/admin/command as admin_effect
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/users/constants
 import glot_frontend/admin/users/message.{
   DeleteCancelled, DeleteClicked, DeleteConfirmed, DeleteDialogClosed,
@@ -11,6 +10,7 @@ import glot_frontend/admin/users/message.{
 }
 import glot_frontend/admin/users/model.{type Model, DeleteIdle, Deleting, Model}
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation
 
 pub fn update(model: Model, msg: message.Msg) {
   case msg {

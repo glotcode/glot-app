@@ -9,8 +9,8 @@ import glot_frontend/admin/jobs/policies_model.{
   BaseBackoffSecondsField, MaxAttemptsField, MaxBackoffSecondsField,
   PolicyEditor, PolicyFields, TimeoutSecondsField,
 }
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/ui/format as admin_format
+import glot_frontend/request_generation
 import glot_frontend/ui/mutation
 
 pub fn editor_from_response(

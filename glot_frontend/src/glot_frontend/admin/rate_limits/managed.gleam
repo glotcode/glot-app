@@ -7,11 +7,11 @@ import glot_frontend/admin/rate_limits/message.{
   SaveClicked, SaveFinished, TabSelected,
 }
 import glot_frontend/admin/rate_limits/model.{
-  ActiveEditor, AnonymousTab, Model, PolicyEditor,
+  type LoadStream, ActiveEditor, AnonymousTab, Model, PolicyEditor,
 }
 import glot_frontend/admin/rate_limits/policy
-import glot_frontend/admin/request_generation.{type Generation}
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation.{type Generation}
 import glot_frontend/ui/mutation
 
 const edit_dialog_id = constants.edit_dialog_id
@@ -246,7 +246,9 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
   }
 }
 
-fn load_policies(generation: Generation) -> admin_effect.Command(Msg) {
+fn load_policies(
+  generation: Generation(LoadStream),
+) -> admin_effect.Command(Msg) {
   admin_effect.get_admin_rate_limit_policies(fn(result) {
     PoliciesLoaded(generation, result)
   })

@@ -11,6 +11,7 @@ import glot_frontend/account/model.{
 }
 import glot_frontend/api/response as api_response
 import glot_frontend/app/event as app_event
+import glot_frontend/request_generation
 import glot_frontend/ui/delayed_loading
 
 pub fn update(
@@ -111,7 +112,7 @@ fn initialize(
     passkey_supported
   {
     True -> delayed_loading.begin(model.passkeys_loading_indicator)
-    False -> #(model.passkeys_loading_indicator, 0)
+    False -> #(model.passkeys_loading_indicator, request_generation.initial())
   }
   let passkey_commands = case passkey_supported {
     True -> [

@@ -15,8 +15,8 @@ import glot_frontend/admin/jobs/model.{
   type Model, CreateJobDraft, CreateJobEditor, CreateJobError, CreateJobSaving,
   Model,
 }
-import glot_frontend/admin/request_generation
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation
 
 pub fn update(
   model: Model,

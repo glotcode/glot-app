@@ -1,6 +1,7 @@
 import glot_core/admin/user_dto
-import glot_frontend/admin/request_generation.{type Generation}
+import glot_frontend/admin/users/model.{type DeleteStream, type SaveStream}
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation.{type Generation}
 
 pub type Msg {
   UserLoaded(api_response.Response(user_dto.GetUserResponse))
@@ -15,6 +16,9 @@ pub type Msg {
   DeleteCancelled
   DeleteDialogClosed
   DeleteConfirmed
-  SaveFinished(Generation, api_response.Response(user_dto.UpdateUserResponse))
-  DeleteFinished(Generation, api_response.Response(Nil))
+  SaveFinished(
+    Generation(SaveStream),
+    api_response.Response(user_dto.UpdateUserResponse),
+  )
+  DeleteFinished(Generation(DeleteStream), api_response.Response(Nil))
 }

@@ -18,6 +18,7 @@ import glot_frontend/public/editor/model.{
 }
 import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/tab_semantics
+import glot_frontend/request_generation
 
 pub fn update(
   model: Editor,
@@ -50,7 +51,7 @@ pub fn update(
     }
 
     RunSubmitted -> {
-      let generation = model.operations.run_generation + 1
+      let generation = request_generation.next(model.operations.run_generation)
       let request =
         run.RunRequest(
           image: language.container_image(model.snippet.language),

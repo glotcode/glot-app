@@ -14,11 +14,11 @@ import glot_frontend/admin/periodic_jobs/editor_policy as periodic_job_policy
 import glot_frontend/admin/periodic_jobs/model as periodic_job_model
 import glot_frontend/admin/rate_limits/model as rate_limit_model
 import glot_frontend/admin/rate_limits/policy as rate_limit_policy
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/users/editor_policy as user_policy
 import glot_frontend/admin/users/list_filter
 import glot_frontend/admin/users/list_model
 import glot_frontend/admin/users/model as user_detail_model
+import glot_frontend/request_generation
 import glot_frontend/ui/mutation
 import youid/uuid
 

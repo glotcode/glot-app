@@ -3,9 +3,9 @@ import gleam/result
 import glot_core/admin/passkey_config_dto
 import glot_frontend/admin/command as admin_effect
 import glot_frontend/admin/config/section
-import glot_frontend/admin/request_generation.{type Generation}
 import glot_frontend/admin/ui/format as admin_format
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation.{type Generation}
 
 pub type Fields {
   Fields(origin: String, rp_id: String, challenge_timeout_seconds: String)
@@ -16,7 +16,7 @@ pub type Model =
 
 pub type Msg {
   Loaded(
-    Generation,
+    Generation(section.LoadStream),
     api_response.Response(passkey_config_dto.PasskeyConfigResponse),
   )
   OriginChanged(String)
@@ -25,7 +25,7 @@ pub type Msg {
   ResetClicked
   SaveClicked
   SaveFinished(
-    Generation,
+    Generation(section.SaveStream),
     api_response.Response(passkey_config_dto.PasskeyConfigResponse),
   )
 }

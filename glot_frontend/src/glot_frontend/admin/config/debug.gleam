@@ -1,8 +1,8 @@
 import glot_core/admin/debug_config_dto
 import glot_frontend/admin/command as admin_effect
 import glot_frontend/admin/config/section
-import glot_frontend/admin/request_generation.{type Generation}
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation.{type Generation}
 import glot_frontend/ui/mutation
 
 pub type Model {
@@ -11,9 +11,17 @@ pub type Model {
     saved: Fields,
     draft: Fields,
     mutation_state: mutation.MutationState,
-    load_generation: Generation,
-    save_generation: Generation,
+    load_generation: Generation(LoadStream),
+    save_generation: Generation(SaveStream),
   )
+}
+
+pub type LoadStream {
+  LoadStream
+}
+
+pub type SaveStream {
+  SaveStream
 }
 
 pub type Fields {
@@ -22,14 +30,14 @@ pub type Fields {
 
 pub type Msg {
   Loaded(
-    Generation,
+    Generation(LoadStream),
     api_response.Response(debug_config_dto.DebugConfigResponse),
   )
   ToggleClicked
   ResetClicked
   SaveClicked
   SaveFinished(
-    Generation,
+    Generation(SaveStream),
     api_response.Response(debug_config_dto.DebugConfigResponse),
   )
 }

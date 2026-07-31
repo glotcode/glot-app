@@ -9,7 +9,7 @@ import glot_frontend/admin/periodic_jobs/message.{
   SavedPeriodicJobFormatted,
 }
 import glot_frontend/admin/periodic_jobs/model.{Model, NotLoaded}
-import glot_frontend/admin/request_generation
+import glot_frontend/request_generation
 import youid/uuid
 
 pub type Model =

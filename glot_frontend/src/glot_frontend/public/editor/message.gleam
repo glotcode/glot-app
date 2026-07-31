@@ -7,8 +7,12 @@ import glot_core/snippet/snippet_model
 import glot_frontend/api/response as api_response
 import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/lifecycle.{type Target}
-import glot_frontend/public/editor/model.{type AddEntryKind, type EditorTab}
+import glot_frontend/public/editor/model.{
+  type AddEntryKind, type EditorTab, type RunStream, type SaveStream,
+}
 import glot_frontend/public/editor/settings
+import glot_frontend/request_generation.{type Generation}
+import glot_frontend/ui/delayed_loading
 
 pub type Msg {
   Lifecycle(LifecycleMsg)
@@ -28,7 +32,7 @@ pub type EditorMsg {
 pub type LifecycleMsg {
   EnvironmentLoaded(Target, String, settings.EditorSettings)
   SnippetLoaded(String, api_response.Response(snippet_dto.SnippetResponse))
-  SnippetLoadingDelayElapsed(String, Int)
+  SnippetLoadingDelayElapsed(String, Generation(delayed_loading.Stream))
 }
 
 pub type RestoreDraftMsg {
@@ -80,7 +84,10 @@ pub type SaveMsg {
   SaveCancelled
   SaveConfirmed
   SaveDialogClosed
-  SaveFinished(Int, api_response.Response(snippet_dto.SnippetResponse))
+  SaveFinished(
+    Generation(SaveStream),
+    api_response.Response(snippet_dto.SnippetResponse),
+  )
 }
 
 pub type SnippetInfoMsg {
@@ -94,6 +101,6 @@ pub type ExecutionMsg {
   TabKeyPressed(EditorTab, String)
   SourceCodeChanged(String, Int)
   RunSubmitted
-  RunFinished(Int, api_response.Response(run.RunResult))
+  RunFinished(Generation(RunStream), api_response.Response(run.RunResult))
   VersionRunFinished(language.Language, api_response.Response(run.RunResult))
 }

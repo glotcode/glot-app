@@ -1,6 +1,6 @@
 import glot_core/admin/email_template_dto
 import glot_core/loadable
-import glot_frontend/admin/request_generation.{type Generation}
+import glot_frontend/request_generation.{type Generation}
 import glot_frontend/ui/mutation
 
 pub type Model {
@@ -9,7 +9,7 @@ pub type Model {
     template: loadable.Loadable(email_template_dto.EmailTemplateDetailResponse),
     draft: Draft,
     save_state: mutation.MutationState,
-    save_generation: Generation,
+    save_generation: Generation(request_generation.Shared),
   )
 }
 

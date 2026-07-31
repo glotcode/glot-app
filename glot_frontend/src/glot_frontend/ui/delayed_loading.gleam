@@ -1,17 +1,27 @@
+import glot_frontend/request_generation.{type Generation}
+
 const delay_milliseconds = 1000
 
 pub opaque type State {
-  State(generation: Int, loading: Bool, visible: Bool)
+  State(generation: Generation(Stream), loading: Bool, visible: Bool)
+}
+
+pub type Stream {
+  Stream
 }
 
 pub fn idle() -> State {
-  State(generation: 0, loading: False, visible: False)
+  State(
+    generation: request_generation.initial(),
+    loading: False,
+    visible: False,
+  )
 }
 
 /// Start loading without choosing an effect implementation. Feature-owned
 /// managed effect algebras use the returned generation to schedule a message.
-pub fn begin(state: State) -> #(State, Int) {
-  let generation = state.generation + 1
+pub fn begin(state: State) -> #(State, Generation(Stream)) {
+  let generation = request_generation.next(state.generation)
   #(State(generation:, loading: True, visible: False), generation)
 }
 
@@ -19,8 +29,10 @@ pub fn delay() -> Int {
   delay_milliseconds
 }
 
-pub fn reveal(state: State, generation: Int) -> State {
-  case state.loading && state.generation == generation {
+pub fn reveal(state: State, generation: Generation(Stream)) -> State {
+  case
+    state.loading && request_generation.is_current(state.generation, generation)
+  {
     True -> State(..state, visible: True)
     False -> state
   }

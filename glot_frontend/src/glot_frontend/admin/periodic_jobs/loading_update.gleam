@@ -8,10 +8,10 @@ import glot_frontend/admin/periodic_jobs/message.{
   LoadedPeriodicJobFormatted, PeriodicJobLoaded, RecentJobsLoaded,
 }
 import glot_frontend/admin/periodic_jobs/model.{
-  type Model, LoadError, Loading, Model, NotLoaded, Ready,
+  type Model, type RecentJobsStream, LoadError, Loading, Model, NotLoaded, Ready,
 }
-import glot_frontend/admin/request_generation.{type Generation}
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation.{type Generation}
 import youid/uuid
 
 pub fn ensure_loaded(
@@ -137,7 +137,7 @@ pub fn update(
   }
 }
 
-fn load_recent_jobs(id: uuid.Uuid, generation: Generation) {
+fn load_recent_jobs(id: uuid.Uuid, generation: Generation(RecentJobsStream)) {
   admin_effect.get_admin_jobs(
     job_dto.ListJobsRequest(
       pagination: pagination_model.InitialPage(limit: 10),

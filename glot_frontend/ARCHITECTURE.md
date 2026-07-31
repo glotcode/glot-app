@@ -247,11 +247,18 @@ app -> features -> api / ui / platform -> glot_web -> glot_core
 - A child owns request validation and maps successful responses back into its
   saved and draft state.
 - Stale asynchronous responses must carry enough identity or generation data
-  to be rejected safely. Admin cursor lists own an opaque
-  `admin/cursor_request.State`; `cursor_request.begin` advances the state and
-  returns the generation attached to the request. Other request streams use
-  the opaque `admin/request_generation.Generation` type directly. Features
-  never construct or increment raw generation integers.
+  to be rejected safely. The global opaque
+  `request_generation.Generation(stream)` type owns advancement and current
+  generation checks. Phantom stream markers distinguish operations where
+  cross-stream mixing is possible. Editor runs and saves and admin models with
+  multiple request streams use feature-owned markers for each operation. The
+  shared marker is reserved for single-stream boundaries where the surrounding
+  domain type already provides the operation identity. Admin cursor lists
+  additionally own an opaque
+  `admin/cursor_request.State`; `cursor_request.begin` advances that state and
+  returns its global generation. Delayed-loading timers also carry global
+  generations rather than raw integers. Features never construct or increment
+  raw generation integers.
 - Extract pure state transitions before introducing a generic abstraction.
   Do not build schema-driven forms or erase feature-specific message types.
 

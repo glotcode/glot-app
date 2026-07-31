@@ -1,11 +1,11 @@
 import glot_core/loadable
-import glot_frontend/admin/request_generation.{type Generation}
+import glot_frontend/request_generation.{type Generation}
 import glot_frontend/ui/mutation
 
 pub type Model {
   Model(
     policies: loadable.Loadable(List(PolicyEditor)),
-    load_generation: Generation,
+    load_generation: Generation(LoadStream),
   )
 }
 
@@ -15,8 +15,16 @@ pub type PolicyEditor {
     saved: PolicyFields,
     draft: PolicyFields,
     state: mutation.MutationState,
-    save_generation: Generation,
+    save_generation: Generation(SaveStream),
   )
+}
+
+pub type LoadStream {
+  LoadStream
+}
+
+pub type SaveStream {
+  SaveStream
 }
 
 pub type PolicyFields {

@@ -11,7 +11,7 @@ import glot_frontend/admin/jobs/message.{
   PreviousLogsPageClicked,
 }
 import glot_frontend/admin/jobs/model.{Model, NotLoaded}
-import glot_frontend/admin/request_generation
+import glot_frontend/request_generation
 import youid/uuid
 
 pub type Model =

@@ -16,6 +16,7 @@ import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/view
+import glot_frontend/request_generation
 import glot_frontend/ui/delayed_loading
 import glot_web/page/editor as editor_ssr
 import lustre/element
@@ -57,7 +58,7 @@ pub fn stale_snippet_and_loading_timer_messages_for_another_slug_are_ignored_tes
     ))
     |> editor_scenario.dispatch_lifecycle(message.SnippetLoadingDelayElapsed(
       "other-slug",
-      1,
+      request_generation.initial(),
     ))
   let assert model.Lifecycle(lifecycle.LoadingSnippet(slug, _, indicator)) =
     editor_scenario.model(scenario)

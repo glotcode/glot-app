@@ -8,8 +8,8 @@ import glot_frontend/admin/jobs/policies_message.{
 }
 import glot_frontend/admin/jobs/policies_model.{type Model, Model, PolicyEditor}
 import glot_frontend/admin/jobs/policies_policy as policy
-import glot_frontend/admin/request_generation
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation
 import glot_frontend/ui/mutation
 
 pub fn init() -> #(Model, admin_effect.Command(Msg)) {

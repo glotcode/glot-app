@@ -11,6 +11,7 @@ import glot_frontend/public/editor/model.{
 }
 import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/settings
+import glot_frontend/request_generation
 import youid/uuid.{type Uuid}
 
 pub fn new(
@@ -108,9 +109,9 @@ fn build(snippet: Snippet, editor_settings: settings.EditorSettings) -> Editor {
     restore_draft: NoRestoreDraft,
     operations: Operations(
       version_info: option.None,
-      run_generation: 0,
+      run_generation: request_generation.initial(),
       run_state: execution.Idle,
-      save_generation: 0,
+      save_generation: request_generation.initial(),
       save_state: execution.SaveIdle,
     ),
   )

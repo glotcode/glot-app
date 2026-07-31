@@ -4,7 +4,6 @@ import glot_core/loadable
 import glot_core/route
 import glot_core/snippet/snippet_dto as public_snippet_dto
 import glot_frontend/admin/command as admin_effect
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/snippets/detail_constants as constants
 import glot_frontend/admin/snippets/detail_message.{
   DeleteCancelled, DeleteClicked, DeleteConfirmed, DeleteDialogClosed,
@@ -13,6 +12,7 @@ import glot_frontend/admin/snippets/detail_message.{
 import glot_frontend/admin/snippets/detail_model.{DeleteIdle, Deleting, Model}
 import glot_frontend/admin/ui/loadable as loadable_effect
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation
 
 pub type Model =
   detail_model.Model

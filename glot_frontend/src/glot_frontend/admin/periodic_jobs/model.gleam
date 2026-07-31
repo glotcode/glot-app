@@ -1,7 +1,7 @@
 import gleam/option
 import gleam/time/timestamp
 import glot_core/admin/job_dto
-import glot_frontend/admin/request_generation.{type Generation}
+import glot_frontend/request_generation.{type Generation}
 import youid/uuid
 
 pub type Model {
@@ -11,10 +11,22 @@ pub type Model {
     status: Status,
     recent_jobs: List(job_dto.JobResponse),
     jobs_status: Status,
-    job_generation: Generation,
-    recent_jobs_generation: Generation,
-    save_generation: Generation,
+    job_generation: Generation(JobStream),
+    recent_jobs_generation: Generation(RecentJobsStream),
+    save_generation: Generation(SaveStream),
   )
+}
+
+pub type JobStream {
+  JobStream
+}
+
+pub type RecentJobsStream {
+  RecentJobsStream
+}
+
+pub type SaveStream {
+  SaveStream
 }
 
 pub type Status {

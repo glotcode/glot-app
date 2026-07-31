@@ -6,10 +6,10 @@ import glot_core/auth/account_model
 import glot_core/auth/user_model
 import glot_core/loadable
 import glot_core/validation_error
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/users/model.{
   type Model, type UserEditor, Model, UserEditor, UserFields, UserMetadata,
 }
+import glot_frontend/request_generation
 import glot_frontend/ui/mutation
 
 pub fn update_model(

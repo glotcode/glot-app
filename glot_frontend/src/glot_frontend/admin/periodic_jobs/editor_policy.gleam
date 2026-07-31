@@ -8,8 +8,8 @@ import glot_frontend/admin/periodic_jobs/model.{
   type Model, type PeriodicJobEditor, type PeriodicJobFields, Idle, Model,
   PeriodicJobEditor, PeriodicJobFields, PeriodicJobMetadata,
 }
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/ui/format as admin_format
+import glot_frontend/request_generation
 
 pub fn update_model(
   model: Model,

@@ -9,8 +9,8 @@ import glot_frontend/admin/jobs/model.{
   CreateJobSaving, Model,
 }
 import glot_frontend/admin/local_datetime.{type LocalDateTime}
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/ui/format as admin_format
+import glot_frontend/request_generation
 
 pub fn reset_state(state: CreateJobState) -> CreateJobState {
   case state {

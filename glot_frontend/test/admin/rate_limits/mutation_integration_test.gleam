@@ -8,8 +8,8 @@ import glot_frontend/admin/rate_limits/managed as rate_limits_managed
 import glot_frontend/admin/rate_limits/message as rate_limits_message
 import glot_frontend/admin/rate_limits/model as rate_limits_model
 import glot_frontend/admin/rate_limits/policy as rate_limits_policy
-import glot_frontend/admin/request_generation
 import glot_frontend/api/response
+import glot_frontend/request_generation
 import glot_frontend/ui/mutation
 import youid/uuid
 

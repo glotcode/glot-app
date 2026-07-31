@@ -4,24 +4,26 @@ import glot_core/auth/account_session_dto
 import glot_core/auth/passkey_dto
 import glot_core/auth/session_dto
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation.{type Generation}
+import glot_frontend/ui/delayed_loading
 import glot_frontend/ui/passkey
 import youid/uuid
 
 pub type Msg {
   RuntimeLoaded(Bool)
   AccountLoaded(api_response.Response(account_dto.AccountResponse))
-  AccountLoadingDelayElapsed(Int)
+  AccountLoadingDelayElapsed(Generation(delayed_loading.Stream))
   SessionLoaded(
     api_response.Response(option.Option(session_dto.SessionResponse)),
   )
   AccountSessionsLoaded(
     api_response.Response(account_session_dto.ListAccountSessionsResponse),
   )
-  SessionsLoadingDelayElapsed(Int)
+  SessionsLoadingDelayElapsed(Generation(delayed_loading.Stream))
   AccountPasskeysLoaded(
     api_response.Response(passkey_dto.ListAccountPasskeysResponse),
   )
-  PasskeysLoadingDelayElapsed(Int)
+  PasskeysLoadingDelayElapsed(Generation(delayed_loading.Stream))
   UsernameChanged(String)
   UsernameSubmitted
   AccountUpdated(api_response.Response(account_dto.AccountResponse))

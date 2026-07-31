@@ -1,13 +1,15 @@
 import glot_core/admin/rate_limit_config_dto
 import glot_core/public_action
 import glot_core/rate_limit
-import glot_frontend/admin/rate_limits/model.{type EditorTab}
-import glot_frontend/admin/request_generation.{type Generation}
+import glot_frontend/admin/rate_limits/model.{
+  type EditorTab, type LoadStream, type SaveStream,
+}
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation.{type Generation}
 
 pub type Msg {
   PoliciesLoaded(
-    Generation,
+    Generation(LoadStream),
     api_response.Response(rate_limit_config_dto.RateLimitPoliciesResponse),
   )
   EditClicked(public_action.PublicAction)
@@ -23,7 +25,7 @@ pub type Msg {
   SaveClicked(public_action.PublicAction)
   SaveFinished(
     public_action.PublicAction,
-    Generation,
+    Generation(SaveStream),
     api_response.Response(rate_limit_config_dto.RateLimitPolicyResponse),
   )
 }

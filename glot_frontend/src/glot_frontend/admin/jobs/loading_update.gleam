@@ -7,10 +7,11 @@ import glot_frontend/admin/jobs/message.{
   JobLoaded, JobLogsLoaded, NextLogsPageClicked, PreviousLogsPageClicked,
 }
 import glot_frontend/admin/jobs/model.{
-  type Model, type Status, LoadError, Loading, Model, NotLoaded, Ready,
+  type LogsStream, type Model, type Status, LoadError, Loading, Model, NotLoaded,
+  Ready,
 }
-import glot_frontend/admin/request_generation.{type Generation}
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation.{type Generation}
 
 const job_logs_page_limit = 25
 
@@ -139,7 +140,7 @@ fn load_page(model: Model, pagination: pagination_model.CursorPagination) {
 fn get_job_logs(
   model: Model,
   pagination: pagination_model.CursorPagination,
-  generation: Generation,
+  generation: Generation(LogsStream),
 ) {
   admin_effect.get_admin_job_logs(
     job_log_dto.ListJobLogsRequest(

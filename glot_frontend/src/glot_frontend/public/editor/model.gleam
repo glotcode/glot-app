@@ -6,6 +6,7 @@ import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/execution
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/settings
+import glot_frontend/request_generation.{type Generation}
 import youid/uuid.{type Uuid}
 
 pub type Model {
@@ -87,11 +88,19 @@ pub type RestoreDraftState {
 pub type Operations {
   Operations(
     version_info: option.Option(String),
-    run_generation: Int,
+    run_generation: Generation(RunStream),
     run_state: execution.RunState,
-    save_generation: Int,
+    save_generation: Generation(SaveStream),
     save_state: execution.SaveState,
   )
+}
+
+pub type RunStream {
+  RunStream
+}
+
+pub type SaveStream {
+  SaveStream
 }
 
 pub type RunInstructionsDraft {

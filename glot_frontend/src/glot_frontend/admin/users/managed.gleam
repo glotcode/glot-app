@@ -1,7 +1,6 @@
 import gleam/option
 import glot_core/loadable
 import glot_frontend/admin/command as admin_effect
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/users/delete_update
 import glot_frontend/admin/users/editor_update
 import glot_frontend/admin/users/loading_update
@@ -12,6 +11,7 @@ import glot_frontend/admin/users/message.{
   UserLoaded, UsernameChanged,
 }
 import glot_frontend/admin/users/model.{DeleteIdle, Model}
+import glot_frontend/request_generation
 import youid/uuid
 
 pub type Model =

@@ -4,7 +4,7 @@ import glot_core/auth/account_model
 import glot_core/auth/user_model
 import glot_core/email/email_address_model
 import glot_core/loadable
-import glot_frontend/admin/request_generation.{type Generation}
+import glot_frontend/request_generation.{type Generation}
 import glot_frontend/ui/mutation
 import youid/uuid
 
@@ -14,9 +14,17 @@ pub type Model {
     user: loadable.Loadable(UserEditor),
     pending_delete: option.Option(UserEditor),
     delete_state: DeleteState,
-    save_generation: Generation,
-    delete_generation: Generation,
+    save_generation: Generation(SaveStream),
+    delete_generation: Generation(DeleteStream),
   )
+}
+
+pub type SaveStream {
+  SaveStream
+}
+
+pub type DeleteStream {
+  DeleteStream
 }
 
 pub type DeleteState {

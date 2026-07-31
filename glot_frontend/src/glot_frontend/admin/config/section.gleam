@@ -1,4 +1,4 @@
-import glot_frontend/admin/request_generation.{type Generation}
+import glot_frontend/request_generation.{type Generation}
 import glot_frontend/ui/mutation
 
 pub type LoadState {
@@ -14,9 +14,17 @@ pub type FormModel(fields) {
     saved: fields,
     draft: fields,
     mutation_state: mutation.MutationState,
-    load_generation: Generation,
-    save_generation: Generation,
+    load_generation: Generation(LoadStream),
+    save_generation: Generation(SaveStream),
   )
+}
+
+pub type LoadStream {
+  LoadStream
+}
+
+pub type SaveStream {
+  SaveStream
 }
 
 pub fn init(fields: fields) -> FormModel(fields) {
@@ -87,16 +95,16 @@ pub fn begin_save(model: FormModel(fields)) -> FormModel(fields) {
 
 pub fn is_current_load(
   model: FormModel(fields),
-  generation: Generation,
+  generation: Generation(LoadStream),
 ) -> Bool {
-  model.load_generation == generation
+  request_generation.is_current(model.load_generation, generation)
 }
 
 pub fn is_current_save(
   model: FormModel(fields),
-  generation: Generation,
+  generation: Generation(SaveStream),
 ) -> Bool {
-  model.save_generation == generation
+  request_generation.is_current(model.save_generation, generation)
 }
 
 pub fn saved(model: FormModel(fields), fields: fields) -> FormModel(fields) {

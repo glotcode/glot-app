@@ -3,7 +3,6 @@ import glot_core/auth/account_model
 import glot_core/auth/user_model
 import glot_core/loadable
 import glot_frontend/admin/command as admin_effect
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/users/editor_policy
 import glot_frontend/admin/users/message.{
   AccountStateChanged, AccountStateReasonChanged, AccountTierChanged,
@@ -13,6 +12,7 @@ import glot_frontend/admin/users/model.{
   type Model, DeleteIdle, Model, UserEditor, UserFields,
 }
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation
 import glot_frontend/ui/mutation
 
 pub fn update(model: Model, msg: message.Msg) {

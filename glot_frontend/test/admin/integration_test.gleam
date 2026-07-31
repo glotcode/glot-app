@@ -18,11 +18,11 @@ import glot_frontend/admin/periodic_jobs/model as periodic_job_model
 import glot_frontend/admin/rate_limits/managed as rate_limits
 import glot_frontend/admin/rate_limits/message as rate_limit_message
 import glot_frontend/admin/rate_limits/model as rate_limit_model
-import glot_frontend/admin/request_generation
 import glot_frontend/admin/users/managed as user_detail
 import glot_frontend/admin/users/message as user_message
 import glot_frontend/admin/users/model as user_model
 import glot_frontend/api/response
+import glot_frontend/request_generation
 import glot_frontend/ui/mutation
 import support/managed_scenario
 import youid/uuid
@@ -137,56 +137,69 @@ pub fn stale_admin_mutation_response_is_ignored_test() {
 
 pub fn extracted_admin_reducers_reject_stale_fixture_responses_test() {
   let assert Ok(id) = uuid.from_string("00000000-0000-4000-8000-000000000006")
-  let stale_generation = request_generation.initial()
-  let current_generation = request_generation.next(stale_generation)
 
+  let #(stale_job_generation, current_job_generation) = generations()
   let #(job, _) = job_detail.init(id)
-  let job = job_model.Model(..job, logs_generation: current_generation)
+  let job = job_model.Model(..job, logs_generation: current_job_generation)
   let #(unchanged_job, job_command) =
     job_detail.update(
       job,
-      job_message.JobLogsLoaded(stale_generation, stale_failure(id)),
+      job_message.JobLogsLoaded(stale_job_generation, stale_failure(id)),
     )
   assert unchanged_job == job
   assert job_command == command.None
 
+  let #(stale_recent_generation, current_recent_generation) = generations()
   let #(periodic_job, _) = periodic_job_detail.init(id)
   let periodic_job =
     periodic_job_model.Model(
       ..periodic_job,
-      recent_jobs_generation: current_generation,
+      recent_jobs_generation: current_recent_generation,
     )
   let #(unchanged_periodic_job, periodic_job_command) =
     periodic_job_detail.update(
       periodic_job,
-      periodic_job_message.RecentJobsLoaded(stale_generation, stale_failure(id)),
+      periodic_job_message.RecentJobsLoaded(
+        stale_recent_generation,
+        stale_failure(id),
+      ),
     )
   assert unchanged_periodic_job == periodic_job
   assert periodic_job_command == command.None
 
+  let #(stale_load_generation, current_load_generation) = generations()
   let #(rate_limit_model, _) = rate_limits.init()
   let rate_limit_model =
     rate_limit_model.Model(
       ..rate_limit_model,
-      load_generation: current_generation,
+      load_generation: current_load_generation,
     )
   let #(unchanged_rate_limits, rate_limit_command) =
     rate_limits.update(
       rate_limit_model,
-      rate_limit_message.PoliciesLoaded(stale_generation, stale_failure(id)),
+      rate_limit_message.PoliciesLoaded(
+        stale_load_generation,
+        stale_failure(id),
+      ),
     )
   assert unchanged_rate_limits == rate_limit_model
   assert rate_limit_command == command.None
 
+  let #(stale_save_generation, current_save_generation) = generations()
   let #(user, _) = user_detail.init(id)
-  let user = user_model.Model(..user, save_generation: current_generation)
+  let user = user_model.Model(..user, save_generation: current_save_generation)
   let #(unchanged_user, user_command) =
     user_detail.update(
       user,
-      user_message.SaveFinished(stale_generation, stale_failure(id)),
+      user_message.SaveFinished(stale_save_generation, stale_failure(id)),
     )
   assert unchanged_user == user
   assert user_command == command.None
+}
+
+fn generations() {
+  let stale = request_generation.initial()
+  #(stale, request_generation.next(stale))
 }
 
 fn stale_failure(id: uuid.Uuid) -> response.Response(value) {

@@ -8,6 +8,7 @@ import glot_frontend/public/editor/model.{
   type Editor, Editor, Operations, Snippet,
 }
 import glot_frontend/public/editor/policy
+import glot_frontend/request_generation
 import youid/uuid.{type Uuid}
 
 pub fn save_snippet(
@@ -16,7 +17,7 @@ pub fn save_snippet(
   close_dialog: Bool,
 ) -> #(Editor, command.Command(SaveMsg)) {
   let visibility = policy.visibility(model, current_user_id)
-  let generation = model.operations.save_generation + 1
+  let generation = request_generation.next(model.operations.save_generation)
   let data =
     snippet_dto.SnippetData(
       title: model.snippet.title,

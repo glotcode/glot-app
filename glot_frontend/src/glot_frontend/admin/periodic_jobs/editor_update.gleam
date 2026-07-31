@@ -11,8 +11,8 @@ import glot_frontend/admin/periodic_jobs/model.{
   type Model, Idle, Model, PeriodicJobEditor, PeriodicJobFields, Ready,
   SaveError, Saving,
 }
-import glot_frontend/admin/request_generation
 import glot_frontend/api/response as api_response
+import glot_frontend/request_generation
 
 pub fn update(
   model: Model,

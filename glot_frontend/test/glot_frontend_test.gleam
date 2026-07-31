@@ -21,8 +21,8 @@ import glot_frontend/public/login/page as login_page
 import glot_frontend/public/snippets/message as snippets_message
 import glot_frontend/public/snippets/model as snippets_model
 import glot_frontend/public/snippets/page as snippets_page
+import glot_frontend/request_generation
 import glot_frontend/ui/delayed_loading
-import glot_frontend/ui/delayed_loading_effect
 import glot_frontend/ui/string_helpers
 
 pub fn main() -> Nil {
@@ -45,14 +45,19 @@ pub fn truncate_stem_middle_handles_tiny_lengths_test() {
 }
 
 pub fn delayed_loading_only_reveals_current_generation_test() {
-  let #(first_load, _) =
-    delayed_loading_effect.start(delayed_loading.idle(), fn(id) { id })
-  let #(second_load, _) =
-    delayed_loading_effect.start(first_load, fn(id) { id })
+  let #(first_load, first_generation) =
+    delayed_loading.begin(delayed_loading.idle())
+  let #(second_load, second_generation) = delayed_loading.begin(first_load)
 
   assert !delayed_loading.is_visible(first_load)
-  assert !delayed_loading.is_visible(delayed_loading.reveal(second_load, 1))
-  assert delayed_loading.is_visible(delayed_loading.reveal(second_load, 2))
+  assert !delayed_loading.is_visible(delayed_loading.reveal(
+    second_load,
+    first_generation,
+  ))
+  assert delayed_loading.is_visible(delayed_loading.reveal(
+    second_load,
+    second_generation,
+  ))
   assert !delayed_loading.is_visible(delayed_loading.finish(second_load))
 }
 
@@ -74,7 +79,10 @@ pub fn snippets_page_ignores_loading_timer_from_previous_route_test() {
   let #(model_after_old_timer, _) =
     snippets_page.update(
       second_model,
-      snippets_message.LoadingDelayElapsed(first_request, 1),
+      snippets_message.LoadingDelayElapsed(
+        first_request,
+        request_generation.next(request_generation.initial()),
+      ),
     )
   let snippets_model.Model(loading_indicator:, ..) = model_after_old_timer
 
@@ -99,7 +107,7 @@ pub fn editor_page_ignores_loading_timer_from_previous_slug_test() {
       model,
       editor_message.Lifecycle(editor_message.SnippetLoadingDelayElapsed(
         "first",
-        1,
+        request_generation.initial(),
       )),
       option.None,
     )
@@ -186,7 +194,12 @@ pub fn account_page_delays_initial_loading_indicator_test() {
   assert !delayed_loading.is_visible(account_loading_indicator)
 
   let #(model, _, _) =
-    account_page.update(model, account_message.AccountLoadingDelayElapsed(1))
+    account_page.update(
+      model,
+      account_message.AccountLoadingDelayElapsed(
+        request_generation.next(request_generation.initial()),
+      ),
+    )
   let account_model.Model(account_loading_indicator:, ..) = model
 
   assert delayed_loading.is_visible(account_loading_indicator)

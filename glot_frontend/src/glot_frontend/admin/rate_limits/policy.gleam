@@ -12,7 +12,7 @@ import glot_frontend/admin/rate_limits/model.{
   type PolicyTabs, AnonymousTab, FreePlusTab, FreeTab, LimitFields, Model,
   PolicyEditor, PolicyTabs,
 }
-import glot_frontend/admin/request_generation
+import glot_frontend/request_generation
 import glot_frontend/ui/mutation
 
 pub fn loaded(model: Model) -> List(PolicyEditor) {
