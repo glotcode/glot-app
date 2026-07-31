@@ -7,6 +7,7 @@ import glot_frontend/public/editor/files as editor_files
 import glot_frontend/public/editor/model.{
   type Editor, Editor, EntryDrafts, FileTab, Snippet, StdinTab, Workspace,
 }
+import glot_frontend/public/editor/tab_semantics
 
 pub fn reset_add_entry_draft(model: Editor) -> Editor {
   Editor(
@@ -136,24 +137,37 @@ fn delete_file(model: Editor, index: Int) -> Editor {
   )
 }
 
-pub fn update_selected_tab_content(model: Editor, content: String) -> Editor {
-  case model.workspace.selected_tab {
-    FileTab(index) ->
-      Editor(
-        ..model,
-        snippet: Snippet(
-          ..model.snippet,
-          files: editor_files.update_content_at(
-            model.snippet.files,
-            index,
-            content,
+pub fn update_selected_tab_content(
+  model: Editor,
+  content: String,
+) -> option.Option(Editor) {
+  let tabs =
+    tab_semantics.available_tabs(
+      list.length(model.snippet.files),
+      model.snippet.stdin,
+    )
+  case tab_semantics.select_tab(tabs, model.workspace.selected_tab) {
+    tab_semantics.SelectionBlocked -> option.None
+    tab_semantics.SelectTab(FileTab(index)) ->
+      option.Some(
+        Editor(
+          ..model,
+          snippet: Snippet(
+            ..model.snippet,
+            files: editor_files.update_content_at(
+              model.snippet.files,
+              index,
+              content,
+            ),
           ),
         ),
       )
-    StdinTab ->
-      Editor(
-        ..model,
-        snippet: Snippet(..model.snippet, stdin: option.Some(content)),
+    tab_semantics.SelectTab(StdinTab) ->
+      option.Some(
+        Editor(
+          ..model,
+          snippet: Snippet(..model.snippet, stdin: option.Some(content)),
+        ),
       )
   }
 }

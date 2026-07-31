@@ -5,6 +5,11 @@ import glot_frontend/public/editor/model.{type EditorTab, FileTab, StdinTab}
 
 pub const panel_id = "editor-source-panel"
 
+pub type SelectionDecision {
+  SelectTab(EditorTab)
+  SelectionBlocked
+}
+
 pub fn available_tabs(
   file_count: Int,
   stdin: Option(String),
@@ -23,17 +28,31 @@ pub fn tab_id(tab: EditorTab) -> String {
   }
 }
 
+pub fn select_tab(
+  tabs: List(EditorTab),
+  requested: EditorTab,
+) -> SelectionDecision {
+  case list.contains(tabs, requested) {
+    True -> SelectTab(requested)
+    False -> SelectionBlocked
+  }
+}
+
 pub fn keyboard_destination(
   tabs: List(EditorTab),
   current: EditorTab,
   key: String,
 ) -> Option(EditorTab) {
-  case key {
-    "Home" -> first_tab(tabs)
-    "End" -> last_tab(tabs)
-    "ArrowRight" | "ArrowDown" -> next_tab(tabs, current)
-    "ArrowLeft" | "ArrowUp" -> previous_tab(tabs, current)
-    _ -> option.None
+  case select_tab(tabs, current) {
+    SelectionBlocked -> option.None
+    SelectTab(_) ->
+      case key {
+        "Home" -> first_tab(tabs)
+        "End" -> last_tab(tabs)
+        "ArrowRight" | "ArrowDown" -> next_tab(tabs, current)
+        "ArrowLeft" | "ArrowUp" -> previous_tab(tabs, current)
+        _ -> option.None
+      }
   }
 }
 

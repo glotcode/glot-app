@@ -26,6 +26,15 @@ pub fn available_tabs_are_files_in_index_order_followed_by_optional_stdin_test()
     == [model.StdinTab]
 }
 
+pub fn selection_accepts_only_tabs_from_the_available_sequence_test() {
+  let tabs = [model.FileTab(0), model.FileTab(1), model.StdinTab]
+
+  assert tab_semantics.select_tab(tabs, model.FileTab(1))
+    == tab_semantics.SelectTab(model.FileTab(1))
+  assert tab_semantics.select_tab(tabs, model.FileTab(5))
+    == tab_semantics.SelectionBlocked
+}
+
 pub fn home_and_end_keys_select_boundary_tabs_test() {
   let tabs = [model.FileTab(0), model.FileTab(1), model.StdinTab]
 
@@ -34,5 +43,7 @@ pub fn home_and_end_keys_select_boundary_tabs_test() {
   assert tab_semantics.keyboard_destination(tabs, model.FileTab(1), "End")
     == option.Some(model.StdinTab)
   assert tab_semantics.keyboard_destination(tabs, model.FileTab(1), "Enter")
+    == option.None
+  assert tab_semantics.keyboard_destination(tabs, model.FileTab(5), "Home")
     == option.None
 }

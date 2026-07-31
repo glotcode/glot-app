@@ -25,14 +25,10 @@ pub fn update(
   msg: ExecutionMsg,
 ) -> #(Editor, command.Command(ExecutionMsg)) {
   case msg {
-    TabSelected(tab) -> #(select_tab(model, tab), command.none())
+    TabSelected(tab) -> select_requested_tab(model, tab)
 
     TabKeyPressed(current, key) -> {
-      let tabs =
-        tab_semantics.available_tabs(
-          list.length(model.snippet.files),
-          model.snippet.stdin,
-        )
+      let tabs = available_tabs(model)
       case tab_semantics.keyboard_destination(tabs, current, key) {
         option.Some(tab) -> #(
           select_tab(model, tab),
@@ -43,15 +39,20 @@ pub fn update(
     }
 
     SourceCodeChanged(source_code, revision) -> {
-      let next_model =
-        file_workflow.update_selected_tab_content(model, source_code)
-        |> fn(model) {
-          Editor(
-            ..model,
-            workspace: Workspace(..model.workspace, editor_revision: revision),
-          )
+      case file_workflow.update_selected_tab_content(model, source_code) {
+        option.None -> #(model, command.none())
+        option.Some(changed) -> {
+          let next_model =
+            Editor(
+              ..changed,
+              workspace: Workspace(
+                ..changed.workspace,
+                editor_revision: revision,
+              ),
+            )
+          #(next_model, command.SaveDraft(draft_projection.write(next_model)))
         }
-      #(next_model, command.SaveDraft(draft_projection.write(next_model)))
+      }
     }
 
     RunSubmitted -> execution_workflow.run_snippet(model)
@@ -119,5 +120,23 @@ fn select_tab(model: Editor, tab: EditorTab) -> Editor {
       selected_tab: tab,
       editor_external_revision: model.workspace.editor_external_revision + 1,
     ),
+  )
+}
+
+fn select_requested_tab(
+  model: Editor,
+  requested: EditorTab,
+) -> #(Editor, command.Command(ExecutionMsg)) {
+  let tabs = available_tabs(model)
+  case tab_semantics.select_tab(tabs, requested) {
+    tab_semantics.SelectionBlocked -> #(model, command.none())
+    tab_semantics.SelectTab(tab) -> #(select_tab(model, tab), command.none())
+  }
+}
+
+fn available_tabs(model: Editor) -> List(EditorTab) {
+  tab_semantics.available_tabs(
+    list.length(model.snippet.files),
+    model.snippet.stdin,
   )
 }

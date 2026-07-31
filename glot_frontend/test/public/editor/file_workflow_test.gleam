@@ -121,7 +121,7 @@ pub fn invalid_selected_entries_cannot_report_successful_mutations_test() {
 
 pub fn selected_content_updates_only_the_selected_document_test() {
   let editor = two_file_editor()
-  let file_updated =
+  let assert option.Some(file_updated) =
     file_workflow.update_selected_tab_content(editor, "updated helper")
   assert file_updated.snippet.files
     == [
@@ -138,10 +138,35 @@ pub fn selected_content_updates_only_the_selected_document_test() {
         selected_tab: model.StdinTab,
       ),
     )
-  let stdin_updated =
+  let assert option.Some(stdin_updated) =
     file_workflow.update_selected_tab_content(stdin_editor, "new input")
   assert stdin_updated.snippet.stdin == option.Some("new input")
   assert stdin_updated.snippet.files == editor.snippet.files
+}
+
+pub fn selected_content_rejects_unavailable_documents_test() {
+  let editor = two_file_editor()
+  let invalid_file =
+    model.Editor(
+      ..editor,
+      workspace: model.Workspace(
+        ..editor.workspace,
+        selected_tab: model.FileTab(5),
+      ),
+    )
+  assert file_workflow.update_selected_tab_content(invalid_file, "ignored")
+    == option.None
+
+  let missing_stdin =
+    model.Editor(
+      ..editor,
+      workspace: model.Workspace(
+        ..editor.workspace,
+        selected_tab: model.StdinTab,
+      ),
+    )
+  assert file_workflow.update_selected_tab_content(missing_stdin, "ignored")
+    == option.None
 }
 
 pub fn resetting_each_dialog_draft_preserves_the_other_test() {

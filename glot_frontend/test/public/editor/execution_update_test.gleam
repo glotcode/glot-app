@@ -63,6 +63,21 @@ pub fn tab_key_navigation_selects_and_focuses_the_destination_test() {
     == #(editor, command.None)
 }
 
+pub fn unavailable_tab_selection_and_keyboard_origins_are_ignored_test() {
+  let assert model.Ready(editor) =
+    editor_scenario.new_editor(language.JavaScript)
+
+  assert execution_update.update(editor, message.TabSelected(model.FileTab(5)))
+    == #(editor, command.None)
+  assert execution_update.update(editor, message.TabSelected(model.StdinTab))
+    == #(editor, command.None)
+  assert execution_update.update(
+      editor,
+      message.TabKeyPressed(model.FileTab(5), "Home"),
+    )
+    == #(editor, command.None)
+}
+
 pub fn source_change_updates_revision_content_and_persists_the_draft_test() {
   let assert model.Ready(editor) =
     editor_scenario.new_editor(language.JavaScript)
@@ -76,6 +91,38 @@ pub fn source_change_updates_revision_content_and_persists_the_draft_test() {
   assert changed.snippet.files
     == [snippet_model.File("main.js", "updated source")]
   assert next_command == command.SaveDraft(draft_projection.write(changed))
+}
+
+pub fn source_changes_for_unavailable_documents_are_ignored_test() {
+  let assert model.Ready(base) = editor_scenario.new_editor(language.JavaScript)
+  let invalid_file =
+    model.Editor(
+      ..base,
+      workspace: model.Workspace(
+        ..base.workspace,
+        selected_tab: model.FileTab(5),
+      ),
+    )
+  assert execution_update.update(
+      invalid_file,
+      message.SourceCodeChanged("ignored", 42),
+    )
+    == #(invalid_file, command.None)
+
+  let missing_stdin =
+    model.Editor(
+      ..base,
+      workspace: model.Workspace(..base.workspace, selected_tab: model.StdinTab),
+    )
+  let #(unchanged, next_command) =
+    execution_update.update(
+      missing_stdin,
+      message.SourceCodeChanged("must not create stdin", 42),
+    )
+  assert unchanged == missing_stdin
+  assert unchanged.snippet.stdin == option.None
+  assert unchanged.workspace.editor_revision == 0
+  assert next_command == command.None
 }
 
 pub fn current_run_results_and_failures_update_execution_feedback_test() {
