@@ -178,10 +178,26 @@ module such as `users/list_filter`.
 Admin configuration follows the same dependency boundary at two levels.
 `config/page_managed`, `page_model`, and `page_message` compose section state
 and commands without importing Lustre presentation; `page_view` composes the
-section views. Each configuration section owns its managed state transitions
-and request mapping in its feature module and exports markup from a matching
-`*_view` module. `config/section` contains the generic pure form state machine,
-while `config/section_view` contains its reusable card and status presentation.
+section views. Every nontrivial configuration section separates its pure form
+policy from orchestration and presentation. Matching `*_policy` modules own
+fields, defaults, edits, validation, and DTO conversion; feature modules own
+messages and command selection; and `*_view` modules own markup.
+The managed-boundary checker transitively prevents policy modules from
+depending on commands, section lifecycle, transport responses, generations, or
+Lustre presentation.
+`config/section` contains the generic pure form state machine and exclusively
+owns its opaque load and save request cursors. Starting a
+request returns the advanced model together with the exact generation to place
+in its completion message; completion transitions reject stale generations,
+and edits or resets invalidate pending saves. All configuration forms,
+including debug configuration, use this shared lifecycle.
+`config/section_managed` maps admin commands and transport responses onto that
+pure state machine. Its shared `Event` type carries load and save completions,
+and opaque required or optional completion policies own DTO projection, HTTP
+failure messages, and the explicit missing-resource behavior used by optional
+configuration. Feature reducers wrap completions in one section-event branch;
+they do not expose generation or transport-response details.
+`config/section_view` contains the reusable card and status presentation.
 
 Job-type policies and periodic-job lists use the standard focused naming:
 model, message, managed reducer, pure policy where applicable, and view. Their

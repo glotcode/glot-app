@@ -7,9 +7,10 @@ import lustre/element.{type Element}
 import lustre/element/html
 
 import glot_frontend/admin/config/http_pool.{
-  type Field, type Model, type Msg, CloudflareEmailMaxSessions,
-  DockerRunMaxSessions, FieldChanged, KeepAliveTimeout, ResetClicked,
-  SaveClicked,
+  type Model, type Msg, FieldChanged, ResetClicked, SaveClicked,
+}
+import glot_frontend/admin/config/http_pool_policy.{
+  type Field, CloudflareEmailMaxSessions, DockerRunMaxSessions, KeepAliveTimeout,
 }
 
 pub fn view(model: Model) -> Element(Msg) {

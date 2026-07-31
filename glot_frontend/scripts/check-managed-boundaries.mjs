@@ -9,7 +9,7 @@ const forbiddenImports = config.forbiddenImports;
 
 const violations = new Set();
 
-function inspect(modulePath, chain, visited) {
+function inspect(modulePath, chain, visited, featureForbiddenImports) {
   if (visited.has(modulePath)) return;
   visited.add(modulePath);
   const absolutePath = resolve(root, modulePath);
@@ -24,7 +24,9 @@ function inspect(modulePath, chain, visited) {
     const match = line.match(/^import\s+([^\s.{]+)/);
     if (!match) return;
     const importedModule = match[1];
-    const forbidden = forbiddenImports.find((value) => line.includes(value));
+    const forbidden = [...forbiddenImports, ...featureForbiddenImports].find(
+      (value) => line.includes(value),
+    );
     if (forbidden) {
       violations.add(
         `${relative(root, absolutePath)}:${index + 1} imports forbidden runtime dependency ${forbidden} through ${chain.join(" -> ")}`,
@@ -35,14 +37,21 @@ function inspect(modulePath, chain, visited) {
         `src/${importedModule}.gleam`,
         [...chain, importedModule],
         visited,
+        featureForbiddenImports,
       );
     }
   });
 }
 
 for (const feature of config.features) {
+  const featureForbiddenImports = feature.forbiddenImports ?? [];
   for (const modulePath of feature.modules) {
-    inspect(modulePath, [`${feature.name}:${modulePath}`], new Set());
+    inspect(
+      modulePath,
+      [`${feature.name}:${modulePath}`],
+      new Set(),
+      featureForbiddenImports,
+    );
   }
 }
 

@@ -5,8 +5,10 @@ import lustre/element.{type Element}
 import lustre/element/html
 
 import glot_frontend/admin/config/docker_run.{
-  type Field, type Model, type Msg, AccessToken, BaseUrl, DefaultTimeout,
-  FieldChanged, ResetClicked, SaveClicked, is_empty,
+  type Model, type Msg, FieldChanged, ResetClicked, SaveClicked,
+}
+import glot_frontend/admin/config/docker_run_policy.{
+  type Field, AccessToken, BaseUrl, DefaultTimeout, is_empty,
 }
 import glot_frontend/admin/config/section_view
 

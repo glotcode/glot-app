@@ -6,8 +6,10 @@ import lustre/element.{type Element}
 import lustre/element/html
 
 import glot_frontend/admin/config/cleanup.{
-  type Field, type Model, type Msg, ApiLog, FieldChanged, JobLog, Jobs,
-  LoginTokens, PageLog, PageviewLog, ResetClicked, RunLog, SaveClicked,
+  type Model, type Msg, FieldChanged, ResetClicked, SaveClicked,
+}
+import glot_frontend/admin/config/cleanup_policy.{
+  type Field, ApiLog, JobLog, Jobs, LoginTokens, PageLog, PageviewLog, RunLog,
   UserActions,
 }
 import glot_frontend/admin/config/section_view

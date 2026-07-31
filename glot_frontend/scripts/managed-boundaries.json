@@ -55,10 +55,45 @@
       ]
     },
     {
+      "name": "admin configuration policies",
+      "modules": [
+        "src/glot_frontend/admin/config/auth_policy.gleam",
+        "src/glot_frontend/admin/config/availability_policy.gleam",
+        "src/glot_frontend/admin/config/cleanup_policy.gleam",
+        "src/glot_frontend/admin/config/cloudflare_policy.gleam",
+        "src/glot_frontend/admin/config/docker_run_policy.gleam",
+        "src/glot_frontend/admin/config/email_policy.gleam",
+        "src/glot_frontend/admin/config/http_pool_policy.gleam",
+        "src/glot_frontend/admin/config/language_version_cache_worker_policy.gleam",
+        "src/glot_frontend/admin/config/log_worker_policy.gleam",
+        "src/glot_frontend/admin/config/passkey_policy.gleam"
+      ],
+      "forbiddenImports": [
+        "glot_frontend/admin/command",
+        "glot_frontend/admin/config/section",
+        "glot_frontend/api/response",
+        "glot_frontend/request_generation",
+        "lustre/"
+      ]
+    },
+    {
       "name": "admin managed features",
       "modules": [
         "src/glot_frontend/admin/api_logs/detail_managed.gleam",
         "src/glot_frontend/admin/api_logs/list_managed.gleam",
+        "src/glot_frontend/admin/config/auth.gleam",
+        "src/glot_frontend/admin/config/availability.gleam",
+        "src/glot_frontend/admin/config/cleanup.gleam",
+        "src/glot_frontend/admin/config/cloudflare.gleam",
+        "src/glot_frontend/admin/config/debug.gleam",
+        "src/glot_frontend/admin/config/docker_run.gleam",
+        "src/glot_frontend/admin/config/email.gleam",
+        "src/glot_frontend/admin/config/http_pool.gleam",
+        "src/glot_frontend/admin/config/language_version_cache_worker.gleam",
+        "src/glot_frontend/admin/config/log_worker.gleam",
+        "src/glot_frontend/admin/config/passkey.gleam",
+        "src/glot_frontend/admin/config/section.gleam",
+        "src/glot_frontend/admin/config/section_managed.gleam",
         "src/glot_frontend/admin/email_templates/detail_managed.gleam",
         "src/glot_frontend/admin/email_templates/list_managed.gleam",
         "src/glot_frontend/admin/config/page_managed.gleam",

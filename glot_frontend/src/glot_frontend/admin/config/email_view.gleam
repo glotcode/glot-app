@@ -5,8 +5,10 @@ import lustre/element.{type Element}
 import lustre/element/html
 
 import glot_frontend/admin/config/email.{
-  type Field, type Model, type Msg, ContactAddress, DefaultTimeout, FieldChanged,
-  FromAddress, FromName, ResetClicked, SaveClicked, is_empty,
+  type Model, type Msg, FieldChanged, ResetClicked, SaveClicked,
+}
+import glot_frontend/admin/config/email_policy.{
+  type Field, ContactAddress, DefaultTimeout, FromAddress, FromName, is_empty,
 }
 import glot_frontend/admin/config/section_view
 

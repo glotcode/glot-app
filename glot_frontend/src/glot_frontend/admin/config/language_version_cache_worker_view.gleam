@@ -6,9 +6,11 @@ import lustre/element.{type Element}
 import lustre/element/html
 
 import glot_frontend/admin/config/language_version_cache_worker.{
-  type Field, type Model, type Msg, DefaultTimeout, FieldChanged,
-  RefreshInterval, RefreshStepDelay, RefreshStepJitter, ResetClicked,
-  SaveClicked,
+  type Model, type Msg, FieldChanged, ResetClicked, SaveClicked,
+}
+import glot_frontend/admin/config/language_version_cache_worker_policy.{
+  type Field, DefaultTimeout, RefreshInterval, RefreshStepDelay,
+  RefreshStepJitter,
 }
 import glot_frontend/admin/config/section_view
 

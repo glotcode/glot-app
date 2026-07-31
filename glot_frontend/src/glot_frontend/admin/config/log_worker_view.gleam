@@ -6,8 +6,10 @@ import lustre/element.{type Element}
 import lustre/element/html
 
 import glot_frontend/admin/config/log_worker.{
-  type Field, type Model, type Msg, FieldChanged, FlushInterval, MaxBatchSize,
-  MaxBufferSize, ResetClicked, SaveClicked,
+  type Model, type Msg, FieldChanged, ResetClicked, SaveClicked,
+}
+import glot_frontend/admin/config/log_worker_policy.{
+  type Field, FlushInterval, MaxBatchSize, MaxBufferSize,
 }
 import glot_frontend/admin/config/section_view
 

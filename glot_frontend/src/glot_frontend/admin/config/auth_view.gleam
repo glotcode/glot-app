@@ -6,8 +6,10 @@ import lustre/element.{type Element}
 import lustre/element/html
 
 import glot_frontend/admin/config/auth.{
-  type Field, type Model, type Msg, FieldChanged, HeartbeatInterval,
-  LoginTokenMaxAge, PreviousTokenGrace, ResetClicked, SaveClicked,
+  type Model, type Msg, FieldChanged, ResetClicked, SaveClicked,
+}
+import glot_frontend/admin/config/auth_policy.{
+  type Field, HeartbeatInterval, LoginTokenMaxAge, PreviousTokenGrace,
   SessionCookieMaxAge, SessionIdleTimeout, SessionRefreshInterval,
   SessionTokenMaxAge,
 }

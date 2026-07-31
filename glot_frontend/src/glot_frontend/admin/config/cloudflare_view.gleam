@@ -5,8 +5,10 @@ import lustre/element.{type Element}
 import lustre/element/html
 
 import glot_frontend/admin/config/cloudflare.{
-  type Field, type Model, type Msg, AccountId, ApiToken, FieldChanged,
-  ResetClicked, SaveClicked, is_empty,
+  type Model, type Msg, FieldChanged, ResetClicked, SaveClicked,
+}
+import glot_frontend/admin/config/cloudflare_policy.{
+  type Field, AccountId, ApiToken, is_empty,
 }
 import glot_frontend/admin/config/section_view
 
