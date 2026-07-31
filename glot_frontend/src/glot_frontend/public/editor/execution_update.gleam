@@ -28,7 +28,11 @@ pub fn update(
     TabSelected(tab) -> #(select_tab(model, tab), command.none())
 
     TabKeyPressed(current, key) -> {
-      let tabs = editor_tabs(model)
+      let tabs =
+        tab_semantics.available_tabs(
+          list.length(model.snippet.files),
+          model.snippet.stdin,
+        )
       case tab_semantics.keyboard_destination(tabs, current, key) {
         option.Some(tab) -> #(
           select_tab(model, tab),
@@ -116,19 +120,4 @@ fn select_tab(model: Editor, tab: EditorTab) -> Editor {
       editor_external_revision: model.workspace.editor_external_revision + 1,
     ),
   )
-}
-
-fn editor_tabs(model: Editor) -> List(EditorTab) {
-  let file_tabs = file_tabs(list.length(model.snippet.files), 0)
-  case model.snippet.stdin {
-    option.Some(_) -> list.append(file_tabs, [model.StdinTab])
-    option.None -> file_tabs
-  }
-}
-
-fn file_tabs(count: Int, index: Int) -> List(EditorTab) {
-  case index >= count {
-    True -> []
-    False -> [model.FileTab(index), ..file_tabs(count, index + 1)]
-  }
 }

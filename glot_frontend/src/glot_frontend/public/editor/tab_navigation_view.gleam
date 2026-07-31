@@ -1,8 +1,6 @@
 import gleam/dynamic/decode
 import gleam/list
-import gleam/option
 import gleam/string
-import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/files as editor_files
 import glot_frontend/public/editor/message.{
   type ExecutionMsg, TabKeyPressed, TabSelected,
@@ -16,37 +14,13 @@ import lustre/element.{type Element}
 import lustre/event
 
 pub fn view(model: Editor) -> List(Element(ExecutionMsg)) {
-  let file_tabs =
-    file_tabs(model.snippet.files, model.workspace.selected_tab, 0)
-  case model.snippet.stdin {
-    option.Some(_) ->
-      list.append(file_tabs, [
-        tab_button(
-          "<stdin>",
-          StdinTab,
-          model.workspace.selected_tab == StdinTab,
-        ),
-      ])
-    option.None -> file_tabs
-  }
-}
-
-fn file_tabs(
-  files: List(snippet_model.File),
-  selected_tab: EditorTab,
-  index: Int,
-) -> List(Element(ExecutionMsg)) {
-  case files {
-    [] -> []
-    [snippet_model.File(name:, ..), ..rest] -> [
-      tab_button(
-        tab_label(name),
-        FileTab(index),
-        selected_tab == FileTab(index),
-      ),
-      ..file_tabs(rest, selected_tab, index + 1)
-    ]
-  }
+  tab_semantics.available_tabs(
+    list.length(model.snippet.files),
+    model.snippet.stdin,
+  )
+  |> list.map(fn(tab) {
+    tab_button(tab_label(model, tab), tab, model.workspace.selected_tab == tab)
+  })
 }
 
 fn tab_button(
@@ -80,9 +54,15 @@ fn tab_button(
   )
 }
 
-fn tab_label(filename: String) -> String {
-  case string.length(filename) > 10 {
-    False -> filename
-    True -> editor_files.truncated_name(filename)
+fn tab_label(model: Editor, tab: EditorTab) -> String {
+  case tab {
+    StdinTab -> "<stdin>"
+    FileTab(index) -> {
+      let filename = editor_files.name_at(model.snippet.files, index)
+      case string.length(filename) > 10 {
+        False -> filename
+        True -> editor_files.truncated_name(filename)
+      }
+    }
   }
 }

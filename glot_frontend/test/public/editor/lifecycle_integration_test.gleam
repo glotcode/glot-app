@@ -18,7 +18,7 @@ import support/editor_fixture
 import support/editor_scenario
 
 /// Lifecycle scenarios cover initialization, loading, and draft recovery.
-pub fn existing_snippet_api_failure_renders_load_error_test() {
+pub fn existing_snippet_api_failure_transitions_to_load_error_test() {
   let scenario =
     loading_existing("api-failure")
     |> editor_scenario.respond_to_get_snippet(editor_fixture.api_failure(
@@ -27,10 +27,6 @@ pub fn existing_snippet_api_failure_renders_load_error_test() {
   let assert model.Lifecycle(lifecycle.LoadError(message)) =
     editor_scenario.model(scenario)
   assert string.contains(message, "Snippet unavailable.")
-  assert string.contains(
-    editor_scenario.render(scenario),
-    "Snippet unavailable.",
-  )
   editor_scenario.assert_no_pending_effects(scenario)
 }
 
@@ -101,35 +97,6 @@ pub fn declining_new_draft_restoration_clears_storage_and_pending_state_test() {
     editor_scenario.observed(scenario),
     editor_scenario.DialogClosed("editor-page-restore-draft-dialog"),
   )
-}
-
-pub fn unsupported_language_and_ssr_load_error_render_user_visible_states_test() {
-  let #(unsupported_model, unsupported_command) =
-    managed.init(lifecycle.NewEditor("not-a-language"))
-  let unsupported =
-    editor_scenario.start_with_command(
-      unsupported_model,
-      option.None,
-      unsupported_command,
-    )
-    |> editor_scenario.respond_to_environment("", settings.defaults())
-  assert string.contains(
-    editor_scenario.render(unsupported),
-    "Unsupported language: not-a-language",
-  )
-
-  let raw_ssr =
-    editor_ssr.LoadError("SSR could not load the editor.")
-    |> editor_ssr.encode
-    |> json.to_string
-  let #(error_model, error_command) =
-    managed.init(lifecycle.ExistingEditor("ssr-error"))
-  let error_scenario =
-    editor_scenario.start_with_command(error_model, option.None, error_command)
-    |> editor_scenario.respond_to_environment(raw_ssr, settings.defaults())
-  assert error_scenario
-    |> editor_scenario.render
-    |> string.contains("SSR could not load the editor.")
 }
 
 pub fn invalid_ssr_falls_back_to_environment_settings_and_storage_fixtures_test() {

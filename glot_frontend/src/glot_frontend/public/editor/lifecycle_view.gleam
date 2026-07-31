@@ -16,6 +16,15 @@ pub fn view(model: lifecycle.Model) -> Element(msg) {
 }
 
 fn unavailable(title: String, message: String) -> Element(msg) {
+  page(
+    html.section([attribute.class("app-panel")], [
+      html.h1([], [html.text(title)]),
+      html.p([], [html.text(message)]),
+    ]),
+  )
+}
+
+fn page(content: Element(msg)) -> Element(msg) {
   html.div([attribute.class("app-page")], [
     html.div([attribute.class("app-page__screen-glow")], []),
     html.main(
@@ -24,12 +33,7 @@ fn unavailable(title: String, message: String) -> Element(msg) {
         attribute.attribute("tabindex", "-1"),
         attribute.class("app-shell app-shell--narrow"),
       ],
-      [
-        html.section([attribute.class("app-panel")], [
-          html.h1([], [html.text(title)]),
-          html.p([], [html.text(message)]),
-        ]),
-      ],
+      [content],
     ),
   ])
 }
@@ -38,26 +42,16 @@ fn loading(show: Bool) -> Element(msg) {
   case show {
     False -> element.none()
     True ->
-      html.div([attribute.class("app-page")], [
-        html.div([attribute.class("app-page__screen-glow")], []),
-        html.main(
-          [
-            attribute.id("main-content"),
-            attribute.attribute("tabindex", "-1"),
-            attribute.class("app-shell app-shell--narrow"),
-          ],
-          [
-            html.div([attribute.class("app-panel")], [
-              html.p(
-                [
-                  attribute.class("editor-page__loading"),
-                  attribute.attribute("role", "status"),
-                ],
-                [html.text("Loading snippet...")],
-              ),
-            ]),
-          ],
-        ),
-      ])
+      page(
+        html.div([attribute.class("app-panel")], [
+          html.p(
+            [
+              attribute.class("editor-page__loading"),
+              attribute.attribute("role", "status"),
+            ],
+            [html.text("Loading snippet...")],
+          ),
+        ]),
+      )
   }
 }

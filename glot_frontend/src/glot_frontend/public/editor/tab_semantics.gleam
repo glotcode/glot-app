@@ -1,8 +1,20 @@
 import gleam/int
+import gleam/list
 import gleam/option.{type Option}
 import glot_frontend/public/editor/model.{type EditorTab, FileTab, StdinTab}
 
 pub const panel_id = "editor-source-panel"
+
+pub fn available_tabs(
+  file_count: Int,
+  stdin: Option(String),
+) -> List(EditorTab) {
+  let file_tabs = indexed_file_tabs(file_count, 0)
+  case stdin {
+    option.Some(_) -> list.append(file_tabs, [StdinTab])
+    option.None -> file_tabs
+  }
+}
 
 pub fn tab_id(tab: EditorTab) -> String {
   case tab {
@@ -22,6 +34,13 @@ pub fn keyboard_destination(
     "ArrowRight" | "ArrowDown" -> next_tab(tabs, current)
     "ArrowLeft" | "ArrowUp" -> previous_tab(tabs, current)
     _ -> option.None
+  }
+}
+
+fn indexed_file_tabs(count: Int, index: Int) -> List(EditorTab) {
+  case index >= count {
+    True -> []
+    False -> [FileTab(index), ..indexed_file_tabs(count, index + 1)]
   }
 }
 
