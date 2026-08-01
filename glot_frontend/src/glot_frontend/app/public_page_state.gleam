@@ -17,3 +17,15 @@ pub type Model {
   Editor(editor_model.Model)
   Empty
 }
+
+/// Whether a newly initialized page has enough state to replace the page that
+/// is currently visible. Terminal failures are presentable pages too.
+pub fn is_presentable(model: Model) -> Bool {
+  case model {
+    Home(_) | Contact(_) | Privacy | Login(_) | Empty -> True
+    Account(model) -> account_model.is_presentable(model)
+    ManageSnippets(model) -> account_snippets_model.is_presentable(model)
+    Snippets(model) -> snippets_model.is_presentable(model)
+    Editor(model) -> editor_model.is_presentable(model)
+  }
+}

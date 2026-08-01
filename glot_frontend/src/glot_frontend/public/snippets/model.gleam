@@ -22,3 +22,11 @@ pub type Request {
     username: option.Option(String),
   )
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  case model.page {
+    loadable.Loaded(_) | loadable.LoadError(_) -> True
+    loadable.NotLoaded | loadable.Loading ->
+      delayed_loading.is_visible(model.loading_indicator)
+  }
+}

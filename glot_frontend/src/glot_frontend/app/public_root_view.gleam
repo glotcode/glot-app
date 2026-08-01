@@ -12,7 +12,7 @@ pub fn view(
 ) -> Element(public_root_managed.Msg) {
   let content =
     public_page_view.view(
-      model.lifecycle.page_model,
+      public_root_managed.presented_page(model),
       model.lifecycle.runtime.session,
       model.lifecycle.runtime.now,
     )

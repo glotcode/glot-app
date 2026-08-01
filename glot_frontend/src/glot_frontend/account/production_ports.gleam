@@ -1,10 +1,9 @@
-import gleam/option
 import glot_frontend/account/ports
 import glot_frontend/api/account as account_api
 import glot_frontend/platform/passkey
+import glot_frontend/platform/spa_navigation
 import glot_frontend/platform/timer
 import lustre/effect
-import modem
 
 pub fn new() -> ports.Ports(msg) {
   ports.Ports(
@@ -29,6 +28,6 @@ pub fn new() -> ports.Ports(msg) {
         timer.schedule(milliseconds, fn() { dispatch(msg) })
       })
     },
-    navigate_replace: fn(path) { modem.replace(path, option.None, option.None) },
+    navigate_replace: spa_navigation.replace,
   )
 }

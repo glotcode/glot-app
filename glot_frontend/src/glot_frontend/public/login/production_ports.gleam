@@ -1,10 +1,9 @@
-import gleam/option
 import glot_frontend/api/account as account_api
 import glot_frontend/api/public as public_api
 import glot_frontend/platform/passkey
+import glot_frontend/platform/spa_navigation
 import glot_frontend/public/login/ports
 import lustre/effect
-import modem
 
 pub fn new() -> ports.Ports(msg) {
   ports.Ports(
@@ -16,6 +15,6 @@ pub fn new() -> ports.Ports(msg) {
     begin_passkey_login: account_api.begin_passkey_login,
     authenticate_passkey: passkey.begin_authentication,
     finish_passkey_login: account_api.finish_passkey_login,
-    navigate_replace: fn(path) { modem.replace(path, option.None, option.None) },
+    navigate_replace: spa_navigation.replace,
   )
 }

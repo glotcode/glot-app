@@ -39,6 +39,14 @@ pub fn request_before(request: Request) -> option.Option(String) {
   request.before
 }
 
+pub fn is_presentable(model: Model) -> Bool {
+  case model.page {
+    loadable.Loaded(_) | loadable.LoadError(_) -> True
+    loadable.NotLoaded | loadable.Loading ->
+      delayed_loading.is_visible(model.loading_indicator)
+  }
+}
+
 pub fn previous_cursor(model: Model) -> option.Option(pagination_model.Cursor) {
   case model.page {
     loadable.Loaded(page) -> pagination_model.previous_cursor(page)

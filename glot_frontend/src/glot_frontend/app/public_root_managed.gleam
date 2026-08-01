@@ -3,6 +3,7 @@ import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/route
 import glot_frontend/app/event
+import glot_frontend/app/page_presentation
 import glot_frontend/app/public_managed
 import glot_frontend/app/public_page_actions
 import glot_frontend/app/public_page_command
@@ -20,6 +21,7 @@ import glot_web/page/top_bar
 pub type Model {
   Model(
     lifecycle: public_managed.Model(public_page_state.Model),
+    presentation: page_presentation.Model(public_page_state.Model),
     quick_actions: quick_actions.Model,
   )
 }
@@ -53,6 +55,7 @@ pub type Command {
   CloseQuickActions
   ScrollToQuickAction(Int)
   Navigate(route.Route)
+  CommitNavigation
 }
 
 pub fn init(
@@ -67,7 +70,12 @@ pub fn init(
       page_visible,
       public_page_managed.init,
     )
-  let model = Model(lifecycle:, quick_actions: quick_actions.init())
+  let model =
+    Model(
+      lifecycle:,
+      presentation: page_presentation.init(lifecycle.page_model),
+      quick_actions: quick_actions.init(),
+    )
   #(
     model,
     batch([
@@ -121,7 +129,35 @@ fn update_lifecycle(
       public_page_managed.init,
       public_page_managed.session_loaded,
     )
-  let next_model = Model(..model, lifecycle:)
+  let route_changed = lifecycle.route != model.lifecycle.route
+  let presentation_transition = case route_changed {
+    True ->
+      page_presentation.begin(
+        model.presentation,
+        lifecycle.page_model,
+        public_page_state.is_presentable,
+      )
+    False ->
+      page_presentation.advance(
+        model.presentation,
+        lifecycle.page_model,
+        public_page_state.is_presentable,
+      )
+  }
+  let presentation = page_presentation.model(presentation_transition)
+  let next_model = Model(..model, lifecycle:, presentation:)
+  let lifecycle_command =
+    command
+    |> from_lifecycle_command
+    |> keep_metadata_unless_transitioning(presentation)
+  let lifecycle_command = case
+    page_presentation.did_present(presentation_transition),
+    route_changed
+  {
+    True, True -> batch([lifecycle_command, CommitNavigation])
+    True, False -> batch([lifecycle_command, ApplyMetadata, CommitNavigation])
+    False, _ -> lifecycle_command
+  }
   case msg {
     public_managed.UserNavigatedTo(_) -> {
       let #(reset_model, close_command) =
@@ -129,9 +165,9 @@ fn update_lifecycle(
           next_model,
           using: quick_actions_coordinator(),
         )
-      #(reset_model, batch([close_command, from_lifecycle_command(command)]))
+      #(reset_model, batch([close_command, lifecycle_command]))
     }
-    _ -> #(next_model, from_lifecycle_command(command))
+    _ -> #(next_model, lifecycle_command)
   }
 }
 
@@ -148,10 +184,22 @@ fn update_page(
   {
     option.None -> #(model, None)
     option.Some(transition) -> {
-      let next_model = with_page_model(model, transition.model)
-      let metadata_command = case transition.metadata_changed {
-        True -> ApplyMetadata
-        False -> None
+      let model_with_page = with_page_model(model, transition.model)
+      let presentation_transition =
+        page_presentation.advance(
+          model.presentation,
+          transition.model,
+          public_page_state.is_presentable,
+        )
+      let presentation = page_presentation.model(presentation_transition)
+      let next_model = Model(..model_with_page, presentation:)
+      let metadata_command = case
+        page_presentation.did_present(presentation_transition),
+        page_presentation.is_transitioning(presentation),
+        transition.metadata_changed
+      {
+        True, _, _ | _, False, True -> ApplyMetadata
+        _, _, _ -> None
       }
       #(
         next_model,
@@ -161,7 +209,19 @@ fn update_page(
           metadata_command,
         ]),
       )
+      |> with_navigation_commit(presentation_transition)
     }
+  }
+}
+
+fn with_navigation_commit(
+  result: #(Model, Command),
+  transition: page_presentation.Transition(public_page_state.Model),
+) -> #(Model, Command) {
+  let #(model, command) = result
+  case page_presentation.did_present(transition) {
+    True -> #(model, batch([command, CommitNavigation]))
+    False -> result
   }
 }
 
@@ -215,12 +275,38 @@ pub fn quick_action_sections(
     model.lifecycle.route,
     model.quick_actions.query,
     public_page_actions.actions(
-      model.lifecycle.page_model,
+      presented_page(model),
       runtime.current_user_id(model.lifecycle.runtime.session),
     )
       |> list.map(fn(action) { top_bar.map_action(action, TriggerPageAction) }),
     NavigateTo,
   )
+}
+
+pub fn presented_page(model: Model) -> public_page_state.Model {
+  page_presentation.presented(model.presentation)
+}
+
+pub fn is_transitioning(model: Model) -> Bool {
+  page_presentation.is_transitioning(model.presentation)
+}
+
+fn keep_metadata_unless_transitioning(
+  command: Command,
+  presentation: page_presentation.Model(public_page_state.Model),
+) -> Command {
+  case page_presentation.is_transitioning(presentation) {
+    True -> without_metadata(command)
+    False -> command
+  }
+}
+
+fn without_metadata(command: Command) -> Command {
+  case command {
+    ApplyMetadata -> None
+    Batch(commands) -> commands |> list.map(without_metadata) |> batch
+    command -> command
+  }
 }
 
 fn from_lifecycle_command(

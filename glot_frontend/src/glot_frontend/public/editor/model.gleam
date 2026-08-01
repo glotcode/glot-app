@@ -6,6 +6,7 @@ import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/settings
+import glot_frontend/ui/delayed_loading
 import youid/uuid.{type Uuid}
 
 pub type Model {
@@ -96,6 +97,19 @@ pub type RunInstructionsMode {
 pub type EditorTab {
   FileTab(Int)
   StdinTab
+}
+
+pub fn is_presentable(model: Model) -> Bool {
+  case model {
+    Ready(_) -> True
+    Lifecycle(state) ->
+      case state {
+        lifecycle.UnsupportedLanguage(_) | lifecycle.LoadError(_) -> True
+        lifecycle.LoadingSnippet(_, _, loading_indicator) ->
+          delayed_loading.is_visible(loading_indicator)
+        lifecycle.Initializing(_) -> False
+      }
+  }
 }
 
 pub type AddEntryKind {

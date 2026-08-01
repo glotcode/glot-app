@@ -1,13 +1,13 @@
 import gleam/option
 import glot_frontend/api/public as public_api
 import glot_frontend/platform/app_dialog
+import glot_frontend/platform/spa_navigation
 import glot_frontend/platform/ssr_data
 import glot_frontend/platform/timer
 import glot_frontend/public/editor/draft_store
 import glot_frontend/public/editor/ports
 import glot_frontend/public/editor/settings_store
 import lustre/effect
-import modem
 
 pub fn new() -> ports.Ports(msg) {
   ports.Ports(
@@ -31,7 +31,7 @@ pub fn new() -> ports.Ports(msg) {
     open_dialog_next_frame: app_dialog.open_next_frame,
     close_dialog: app_dialog.close,
     focus: app_dialog.focus,
-    navigate: fn(path) { modem.push(path, option.None, option.None) },
+    navigate: fn(path) { spa_navigation.push(path, option.None) },
     schedule: fn(milliseconds, msg) {
       effect.from(fn(dispatch) {
         timer.schedule(milliseconds, fn() { dispatch(msg) })

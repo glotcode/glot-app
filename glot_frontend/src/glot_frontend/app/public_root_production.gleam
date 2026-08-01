@@ -1,5 +1,4 @@
 import gleam/list
-import gleam/option
 import glot_core/route
 import glot_frontend/api/account as account_api
 import glot_frontend/app/public_managed
@@ -15,9 +14,9 @@ import glot_frontend/platform/keyboard_shortcuts
 import glot_frontend/platform/page_metadata
 import glot_frontend/platform/page_visibility
 import glot_frontend/platform/quick_action_scroll
+import glot_frontend/platform/spa_navigation
 import glot_web/page/top_bar
 import lustre/effect.{type Effect}
-import modem
 
 pub fn run(
   command: public_root_managed.Command,
@@ -44,7 +43,7 @@ pub fn run(
       })
     public_root_managed.ApplyMetadata ->
       page_metadata.apply(public_page_metadata.metadata(
-        model.lifecycle.page_model,
+        public_root_managed.presented_page(model),
         model.lifecycle.route,
       ))
     public_root_managed.ScheduleTick ->
@@ -57,7 +56,7 @@ pub fn run(
     public_root_managed.LoadRoute(target) ->
       browser_navigation.load(route.to_string(target))
     public_root_managed.ObserveNavigation ->
-      modem.init(fn(uri) {
+      spa_navigation.observe(fn(uri) {
         uri
         |> route.from_uri
         |> public_managed.UserNavigatedTo
@@ -75,6 +74,7 @@ pub fn run(
     public_root_managed.ScrollToQuickAction(index) ->
       quick_action_scroll.ensure_visible(index)
     public_root_managed.Navigate(destination) -> navigate(destination)
+    public_root_managed.CommitNavigation -> spa_navigation.commit()
   }
 }
 
@@ -83,7 +83,7 @@ fn navigate(destination: route.Route) -> Effect(public_root_managed.Msg) {
     True -> browser_navigation.load(route.to_string(destination))
     False -> {
       let #(path, query) = route.path_and_query(destination)
-      modem.push(path, query, option.None)
+      spa_navigation.push(path, query)
     }
   }
 }
