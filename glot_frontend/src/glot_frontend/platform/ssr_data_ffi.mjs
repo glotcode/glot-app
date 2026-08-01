@@ -1,17 +1,14 @@
-export function take() {
+export function take(elementId) {
   if (typeof document === "undefined") {
     return "";
   }
 
-  const app = document.getElementById("app");
-  if (!app) {
+  const data = document.getElementById(elementId);
+  if (!data) {
     return "";
   }
 
-  const value = app.getAttribute("data-ssr") ?? "";
-  if (value !== "") {
-    app.removeAttribute("data-ssr");
-  }
-
+  const value = data.textContent ?? "";
+  data.remove();
   return value;
 }

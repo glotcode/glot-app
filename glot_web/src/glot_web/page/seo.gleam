@@ -1,7 +1,7 @@
 import gleam/json
 import gleam/list
 import gleam/option
-import gleam/string
+import glot_web/page/embedded_json
 import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
@@ -191,14 +191,10 @@ pub fn home_structured_data() -> Element(Nil) {
 }
 
 pub fn json_ld(data: json.Json) -> Element(Nil) {
-  let safe_json =
-    data
-    |> json.to_string
-    |> string.replace("&", "\\u0026")
-    |> string.replace("<", "\\u003c")
-    |> string.replace(">", "\\u003e")
-
-  html.script([attribute.type_("application/ld+json")], safe_json)
+  html.script(
+    [attribute.type_("application/ld+json")],
+    data |> json.to_string |> embedded_json.escape_for_html,
+  )
 }
 
 pub fn append(

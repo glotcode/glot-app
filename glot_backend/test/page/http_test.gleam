@@ -63,6 +63,16 @@ pub fn public_page_uses_public_frontend_entry_test() {
   assert string.contains(body, "/static/assets/test-admin.css") == False
 }
 
+pub fn editor_page_delivers_ssr_state_as_a_csp_compatible_data_block_test() {
+  let body = http_support.page_body("/new/javascript")
+
+  assert string.contains(body, "<div id=\"app\"")
+  assert string.contains(body, "id=\"glot-ssr-data\"")
+  assert string.contains(body, "type=\"application/json\"")
+  assert string.contains(body, "\"kind\":\"new\"")
+  assert string.contains(body, "data-ssr=") == False
+}
+
 pub fn public_pages_render_complete_search_metadata_test() {
   let home = http_support.page_body("/")
   let login = http_support.page_body("/login")

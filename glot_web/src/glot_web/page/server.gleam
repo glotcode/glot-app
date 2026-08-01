@@ -10,6 +10,7 @@ import glot_web/page/privacy
 import glot_web/page/seo
 import glot_web/page/site_chrome
 import glot_web/page/snippets
+import glot_web/page/ssr_data as ssr_data_view
 import glot_web/page/top_bar
 import glot_web/route as web_route
 import lustre/attribute
@@ -35,6 +36,7 @@ pub fn home_document(config: RenderConfig, social_image_url: String) -> String {
       [seo.home_structured_data()],
     ),
     include_frontend: True,
+    ssr_data: option.None,
     app_attributes: [],
     app_children: [
       site_chrome.view(
@@ -52,6 +54,7 @@ pub fn contact_document(config: RenderConfig) -> String {
     title: seo.contact() |> seo.title,
     head_children: seo.head_children(seo.contact(), option.None),
     include_frontend: True,
+    ssr_data: option.None,
     app_attributes: [],
     app_children: [
       site_chrome.view(
@@ -69,6 +72,7 @@ pub fn privacy_document(config: RenderConfig) -> String {
     title: seo.privacy() |> seo.title,
     head_children: seo.head_children(seo.privacy(), option.None),
     include_frontend: True,
+    ssr_data: option.None,
     app_attributes: [],
     app_children: [
       site_chrome.view(
@@ -90,6 +94,7 @@ pub fn spa_document(
     title: seo.title(metadata),
     head_children: seo.head_children(metadata, option.Some(social_image_url)),
     include_frontend: True,
+    ssr_data: option.None,
     app_attributes: [],
     app_children: [],
   )
@@ -107,12 +112,8 @@ pub fn snippets_document(
     title: seo.title(metadata),
     head_children: seo.head_children(metadata, option.Some(social_image_url)),
     include_frontend: True,
-    app_attributes: [
-      attribute.attribute(
-        "data-ssr",
-        snippets.encode(view_model) |> json.to_string,
-      ),
-    ],
+    ssr_data: option.Some(snippets.encode(view_model)),
+    app_attributes: [],
     app_children: [
       site_chrome.view(
         top_bar_model: top_bar.empty_model(),
@@ -136,12 +137,8 @@ pub fn editor_document(
       option.Some(social_image_url),
     ),
     include_frontend: True,
-    app_attributes: [
-      attribute.attribute(
-        "data-ssr",
-        editor.encode(view_model) |> json.to_string,
-      ),
-    ],
+    ssr_data: option.Some(editor.encode(view_model)),
+    app_attributes: [],
     app_children: [editor.render(view_model)],
   )
 }
@@ -156,6 +153,7 @@ pub fn unavailable_document(
     title: "glot.io - unavailable",
     head_children: [],
     include_frontend: False,
+    ssr_data: option.None,
     app_attributes: [attribute.class("maintenance-page")],
     app_children: [
       html.main([attribute.class("maintenance-page__shell")], [
@@ -197,6 +195,7 @@ fn document(
   title title: String,
   head_children head_children: List(element.Element(msg)),
   include_frontend include_frontend: Bool,
+  ssr_data ssr_data: option.Option(json.Json),
   app_attributes app_attributes: List(attribute.Attribute(msg)),
   app_children app_children: List(element.Element(msg)),
 ) -> String {
@@ -271,11 +270,16 @@ fn document(
     ]
     option.None -> [attribute.lang("en")]
   }
+  let ssr_data_elements = case ssr_data {
+    option.Some(data) -> [ssr_data_view.view(data)]
+    option.None -> []
+  }
 
   html.html(html_attributes, [
     html.head([], list.append(base_head, list.append(head_children, tail_head))),
     html.body([], [
       html.div([attribute.id("app"), ..app_attributes], app_children),
+      ..ssr_data_elements
     ]),
   ])
   |> element.to_document_string

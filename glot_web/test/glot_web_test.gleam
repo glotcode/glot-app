@@ -10,7 +10,10 @@ import glot_core/pagination_model
 import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_web/page/carbon_ad
+import glot_web/page/editor
+import glot_web/page/embedded_json
 import glot_web/page/seo
+import glot_web/page/server
 import glot_web/page/snippets
 import lustre/element
 import youid/uuid
@@ -31,6 +34,60 @@ pub fn structured_data_escapes_script_closing_tags_test() {
 
   assert !string.contains(rendered, "</script><script>")
   assert string.contains(rendered, "\\u003c/script\\u003e")
+}
+
+pub fn embedded_json_escapes_html_significant_content_test() {
+  let rendered =
+    embedded_json.script(
+      id: "json-fixture",
+      data: json.object([
+        #("source", json.string("</script><script>alert('xss')</script>&")),
+      ]),
+    )
+    |> element.to_document_string
+
+  assert string.contains(rendered, "id=\"json-fixture\"")
+  assert string.contains(rendered, "type=\"application/json\"")
+  assert !string.contains(rendered, "</script><script>")
+  assert string.contains(
+    rendered,
+    "\\u003c/script\\u003e\\u003cscript\\u003ealert('xss')\\u003c/script\\u003e\\u0026",
+  )
+}
+
+pub fn editor_document_embeds_large_ssr_payload_outside_app_attributes_test() {
+  let large_source =
+    string.repeat("x", times: 100_000)
+    <> "</script><script>alert('xss')</script>&"
+  let view_model =
+    editor.NewSnippet(editor.EditorModel(
+      slug: option.None,
+      owner_user_id: option.None,
+      owner_username: option.None,
+      title: "Large fixture",
+      language: language.JavaScript,
+      visibility: option.None,
+      created_at: option.None,
+      updated_at: option.None,
+      run_instructions_override: option.None,
+      files: [snippet_model.File("main.js", large_source)],
+      stdin: option.None,
+    ))
+  let rendered =
+    server.editor_document(render_config(), view_model, "https://glot.io/image")
+
+  assert string.contains(rendered, "<div id=\"app\"")
+  assert !string.contains(rendered, "data-ssr=")
+  assert string.contains(rendered, "id=\"glot-ssr-data\"")
+  assert string.contains(rendered, "type=\"application/json\"")
+  assert string.contains(rendered, string.repeat("x", times: 100_000))
+  assert !string.contains(rendered, "</script><script>")
+  assert string.contains(rendered, "\\u003c/script\\u003e")
+
+  let opening = "<script id=\"glot-ssr-data\" type=\"application/json\">"
+  let assert [_, data_and_document_end] = string.split(rendered, opening)
+  let assert [raw_data, _] = string.split(data_and_document_end, "</script>")
+  assert json.parse(raw_data, editor.decoder()) == Ok(view_model)
 }
 
 pub fn carbon_ad_renders_as_sandboxed_iframe_test() {
@@ -117,4 +174,14 @@ pub fn populated_snippets_use_native_table_semantics_and_specific_link_names_tes
     "aria-label=\"Filter by user fixture-owner\"",
   )
   assert !string.contains(rendered, "aria-label=\"Filter by user\"")
+}
+
+fn render_config() -> server.RenderConfig {
+  server.RenderConfig(
+    theme: option.None,
+    stylesheet_href: "/styles.css",
+    additional_stylesheet_hrefs: [],
+    frontend_src: "/frontend.js",
+    frontend_preloads: [],
+  )
 }
