@@ -12,6 +12,7 @@ import glot_core/snippet/snippet_dto
 import glot_frontend/api/client
 import glot_frontend/api/request
 import glot_frontend/api/response
+import glot_frontend/api/transport
 import lustre/effect
 
 pub fn send_login_token(
@@ -75,6 +76,10 @@ pub fn run_code(
     run.run_result_decoder(),
     to_msg,
   )
+}
+
+pub fn cancel_run() -> effect.Effect(msg) {
+  effect.from(fn(_dispatch) { transport.cancel_run_requests() })
 }
 
 pub fn get_language_version(

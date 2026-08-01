@@ -23,6 +23,7 @@ pub type Ports(msg) {
     ) -> Effect(msg),
     run_code: fn(run.RunRequest, fn(response.Response(run.RunResult)) -> msg) ->
       Effect(msg),
+    cancel_run: fn() -> Effect(msg),
     get_language_version: fn(
       run.GetLanguageVersionRequest,
       fn(response.Response(run.RunResult)) -> msg,

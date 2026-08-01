@@ -1,14 +1,16 @@
 const navigationControllers = new Set();
+const runControllers = new Set();
 
 export function send(
   endpoint,
   body,
-  cancellable,
+  cancellationGroup,
   callback,
   browserFetch = globalThis.fetch,
 ) {
   const controller = new AbortController();
-  if (cancellable) navigationControllers.add(controller);
+  if (cancellationGroup === "navigation") navigationControllers.add(controller);
+  if (cancellationGroup === "run") runControllers.add(controller);
 
   browserFetch(endpoint, {
     method: "POST",
@@ -40,10 +42,18 @@ export function send(
     })
     .finally(() => {
       navigationControllers.delete(controller);
+      runControllers.delete(controller);
     });
 }
 
 export function cancelNavigationRequests() {
   for (const controller of navigationControllers) controller.abort();
+  for (const controller of runControllers) controller.abort();
   navigationControllers.clear();
+  runControllers.clear();
+}
+
+export function cancelRunRequests() {
+  for (const controller of runControllers) controller.abort();
+  runControllers.clear();
 }

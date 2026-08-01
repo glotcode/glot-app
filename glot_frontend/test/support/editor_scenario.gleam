@@ -56,6 +56,7 @@ pub type ObservedEffect {
   DialogClosed(String)
   ElementFocused(String)
   Navigated(String)
+  RunCancelled
   MessageScheduled(Int, message.Msg)
 }
 
@@ -396,6 +397,7 @@ fn interpret(
       append_pending(scenario, GetSnippet(request, complete))
     command.RunCode(request, complete) ->
       append_pending(scenario, RunCode(request, complete))
+    command.CancelRun -> append_observed(scenario, RunCancelled)
     command.GetLanguageVersion(request, complete) ->
       append_pending(scenario, GetLanguageVersion(request, complete))
     command.CreateSnippet(request, complete) ->

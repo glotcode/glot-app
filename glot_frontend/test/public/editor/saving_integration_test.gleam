@@ -191,6 +191,7 @@ pub fn saved_existing_snippet_runs_the_saved_code_test() {
         error: "",
       ),
     )
+    |> editor_scenario.deliver_next_scheduled
   editor_scenario.assert_no_pending_effects(scenario)
 }
 

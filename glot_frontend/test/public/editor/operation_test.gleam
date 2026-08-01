@@ -34,6 +34,26 @@ pub fn execution_operation_owns_version_and_failure_state_test() {
     == execution_operation.RequestError("Request failed.")
 }
 
+pub fn cancellation_is_only_available_for_the_current_running_generation_test() {
+  let operation = execution_operation.initial()
+  let #(running, generation) = execution_operation.begin(operation)
+  let assert option.Some(cancelled_immediately) =
+    execution_operation.cancel(running)
+  assert execution_operation.state(cancelled_immediately)
+    == execution_operation.Cancelled
+
+  let assert option.Some(cancellable) =
+    execution_operation.offer_cancellation(running, generation)
+  assert execution_operation.state(cancellable)
+    == execution_operation.CancellationAvailable
+
+  let assert option.Some(cancelled) = execution_operation.cancel(cancellable)
+  assert execution_operation.state(cancelled) == execution_operation.Cancelled
+  assert execution_operation.cancel(cancelled) == option.None
+  assert execution_operation.offer_cancellation(cancelled, generation)
+    == option.None
+}
+
 pub fn save_operation_owns_generation_and_save_state_test() {
   let initial = save_operation.initial()
   let #(first, first_generation) = save_operation.begin(initial)

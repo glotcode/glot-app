@@ -11,7 +11,7 @@ pub fn main() -> Nil {
 pub fn route_reads_are_navigation_owned_test() {
   assert ownership.public(public_action.GetSnippetAction)
     == transport.Navigation
-  assert ownership.public(public_action.RunAction) == transport.Navigation
+  assert ownership.public(public_action.RunAction) == transport.Run
   assert ownership.admin(admin_action.GetAdminUsersAction)
     == transport.Navigation
 }

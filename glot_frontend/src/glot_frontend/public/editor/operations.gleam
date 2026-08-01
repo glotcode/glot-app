@@ -54,7 +54,10 @@ pub fn complete_execution(
   generation: Generation(execution_operation.Stream),
   result: run.RunResult,
 ) -> option.Option(Operations) {
-  case execution_operation.is_current(operations.execution, generation) {
+  case
+    execution_operation.is_current(operations.execution, generation)
+    && execution_operation.is_running(operations.execution)
+  {
     False -> option.None
     True ->
       option.Some(
@@ -71,7 +74,10 @@ pub fn fail_execution(
   generation: Generation(execution_operation.Stream),
   message: String,
 ) -> option.Option(Operations) {
-  case execution_operation.is_current(operations.execution, generation) {
+  case
+    execution_operation.is_current(operations.execution, generation)
+    && execution_operation.is_running(operations.execution)
+  {
     False -> option.None
     True ->
       option.Some(
@@ -81,6 +87,22 @@ pub fn fail_execution(
         ),
       )
   }
+}
+
+pub fn offer_execution_cancellation(
+  operations: Operations,
+  generation: Generation(execution_operation.Stream),
+) -> option.Option(Operations) {
+  use execution <- option.map(execution_operation.offer_cancellation(
+    operations.execution,
+    generation,
+  ))
+  Operations(..operations, execution: execution)
+}
+
+pub fn cancel_execution(operations: Operations) -> option.Option(Operations) {
+  use execution <- option.map(execution_operation.cancel(operations.execution))
+  Operations(..operations, execution: execution)
 }
 
 pub fn succeed_save(
@@ -144,6 +166,10 @@ pub fn version_info(operations: Operations) -> option.Option(String) {
 
 pub fn execution_is_running(operations: Operations) -> Bool {
   execution_operation.is_running(operations.execution)
+}
+
+pub fn execution_cancellation_is_available(operations: Operations) -> Bool {
+  execution_operation.cancellation_is_available(operations.execution)
 }
 
 pub fn save_is_saving(operations: Operations) -> Bool {

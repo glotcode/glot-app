@@ -444,7 +444,10 @@ pub fn late_run_response_from_previous_snippet_is_ignored_test() {
   let #(first_running, first_run_command) = submit_run(first)
   let assert public_root_managed.RunPage(
     first_origin,
-    public_page_command.Editor(editor_command.RunCode(_, finish_first)),
+    public_page_command.Editor(editor_command.Batch([
+      editor_command.RunCode(_, finish_first),
+      editor_command.Schedule(3000, _),
+    ])),
   ) = first_run_command
 
   let #(second_loading, _) =
@@ -458,7 +461,10 @@ pub fn late_run_response_from_previous_snippet_is_ignored_test() {
   let #(second_running, second_run_command) = submit_run(second)
   let assert public_root_managed.RunPage(
     second_origin,
-    public_page_command.Editor(editor_command.RunCode(_, finish_second)),
+    public_page_command.Editor(editor_command.Batch([
+      editor_command.RunCode(_, finish_second),
+      editor_command.Schedule(3000, _),
+    ])),
   ) = second_run_command
   assert first_origin != second_origin
 
@@ -508,7 +514,10 @@ pub fn late_run_response_from_disposed_instance_of_same_route_is_ignored_test() 
   let #(first_running, first_run_command) = submit_run(first_instance)
   let assert public_root_managed.RunPage(
     first_origin,
-    public_page_command.Editor(editor_command.RunCode(_, finish_first)),
+    public_page_command.Editor(editor_command.Batch([
+      editor_command.RunCode(_, finish_first),
+      editor_command.Schedule(3000, _),
+    ])),
   ) = first_run_command
 
   let other_instance =
@@ -522,7 +531,10 @@ pub fn late_run_response_from_disposed_instance_of_same_route_is_ignored_test() 
   let #(current_running, current_run_command) = submit_run(current_instance)
   let assert public_root_managed.RunPage(
     current_origin,
-    public_page_command.Editor(editor_command.RunCode(_, finish_current)),
+    public_page_command.Editor(editor_command.Batch([
+      editor_command.RunCode(_, finish_current),
+      editor_command.Schedule(3000, _),
+    ])),
   ) = current_run_command
   assert first_origin != current_origin
 

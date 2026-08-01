@@ -4,8 +4,8 @@ import glot_frontend/api/transport
 
 pub fn public(action: PublicAction) -> transport.Ownership {
   case action {
+    public_action.RunAction -> transport.Run
     public_action.GetLanguageVersionAction
-    | public_action.RunAction
     | public_action.GetAccountAction
     | public_action.ListAccountSessionsAction
     | public_action.ListAccountPasskeysAction

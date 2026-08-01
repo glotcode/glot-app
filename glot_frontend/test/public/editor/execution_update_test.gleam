@@ -191,6 +191,38 @@ pub fn stale_run_completion_is_ignored_test() {
     == #(latest_editor, command.None)
 }
 
+pub fn cancellation_is_offered_for_the_current_run_and_ignores_late_results_test() {
+  let assert model.Ready(editor) =
+    editor_scenario.new_editor(language.JavaScript)
+  let #(running_operations, generation) =
+    operations.begin_execution(editor.operations)
+  let running = model.Editor(..editor, operations: running_operations)
+
+  let #(cancellable, delay_command) =
+    execution_update.update(
+      running,
+      message.RunCancellationDelayElapsed(generation),
+    )
+  assert operations.execution_state(cancellable.operations)
+    == execution_operation.CancellationAvailable
+  assert delay_command == command.None
+
+  let #(cancelled, cancel_command) =
+    execution_update.update(cancellable, message.RunCancellationSubmitted)
+  assert operations.execution_state(cancelled.operations)
+    == execution_operation.Cancelled
+  assert cancel_command == command.CancelRun
+
+  assert execution_update.update(
+      cancelled,
+      message.RunFinished(
+        generation,
+        editor_fixture.successful_run(stdout: "late", stderr: "", error: ""),
+      ),
+    )
+    == #(cancelled, command.None)
+}
+
 pub fn version_response_is_recorded_only_for_the_current_language_test() {
   let assert model.Ready(editor) =
     editor_scenario.new_editor(language.JavaScript)

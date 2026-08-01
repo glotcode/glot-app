@@ -2,12 +2,14 @@ import gleam/list
 import gleam/option
 import glot_frontend/public/editor/message.{
   type EditorMsg, type Msg, AddEntryClicked, EditMetadataClicked,
-  Editor as EditorMessage, Execution, File, Metadata, RunSubmitted, Save,
-  SaveClicked, Settings, SettingsClicked, SnippetInfo, SnippetInfoClicked,
+  Editor as EditorMessage, Execution, File, Metadata, RunCancellationSubmitted,
+  RunSubmitted, Save, SaveClicked, Settings, SettingsClicked, SnippetInfo,
+  SnippetInfoClicked,
 }
 import glot_frontend/public/editor/model.{
   type Editor, type Model, Lifecycle, Ready,
 }
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/policy
 import glot_web/page/top_bar
 import youid/uuid.{type Uuid}
@@ -28,14 +30,30 @@ fn actions_for_model(
   model: Editor,
   current_user_id: option.Option(Uuid),
 ) -> List(top_bar.Action(EditorMsg)) {
+  let execution_actions = case
+    operations.execution_is_running(model.operations)
+  {
+    True -> [
+      top_bar.Action(
+        label: "Cancel run",
+        description: "Stop the current snippet run.",
+        shortcut: [],
+        target_route: option.None,
+        msg: Execution(RunCancellationSubmitted),
+      ),
+    ]
+    False -> [
+      top_bar.Action(
+        label: "Run code",
+        description: "Execute the current snippet.",
+        shortcut: ["cmd+enter", "ctrl+enter"],
+        target_route: option.None,
+        msg: Execution(RunSubmitted),
+      ),
+    ]
+  }
+
   let base_actions = [
-    top_bar.Action(
-      label: "Run code",
-      description: "Execute the current snippet.",
-      shortcut: ["cmd+enter", "ctrl+enter"],
-      target_route: option.None,
-      msg: Execution(RunSubmitted),
-    ),
     top_bar.Action(
       label: policy.action_name(model, current_user_id),
       description: "Save the current snippet state.",
@@ -87,7 +105,8 @@ fn actions_for_model(
     False -> []
   }
 
-  base_actions
+  execution_actions
+  |> list.append(base_actions)
   |> list.append(info_actions)
   |> list.append(title_actions)
 }

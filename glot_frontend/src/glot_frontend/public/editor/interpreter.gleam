@@ -16,6 +16,7 @@ pub fn run(
     command.GetSnippet(request, complete) ->
       ports.get_snippet(request, complete)
     command.RunCode(request, complete) -> ports.run_code(request, complete)
+    command.CancelRun -> ports.cancel_run()
     command.GetLanguageVersion(request, complete) ->
       ports.get_language_version(request, complete)
     command.CreateSnippet(request, complete) ->

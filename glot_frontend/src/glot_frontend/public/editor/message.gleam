@@ -103,6 +103,8 @@ pub type ExecutionMsg {
   TabKeyPressed(EditorTab, String)
   SourceCodeChanged(String, Int)
   RunSubmitted
+  RunCancellationDelayElapsed(Generation(execution_operation.Stream))
+  RunCancellationSubmitted
   RunFinished(
     Generation(execution_operation.Stream),
     api_response.Response(run.RunResult),

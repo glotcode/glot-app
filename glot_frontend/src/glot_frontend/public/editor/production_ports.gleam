@@ -21,6 +21,7 @@ pub fn new() -> ports.Ports(msg) {
     },
     get_snippet: public_api.get_snippet,
     run_code: public_api.run_code,
+    cancel_run: public_api.cancel_run,
     get_language_version: public_api.get_language_version,
     create_snippet: public_api.create_snippet,
     update_snippet: public_api.update_snippet,

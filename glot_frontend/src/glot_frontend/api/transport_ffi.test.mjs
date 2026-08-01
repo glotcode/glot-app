@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   cancelNavigationRequests,
+  cancelRunRequests,
   send,
 } from "./transport_ffi.mjs";
 
@@ -30,7 +31,7 @@ test("send posts the mux envelope with explicit same-origin credentials", async 
     send(
       "/api/mux",
       '{"action":"fixture"}',
-      false,
+      "persistent",
       (...values) => resolve(values),
       async (endpoint, options) => {
         request = { endpoint, options };
@@ -65,7 +66,7 @@ test("navigation cancellation aborts owned reads without dispatching failure", a
   send(
     "/api/mux",
     "{}",
-    true,
+    "navigation",
     () => {
       dispatched = true;
     },
@@ -93,7 +94,7 @@ test("navigation cancellation never aborts persistent requests", async () => {
     send(
       "/api/mux",
       "{}",
-      false,
+      "persistent",
       (...values) => resolve(values),
       async () => pending,
     );
@@ -112,12 +113,12 @@ test("navigation cancellation never aborts persistent requests", async () => {
 
 test("network and body failures remain distinct", async () => {
   const network = new Promise((resolve) => {
-    send("/api/mux", "{}", false, (...values) => resolve(values), async () => {
+    send("/api/mux", "{}", "persistent", (...values) => resolve(values), async () => {
       throw new Error("offline");
     });
   });
   const body = new Promise((resolve) => {
-    send("/api/mux", "{}", false, (...values) => resolve(values), async () => ({
+    send("/api/mux", "{}", "persistent", (...values) => resolve(values), async () => ({
       ...response(),
       async text() {
         throw new Error("stream failed");
@@ -127,4 +128,25 @@ test("network and body failures remain distinct", async () => {
 
   assert.deepEqual(await network, ["network", 0, "", ""]);
   assert.deepEqual(await body, ["body", 0, "", ""]);
+});
+
+test("run cancellation only aborts run requests", async () => {
+  let runSignal;
+  let navigationSignal;
+  const pending = new Promise(() => {});
+
+  send("/api/mux", "{}", "run", () => {}, async (_endpoint, options) => {
+    runSignal = options.signal;
+    return pending;
+  });
+  send("/api/mux", "{}", "navigation", () => {}, async (_endpoint, options) => {
+    navigationSignal = options.signal;
+    return pending;
+  });
+
+  cancelRunRequests();
+
+  assert.equal(runSignal.aborted, true);
+  assert.equal(navigationSignal.aborted, false);
+  cancelNavigationRequests();
 });

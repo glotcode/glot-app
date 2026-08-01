@@ -73,6 +73,8 @@ fn run_content(
         option.None -> html.div([], [])
       }
     execution_operation.Running -> block("", "Running snippet...")
+    execution_operation.CancellationAvailable -> block("", "Running snippet...")
+    execution_operation.Cancelled -> block("", "Run cancelled.")
     execution_operation.RequestError(message) -> block("RUN FAILED", message)
     execution_operation.Completed(result) ->
       case result {

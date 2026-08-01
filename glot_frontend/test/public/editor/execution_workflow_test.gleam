@@ -35,11 +35,22 @@ pub fn run_projects_one_complete_editor_snapshot_into_the_request_test() {
     == execution_operation.Running
   assert operations.console_owner(running.operations)
     == operations.ExecutionConsole
-  let assert command.RunCode(request, complete) = next_command
+  let assert command.Batch([
+    command.RunCode(request, complete),
+    command.Schedule(
+      3000,
+      message.RunCancellationDelayElapsed(delay_generation),
+    ),
+  ]) = next_command
   assert request.image == language.container_image(language.JavaScript)
   assert request.payload.run_instructions == custom
   assert request.payload.files == editor.snippet.files
   assert request.payload.stdin == option.Some("input")
+  assert operations.offer_execution_cancellation(
+      running.operations,
+      delay_generation,
+    )
+    != option.None
   assert_callback_generation_is_current(running, complete)
 }
 
@@ -56,7 +67,10 @@ pub fn run_uses_language_defaults_when_no_override_exists_test() {
       ),
     )
   let #(_, next_command) = execution_workflow.run_snippet(editor)
-  let assert command.RunCode(request, _) = next_command
+  let assert command.Batch([
+    command.RunCode(request, _),
+    command.Schedule(3000, _),
+  ]) = next_command
 
   assert request.payload.run_instructions.run_command == "node app.js"
   assert request.payload.stdin == option.None

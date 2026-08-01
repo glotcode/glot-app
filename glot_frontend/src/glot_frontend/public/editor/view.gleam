@@ -10,8 +10,9 @@ import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/lifecycle_view
 import glot_frontend/public/editor/message.{
   type EditorMsg, type Msg, EditMetadataClicked, Editor as EditorMessage,
-  Execution, File, Metadata, RestoreDraft, RunSubmitted, Save, SaveClicked,
-  Settings, SnippetInfo, SnippetInfoClicked, SourceCodeChanged,
+  Execution, File, Metadata, RestoreDraft, RunCancellationSubmitted,
+  RunSubmitted, Save, SaveClicked, Settings, SnippetInfo, SnippetInfoClicked,
+  SourceCodeChanged,
 }
 import glot_frontend/public/editor/metadata_dialog_view
 import glot_frontend/public/editor/model.{
@@ -137,8 +138,12 @@ fn view_helper(
       action_button(
         "editor-shell__action-button",
         run_button_text(model.operations),
-        operations.execution_is_running(model.operations),
-        Execution(RunSubmitted),
+        operations.execution_is_running(model.operations)
+          && !operations.execution_cancellation_is_available(model.operations),
+        case operations.execution_cancellation_is_available(model.operations) {
+          True -> Execution(RunCancellationSubmitted)
+          False -> Execution(RunSubmitted)
+        },
       ),
       action_button(
         "editor-shell__action-button",
@@ -153,7 +158,11 @@ fn view_helper(
 
 fn run_button_text(editor_operations: operations.Operations) -> String {
   case operations.execution_is_running(editor_operations) {
-    True -> "Running..."
+    True ->
+      case operations.execution_cancellation_is_available(editor_operations) {
+        True -> "Cancel"
+        False -> "Running..."
+      }
     False -> "Run"
   }
 }

@@ -82,6 +82,19 @@ pub fn shell_disables_operations_independently_while_they_are_active_test() {
   )
 }
 
+pub fn long_running_execution_replaces_the_disabled_button_with_cancel_test() {
+  let editor = new_editor()
+  let #(running, generation) = operations.begin_execution(editor.operations)
+  let assert option.Some(cancellable) =
+    operations.offer_execution_cancellation(running, generation)
+  let cancellable_editor = model.Editor(..editor, operations: cancellable)
+  let rendered =
+    render(cancellable_editor, option.Some(editor_fixture.owner_id()))
+
+  assert string.contains(rendered, "type=\"button\">Cancel</button>")
+  assert !string.contains(rendered, "disabled type=\"button\">Cancel</button>")
+}
+
 fn new_editor() -> model.Editor {
   ready.new(language.JavaScript, settings.defaults())
 }

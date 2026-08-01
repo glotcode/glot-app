@@ -17,6 +17,8 @@ pub type Stream {
 pub type State {
   Idle
   Running
+  CancellationAvailable
+  Cancelled
   Completed(run.RunResult)
   RequestError(String)
 }
@@ -45,6 +47,25 @@ pub fn complete(operation: Operation, result: run.RunResult) -> Operation {
   Operation(..operation, state: Completed(result))
 }
 
+pub fn offer_cancellation(
+  operation: Operation,
+  generation: Generation(Stream),
+) -> option.Option(Operation) {
+  case is_current(operation, generation), operation.state {
+    True, Running ->
+      option.Some(Operation(..operation, state: CancellationAvailable))
+    _, _ -> option.None
+  }
+}
+
+pub fn cancel(operation: Operation) -> option.Option(Operation) {
+  case operation.state {
+    Running | CancellationAvailable ->
+      option.Some(Operation(..operation, state: Cancelled))
+    _ -> option.None
+  }
+}
+
 pub fn fail(operation: Operation, message: String) -> Operation {
   Operation(..operation, state: RequestError(message))
 }
@@ -65,5 +86,9 @@ pub fn version_info(operation: Operation) -> option.Option(String) {
 }
 
 pub fn is_running(operation: Operation) -> Bool {
-  operation.state == Running
+  operation.state == Running || operation.state == CancellationAvailable
+}
+
+pub fn cancellation_is_available(operation: Operation) -> Bool {
+  operation.state == CancellationAvailable
 }

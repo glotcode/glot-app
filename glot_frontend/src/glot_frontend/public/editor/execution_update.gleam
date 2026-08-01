@@ -10,8 +10,9 @@ import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/execution_workflow
 import glot_frontend/public/editor/file_workflow
 import glot_frontend/public/editor/message.{
-  type ExecutionMsg, RunFinished, RunSubmitted, SourceCodeChanged, TabKeyPressed,
-  TabSelected, VersionRunFinished,
+  type ExecutionMsg, RunCancellationDelayElapsed, RunCancellationSubmitted,
+  RunFinished, RunSubmitted, SourceCodeChanged, TabKeyPressed, TabSelected,
+  VersionRunFinished,
 }
 import glot_frontend/public/editor/model.{
   type Editor, type EditorTab, Editor, Workspace,
@@ -55,7 +56,16 @@ pub fn update(
       }
     }
 
-    RunSubmitted -> execution_workflow.run_snippet(model)
+    RunSubmitted ->
+      case operations.execution_is_running(model.operations) {
+        True -> #(model, command.none())
+        False -> execution_workflow.run_snippet(model)
+      }
+
+    RunCancellationDelayElapsed(generation) ->
+      offer_cancellation(model, generation)
+
+    RunCancellationSubmitted -> cancel_run(model)
 
     RunFinished(generation, result) -> finish_run(model, generation, result)
 
@@ -77,6 +87,29 @@ pub fn update(
         _ -> #(model, command.none())
       }
     }
+  }
+}
+
+fn offer_cancellation(
+  model: Editor,
+  generation: Generation(execution_operation.Stream),
+) -> #(Editor, command.Command(ExecutionMsg)) {
+  case operations.offer_execution_cancellation(model.operations, generation) {
+    option.None -> #(model, command.none())
+    option.Some(next_operations) -> #(
+      Editor(..model, operations: next_operations),
+      command.none(),
+    )
+  }
+}
+
+fn cancel_run(model: Editor) -> #(Editor, command.Command(ExecutionMsg)) {
+  case operations.cancel_execution(model.operations) {
+    option.None -> #(model, command.none())
+    option.Some(next_operations) -> #(
+      Editor(..model, operations: next_operations),
+      command.CancelRun,
+    )
   }
 }
 

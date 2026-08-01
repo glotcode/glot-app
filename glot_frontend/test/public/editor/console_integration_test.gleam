@@ -35,6 +35,7 @@ pub fn older_save_completion_cannot_hide_newer_run_feedback_test() {
       0,
       response.Success(created_from_request("older-save", create_request)),
     )
+    |> editor_scenario.deliver_next_scheduled
   let rendered = editor_scenario.render(scenario)
   assert string.contains(rendered, "newer run output")
   assert !string.contains(rendered, "Saved")
@@ -69,6 +70,7 @@ pub fn older_run_completion_cannot_hide_newer_save_feedback_test() {
         error: "",
       ),
     )
+    |> editor_scenario.deliver_next_scheduled
   let rendered = editor_scenario.render(scenario)
   assert string.contains(rendered, "Saved")
   assert !string.contains(rendered, "older run output")

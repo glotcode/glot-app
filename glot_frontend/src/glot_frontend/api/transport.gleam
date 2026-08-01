@@ -6,6 +6,7 @@ const endpoint = "/api/mux"
 pub type Ownership {
   Persistent
   Navigation
+  Run
 }
 
 pub type Result {
@@ -22,7 +23,7 @@ pub fn post_json(
     send(
       endpoint,
       body,
-      ownership == Navigation,
+      cancellation_group(ownership),
       fn(kind, status, content_type, body) {
         let result = case kind {
           "response" -> Received(status:, content_type:, body:)
@@ -35,17 +36,32 @@ pub fn post_json(
   })
 }
 
+fn cancellation_group(ownership: Ownership) -> String {
+  case ownership {
+    Persistent -> "persistent"
+    Navigation -> "navigation"
+    Run -> "run"
+  }
+}
+
 pub fn cancel_navigation_requests() -> Nil {
   cancel_navigation()
+}
+
+pub fn cancel_run_requests() -> Nil {
+  cancel_run()
 }
 
 @external(javascript, "./transport_ffi.mjs", "send")
 fn send(
   endpoint: String,
   body: String,
-  cancellable: Bool,
+  cancellation_group: String,
   callback: fn(String, Int, String, String) -> Nil,
 ) -> Nil
 
 @external(javascript, "./transport_ffi.mjs", "cancelNavigationRequests")
 fn cancel_navigation() -> Nil
+
+@external(javascript, "./transport_ffi.mjs", "cancelRunRequests")
+fn cancel_run() -> Nil

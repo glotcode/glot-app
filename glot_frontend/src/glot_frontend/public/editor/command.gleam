@@ -20,6 +20,7 @@ pub type Command(msg) {
     fn(response.Response(snippet_dto.SnippetResponse)) -> msg,
   )
   RunCode(run.RunRequest, fn(response.Response(run.RunResult)) -> msg)
+  CancelRun
   GetLanguageVersion(
     run.GetLanguageVersionRequest,
     fn(response.Response(run.RunResult)) -> msg,
@@ -64,6 +65,7 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
       GetSnippet(request, fn(result) { callback(result) |> transform })
     RunCode(request, callback) ->
       RunCode(request, fn(result) { callback(result) |> transform })
+    CancelRun -> CancelRun
     GetLanguageVersion(request, callback) ->
       GetLanguageVersion(request, fn(result) { callback(result) |> transform })
     CreateSnippet(request, callback) ->
