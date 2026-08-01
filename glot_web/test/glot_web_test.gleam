@@ -1,4 +1,5 @@
 import gleam/json
+import gleam/list
 import gleam/option
 import gleam/string
 import gleam/time/timestamp
@@ -83,6 +84,11 @@ pub fn editor_document_embeds_large_ssr_payload_outside_app_attributes_test() {
   assert string.contains(rendered, string.repeat("x", times: 100_000))
   assert !string.contains(rendered, "</script><script>")
   assert string.contains(rendered, "\\u003c/script\\u003e")
+
+  let assert [_, editor_element] = string.split(rendered, "<glot-codemirror")
+  let assert Ok(editor_opening_tag) =
+    editor_element |> string.split(">") |> list.first
+  assert !string.contains(editor_opening_tag, " value=")
 
   let opening = "<script id=\"glot-ssr-data\" type=\"application/json\">"
   let assert [_, data_and_document_end] = string.split(rendered, opening)

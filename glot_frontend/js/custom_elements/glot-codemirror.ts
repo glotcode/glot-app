@@ -12,6 +12,7 @@ import { StreamLanguage } from "@codemirror/language"
 import { tags } from "@lezer/highlight";
 import {
   documentUpdate,
+  initialDocumentValue,
   shouldApplyDocumentValue
 } from "./glot-codemirror-document.mjs";
 
@@ -312,7 +313,10 @@ export class GlotCodeMirror extends HTMLElement {
   constructor() {
     super();
 
-    this._valueCache = this.getAttribute("value") ?? "";
+    this._valueCache = initialDocumentValue(
+      this.getAttribute("value"),
+      this.textContent
+    );
     this._languageName = (this.getAttribute("language") ?? "javascript").toLowerCase();
     this._keyboardBindingsName = this._parseKeyboardBindingsAttribute(
       this.getAttribute("keyboard-bindings")

@@ -4,8 +4,18 @@ import { history, undo, undoDepth } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
 import {
   documentUpdate,
+  initialDocumentValue,
   shouldApplyDocumentValue
 } from "./glot-codemirror-document.mjs";
+
+test("uses SSR fallback text when no value attribute is present", () => {
+  assert.equal(initialDocumentValue(null, "server-rendered source"), "server-rendered source");
+});
+
+test("client-rendered value attributes take precedence over fallback text", () => {
+  assert.equal(initialDocumentValue("", "stale fallback"), "");
+  assert.equal(initialDocumentValue("current source", "stale fallback"), "current source");
+});
 
 function synchronize(current, incoming, cursor) {
   const state = EditorState.create({

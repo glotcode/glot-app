@@ -231,7 +231,6 @@ fn content_for_model(
         attribute.id("editor-page-codemirror"),
         attribute.class("editor-shell__codemirror"),
         attribute.attribute("language", language.to_string(model.language)),
-        attribute.attribute("value", selected_tab_content(model)),
         attribute.attribute("keyboard-bindings", "default"),
       ],
       [code_fallback(model)],

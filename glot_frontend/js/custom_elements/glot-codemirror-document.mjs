@@ -1,5 +1,9 @@
 import { EditorSelection, Transaction } from "@codemirror/state";
 
+export function initialDocumentValue(attributeValue, fallbackText) {
+  return attributeValue ?? fallbackText ?? "";
+}
+
 export function shouldApplyDocumentValue({
   localRevision,
   acknowledgedRevision,
