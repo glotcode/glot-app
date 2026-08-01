@@ -1,6 +1,7 @@
 import gleam/list
 import glot_core/route
 import glot_frontend/api/account as account_api
+import glot_frontend/api/transport
 import glot_frontend/app/public_managed
 import glot_frontend/app/public_page_metadata
 import glot_frontend/app/public_page_production
@@ -75,6 +76,14 @@ pub fn run(
     public_root_managed.ScrollToQuickAction(index) ->
       quick_action_scroll.ensure_visible(index)
     public_root_managed.Navigate(destination) -> navigate(destination)
+    public_root_managed.PrepareNavigation(destination, presentation) ->
+      effect.from(fn(dispatch) {
+        transport.cancel_navigation_requests()
+        dispatch(public_root_managed.NavigationPrepared(
+          destination,
+          presentation,
+        ))
+      })
     public_root_managed.CommitNavigation(presentation) ->
       spa_navigation.commit(presentation)
   }

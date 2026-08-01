@@ -3,9 +3,9 @@ import gleeunit
 import glot_frontend/admin/command as admin_effect
 import glot_frontend/admin/config/section
 import glot_frontend/admin/config/section_managed
+import glot_frontend/api/http_error
 import glot_frontend/api/response as api_response
 import glot_frontend/ui/mutation
-import rsvp
 import youid/uuid
 
 pub fn main() -> Nil {
@@ -191,7 +191,7 @@ pub fn http_failures_use_the_feature_messages_test() {
       loading,
       section_managed.LoadCompleted(
         load_generation,
-        api_response.HttpFailure(rsvp.NetworkError),
+        api_response.HttpFailure(http_error.NetworkError),
       ),
       required_policy(),
     )
@@ -205,7 +205,7 @@ pub fn http_failures_use_the_feature_messages_test() {
       saving,
       section_managed.SaveCompleted(
         save_generation,
-        api_response.HttpFailure(rsvp.NetworkError),
+        api_response.HttpFailure(http_error.NetworkError),
       ),
       required_policy(),
     )

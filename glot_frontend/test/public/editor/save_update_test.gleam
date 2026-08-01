@@ -2,6 +2,7 @@ import gleam/option
 import gleam/string
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/api/http_error
 import glot_frontend/api/response
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_persistence
@@ -13,7 +14,6 @@ import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/save_update
 import glot_frontend/public/editor/settings
-import rsvp
 import support/editor_fixture
 
 pub fn dialog_messages_reset_only_the_save_draft_test() {
@@ -165,7 +165,7 @@ pub fn current_failures_update_save_feedback_without_commands_test() {
       message.SaveFinished(
         generation,
         policy.UpdateSnippet("existing", snippet_model.Unlisted),
-        response.HttpFailure(rsvp.BadBody),
+        response.HttpFailure(http_error.BodyReadError),
       ),
       option.Some(editor_fixture.owner_id()),
     )

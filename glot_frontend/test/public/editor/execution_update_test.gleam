@@ -3,6 +3,7 @@ import gleam/string
 import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_model
+import glot_frontend/api/http_error
 import glot_frontend/api/response
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_projection
@@ -11,7 +12,6 @@ import glot_frontend/public/editor/execution_update
 import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/operations
-import rsvp
 import support/editor_fixture
 import support/editor_scenario
 
@@ -164,7 +164,10 @@ pub fn current_run_results_and_failures_update_execution_feedback_test() {
   let #(http_failed, http_command) =
     execution_update.update(
       running,
-      message.RunFinished(generation, response.HttpFailure(rsvp.BadBody)),
+      message.RunFinished(
+        generation,
+        response.HttpFailure(http_error.BodyReadError),
+      ),
     )
   assert operations.execution_state(http_failed.operations)
     == execution_operation.RequestError("Could not complete run.")

@@ -37,6 +37,7 @@ pub type QuickActionTarget {
 pub type Msg {
   LifecycleMsg(admin_managed.Msg(router_message.Msg))
   NavigationObserved(route.Route, Presentation)
+  NavigationPrepared(route.Route, Presentation)
   QuickActionsMsg(quick_actions_managed.Msg)
   QuickActionSelected(QuickActionTarget)
   IgnoredEditorRunShortcut
@@ -59,6 +60,7 @@ pub type Command {
   CloseQuickActions
   ScrollToQuickAction(Int)
   Navigate(route.Route)
+  PrepareNavigation(route.Route, Presentation)
   ScheduleNavigationLoading(Int, Generation(delayed_loading.Stream))
   CommitNavigation(Presentation)
 }
@@ -100,6 +102,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
       )
     LifecycleMsg(lifecycle_msg) -> update_lifecycle(model, lifecycle_msg)
     NavigationObserved(destination, presentation) ->
+      case destination == model.lifecycle.route {
+        True -> navigation_observed(model, destination, presentation)
+        False -> #(model, PrepareNavigation(destination, presentation))
+      }
+    NavigationPrepared(destination, presentation) ->
       navigation_observed(model, destination, presentation)
     QuickActionsMsg(quick_action_msg) ->
       quick_actions_root_managed.update(

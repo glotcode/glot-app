@@ -166,10 +166,24 @@ pub fn admin_traversal_restoration_survives_the_loading_transition_test() {
   let #(initial, _) = init(route.Admin(route.AdminHome))
   let #(authenticated, _) = authenticate(initial)
   let destination = route.Admin(route.AdminRateLimits)
-  let #(loading, navigation_command) =
+  let #(awaiting_cancellation, prepare_command) =
     admin_root_managed.update(
       authenticated,
       admin_root_managed.NavigationObserved(
+        destination,
+        navigation.Restore(32, 960),
+      ),
+    )
+  assert awaiting_cancellation == authenticated
+  assert prepare_command
+    == admin_root_managed.PrepareNavigation(
+      destination,
+      navigation.Restore(32, 960),
+    )
+  let #(loading, navigation_command) =
+    admin_root_managed.update(
+      awaiting_cancellation,
+      admin_root_managed.NavigationPrepared(
         destination,
         navigation.Restore(32, 960),
       ),

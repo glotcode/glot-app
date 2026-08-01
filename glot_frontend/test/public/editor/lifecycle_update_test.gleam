@@ -1,6 +1,7 @@
 import gleam/option
 import gleam/string
 import glot_core/language
+import glot_frontend/api/http_error
 import glot_frontend/api/response
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_persistence
@@ -11,7 +12,6 @@ import glot_frontend/public/editor/model
 import glot_frontend/public/editor/settings
 import glot_frontend/request_generation
 import glot_frontend/ui/delayed_loading
-import rsvp
 import support/editor_fixture
 
 pub fn start_loads_the_environment_for_the_correlated_target_test() {
@@ -157,7 +157,10 @@ pub fn matching_snippet_failures_become_stable_terminal_states_test() {
   let #(http_failed, http_command) =
     lifecycle_update.update(
       loading,
-      message.SnippetLoaded("failed", response.HttpFailure(rsvp.BadBody)),
+      message.SnippetLoaded(
+        "failed",
+        response.HttpFailure(http_error.BodyReadError),
+      ),
     )
   assert http_failed
     == model.Lifecycle(lifecycle.LoadError("Could not load snippet."))

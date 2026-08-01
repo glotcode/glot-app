@@ -209,7 +209,6 @@ pub fn terminal_navigation_failure_is_presented_instead_of_holding_forever_test(
         )),
       ),
     )
-
   let assert public_page_state.Snippets(snippets_model.Model(
     page: loadable.LoadError(_),
     ..,
@@ -300,10 +299,24 @@ pub fn traversal_restoration_is_retained_until_the_page_is_presentable_test() {
       before: option.None,
       username: option.None,
     ))
-  let #(loading, _) =
+  let #(awaiting_cancellation, prepare_command) =
     public_root_managed.update(
       initial,
       public_root_managed.NavigationObserved(
+        destination,
+        navigation.Restore(18, 720),
+      ),
+    )
+  assert awaiting_cancellation == initial
+  assert prepare_command
+    == public_root_managed.PrepareNavigation(
+      destination,
+      navigation.Restore(18, 720),
+    )
+  let #(loading, _) =
+    public_root_managed.update(
+      awaiting_cancellation,
+      public_root_managed.NavigationPrepared(
         destination,
         navigation.Restore(18, 720),
       ),

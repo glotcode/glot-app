@@ -3,6 +3,7 @@ import glot_core/route
 import glot_frontend/admin/interpreter as admin_interpreter
 import glot_frontend/admin/production_ports as admin_ports
 import glot_frontend/api/account
+import glot_frontend/api/transport
 import glot_frontend/app/admin_managed
 import glot_frontend/app/admin_root_managed
 import glot_frontend/app/quick_actions_managed
@@ -70,6 +71,14 @@ pub fn run(
     admin_root_managed.ScrollToQuickAction(index) ->
       quick_action_scroll.ensure_visible(index)
     admin_root_managed.Navigate(destination) -> navigate(destination)
+    admin_root_managed.PrepareNavigation(destination, presentation) ->
+      effect.from(fn(dispatch) {
+        transport.cancel_navigation_requests()
+        dispatch(admin_root_managed.NavigationPrepared(
+          destination,
+          presentation,
+        ))
+      })
     admin_root_managed.ScheduleNavigationLoading(milliseconds, generation) ->
       effect.from(fn(dispatch) {
         timer.schedule(milliseconds, fn() {

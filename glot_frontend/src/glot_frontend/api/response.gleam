@@ -1,4 +1,4 @@
-import rsvp
+import glot_frontend/api/http_error
 import youid/uuid
 
 pub type Error {
@@ -8,7 +8,7 @@ pub type Error {
 pub type Response(a) {
   Success(data: a)
   ApiFailure(error: Error)
-  HttpFailure(error: rsvp.Error(String))
+  HttpFailure(error: http_error.Error)
 }
 
 pub fn error_message(error: Error) -> String {

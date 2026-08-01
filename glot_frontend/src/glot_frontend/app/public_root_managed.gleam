@@ -36,6 +36,7 @@ pub type QuickActionTarget {
 pub type Msg {
   LifecycleMsg(public_managed.Msg)
   NavigationObserved(route.Route, Presentation)
+  NavigationPrepared(route.Route, Presentation)
   PageMsg(public_page_message.Msg)
   QuickActionsMsg(quick_actions_managed.Msg)
   QuickActionSelected(QuickActionTarget)
@@ -58,6 +59,7 @@ pub type Command {
   CloseQuickActions
   ScrollToQuickAction(Int)
   Navigate(route.Route)
+  PrepareNavigation(route.Route, Presentation)
   CommitNavigation(Presentation)
 }
 
@@ -99,6 +101,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
       )
     LifecycleMsg(lifecycle_msg) -> update_lifecycle(model, lifecycle_msg)
     NavigationObserved(destination, presentation) ->
+      case destination == model.lifecycle.route {
+        True -> navigation_observed(model, destination, presentation)
+        False -> #(model, PrepareNavigation(destination, presentation))
+      }
+    NavigationPrepared(destination, presentation) ->
       navigation_observed(model, destination, presentation)
     PageMsg(page_msg) -> update_page(model, page_msg)
     QuickActionsMsg(quick_action_msg) ->
