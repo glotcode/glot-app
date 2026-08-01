@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  handleModifiedLinkClick,
-  handleSkipLinkClick,
-} from "./skip_links_ffi.mjs";
+import { handleSkipLinkClick } from "./skip_links.mjs";
 
 function fixture({ href = "https://glot.io/javascript#main-content" } = {}) {
   const calls = [];
@@ -69,54 +66,5 @@ test("cross-document links are left to normal navigation", () => {
   });
 
   assert.equal(handleSkipLinkClick(event, browserWindow, root), false);
-  assert.deepEqual(calls, []);
-});
-
-test("command-click bypasses the SPA router without cancelling the browser", () => {
-  const calls = [];
-  const event = {
-    metaKey: true,
-    ctrlKey: false,
-    shiftKey: false,
-    altKey: false,
-    target: {
-      nodeType: 1,
-      closest(selector) {
-        assert.equal(selector, "a[href]");
-        return { href: "/python" };
-      },
-    },
-    preventDefault() {
-      calls.push("preventDefault");
-    },
-    stopImmediatePropagation() {
-      calls.push("stopImmediatePropagation");
-    },
-  };
-
-  assert.equal(handleModifiedLinkClick(event), true);
-  assert.deepEqual(calls, ["stopImmediatePropagation"]);
-});
-
-test("ordinary clicks continue to the SPA router", () => {
-  const calls = [];
-  const event = {
-    metaKey: false,
-    ctrlKey: false,
-    shiftKey: false,
-    altKey: false,
-    target: {
-      nodeType: 1,
-      closest() {
-        calls.push("closest");
-        return { href: "/python" };
-      },
-    },
-    stopImmediatePropagation() {
-      calls.push("stopImmediatePropagation");
-    },
-  };
-
-  assert.equal(handleModifiedLinkClick(event), false);
   assert.deepEqual(calls, []);
 });

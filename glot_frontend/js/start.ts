@@ -1,6 +1,6 @@
 import { initializeTheme } from "./custom_elements/glot-theme-picker";
 import { initializePrivacyElements } from "./custom_elements/glot-privacy";
-import { initializeSkipLinks } from "../src/glot_frontend/platform/skip_links_ffi.mjs";
+import { initializeSkipLinks } from "../src/glot_frontend/platform/skip_links.mjs";
 
 let codeMirrorImport: Promise<unknown> | null = null;
 

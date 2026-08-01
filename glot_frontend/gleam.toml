@@ -23,7 +23,6 @@ rsvp = ">= 2.0.0 and < 3.0.0"
 gleam_json = ">= 3.1.0 and < 4.0.0"
 gleam_http = ">= 4.3.0 and < 5.0.0"
 plinth = ">= 0.8.1 and < 1.0.0"
-modem = ">= 2.1.2 and < 3.0.0"
 youid = ">= 1.6.0 and < 2.0.0"
 gleam_time = ">= 1.8.0 and < 2.0.0"
 

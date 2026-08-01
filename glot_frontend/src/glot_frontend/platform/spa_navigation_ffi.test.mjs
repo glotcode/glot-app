@@ -1,6 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { commit, handleClick, push, replace } from "./spa_navigation_ffi.mjs";
+import {
+  commit,
+  handleClick,
+  initialLocation,
+  push,
+  replace,
+} from "./spa_navigation_ffi.mjs";
+
+test("initial location is read safely from the browser boundary", () => {
+  assert.equal(
+    initialLocation({ location: { href: "https://glot.io/snippets" } }),
+    "https://glot.io/snippets",
+  );
+  assert.equal(initialLocation(undefined), "");
+});
 
 function clickFixture(href = "https://glot.io/snippets") {
   const calls = [];

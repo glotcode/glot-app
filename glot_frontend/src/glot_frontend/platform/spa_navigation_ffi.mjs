@@ -1,5 +1,9 @@
 const navigationEvent = "glot-spa-navigation";
 
+export function initialLocation(browserWindow = globalThis?.window) {
+  return browserWindow?.location?.href ?? "";
+}
+
 function clickedLink(target) {
   const element = target?.nodeType === 1 ? target : target?.parentElement;
   return element?.closest?.("a[href]") ?? null;

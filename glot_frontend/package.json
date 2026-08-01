@@ -11,7 +11,7 @@
     "check:boundaries": "node scripts/check-managed-boundaries.mjs",
     "check:css": "node scripts/check-css-architecture.mjs",
     "test:gleam": "gleam test",
-    "test:javascript": "node --test js/custom_elements/*.test.mjs src/glot_frontend/platform/*_ffi.test.mjs",
+    "test:javascript": "node --test js/custom_elements/*.test.mjs src/glot_frontend/platform/*.test.mjs",
     "test:codemirror": "node --test js/custom_elements/glot-codemirror-document.test.mjs"
   },
   "type": "module",

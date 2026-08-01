@@ -2,6 +2,17 @@ import gleam/option.{type Option, None, Some}
 import gleam/uri.{type Uri}
 import lustre/effect.{type Effect}
 
+pub fn initial_uri() -> Result(Uri, Nil) {
+  case initial_location() {
+    "" -> Error(Nil)
+    location ->
+      case uri.parse(location) {
+        Ok(uri) -> Ok(uri)
+        Error(_) -> Error(Nil)
+      }
+  }
+}
+
 /// Observe native link clicks, history traversal, and programmatic SPA route
 /// changes without scrolling the document being navigated away from.
 pub fn observe(handler: fn(Uri) -> msg) -> Effect(msg) {
@@ -47,3 +58,6 @@ fn replace_state(path: String) -> Nil
 
 @external(javascript, "./spa_navigation_ffi.mjs", "commit")
 fn commit_navigation() -> Nil
+
+@external(javascript, "./spa_navigation_ffi.mjs", "initialLocation")
+fn initial_location() -> String

@@ -4,10 +4,10 @@ import glot_frontend/app/public_root_production
 import glot_frontend/app/public_root_view
 import glot_frontend/platform/clock
 import glot_frontend/platform/page_visibility
+import glot_frontend/platform/spa_navigation
 import lustre
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
-import modem
 
 pub fn main() -> Nil {
   let app = lustre.application(init, update, view)
@@ -22,7 +22,7 @@ type Flags {
 fn init(
   _flags: Flags,
 ) -> #(public_root_managed.Model, Effect(public_root_managed.Msg)) {
-  let initial_route = case modem.initial_uri() {
+  let initial_route = case spa_navigation.initial_uri() {
     Ok(uri) -> route.from_uri(uri)
     Error(_) -> route.Public(route.Home)
   }
