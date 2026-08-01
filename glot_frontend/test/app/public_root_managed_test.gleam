@@ -94,7 +94,7 @@ pub fn navigation_keeps_the_current_page_until_snippets_are_loaded_test() {
   let assert public_root_managed.Batch([
     public_root_managed.CloseQuickActions,
     public_root_managed.RunPage(
-      destination,
+      _,
       public_page_command.Snippets(snippets_command.LoadSsr(_)),
     ),
     public_root_managed.TrackPageview(tracked_destination),
@@ -157,13 +157,12 @@ pub fn slow_navigation_presents_the_destination_loading_state_after_its_delay_te
       ),
     )
   let assert public_root_managed.RunPage(
-    command_origin,
+    _,
     public_page_command.Snippets(snippets_command.Batch([
       snippets_command.ListPublicSnippets(_, _),
       snippets_command.Schedule(_, delay_elapsed),
     ])),
   ) = start_command
-  assert command_origin == destination
   let assert public_page_state.Home(_) =
     public_root_managed.presented_page(request_started)
 
@@ -407,10 +406,7 @@ pub fn page_app_events_are_lifted_into_root_commands_test() {
 
   let assert public_page_state.Login(_) = logged_in.lifecycle.page_model
   let assert public_root_managed.Batch([
-    public_root_managed.RunPage(
-      route.Public(route.Login),
-      public_page_command.Login(_),
-    ),
+    public_root_managed.RunPage(_, public_page_command.Login(_)),
     public_root_managed.GetSession,
   ]) = command
 }
@@ -435,10 +431,9 @@ pub fn editor_metadata_is_applied_when_the_resulting_state_changes_it_test() {
   let assert public_page_state.Editor(editor_model.Ready(_)) =
     loaded.lifecycle.page_model
   let assert public_root_managed.Batch([
-    public_root_managed.RunPage(command_origin, public_page_command.Editor(_)),
+    public_root_managed.RunPage(_, public_page_command.Editor(_)),
     public_root_managed.ApplyMetadata,
   ]) = command
-  assert command_origin == target
 }
 
 pub fn late_run_response_from_previous_snippet_is_ignored_test() {
@@ -451,7 +446,6 @@ pub fn late_run_response_from_previous_snippet_is_ignored_test() {
     first_origin,
     public_page_command.Editor(editor_command.RunCode(_, finish_first)),
   ) = first_run_command
-  assert first_origin == first_route
 
   let #(second_loading, _) =
     public_root_managed.update(
@@ -466,13 +460,13 @@ pub fn late_run_response_from_previous_snippet_is_ignored_test() {
     second_origin,
     public_page_command.Editor(editor_command.RunCode(_, finish_second)),
   ) = second_run_command
-  assert second_origin == second_route
+  assert first_origin != second_origin
 
   let #(second_finished, _) =
     public_root_managed.update(
       second_running,
       public_root_managed.PageEffectMsg(
-        second_route,
+        second_origin,
         public_page_message.EditorPageMsg(
           finish_second(editor_fixture.successful_run(
             stdout: "fast response",
@@ -486,7 +480,7 @@ pub fn late_run_response_from_previous_snippet_is_ignored_test() {
     public_root_managed.update(
       second_finished,
       public_root_managed.PageEffectMsg(
-        first_route,
+        first_origin,
         public_page_message.EditorPageMsg(
           finish_first(editor_fixture.successful_run(
             stdout: "slow response",
@@ -504,6 +498,84 @@ pub fn late_run_response_from_previous_snippet_is_ignored_test() {
       Ok(run.SuccessfulRun(1_000_000, "fast response", "", "")),
     )
   assert command == public_root_managed.None
+}
+
+pub fn late_run_response_from_disposed_instance_of_same_route_is_ignored_test() {
+  let first_route = route.Public(route.Snippet("same-snippet"))
+  let other_route = route.Public(route.Snippet("other-snippet"))
+  let #(initial, _) = init(first_route)
+  let first_instance = load_snippet(initial, "same-snippet")
+  let #(first_running, first_run_command) = submit_run(first_instance)
+  let assert public_root_managed.RunPage(
+    first_origin,
+    public_page_command.Editor(editor_command.RunCode(_, finish_first)),
+  ) = first_run_command
+
+  let other_instance =
+    first_running
+    |> navigate_to(other_route)
+    |> load_snippet("other-snippet")
+  let current_instance =
+    other_instance
+    |> navigate_to(first_route)
+    |> load_snippet("same-snippet")
+  let #(current_running, current_run_command) = submit_run(current_instance)
+  let assert public_root_managed.RunPage(
+    current_origin,
+    public_page_command.Editor(editor_command.RunCode(_, finish_current)),
+  ) = current_run_command
+  assert first_origin != current_origin
+
+  let #(current_finished, _) =
+    public_root_managed.update(
+      current_running,
+      public_root_managed.PageEffectMsg(
+        current_origin,
+        public_page_message.EditorPageMsg(
+          finish_current(editor_fixture.successful_run(
+            stdout: "current response",
+            stderr: "",
+            error: "",
+          )),
+        ),
+      ),
+    )
+  let #(after_late_response, command) =
+    public_root_managed.update(
+      current_finished,
+      public_root_managed.PageEffectMsg(
+        first_origin,
+        public_page_message.EditorPageMsg(
+          finish_first(editor_fixture.successful_run(
+            stdout: "disposed response",
+            stderr: "",
+            error: "",
+          )),
+        ),
+      ),
+    )
+
+  let assert public_page_state.Editor(editor_model.Ready(editor)) =
+    after_late_response.lifecycle.page_model
+  assert operations.execution_state(editor.operations)
+    == execution_operation.Completed(
+      Ok(run.SuccessfulRun(1_000_000, "current response", "", "")),
+    )
+  assert command == public_root_managed.None
+}
+
+fn navigate_to(
+  model: public_root_managed.Model,
+  destination: route.Route,
+) -> public_root_managed.Model {
+  let #(navigated, _) =
+    public_root_managed.update(
+      model,
+      public_root_managed.LifecycleMsg(public_managed.UserNavigatedTo(
+        destination,
+      )),
+    )
+  navigated
 }
 
 fn load_snippet(

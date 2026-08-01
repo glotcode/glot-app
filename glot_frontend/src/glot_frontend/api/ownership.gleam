@@ -5,6 +5,7 @@ import glot_frontend/api/transport
 pub fn public(action: PublicAction) -> transport.Ownership {
   case action {
     public_action.GetLanguageVersionAction
+    | public_action.RunAction
     | public_action.GetAccountAction
     | public_action.ListAccountSessionsAction
     | public_action.ListAccountPasskeysAction
@@ -12,7 +13,6 @@ pub fn public(action: PublicAction) -> transport.Ownership {
     | public_action.ListPublicSnippetsAction
     | public_action.ListSessionSnippetsAction -> transport.Navigation
     public_action.TrackPageviewAction
-    | public_action.RunAction
     | public_action.GetSessionAction
     | public_action.RefreshSessionAction
     | public_action.LogoutAction

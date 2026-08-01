@@ -3,6 +3,7 @@ import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/route
 import glot_frontend/app/event
+import glot_frontend/app/page_instance.{type PageInstance}
 import glot_frontend/app/page_presentation
 import glot_frontend/app/public_managed
 import glot_frontend/app/public_page_actions
@@ -22,6 +23,7 @@ import glot_web/page/top_bar
 pub type Model {
   Model(
     lifecycle: public_managed.Model(public_page_state.Model),
+    page_instance: PageInstance,
     presentation: page_presentation.Model(public_page_state.Model),
     navigation_presentation: Presentation,
     quick_actions: quick_actions.Model,
@@ -38,7 +40,7 @@ pub type Msg {
   NavigationObserved(route.Route, Presentation)
   NavigationPrepared(route.Route, Presentation)
   PageMsg(public_page_message.Msg)
-  PageEffectMsg(route.Route, public_page_message.Msg)
+  PageEffectMsg(PageInstance, public_page_message.Msg)
   QuickActionsMsg(quick_actions_managed.Msg)
   QuickActionSelected(QuickActionTarget)
   EditorRunShortcutPressed
@@ -47,7 +49,7 @@ pub type Msg {
 pub type Command {
   None
   Batch(List(Command))
-  RunPage(route.Route, public_page_command.Command)
+  RunPage(PageInstance, public_page_command.Command)
   GetSession
   RefreshSession
   TrackPageview(route.Route)
@@ -79,6 +81,7 @@ pub fn init(
   let model =
     Model(
       lifecycle:,
+      page_instance: page_instance.initial(),
       presentation: page_presentation.init(lifecycle.page_model),
       navigation_presentation: navigation.Reset,
       quick_actions: quick_actions.init(),
@@ -87,7 +90,7 @@ pub fn init(
     model,
     batch([
       ObserveNavigation,
-      from_lifecycle_command(lifecycle_command, lifecycle.route),
+      from_lifecycle_command(lifecycle_command, model.page_instance),
       BindKeyboardShortcuts,
     ]),
   )
@@ -110,7 +113,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
       navigation_observed(model, destination, presentation)
     PageMsg(page_msg) -> update_page(model, page_msg)
     PageEffectMsg(origin, page_msg) ->
-      case origin == model.lifecycle.route {
+      case page_instance.is_current(model.page_instance, origin) {
         True -> update_page(model, page_msg)
         False -> #(model, None)
       }
@@ -168,6 +171,10 @@ fn update_lifecycle(
       public_page_managed.session_loaded,
     )
   let route_changed = lifecycle.route != model.lifecycle.route
+  let current_page_instance = case route_changed {
+    True -> page_instance.next(model.page_instance)
+    False -> model.page_instance
+  }
   let presentation_transition = case route_changed {
     True ->
       page_presentation.begin(
@@ -183,10 +190,16 @@ fn update_lifecycle(
       )
   }
   let presentation = page_presentation.model(presentation_transition)
-  let next_model = Model(..model, lifecycle:, presentation:)
+  let next_model =
+    Model(
+      ..model,
+      lifecycle:,
+      page_instance: current_page_instance,
+      presentation:,
+    )
   let lifecycle_command =
     command
-    |> from_lifecycle_command(lifecycle.route)
+    |> from_lifecycle_command(current_page_instance)
     |> keep_metadata_unless_transitioning(presentation)
   let lifecycle_command = case
     page_presentation.did_present(presentation_transition),
@@ -251,7 +264,7 @@ fn update_page(
       #(
         next_model,
         batch([
-          run_page(transition.command, model.lifecycle.route),
+          run_page(transition.command, model.page_instance),
           command_for_app_event(transition.event),
           metadata_command,
         ]),
@@ -361,7 +374,7 @@ fn without_metadata(command: Command) -> Command {
 
 fn from_lifecycle_command(
   command: public_managed.Command(public_page_command.Command),
-  origin: route.Route,
+  origin: PageInstance,
 ) -> Command {
   case command {
     public_managed.None -> None
@@ -381,7 +394,7 @@ fn from_lifecycle_command(
 
 fn run_page(
   command: public_page_command.Command,
-  origin: route.Route,
+  origin: PageInstance,
 ) -> Command {
   case public_page_command.is_none(command) {
     True -> None
