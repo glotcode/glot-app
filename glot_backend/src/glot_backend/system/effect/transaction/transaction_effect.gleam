@@ -9,9 +9,3 @@ pub fn run(p: program_types.TransactionProgram(a)) -> program_types.Program(a) {
     ),
   )
 }
-
-pub fn run_all(
-  sub_effects: List(program_types.TransactionProgram(Nil)),
-) -> program_types.Program(Nil) {
-  run(transaction_program.sequence(sub_effects))
-}
