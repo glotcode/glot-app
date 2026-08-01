@@ -1,5 +1,5 @@
-import gleam/dynamic
-import gleam/option
+import gleam/dynamic.{type Dynamic}
+import gleam/option.{type Option}
 import gleam/result
 import gleam/string
 import glot_backend/auth/domain/session/current as current_session
@@ -9,20 +9,21 @@ import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/resource_error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{type Program}
 import glot_backend/system/effect/transaction/transaction_effect
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/transaction/transaction_program
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/user_dto
+import glot_core/admin/user_dto.{type UpdateUserRequest, type UpdateUserResponse}
 import glot_core/admin_action
 import glot_core/api_action
-import glot_core/auth/account_model
+import glot_core/auth/account_model.{type AccountState}
 import glot_core/auth/user_model
 
 pub fn update_user(
-  request_ctx: request_context.RequestContext,
-  request: user_dto.UpdateUserRequest,
-) -> program_types.Program(user_dto.UpdateUserResponse) {
+  request_ctx: RequestContext,
+  request: UpdateUserRequest,
+) -> Program(UpdateUserResponse) {
   let ctx = request_ctx.context
 
   let username = string.trim(request.username)
@@ -63,11 +64,12 @@ pub fn update_user(
     |> account_model.change_tier(request.account_tier, ctx.timestamp)
 
   use _ <- program.and_then(
-    transaction_effect.run_all([
+    transaction_program.sequence([
       user_effect.update_user_tx(user),
       account_effect.update_account_tx(account),
       user_action_effect.create_user_action_tx(user_action),
-    ]),
+    ])
+    |> transaction_effect.run(),
   )
 
   program.succeed(
@@ -81,16 +83,14 @@ pub fn update_user(
   )
 }
 
-pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(user_dto.UpdateUserRequest) {
+pub fn request_from_dynamic(data: Dynamic) -> Program(UpdateUserRequest) {
   program.decode_dynamic(data, user_dto.update_request_decoder())
 }
 
 fn normalized_account_state_reason(
-  account_state: account_model.AccountState,
-  value: option.Option(String),
-) -> option.Option(String) {
+  account_state: AccountState,
+  value: Option(String),
+) -> Option(String) {
   case account_state {
     account_model.Active -> option.None
     account_model.ReadOnly | account_model.Suspended ->

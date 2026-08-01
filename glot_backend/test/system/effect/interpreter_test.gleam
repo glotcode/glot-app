@@ -311,6 +311,7 @@ fn test_service_ports() -> service_ports.ServicePorts {
       snippet: snippet_store.Store(
         get_snippet_by_id: fn(_) { Ok(option.None) },
         get_snippet_by_slug: fn(_) { Ok(option.None) },
+        get_snippet_by_slug_for_update: fn(_) { Ok(option.None) },
         get_admin_snippet_by_slug: fn(_) { Ok(option.None) },
         list_snippets: fn(_, _) { Ok([]) },
         list_admin_snippets: fn(_, _) { Ok([]) },

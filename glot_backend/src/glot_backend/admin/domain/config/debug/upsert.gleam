@@ -1,21 +1,23 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import glot_backend/app_config/effect/effect as app_config_effect
 import glot_backend/app_config/model/system_config
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/debug_config_dto
+import glot_core/admin/debug_config_dto.{
+  type DebugConfigResponse, type UpsertDebugConfigRequest,
+}
 import glot_core/admin_action
 import glot_core/api_action
 
 pub fn upsert_debug_config(
-  request_ctx: request_context.RequestContext,
-  request: debug_config_dto.UpsertDebugConfigRequest,
-) -> program_types.Program(debug_config_dto.DebugConfigResponse) {
+  request_ctx: RequestContext,
+  request: UpsertDebugConfigRequest,
+) -> Program(DebugConfigResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -34,7 +36,7 @@ pub fn upsert_debug_config(
 }
 
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(debug_config_dto.UpsertDebugConfigRequest) {
+  data: Dynamic,
+) -> Program(UpsertDebugConfigRequest) {
   program.decode_dynamic(data, debug_config_dto.decoder())
 }

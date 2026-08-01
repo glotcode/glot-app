@@ -1,5 +1,5 @@
-import gleam/dynamic
-import gleam/option
+import gleam/dynamic.{type Dynamic}
+import gleam/option.{type Option}
 import gleam/result
 import gleam/string
 import glot_backend/auth/domain/session/current as current_session
@@ -9,17 +9,19 @@ import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/resource_error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/email_template_dto
+import glot_core/admin/email_template_dto.{
+  type UpdateEmailTemplateRequest, type UpdateEmailTemplateResponse,
+}
 import glot_core/admin_action
 import glot_core/api_action
 
 pub fn update_email_template(
-  request_ctx: request_context.RequestContext,
-  request: email_template_dto.UpdateEmailTemplateRequest,
-) -> program_types.Program(email_template_dto.UpdateEmailTemplateResponse) {
+  request_ctx: RequestContext,
+  request: UpdateEmailTemplateRequest,
+) -> Program(UpdateEmailTemplateResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -74,14 +76,12 @@ pub fn update_email_template(
 }
 
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(email_template_dto.UpdateEmailTemplateRequest) {
+  data: Dynamic,
+) -> Program(UpdateEmailTemplateRequest) {
   program.decode_dynamic(data, email_template_dto.update_request_decoder())
 }
 
-fn normalize_html_body_template(
-  value: option.Option(String),
-) -> option.Option(String) {
+fn normalize_html_body_template(value: Option(String)) -> Option(String) {
   case value {
     option.Some(html) ->
       case string.trim(html) == "" {

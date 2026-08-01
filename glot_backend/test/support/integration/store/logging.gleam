@@ -2,7 +2,17 @@ import gleam/dict
 import gleam/list
 import gleam/time/timestamp
 import glot_core/helpers/timestamp_helpers
+import glot_core/run_log_model.{type RunLog}
 import support/integration/model
+import support/integration/store/common
+
+pub fn insert_run_log(db: model.TestState, run_log: RunLog) -> model.TestState {
+  model.TestState(
+    ..db,
+    run_logs: dict.insert(db.run_logs, common.uuid_key(run_log.id), run_log),
+    write_steps: ["create_run_log", ..db.write_steps],
+  )
+}
 
 pub fn delete_run_logs_before(
   db: model.TestState,

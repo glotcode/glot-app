@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import gleam/result
 import glot_backend/auth/domain/session/current as current_session
@@ -7,19 +7,19 @@ import glot_backend/auth/model/user_list_filters
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/user_dto
+import glot_core/admin/user_dto.{type ListUsersRequest, type ListUsersResponse}
 import glot_core/admin_action
 import glot_core/api_action
 import glot_core/pagination_model
 import youid/uuid
 
 pub fn get_users(
-  request_ctx: request_context.RequestContext,
-  request: user_dto.ListUsersRequest,
-) -> program_types.Program(user_dto.ListUsersResponse) {
+  request_ctx: RequestContext,
+  request: ListUsersRequest,
+) -> Program(ListUsersResponse) {
   let pagination = request.pagination
   use _ <- program.and_then(
     pagination_model.validate(pagination, 100)
@@ -54,8 +54,6 @@ pub fn get_users(
   program.succeed(user_dto.from_users(page))
 }
 
-pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(user_dto.ListUsersRequest) {
+pub fn request_from_dynamic(data: Dynamic) -> Program(ListUsersRequest) {
   program.decode_dynamic(data, user_dto.list_request_decoder())
 }

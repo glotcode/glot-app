@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import glot_backend/app_config/effect/effect as app_config_effect
 import glot_backend/auth/domain/session/current as current_session
@@ -6,10 +6,13 @@ import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/run_code/model/config as run_code_config
 import glot_backend/system/effect/error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/language_version_cache_worker_config_dto
+import glot_core/admin/language_version_cache_worker_config_dto.{
+  type LanguageVersionCacheWorkerConfigResponse,
+  type UpsertLanguageVersionCacheWorkerConfigRequest,
+}
 import glot_core/admin_action
 import glot_core/api_action
 import glot_core/validation_error
@@ -23,11 +26,9 @@ const max_refresh_step_jitter_ms = 60_000
 const max_default_timeout_ms = 600_000
 
 pub fn upsert_language_version_cache_worker_config(
-  request_ctx: request_context.RequestContext,
-  request: language_version_cache_worker_config_dto.UpsertLanguageVersionCacheWorkerConfigRequest,
-) -> program_types.Program(
-  language_version_cache_worker_config_dto.LanguageVersionCacheWorkerConfigResponse,
-) {
+  request_ctx: RequestContext,
+  request: UpsertLanguageVersionCacheWorkerConfigRequest,
+) -> Program(LanguageVersionCacheWorkerConfigResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -63,10 +64,8 @@ pub fn upsert_language_version_cache_worker_config(
 }
 
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(
-  language_version_cache_worker_config_dto.UpsertLanguageVersionCacheWorkerConfigRequest,
-) {
+  data: Dynamic,
+) -> Program(UpsertLanguageVersionCacheWorkerConfigRequest) {
   program.decode_dynamic(
     data,
     language_version_cache_worker_config_dto.decoder(),
@@ -74,8 +73,8 @@ pub fn request_from_dynamic(
 }
 
 fn validate_request(
-  request: language_version_cache_worker_config_dto.UpsertLanguageVersionCacheWorkerConfigRequest,
-) -> program_types.Program(Nil) {
+  request: UpsertLanguageVersionCacheWorkerConfigRequest,
+) -> Program(Nil) {
   use _ <- program.and_then(require_positive(
     request.refresh_interval_ms,
     "refresh_interval_ms",
@@ -116,7 +115,7 @@ fn validate_request(
   program.succeed(Nil)
 }
 
-fn require_positive(value: Int, field: String) -> program_types.Program(Nil) {
+fn require_positive(value: Int, field: String) -> Program(Nil) {
   case value > 0 {
     True -> program.succeed(Nil)
     False ->
@@ -126,10 +125,7 @@ fn require_positive(value: Int, field: String) -> program_types.Program(Nil) {
   }
 }
 
-fn require_non_negative(
-  value: Int,
-  field: String,
-) -> program_types.Program(Nil) {
+fn require_non_negative(value: Int, field: String) -> Program(Nil) {
   case value >= 0 {
     True -> program.succeed(Nil)
     False ->
@@ -139,11 +135,7 @@ fn require_non_negative(
   }
 }
 
-fn require_max(
-  value: Int,
-  field: String,
-  max: Int,
-) -> program_types.Program(Nil) {
+fn require_max(value: Int, field: String, max: Int) -> Program(Nil) {
   case value <= max {
     True -> program.succeed(Nil)
     False ->

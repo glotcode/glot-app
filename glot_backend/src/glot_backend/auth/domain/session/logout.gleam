@@ -4,16 +4,15 @@ import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{type Program}
 import glot_backend/system/effect/transaction/transaction_effect
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/transaction/transaction_program
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
 import glot_core/public_action
 
-pub fn logout(
-  request_ctx: request_context.RequestContext,
-) -> program_types.Program(Nil) {
+pub fn logout(request_ctx: RequestContext) -> Program(Nil) {
   use session <- program.and_then(current_session.require_session(request_ctx))
 
   use _ <- program.and_then(
@@ -36,8 +35,9 @@ pub fn logout(
     ),
   ))
 
-  transaction_effect.run_all([
+  transaction_program.sequence([
     session_effect.delete_session_tx(session.identity.id),
     user_action_effect.create_user_action_tx(user_action),
   ])
+  |> transaction_effect.run()
 }

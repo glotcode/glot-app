@@ -4372,6 +4372,100 @@ pub fn get_snippet_by_slug_decoder() -> decode.Decoder(GetSnippetBySlug) {
   ))
 }
 
+pub type GetSnippetBySlugForUpdate {
+  GetSnippetBySlugForUpdate(
+    id: BitArray,
+    slug: String,
+    language: String,
+    title: String,
+    visibility: String,
+    stdin: String,
+    run_instructions: Option(String),
+    files: String,
+    created_at: Timestamp,
+    updated_at: Timestamp,
+    user_id: BitArray,
+    user_account_id: BitArray,
+    user_email: String,
+    user_username: String,
+    user_role: String,
+    user_last_login_at: Timestamp,
+    user_created_at: Timestamp,
+    user_updated_at: Timestamp,
+  )
+}
+
+pub fn get_snippet_by_slug_for_update(slug slug: String) {
+  let sql =
+    "SELECT
+  snippets.id,
+  snippets.slug,
+  snippets.language,
+  snippets.title,
+  snippets.visibility,
+  snippets.stdin,
+  snippets.run_instructions,
+  snippets.files,
+  snippets.created_at,
+  snippets.updated_at,
+  users.id AS user_id,
+  users.account_id AS user_account_id,
+  users.email AS user_email,
+  users.username AS user_username,
+  users.role AS user_role,
+  users.last_login_at AS user_last_login_at,
+  users.created_at AS user_created_at,
+  users.updated_at AS user_updated_at
+FROM snippets
+INNER JOIN users ON users.id = snippets.user_id
+WHERE snippets.slug = $1
+FOR UPDATE OF snippets"
+  #(sql, [dev.ParamString(slug)], get_snippet_by_slug_for_update_decoder())
+}
+
+pub fn get_snippet_by_slug_for_update_decoder() -> decode.Decoder(
+  GetSnippetBySlugForUpdate,
+) {
+  use id <- decode.field(0, decode.bit_array)
+  use slug <- decode.field(1, decode.string)
+  use language <- decode.field(2, decode.string)
+  use title <- decode.field(3, decode.string)
+  use visibility <- decode.field(4, decode.string)
+  use stdin <- decode.field(5, decode.string)
+  use run_instructions <- decode.field(6, decode.optional(decode.string))
+  use files <- decode.field(7, decode.string)
+  use created_at <- decode.field(8, dev.datetime_decoder())
+  use updated_at <- decode.field(9, dev.datetime_decoder())
+  use user_id <- decode.field(10, decode.bit_array)
+  use user_account_id <- decode.field(11, decode.bit_array)
+  use user_email <- decode.field(12, decode.string)
+  use user_username <- decode.field(13, decode.string)
+  use user_role <- decode.field(14, decode.string)
+  use user_last_login_at <- decode.field(15, dev.datetime_decoder())
+  use user_created_at <- decode.field(16, dev.datetime_decoder())
+  use user_updated_at <- decode.field(17, dev.datetime_decoder())
+  decode.success(GetSnippetBySlugForUpdate(
+    id:,
+    slug:,
+    language:,
+    title:,
+    visibility:,
+    stdin:,
+    run_instructions:,
+    files:,
+    created_at:,
+    updated_at:,
+    user_id:,
+    user_account_id:,
+    user_email:,
+    user_username:,
+    user_role:,
+    user_last_login_at:,
+    user_created_at:,
+    user_updated_at:,
+  ))
+}
+
 pub type GetAdminSnippetBySlug {
   GetAdminSnippetBySlug(
     id: BitArray,

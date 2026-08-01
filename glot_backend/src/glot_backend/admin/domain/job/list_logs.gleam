@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import gleam/result
 import glot_backend/auth/domain/session/current as current_session
@@ -6,19 +6,21 @@ import glot_backend/job/effect/log/effect as job_log_effect
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/job_log_dto
+import glot_core/admin/job_log_dto.{
+  type ListJobLogsRequest, type ListJobLogsResponse,
+}
 import glot_core/admin_action
 import glot_core/api_action
 import glot_core/job_log_model
 import glot_core/pagination_model
 
 pub fn get_job_logs(
-  request_ctx: request_context.RequestContext,
-  request: job_log_dto.ListJobLogsRequest,
-) -> program_types.Program(job_log_dto.ListJobLogsResponse) {
+  request_ctx: RequestContext,
+  request: ListJobLogsRequest,
+) -> Program(ListJobLogsResponse) {
   let pagination = request.pagination
   use _ <- program.and_then(
     pagination_model.validate(pagination, 100)
@@ -45,8 +47,6 @@ pub fn get_job_logs(
   program.succeed(job_log_dto.from_job_logs(page))
 }
 
-pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(job_log_dto.ListJobLogsRequest) {
+pub fn request_from_dynamic(data: Dynamic) -> Program(ListJobLogsRequest) {
   program.decode_dynamic(data, job_log_dto.list_request_decoder())
 }

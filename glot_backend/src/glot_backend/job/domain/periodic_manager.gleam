@@ -5,17 +5,17 @@ import glot_backend/job/effect/periodic/effect as periodic_job_effect
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{
+  type Program, type TransactionProgram,
+}
 import glot_backend/system/effect/transaction/transaction_effect
 import glot_backend/system/effect/transaction/transaction_program
-import glot_backend/system/request/context
-import glot_core/job/job_model
-import glot_core/periodic_job/periodic_job_model
-import youid/uuid
+import glot_backend/system/request/context.{type Context}
+import glot_core/job/job_model.{type JobTypePolicy}
+import glot_core/periodic_job/periodic_job_model.{type PeriodicJob}
+import youid/uuid.{type Uuid}
 
-pub fn enqueue_next_due_periodic_job(
-  ctx: context.Context,
-) -> program_types.Program(Bool) {
+pub fn enqueue_next_due_periodic_job(ctx: Context) -> Program(Bool) {
   use maybe_periodic_job <- program.and_then(
     periodic_job_effect.get_next_periodic_job(ctx.timestamp),
   )
@@ -54,11 +54,11 @@ pub fn enqueue_next_due_periodic_job(
 }
 
 fn enqueue_next_due_periodic_job_tx(
-  ctx: context.Context,
-  job_id: uuid.Uuid,
-  periodic_job: periodic_job_model.PeriodicJob,
-  job_type_policy: job_model.JobTypePolicy,
-) -> program_types.TransactionProgram(Nil) {
+  ctx: Context,
+  job_id: Uuid,
+  periodic_job: PeriodicJob,
+  job_type_policy: JobTypePolicy,
+) -> TransactionProgram(Nil) {
   let job =
     job_model.periodic_job_execution(
       job_id,

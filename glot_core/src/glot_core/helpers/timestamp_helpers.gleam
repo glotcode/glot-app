@@ -29,6 +29,18 @@ pub fn from_unix_milliseconds(ms: Int) -> Timestamp {
   timestamp.from_unix_seconds_and_nanoseconds(seconds, millis * 1_000_000)
 }
 
+pub fn add_seconds(value: Timestamp, seconds_to_add: Int) -> Timestamp {
+  let #(seconds, nanos) = timestamp.to_unix_seconds_and_nanoseconds(value)
+  timestamp.from_unix_seconds_and_nanoseconds(seconds + seconds_to_add, nanos)
+}
+
+pub fn subtract_seconds(
+  value: Timestamp,
+  seconds_to_subtract: Int,
+) -> Timestamp {
+  add_seconds(value, -seconds_to_subtract)
+}
+
 pub fn relative_label(value: Timestamp, now: Timestamp) -> String {
   let #(value_seconds, _) = timestamp.to_unix_seconds_and_nanoseconds(value)
   let #(now_seconds, _) = timestamp.to_unix_seconds_and_nanoseconds(now)

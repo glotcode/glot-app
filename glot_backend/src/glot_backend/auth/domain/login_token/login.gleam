@@ -1,10 +1,12 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/int
 import gleam/list
-import gleam/option
-import gleam/time/timestamp
+import gleam/option.{type Option}
+import gleam/time/timestamp.{type Timestamp}
 import glot_backend/app_config/model/config as dynamic_config
-import glot_backend/auth/domain/session/issue as session_issue_domain
+import glot_backend/auth/domain/session/issue.{
+  type SessionIssue, type SessionIssueResult,
+} as session_issue_domain
 import glot_backend/auth/effect/account as account_effect
 import glot_backend/auth/effect/login_token as login_token_effect
 import glot_backend/auth/effect/session as session_effect
@@ -15,24 +17,27 @@ import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{
+  type Program, type TransactionProgram,
+}
 import glot_backend/system/effect/transaction/transaction_effect
 import glot_backend/system/effect/transaction/transaction_program
-import glot_backend/system/request/context
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/request/context.{type Context}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
-import glot_core/auth/account_model
-import glot_core/auth/login_dto
-import glot_core/auth/login_token_model
-import glot_core/auth/user_model
+import glot_core/auth/account_model.{type Account}
+import glot_core/auth/login_dto.{type LoginRequest}
+import glot_core/auth/login_token_model.{type LoginToken}
+import glot_core/auth/user_model.{type HydratedUser, type User}
 import glot_core/email/email_address_model.{type EmailAddress}
+import glot_core/helpers/timestamp_helpers
 import glot_core/public_action
-import glot_core/user_action
+import glot_core/user_action.{type UserAction}
 import youid/uuid.{type Uuid}
 
 pub type LoginResult =
-  session_issue_domain.SessionIssueResult
+  SessionIssueResult
 
 const max_login_token_attempts = 10
 
@@ -44,9 +49,9 @@ type LoginTokenVerification {
 }
 
 pub fn login(
-  request_ctx: request_context.RequestContext,
-  request: login_dto.LoginRequest,
-) -> program_types.Program(LoginResult) {
+  request_ctx: RequestContext,
+  request: LoginRequest,
+) -> Program(LoginResult) {
   let ctx = request_ctx.context
   let config = request_ctx.dynamic_config
 
@@ -88,7 +93,7 @@ pub fn login(
       email: request.email,
       token: request.token,
       attempted_at: ctx.timestamp,
-      valid_token_created_since: subtract_seconds(
+      valid_token_created_since: timestamp_helpers.subtract_seconds(
         ctx.timestamp,
         auth_config.login_token_max_age,
       ),
@@ -99,10 +104,7 @@ pub fn login(
   use verification <- program.and_then(
     transaction_effect.run(login_tx(prepared_login)),
   )
-  use _ <- program.and_then(case verification {
-    ValidToken -> program.succeed(Nil)
-    InvalidToken -> program.fail(error.auth(auth_error.InvalidLoginToken))
-  })
+  use _ <- program.and_then(require_valid_token(verification))
   use _ <- program.and_then(
     basic_effect.info(
       log.from_list([
@@ -118,21 +120,28 @@ pub fn login(
   ))
 }
 
+fn require_valid_token(verification: LoginTokenVerification) -> Program(Nil) {
+  case verification {
+    ValidToken -> program.succeed(Nil)
+    InvalidToken -> program.fail(error.auth(auth_error.InvalidLoginToken))
+  }
+}
+
 type PreparedLogin {
   PreparedLogin(
     email: EmailAddress,
     token: String,
-    attempted_at: timestamp.Timestamp,
-    valid_token_created_since: timestamp.Timestamp,
+    attempted_at: Timestamp,
+    valid_token_created_since: Timestamp,
     user_outcome: UserOutcome,
-    session_issue: session_issue_domain.SessionIssue,
-    user_action: user_action.UserAction,
+    session_issue: SessionIssue,
+    user_action: UserAction,
   )
 }
 
 fn login_tx(
   prepared_login: PreparedLogin,
-) -> program_types.TransactionProgram(LoginTokenVerification) {
+) -> TransactionProgram(LoginTokenVerification) {
   // Keep this lookup in the transaction because the query locks the tokens with
   // FOR UPDATE, preventing concurrent login attempts from losing updates.
   use tokens <- transaction_program.and_then(
@@ -163,14 +172,14 @@ fn login_tx(
 type LoginTokenPreparation {
   LoginTokenPreparation(
     verification: LoginTokenVerification,
-    attempt_transaction: program_types.TransactionProgram(Nil),
+    attempt_transaction: TransactionProgram(Nil),
   )
 }
 
 fn prepare_login_token_mutations(
-  tokens: List(login_token_model.LoginToken),
+  tokens: List(LoginToken),
   provided_token: String,
-  now: timestamp.Timestamp,
+  now: Timestamp,
 ) -> LoginTokenPreparation {
   let shared_attempt_count =
     list.fold(tokens, 0, fn(count, token) {
@@ -183,38 +192,72 @@ fn prepare_login_token_mutations(
     _, True ->
       LoginTokenPreparation(InvalidToken, transaction_program.succeed(Nil))
     _, False -> {
-      let matching_token =
-        tokens
-        |> list.find(fn(token) { token.token == provided_token })
-        |> option.from_result()
-      let attempt_transaction =
-        list.map(tokens, fn(token) {
-          let token =
-            login_token_model.increment_attempt(token, shared_attempt_count)
-          let token = case matching_token {
-            option.Some(matching) if matching.id == token.id ->
-              login_token_model.mark_as_used(token, now)
-            _ -> token
-          }
-          login_token_effect.update_login_token_tx(token)
-        })
-        |> transaction_program.sequence
-      let verification = case matching_token {
-        option.Some(_) -> ValidToken
-        option.None -> InvalidToken
-      }
-
-      LoginTokenPreparation(verification, attempt_transaction)
+      let matching_token = find_matching_token(tokens, provided_token)
+      LoginTokenPreparation(
+        verification_from_matching_token(matching_token),
+        prepare_token_attempt_mutations(
+          tokens,
+          matching_token,
+          shared_attempt_count,
+          now,
+        ),
+      )
     }
+  }
+}
+
+fn find_matching_token(
+  tokens: List(LoginToken),
+  provided_token: String,
+) -> Option(LoginToken) {
+  tokens
+  |> list.find(fn(token) { token.token == provided_token })
+  |> option.from_result()
+}
+
+fn verification_from_matching_token(
+  matching_token: Option(LoginToken),
+) -> LoginTokenVerification {
+  case matching_token {
+    option.Some(_) -> ValidToken
+    option.None -> InvalidToken
+  }
+}
+
+fn prepare_token_attempt_mutations(
+  tokens: List(LoginToken),
+  matching_token: Option(LoginToken),
+  shared_attempt_count: Int,
+  now: Timestamp,
+) -> TransactionProgram(Nil) {
+  tokens
+  |> list.map(fn(token) {
+    token
+    |> login_token_model.increment_attempt(shared_attempt_count)
+    |> mark_matching_token_as_used(matching_token, now)
+    |> login_token_effect.update_login_token_tx
+  })
+  |> transaction_program.sequence
+}
+
+fn mark_matching_token_as_used(
+  token: LoginToken,
+  matching_token: Option(LoginToken),
+  now: Timestamp,
+) -> LoginToken {
+  case matching_token {
+    option.Some(matching) if matching.id == token.id ->
+      login_token_model.mark_as_used(token, now)
+    _ -> token
   }
 }
 
 fn prepare_login_mutations(
   token_preparation: LoginTokenPreparation,
   user_outcome: UserOutcome,
-  session_issue: session_issue_domain.SessionIssue,
-  user_action: user_action.UserAction,
-) -> program_types.TransactionProgram(Nil) {
+  session_issue: SessionIssue,
+  user_action: UserAction,
+) -> TransactionProgram(Nil) {
   use _ <- transaction_program.and_then(token_preparation.attempt_transaction)
 
   case token_preparation.verification {
@@ -229,22 +272,22 @@ fn prepare_login_mutations(
 }
 
 pub fn request_from_dynamic(
-  ctx: context.Context,
-  data: dynamic.Dynamic,
-) -> program_types.Program(login_dto.LoginRequest) {
+  ctx: Context,
+  data: Dynamic,
+) -> Program(LoginRequest) {
   program.decode_dynamic(data, login_dto.decoder(ctx.regexes.is_email))
 }
 
 type UserOutcome {
-  ExistingUser(user: user_model.User)
-  NewUser(user: user_model.User, account: account_model.Account)
+  ExistingUser(user: User)
+  NewUser(user: User, account: Account)
 }
 
 fn update_or_create_user(
-  maybe_user: option.Option(user_model.HydratedUser),
+  maybe_user: Option(HydratedUser),
   email: EmailAddress,
-  now: timestamp.Timestamp,
-) -> program_types.Program(UserOutcome) {
+  now: Timestamp,
+) -> Program(UserOutcome) {
   case maybe_user {
     option.Some(existing_user) -> {
       program.succeed(ExistingUser(existing_user.identity))
@@ -260,7 +303,7 @@ fn update_or_create_user(
   }
 }
 
-fn user_from_outcome(user_outcome: UserOutcome) -> user_model.User {
+fn user_from_outcome(user_outcome: UserOutcome) -> User {
   case user_outcome {
     ExistingUser(user) -> user
     NewUser(user, _) -> user
@@ -269,7 +312,7 @@ fn user_from_outcome(user_outcome: UserOutcome) -> user_model.User {
 
 fn mark_user_last_login(
   user_outcome: UserOutcome,
-  now: timestamp.Timestamp,
+  now: Timestamp,
 ) -> UserOutcome {
   case user_outcome {
     ExistingUser(user) -> ExistingUser(user_model.mark_last_login(user, now))
@@ -287,7 +330,7 @@ fn is_new_user(user_outcome: UserOutcome) -> Bool {
 
 fn prepare_user_mutations(
   user_outcome: UserOutcome,
-) -> program_types.TransactionProgram(Nil) {
+) -> TransactionProgram(Nil) {
   case user_outcome {
     NewUser(user, account) ->
       transaction_program.sequence([
@@ -298,20 +341,12 @@ fn prepare_user_mutations(
   }
 }
 
-fn subtract_seconds(
-  ts: timestamp.Timestamp,
-  seconds: Int,
-) -> timestamp.Timestamp {
-  let #(unix_seconds, nanos) = timestamp.to_unix_seconds_and_nanoseconds(ts)
-  timestamp.from_unix_seconds_and_nanoseconds(unix_seconds - seconds, nanos)
-}
-
 fn new_user(
   id: Uuid,
   account_id: Uuid,
   email: EmailAddress,
-  now: timestamp.Timestamp,
-) -> user_model.User {
+  now: Timestamp,
+) -> User {
   user_model.User(
     id: id,
     account_id: account_id,
@@ -324,7 +359,7 @@ fn new_user(
   )
 }
 
-fn new_account(id: Uuid, now: timestamp.Timestamp) -> account_model.Account {
+fn new_account(id: Uuid, now: Timestamp) -> Account {
   account_model.Account(
     id: id,
     account_state: account_model.Active,

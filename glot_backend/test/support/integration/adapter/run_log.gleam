@@ -15,7 +15,10 @@ pub fn defaults() -> store.Store {
 
 pub fn new(test_state: state.State) -> store.Store {
   store.Store(
-    create: fn(_) { Ok(Nil) },
+    create: fn(run_log) {
+      state.update(test_state, fn(db) { logging.insert_run_log(db, run_log) })
+      Ok(Nil)
+    },
     list: fn(_) { Ok([]) },
     get: fn(_) { Ok(option.None) },
     delete_before: fn(before) {

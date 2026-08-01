@@ -1,42 +1,40 @@
 import gleam/dict
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/int
 import gleam/list
 import gleam/option
-import gleam/result
-import gleam/time/timestamp
+import gleam/time/timestamp.{type Timestamp}
 import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/auth/effect/login_token as login_token_effect
 import glot_backend/auth/effect/user as user_effect
-import glot_backend/email/effect/template/effect as email_template_effect
+import glot_backend/email/domain/preparation as email_preparation
 import glot_backend/email/model/template as email_template
 import glot_backend/job/domain/type_policy as job_type_policy_domain
 import glot_backend/job/effect/job/effect as job_effect
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/crypto/token
 import glot_backend/system/effect/basic/basic_effect
-import glot_backend/system/effect/error
-import glot_backend/system/effect/error/infra_error
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{
+  type Program, type TransactionProgram,
+}
 import glot_backend/system/effect/transaction/transaction_effect
 import glot_backend/system/effect/transaction/transaction_program
-import glot_backend/system/request/context
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/request/context.{type Context}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
-import glot_core/auth/login_token_dto
-import glot_core/auth/login_token_model
-import glot_core/email/email_address_model
-import glot_core/email/email_model
+import glot_core/auth/login_token_dto.{type LoginTokenRequest}
+import glot_core/auth/login_token_model.{type LoginToken}
+import glot_core/helpers/timestamp_helpers
 import glot_core/job/job_model
 import glot_core/public_action
 
 pub fn send_login_token(
-  request_ctx: request_context.RequestContext,
-  request: login_token_dto.LoginTokenRequest,
-) -> program_types.Program(Nil) {
+  request_ctx: RequestContext,
+  request: LoginTokenRequest,
+) -> Program(Nil) {
   let ctx = request_ctx.context
   let config = request_ctx.dynamic_config
 
@@ -67,34 +65,16 @@ pub fn send_login_token(
     ),
   )
 
-  use maybe_template <- program.and_then(
-    email_template_effect.get_email_template_by_name(
-      email_template.LoginTokenTemplate,
-    ),
-  )
-  use sender <- program.and_then(sender_from_config(request_ctx))
-  let assert_template = case maybe_template {
-    option.Some(template) -> Ok(template)
-    option.None ->
-      Error(
-        infra_error.EmailTemplateMissing(email_template.to_db_name(
-          email_template.LoginTokenTemplate,
-        )),
-      )
-  }
-  use template <- program.and_then(log_send_email_internal_error(
-    assert_template,
+  use sender <- program.and_then(email_preparation.require_sender(
+    dynamic_config.email_config(config),
+    ctx.regexes.is_email,
   ))
-  use login_email <- program.and_then(
-    email_template.render_email_template(
-      template,
-      sender,
-      request.email,
-      dict.from_list([#("token", token)]),
-    )
-    |> result.map_error(infra_error.EmailTemplateRenderFailed)
-    |> log_send_email_internal_error,
-  )
+  use login_email <- program.and_then(email_preparation.render_template(
+    email_template.LoginTokenTemplate,
+    sender,
+    request.email,
+    dict.from_list([#("token", token)]),
+  ))
   use send_email_policy <- program.and_then(
     job_type_policy_domain.require_job_type_policy(job_model.SendEmailJob),
   )
@@ -118,20 +98,24 @@ pub fn send_login_token(
       used_at: option.None,
     )
 
-  transaction_effect.run_all([
+  transaction_program.sequence([
     create_login_token_tx(
       login_token,
-      subtract_seconds(ctx.timestamp, auth_config.login_token_max_age),
+      timestamp_helpers.subtract_seconds(
+        ctx.timestamp,
+        auth_config.login_token_max_age,
+      ),
     ),
     job_effect.create_job_tx(send_email_job),
     user_action_effect.create_user_action_tx(user_action),
   ])
+  |> transaction_effect.run()
 }
 
 fn create_login_token_tx(
-  login_token: login_token_model.LoginToken,
-  created_since: timestamp.Timestamp,
-) -> program_types.TransactionProgram(Nil) {
+  login_token: LoginToken,
+  created_since: Timestamp,
+) -> TransactionProgram(Nil) {
   use valid_tokens <- transaction_program.and_then(
     login_token_effect.list_login_tokens_by_email_tx(
       login_token.email,
@@ -149,61 +133,9 @@ fn create_login_token_tx(
   )
 }
 
-fn subtract_seconds(
-  ts: timestamp.Timestamp,
-  seconds: Int,
-) -> timestamp.Timestamp {
-  let #(unix_seconds, nanos) = timestamp.to_unix_seconds_and_nanoseconds(ts)
-  timestamp.from_unix_seconds_and_nanoseconds(unix_seconds - seconds, nanos)
-}
-
-fn sender_from_config(
-  request_ctx: request_context.RequestContext,
-) -> program_types.Program(email_model.EmailSender) {
-  let email_config = dynamic_config.email_config(request_ctx.dynamic_config)
-  use address <- program.and_then(log_send_email_internal_error(
-    email_address_model.from_string(
-      request_ctx.context.regexes.is_email,
-      email_config.from_address,
-    )
-    |> option.to_result(infra_error.EmailDeliveryFailed(
-      "invalid_sender_address",
-      infra_error.NonRetryable,
-    )),
-  ))
-
-  program.succeed(email_model.EmailSender(
-    address: address,
-    name: email_config.from_name,
-  ))
-}
-
 pub fn request_from_dynamic(
-  ctx: context.Context,
-  data: dynamic.Dynamic,
-) -> program_types.Program(login_token_dto.LoginTokenRequest) {
+  ctx: Context,
+  data: Dynamic,
+) -> Program(LoginTokenRequest) {
   program.decode_dynamic(data, login_token_dto.decoder(ctx.regexes.is_email))
-}
-
-fn log_send_email_internal_error(
-  result: Result(a, infra_error.EmailError),
-) -> program_types.Program(a) {
-  case result {
-    Ok(value) -> program.succeed(value)
-    Error(email_error) -> {
-      use _ <- program.and_then(
-        basic_effect.warn(
-          log.singleton(
-            log.object("send_email_error", [
-              log.string(
-                "message",
-                infra_error.to_string(infra_error.EmailError(email_error)),
-              ),
-            ]),
-          ),
-        ),
-      )
-      program.fail(error.infra(infra_error.EmailError(email_error)))
-    }
-  }
 }

@@ -1,16 +1,18 @@
-import gleam/option
+import gleam/option.{type Option}
 import gleam/order
-import gleam/time/calendar
+import gleam/time/calendar.{type Date, type TimeOfDay}
 import gleam/time/duration
-import gleam/time/timestamp
+import gleam/time/timestamp.{type Timestamp}
 import glot_backend/analytics/effect/effect as analytics_effect
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{
+  type Program, type TransactionProgram,
+}
 import glot_backend/system/effect/transaction/transaction_effect
 import glot_backend/system/effect/transaction/transaction_program
-import glot_backend/system/request/context
+import glot_backend/system/request/context.{type Context}
 
-pub fn aggregate_metrics(ctx: context.Context) -> program_types.Program(Nil) {
+pub fn aggregate_metrics(ctx: Context) -> Program(Nil) {
   let #(today, _) = calendar_date(ctx.timestamp)
 
   use maybe_next_day <- program.and_then(next_metrics_day(today))
@@ -24,9 +26,7 @@ pub fn aggregate_metrics(ctx: context.Context) -> program_types.Program(Nil) {
   }
 }
 
-fn next_metrics_day(
-  today: calendar.Date,
-) -> program_types.Program(option.Option(calendar.Date)) {
+fn next_metrics_day(today: Date) -> Program(Option(Date)) {
   use maybe_max_completed_day <- program.and_then(
     analytics_effect.get_max_completed_metrics_day(),
   )
@@ -37,9 +37,7 @@ fn next_metrics_day(
   }
 }
 
-fn aggregate_day_tx(
-  day: calendar.Date,
-) -> program_types.TransactionProgram(Nil) {
+fn aggregate_day_tx(day: Date) -> TransactionProgram(Nil) {
   transaction_program.sequence([
     analytics_effect.insert_metrics_pageview_day_tx(day),
     analytics_effect.insert_metrics_product_event_day_tx(day),
@@ -50,13 +48,11 @@ fn aggregate_day_tx(
   ])
 }
 
-fn calendar_date(
-  ts: timestamp.Timestamp,
-) -> #(calendar.Date, calendar.TimeOfDay) {
+fn calendar_date(ts: Timestamp) -> #(Date, TimeOfDay) {
   timestamp.to_calendar(ts, calendar.utc_offset)
 }
 
-fn add_days(day: calendar.Date, days: Int) -> calendar.Date {
+fn add_days(day: Date, days: Int) -> Date {
   let midnight =
     calendar.TimeOfDay(hours: 0, minutes: 0, seconds: 0, nanoseconds: 0)
   let #(next_day, _) =

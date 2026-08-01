@@ -15,6 +15,17 @@ pub fn run_test_program(
   runner.run_test_program_with(program, ctx, state, service_ports)
 }
 
+pub fn run_with_run_log_failure(
+  program: program_types.Program(a),
+  ctx: context.Context,
+  initial: model.TestState,
+) -> #(Result(a, error.Error), model.TestState) {
+  runner.run_test_program_with(program, ctx, initial, fn(test_state) {
+    test_service_ports.defaults(test_state)
+    |> test_service_ports.with_app_config(test_state)
+  })
+}
+
 pub fn service_ports(test_state: state.State) -> ServicePorts {
   test_service_ports.defaults(test_state)
   |> test_service_ports.with_app_config(test_state)

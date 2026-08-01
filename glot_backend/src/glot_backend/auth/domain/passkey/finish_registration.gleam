@@ -1,5 +1,5 @@
-import gleam/dynamic
-import gleam/option
+import gleam/dynamic.{type Dynamic}
+import gleam/option.{type Option}
 import gleam/result
 import glot_backend/auth/domain/passkey/shared as passkey_shared_domain
 import glot_backend/auth/domain/session/current as current_session
@@ -12,20 +12,21 @@ import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{type Program}
 import glot_backend/system/effect/transaction/transaction_effect
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/transaction/transaction_program
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
 import glot_core/auth/passkey_challenge_model
 import glot_core/auth/passkey_credential_model
-import glot_core/auth/passkey_dto
+import glot_core/auth/passkey_dto.{type FinishPasskeyRegistrationRequest}
 import glot_core/public_action
 
 pub fn finish_passkey_registration(
-  request_ctx: request_context.RequestContext,
-  request: passkey_dto.FinishPasskeyRegistrationRequest,
-) -> program_types.Program(Nil) {
+  request_ctx: RequestContext,
+  request: FinishPasskeyRegistrationRequest,
+) -> Program(Nil) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -78,11 +79,7 @@ pub fn finish_passkey_registration(
   use existing_credential <- program.and_then(
     passkey_effect.get_passkey_credential_by_credential_id(credential_id),
   )
-  use _ <- program.and_then(case existing_credential {
-    option.None -> program.succeed(Nil)
-    option.Some(_) ->
-      program.fail(error.auth(auth_error.InvalidPasskeyAssertion))
-  })
+  use _ <- program.and_then(require_credential_available(existing_credential))
   use credential_record_id <- program.and_then(basic_effect.uuid_v7())
   let browser_info = browser_info.from_user_agent(ctx.client_info.user_agent)
   let credential =
@@ -101,19 +98,30 @@ pub fn finish_passkey_registration(
       last_used_at: option.None,
     )
   use _ <- program.and_then(
-    transaction_effect.run_all([
+    transaction_program.sequence([
       passkey_effect.create_passkey_credential_tx(credential),
       passkey_effect.delete_passkey_challenge_tx(challenge.id),
       user_action_effect.create_user_action_tx(user_action),
-    ]),
+    ])
+    |> transaction_effect.run(),
   )
 
   program.succeed(Nil)
 }
 
+fn require_credential_available(
+  existing_credential: Option(a),
+) -> Program(Nil) {
+  case existing_credential {
+    option.None -> program.succeed(Nil)
+    option.Some(_) ->
+      program.fail(error.auth(auth_error.InvalidPasskeyAssertion))
+  }
+}
+
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(passkey_dto.FinishPasskeyRegistrationRequest) {
+  data: Dynamic,
+) -> Program(FinishPasskeyRegistrationRequest) {
   program.decode_dynamic(
     data,
     passkey_dto.finish_registration_request_decoder(),

@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/result
 import gleam/string
 import glot_backend/auth/domain/session/current as current_session
@@ -8,20 +8,23 @@ import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{type Program}
 import glot_backend/system/effect/transaction/transaction_effect
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/transaction/transaction_program
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
-import glot_core/auth/account_dto
+import glot_core/auth/account_dto.{
+  type AccountResponse, type UpdateAccountRequest,
+}
 import glot_core/auth/account_model
 import glot_core/auth/user_model
 import glot_core/public_action
 
 pub fn update_account(
-  request_ctx: request_context.RequestContext,
-  request: account_dto.UpdateAccountRequest,
-) -> program_types.Program(account_dto.AccountResponse) {
+  request_ctx: RequestContext,
+  request: UpdateAccountRequest,
+) -> Program(AccountResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -57,10 +60,11 @@ pub fn update_account(
     user_model.change_username(session.user.identity, username, ctx.timestamp)
 
   use _ <- program.and_then(
-    transaction_effect.run_all([
+    transaction_program.sequence([
       user_effect.update_user_tx(user),
       user_action_effect.create_user_action_tx(user_action),
-    ]),
+    ])
+    |> transaction_effect.run(),
   )
 
   program.succeed(
@@ -74,8 +78,6 @@ pub fn update_account(
   )
 }
 
-pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(account_dto.UpdateAccountRequest) {
+pub fn request_from_dynamic(data: Dynamic) -> Program(UpdateAccountRequest) {
   program.decode_dynamic(data, account_dto.update_decoder())
 }

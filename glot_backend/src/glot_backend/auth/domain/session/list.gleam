@@ -1,20 +1,20 @@
 import gleam/list
-import gleam/time/timestamp
 import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/auth/effect/session as session_effect
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
-import glot_core/auth/account_session_dto
+import glot_core/auth/account_session_dto.{type ListAccountSessionsResponse}
+import glot_core/helpers/timestamp_helpers
 import glot_core/public_action
 
 pub fn list_account_sessions(
-  request_ctx: request_context.RequestContext,
-) -> program_types.Program(account_session_dto.ListAccountSessionsResponse) {
+  request_ctx: RequestContext,
+) -> Program(ListAccountSessionsResponse) {
   let ctx = request_ctx.context
   let config = request_ctx.dynamic_config
 
@@ -33,8 +33,14 @@ pub fn list_account_sessions(
   use _ <- program.and_then(user_action_effect.create_user_action(user_action))
   use sessions <- program.and_then(session_effect.list_sessions_by_user_id(
     session.user.identity.id,
-    subtract_seconds(ctx.timestamp, auth_config.session_token_max_age),
-    subtract_seconds(ctx.timestamp, auth_config.session_idle_timeout_seconds),
+    timestamp_helpers.subtract_seconds(
+      ctx.timestamp,
+      auth_config.session_token_max_age,
+    ),
+    timestamp_helpers.subtract_seconds(
+      ctx.timestamp,
+      auth_config.session_idle_timeout_seconds,
+    ),
   ))
 
   program.succeed(
@@ -51,12 +57,4 @@ pub fn list_account_sessions(
       }),
     ),
   )
-}
-
-fn subtract_seconds(
-  ts: timestamp.Timestamp,
-  seconds: Int,
-) -> timestamp.Timestamp {
-  let #(unix_seconds, nanos) = timestamp.to_unix_seconds_and_nanoseconds(ts)
-  timestamp.from_unix_seconds_and_nanoseconds(unix_seconds - seconds, nanos)
 }

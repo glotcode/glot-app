@@ -21,6 +21,7 @@ import support/integration/fixture
 import support/integration/profile/admin
 import support/integration/profile/auth
 import support/integration/profile/contact
+import support/integration/profile/email
 import support/integration/profile/job
 import support/integration/profile/logging
 import support/integration/profile/run_code
@@ -72,11 +73,19 @@ pub fn contact_profile_declares_only_contact_dependencies_test() {
     ExpectedPorts(
       ..expected(),
       app_config: True,
+      auth: True,
       email_template: True,
       job: True,
       user_action: True,
       email: True,
     ),
+  )
+}
+
+pub fn email_profile_declares_only_email_dependencies_test() {
+  assert_profile(
+    email.service_ports,
+    ExpectedPorts(..expected(), app_config: True, email: True),
   )
 }
 

@@ -61,6 +61,31 @@ pub fn from_get_by_slug(
   )
 }
 
+pub fn from_get_by_slug_for_update(
+  row: sql.GetSnippetBySlugForUpdate,
+) -> Result(HydratedSnippet, db_error.DbQueryError) {
+  from_fields(
+    id: row.id,
+    slug: row.slug,
+    user_id: row.user_id,
+    user_account_id: row.user_account_id,
+    user_email: row.user_email,
+    user_username: row.user_username,
+    user_role: row.user_role,
+    user_last_login_at: row.user_last_login_at,
+    user_created_at: row.user_created_at,
+    user_updated_at: row.user_updated_at,
+    language_name: row.language,
+    title: row.title,
+    visibility_name: row.visibility,
+    stdin: row.stdin,
+    run_instructions: row.run_instructions,
+    files: row.files,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  )
+}
+
 pub fn from_list_after(
   row: sql.ListSnippetsAfter,
 ) -> Result(HydratedSnippet, db_error.DbQueryError) {

@@ -1,25 +1,25 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import glot_backend/app_config/model/config as dynamic_config
-import glot_backend/run_code/effect/effect as get_language_version_effect
+import glot_backend/run_code/effect/effect as run_code_effect
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
-import glot_core/run
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
+import glot_core/run.{type GetLanguageVersionRequest, type RunResult}
 
 pub fn get_language_version(
-  request_ctx: request_context.RequestContext,
-  request: run.GetLanguageVersionRequest,
-) -> program_types.Program(run.RunResult) {
+  request_ctx: RequestContext,
+  request: GetLanguageVersionRequest,
+) -> Program(RunResult) {
   let config = request_ctx.dynamic_config
 
-  get_language_version_effect.get_language_version(
+  run_code_effect.get_language_version(
     dynamic_config.docker_run_config(config),
     request.language,
   )
 }
 
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(run.GetLanguageVersionRequest) {
+  data: Dynamic,
+) -> Program(GetLanguageVersionRequest) {
   program.decode_dynamic(data, run.get_language_version_request_decoder())
 }

@@ -1,40 +1,43 @@
 import gleam/int
 import gleam/option
-import gleam/time/timestamp
+import gleam/time/timestamp.{type Timestamp}
 import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/auth/effect/session as session_effect
 import glot_backend/auth/error as auth_error
-import glot_backend/auth/model/config as auth_feature_config
+import glot_backend/auth/model/config.{type AuthConfig}
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/crypto/token
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{
+  type Program, type TransactionProgram,
+}
 import glot_backend/system/effect/transaction/transaction_effect
 import glot_backend/system/effect/transaction/transaction_program
-import glot_backend/system/request/context
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/request/context.{type Context}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
-import glot_core/auth/refresh_session_dto
-import glot_core/auth/session_model
+import glot_core/auth/refresh_session_dto.{type RefreshSessionResponse}
+import glot_core/auth/session_model.{type Session}
+import glot_core/helpers/timestamp_helpers
 import glot_core/public_action
-import glot_core/user_action
+import glot_core/user_action.{type UserAction}
 
 pub type RefreshSessionResult {
   RefreshSessionResult(
     session_token: String,
     session_cookie_max_age: Int,
-    response: refresh_session_dto.RefreshSessionResponse,
+    response: RefreshSessionResponse,
   )
 }
 
 pub fn refresh_session(
-  request_ctx: request_context.RequestContext,
-) -> program_types.Program(RefreshSessionResult) {
+  request_ctx: RequestContext,
+) -> Program(RefreshSessionResult) {
   let ctx = request_ctx.context
   let config = request_ctx.dynamic_config
 
@@ -107,12 +110,16 @@ type RotationOutcome {
   )
 }
 
+type PreparedRotation {
+  PreparedRotation(session: Session, outcome: RotationOutcome)
+}
+
 fn refresh_session_tx(
-  ctx: context.Context,
+  ctx: Context,
   session_token: String,
-  user_action: user_action.UserAction,
-  auth_config: auth_feature_config.AuthConfig,
-) -> program_types.TransactionProgram(RotationOutcome) {
+  user_action: UserAction,
+  auth_config: AuthConfig,
+) -> TransactionProgram(RotationOutcome) {
   use token <- transaction_program.and_then(transaction_program.from_option(
     ctx.client_info.session_token,
     error.auth(auth_error.MissingSessionToken),
@@ -121,6 +128,21 @@ fn refresh_session_tx(
     get_session_by_client_token_for_update(token, ctx.timestamp),
   )
 
+  let prepared = prepare_rotation(session, session_token, ctx, auth_config)
+
+  transaction_program.sequence([
+    session_effect.update_session_tx(prepared.session),
+    user_action_effect.create_user_action_tx(user_action),
+  ])
+  |> transaction_program.map(fn(_) { prepared.outcome })
+}
+
+fn prepare_rotation(
+  session: Session,
+  session_token: String,
+  ctx: Context,
+  auth_config: AuthConfig,
+) -> PreparedRotation {
   let token_rotated =
     should_rotate_session_token(
       session,
@@ -134,7 +156,7 @@ fn refresh_session_tx(
       |> session_model.rotate_token(
         session_token,
         ctx.timestamp,
-        add_seconds(
+        timestamp_helpers.add_seconds(
           ctx.timestamp,
           auth_config.session_previous_token_grace_seconds,
         ),
@@ -142,77 +164,69 @@ fn refresh_session_tx(
     False -> session_model.touch(session, ctx.timestamp)
   }
 
-  use _ <- transaction_program.and_then(session_effect.update_session_tx(
-    next_session,
-  ))
-  use _ <- transaction_program.and_then(
-    user_action_effect.create_user_action_tx(user_action),
-  )
-  transaction_program.succeed(RotationOutcome(
-    rotated: token_rotated,
-    session_token: next_session.token,
-    next_heartbeat_in_seconds: next_heartbeat_in_seconds(
-      next_session,
-      ctx.timestamp,
-      auth_config,
+  PreparedRotation(
+    session: next_session,
+    outcome: RotationOutcome(
+      rotated: token_rotated,
+      session_token: next_session.token,
+      next_heartbeat_in_seconds: next_heartbeat_in_seconds(
+        next_session,
+        ctx.timestamp,
+        auth_config,
+      ),
     ),
-  ))
+  )
 }
 
 fn get_session_by_client_token_for_update(
   token: String,
-  now: timestamp.Timestamp,
-) -> program_types.TransactionProgram(session_model.Session) {
+  now: Timestamp,
+) -> TransactionProgram(Session) {
   use maybe_session <- transaction_program.and_then(
     session_effect.get_session_by_token_for_update_tx(token),
   )
   case maybe_session {
     option.Some(session) -> transaction_program.succeed(session)
-    option.None -> {
-      use previous_session <- transaction_program.and_then(
-        transaction_program.require(
-          session_effect.get_session_by_previous_token_for_update_tx(token),
-          error.auth(auth_error.SessionNotFound),
-        ),
-      )
-      use _ <- transaction_program.and_then(
-        transaction_program.from_result(current_session.validate_previous_token(
-          previous_session,
-          now,
-        )),
-      )
-      transaction_program.succeed(previous_session)
-    }
+    option.None -> get_valid_previous_session_for_update(token, now)
   }
 }
 
+fn get_valid_previous_session_for_update(
+  token: String,
+  now: Timestamp,
+) -> TransactionProgram(Session) {
+  use session <- transaction_program.and_then(transaction_program.require(
+    session_effect.get_session_by_previous_token_for_update_tx(token),
+    error.auth(auth_error.SessionNotFound),
+  ))
+  use _ <- transaction_program.and_then(
+    transaction_program.from_result(current_session.validate_previous_token(
+      session,
+      now,
+    )),
+  )
+  transaction_program.succeed(session)
+}
+
 fn should_rotate_session_token(
-  session: session_model.Session,
-  now: timestamp.Timestamp,
+  session: Session,
+  now: Timestamp,
   session_refresh_interval_seconds: Int,
 ) -> Bool {
   elapsed_seconds(session.token_updated_at, now)
   >= session_refresh_interval_seconds
 }
 
-fn add_seconds(
-  ts: timestamp.Timestamp,
-  seconds_to_add: Int,
-) -> timestamp.Timestamp {
-  let #(seconds, nanos) = timestamp.to_unix_seconds_and_nanoseconds(ts)
-  timestamp.from_unix_seconds_and_nanoseconds(seconds + seconds_to_add, nanos)
-}
-
-fn elapsed_seconds(from: timestamp.Timestamp, to: timestamp.Timestamp) -> Int {
+fn elapsed_seconds(from: Timestamp, to: Timestamp) -> Int {
   let #(from_seconds, _) = timestamp.to_unix_seconds_and_nanoseconds(from)
   let #(to_seconds, _) = timestamp.to_unix_seconds_and_nanoseconds(to)
   int.absolute_value(to_seconds - from_seconds)
 }
 
 fn next_heartbeat_in_seconds(
-  session: session_model.Session,
-  now: timestamp.Timestamp,
-  auth_config: auth_feature_config.AuthConfig,
+  session: Session,
+  now: Timestamp,
+  auth_config: AuthConfig,
 ) -> Int {
   let remaining =
     remaining_seconds_until_rotation(
@@ -228,8 +242,8 @@ fn next_heartbeat_in_seconds(
 }
 
 fn remaining_seconds_until_rotation(
-  session_token_updated_at: timestamp.Timestamp,
-  now: timestamp.Timestamp,
+  session_token_updated_at: Timestamp,
+  now: Timestamp,
   session_refresh_interval_seconds: Int,
 ) -> Int {
   session_refresh_interval_seconds

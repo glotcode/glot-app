@@ -1,28 +1,34 @@
-import gleam/dynamic
-import gleam/result
+import gleam/dynamic.{type Dynamic}
+import gleam/time/timestamp.{type Timestamp}
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/request_policy/api_action as api_action_policy
-import glot_backend/request_policy/authorization
+import glot_backend/snippet/domain/access as snippet_access
+import glot_backend/snippet/domain/lookup as snippet_lookup
+import glot_backend/snippet/domain/validation as snippet_validation
 import glot_backend/snippet/effect/effect as snippet_effect
 import glot_backend/system/effect/basic/basic_effect
-import glot_backend/system/effect/error
-import glot_backend/system/effect/error/resource_error
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{
+  type Program, type TransactionProgram,
+}
 import glot_backend/system/effect/transaction/transaction_effect
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/transaction/transaction_program
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
 import glot_core/public_action
-import glot_core/snippet/snippet_dto
-import glot_core/snippet/snippet_model
-import glot_core/snippet/snippet_spam
+import glot_core/snippet/snippet_dto.{
+  type SnippetData, type SnippetResponse, type UpdateSnippetRequest,
+}
+import glot_core/snippet/snippet_model.{type HydratedSnippet, type Snippet}
+import glot_core/user_action.{type UserAction}
+import youid/uuid.{type Uuid}
 
 pub fn update_snippet(
-  request_ctx: request_context.RequestContext,
-  request: snippet_dto.UpdateSnippetRequest,
-) -> program_types.Program(snippet_dto.SnippetResponse) {
+  request_ctx: RequestContext,
+  request: UpdateSnippetRequest,
+) -> Program(SnippetResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -48,66 +54,73 @@ pub fn update_snippet(
     ),
   ))
 
-  use _ <- program.and_then(
-    snippet_model.validate_fields(
-      request.data.title,
-      request.data.stdin,
-      request.data.run_instructions,
-      request.data.files,
-    )
-    |> result.map_error(error.validation)
-    |> program.from_result,
-  )
-
-  use existing_snippet <- program.and_then(
-    snippet_effect.get_by_slug(request.slug)
-    |> program.require(error.resource(resource_error.SnippetNotFound)),
-  )
-
-  use _ <- program.and_then(authorization.require_owner(
-    session.user.identity.id,
-    existing_snippet.user.id,
+  use _ <- program.and_then(snippet_validation.require_valid_fields(
+    request.data,
   ))
+  use _ <- program.and_then(snippet_validation.require_clean(request.data))
 
-  use _ <- program.and_then(
-    snippet_spam.ensure_clean(request.data)
-    |> result.map_error(error.validation)
-    |> program.from_result,
+  use updated_snippet <- program.and_then(
+    update_snippet_tx(
+      slug: request.slug,
+      actor_user_id: session.user.identity.id,
+      data: request.data,
+      now: ctx.timestamp,
+      user_action: user_action,
+    )
+    |> transaction_effect.run(),
   )
 
-  let updated_snippet =
-    snippet_model.Snippet(
-      id: existing_snippet.identity.id,
-      slug: existing_snippet.identity.slug,
-      user_id: existing_snippet.user.id,
-      title: request.data.title,
-      language: request.data.language,
-      visibility: request.data.visibility,
-      stdin: request.data.stdin,
-      run_instructions: request.data.run_instructions,
-      files: request.data.files,
-      created_at: existing_snippet.identity.created_at,
-      updated_at: ctx.timestamp,
-    )
+  program.succeed(snippet_dto.from_snippet(updated_snippet))
+}
 
-  use _ <- program.and_then(
-    transaction_effect.run_all([
-      snippet_effect.update_tx(updated_snippet),
+fn prepare_updated_snippet(
+  existing: HydratedSnippet,
+  data: SnippetData,
+  now: Timestamp,
+) -> Snippet {
+  snippet_model.Snippet(
+    id: existing.identity.id,
+    slug: existing.identity.slug,
+    user_id: existing.user.id,
+    title: data.title,
+    language: data.language,
+    visibility: data.visibility,
+    stdin: data.stdin,
+    run_instructions: data.run_instructions,
+    files: data.files,
+    created_at: existing.identity.created_at,
+    updated_at: now,
+  )
+}
+
+fn update_snippet_tx(
+  slug slug: String,
+  actor_user_id actor_user_id: Uuid,
+  data data: SnippetData,
+  now now: Timestamp,
+  user_action user_action: UserAction,
+) -> TransactionProgram(HydratedSnippet) {
+  use existing <- transaction_program.and_then(
+    snippet_lookup.require_by_slug_for_update(slug),
+  )
+  use _ <- transaction_program.and_then(snippet_access.require_owner_tx(
+    existing,
+    actor_user_id,
+  ))
+  let updated = prepare_updated_snippet(existing, data, now)
+  use _ <- transaction_program.and_then(
+    transaction_program.sequence([
+      snippet_effect.update_tx(updated),
       user_action_effect.create_user_action_tx(user_action),
     ]),
   )
 
-  program.succeed(
-    snippet_model.HydratedSnippet(
-      identity: updated_snippet,
-      user: existing_snippet.user,
-    )
-    |> snippet_dto.from_snippet,
-  )
+  transaction_program.succeed(snippet_model.HydratedSnippet(
+    identity: updated,
+    user: existing.user,
+  ))
 }
 
-pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(snippet_dto.UpdateSnippetRequest) {
+pub fn request_from_dynamic(data: Dynamic) -> Program(UpdateSnippetRequest) {
   program.decode_dynamic(data, snippet_dto.update_decoder())
 }

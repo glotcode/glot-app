@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import glot_backend/app_config/effect/effect as app_config_effect
 import glot_backend/app_config/model/system_config
@@ -6,18 +6,20 @@ import glot_backend/auth/domain/session/current as current_session
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/cleanup_config_dto
+import glot_core/admin/cleanup_config_dto.{
+  type CleanupConfigResponse, type UpsertCleanupConfigRequest,
+}
 import glot_core/admin_action
 import glot_core/api_action
 import glot_core/validation_error
 
 pub fn upsert_cleanup_config(
-  request_ctx: request_context.RequestContext,
-  request: cleanup_config_dto.UpsertCleanupConfigRequest,
-) -> program_types.Program(cleanup_config_dto.CleanupConfigResponse) {
+  request_ctx: RequestContext,
+  request: UpsertCleanupConfigRequest,
+) -> Program(CleanupConfigResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -55,14 +57,12 @@ pub fn upsert_cleanup_config(
 }
 
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(cleanup_config_dto.UpsertCleanupConfigRequest) {
+  data: Dynamic,
+) -> Program(UpsertCleanupConfigRequest) {
   program.decode_dynamic(data, cleanup_config_dto.decoder())
 }
 
-fn validate_request(
-  request: cleanup_config_dto.UpsertCleanupConfigRequest,
-) -> program_types.Program(Nil) {
+fn validate_request(request: UpsertCleanupConfigRequest) -> Program(Nil) {
   use _ <- program.and_then(require_positive(
     request.api_log_retention_days,
     "api_log_retention_days",
@@ -99,7 +99,7 @@ fn validate_request(
   program.succeed(Nil)
 }
 
-fn require_positive(value: Int, field: String) -> program_types.Program(Nil) {
+fn require_positive(value: Int, field: String) -> Program(Nil) {
   case value > 0 {
     True -> program.succeed(Nil)
     False ->

@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import gleam/result
 import glot_backend/auth/domain/session/current as current_session
@@ -6,20 +6,22 @@ import glot_backend/job/effect/job/effect as job_effect
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/job_dto
+import glot_core/admin/job_dto.{
+  type ListJobsRequest, type ListJobsResponse, type StatusFilter,
+}
 import glot_core/admin_action
 import glot_core/api_action
-import glot_core/job/job_model
+import glot_core/job/job_model.{type ListJobsFilter, type Status}
 import glot_core/pagination_model
 import youid/uuid
 
 pub fn get_jobs(
-  request_ctx: request_context.RequestContext,
-  request: job_dto.ListJobsRequest,
-) -> program_types.Program(job_dto.ListJobsResponse) {
+  request_ctx: RequestContext,
+  request: ListJobsRequest,
+) -> Program(ListJobsResponse) {
   let ctx = request_ctx.context
 
   let pagination = request.pagination
@@ -60,22 +62,18 @@ pub fn get_jobs(
   ))
 }
 
-pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(job_dto.ListJobsRequest) {
+pub fn request_from_dynamic(data: Dynamic) -> Program(ListJobsRequest) {
   program.decode_dynamic(data, job_dto.list_request_decoder())
 }
 
-fn request_to_filter(
-  request: job_dto.ListJobsRequest,
-) -> job_model.ListJobsFilter {
+fn request_to_filter(request: ListJobsRequest) -> ListJobsFilter {
   job_model.new_list_filter()
   |> job_model.with_statuses(statuses_for_filter(request.status_filter))
   |> job_model.with_job_type(request.job_type_filter)
   |> job_model.with_periodic_job_id(request.periodic_job_id)
 }
 
-fn statuses_for_filter(filter: job_dto.StatusFilter) -> List(job_model.Status) {
+fn statuses_for_filter(filter: StatusFilter) -> List(Status) {
   case filter {
     job_dto.AllStatuses -> []
     job_dto.PendingStatus -> [job_model.Pending]

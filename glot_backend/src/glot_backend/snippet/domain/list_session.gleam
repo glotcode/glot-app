@@ -1,31 +1,28 @@
-import gleam/dynamic
-import gleam/result
+import gleam/dynamic.{type Dynamic}
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/request_policy/api_action as api_action_policy
+import glot_backend/snippet/domain/listing as snippet_listing
 import glot_backend/snippet/effect/effect as snippet_effect
 import glot_backend/system/effect/basic/basic_effect
-import glot_backend/system/effect/error
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
-import glot_core/pagination_model
 import glot_core/public_action
-import glot_core/snippet/snippet_dto
+import glot_core/snippet/snippet_dto.{
+  type ListSessionSnippetsRequest, type ListSnippetsResponse,
+}
 import glot_core/snippet/snippet_model
 
 pub fn list_session_snippets(
-  request_ctx: request_context.RequestContext,
-  request: snippet_dto.ListSessionSnippetsRequest,
-) -> program_types.Program(snippet_dto.ListSnippetsResponse) {
-  let pagination = request.pagination
-  use _ <- program.and_then(
-    pagination_model.validate(pagination, 100)
-    |> result.map_error(error.validation)
-    |> program.from_result,
-  )
+  request_ctx: RequestContext,
+  request: ListSessionSnippetsRequest,
+) -> Program(ListSnippetsResponse) {
+  use pagination <- program.and_then(snippet_listing.require_valid_pagination(
+    request.pagination,
+  ))
   use session <- program.and_then(current_session.require_session(request_ctx))
 
   use _ <- program.and_then(
@@ -51,13 +48,10 @@ pub fn list_session_snippets(
   use snippets <- program.and_then(snippet_effect.list(
     filter: snippet_model.new_filter()
       |> snippet_model.only_user_ids([session.user.identity.id]),
-    pagination: pagination_model.increment_limit(pagination),
+    pagination: snippet_listing.fetch_pagination(pagination),
   ))
 
-  let page =
-    pagination_model.paginate(snippets, pagination, fn(snippet) {
-      pagination_model.from_string(snippet.identity.slug)
-    })
+  let page = snippet_listing.paginate(snippets, pagination)
 
   use _ <- program.and_then(user_action_effect.create_user_action(user_action))
 
@@ -65,7 +59,7 @@ pub fn list_session_snippets(
 }
 
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(snippet_dto.ListSessionSnippetsRequest) {
+  data: Dynamic,
+) -> Program(ListSessionSnippetsRequest) {
   program.decode_dynamic(data, snippet_dto.list_session_decoder())
 }

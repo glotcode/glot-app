@@ -6,6 +6,8 @@ import glot_backend/system/effect/error
 import glot_backend/system/effect/error/infra_error
 import glot_backend/system/effect/error/run_request_error
 import glot_backend/system/effect/system_ports
+import glot_core/email/email_model.{type SendEmailResult}
+import glot_core/run.{type RunResult}
 import support/integration/adapter/passkey_ceremony
 import support/integration/adapter/state
 
@@ -64,6 +66,16 @@ pub fn with_email(ports: system_ports.SystemPorts) -> system_ports.SystemPorts {
   )
 }
 
+pub fn with_email_result(
+  ports: system_ports.SystemPorts,
+  result: SendEmailResult,
+) -> system_ports.SystemPorts {
+  system_ports.SystemPorts(
+    ..ports,
+    email: email_sender.Sender(send: fn(_, _, _) { Ok(result) }),
+  )
+}
+
 pub fn with_passkey(
   ports: system_ports.SystemPorts,
 ) -> system_ports.SystemPorts {
@@ -78,5 +90,15 @@ pub fn with_run_code(
     run_code: runner.Runner(run: fn(_, _, _) {
       Error(run_request_error.ServerRunRequestError)
     }),
+  )
+}
+
+pub fn with_run_code_result(
+  ports: system_ports.SystemPorts,
+  result: RunResult,
+) -> system_ports.SystemPorts {
+  system_ports.SystemPorts(
+    ..ports,
+    run_code: runner.Runner(run: fn(_, _, _) { Ok(result) }),
   )
 }

@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/auth/domain/session/current as current_session
@@ -6,22 +6,22 @@ import glot_backend/job/domain/type_policy as job_type_policy_domain
 import glot_backend/job/effect/job/effect as job_effect
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/basic/basic_effect
-import glot_backend/system/effect/error
+import glot_backend/system/effect/error.{type Error}
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/job_dto
+import glot_core/admin/job_dto.{type CreateJobRequest, type GetJobResponse}
 import glot_core/admin_action
 import glot_core/api_action
-import glot_core/job/job_model
+import glot_core/job/job_model.{type Job, type JobType, type JobTypePolicy}
 import glot_core/validation_error
 import youid/uuid.{type Uuid}
 
 pub fn create_job(
-  request_ctx: request_context.RequestContext,
-  request: job_dto.CreateJobRequest,
-) -> program_types.Program(job_dto.GetJobResponse) {
+  request_ctx: RequestContext,
+  request: CreateJobRequest,
+) -> Program(GetJobResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -55,15 +55,11 @@ pub fn create_job(
   program.succeed(job_dto.from_job_detail(job, ctx.timestamp))
 }
 
-pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(job_dto.CreateJobRequest) {
+pub fn request_from_dynamic(data: Dynamic) -> Program(CreateJobRequest) {
   program.decode_dynamic(data, job_dto.create_request_decoder())
 }
 
-fn validate_request(
-  request: job_dto.CreateJobRequest,
-) -> Result(job_model.JobType, error.Error) {
+fn validate_request(request: CreateJobRequest) -> Result(JobType, Error) {
   case request.max_attempts > 0 {
     False ->
       Error(
@@ -88,13 +84,13 @@ fn validate_request(
 }
 
 fn new_job(
-  request request: job_dto.CreateJobRequest,
-  job_type job_type: job_model.JobType,
-  job_type_policy job_type_policy: job_model.JobTypePolicy,
+  request request: CreateJobRequest,
+  job_type job_type: JobType,
+  job_type_policy job_type_policy: JobTypePolicy,
   job_id job_id: Uuid,
   request_id request_id: Uuid,
   now now: Timestamp,
-) -> job_model.Job {
+) -> Job {
   job_model.Job(
     id: job_id,
     request_id: option.Some(request_id),

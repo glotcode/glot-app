@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import glot_backend/app_config/effect/effect as app_config_effect
 import glot_backend/auth/domain/session/current as current_session
@@ -6,10 +6,12 @@ import glot_backend/logging/ingestion/model/config as logging_config
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/log_worker_config_dto
+import glot_core/admin/log_worker_config_dto.{
+  type LogWorkerConfigResponse, type UpsertLogWorkerConfigRequest,
+}
 import glot_core/admin_action
 import glot_core/api_action
 import glot_core/validation_error
@@ -21,9 +23,9 @@ const max_batch_size_limit = 10_000
 const max_buffer_size_limit = 100_000
 
 pub fn upsert_log_worker_config(
-  request_ctx: request_context.RequestContext,
-  request: log_worker_config_dto.UpsertLogWorkerConfigRequest,
-) -> program_types.Program(log_worker_config_dto.LogWorkerConfigResponse) {
+  request_ctx: RequestContext,
+  request: UpsertLogWorkerConfigRequest,
+) -> Program(LogWorkerConfigResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -51,14 +53,12 @@ pub fn upsert_log_worker_config(
 }
 
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(log_worker_config_dto.UpsertLogWorkerConfigRequest) {
+  data: Dynamic,
+) -> Program(UpsertLogWorkerConfigRequest) {
   program.decode_dynamic(data, log_worker_config_dto.decoder())
 }
 
-fn validate_request(
-  request: log_worker_config_dto.UpsertLogWorkerConfigRequest,
-) -> program_types.Program(Nil) {
+fn validate_request(request: UpsertLogWorkerConfigRequest) -> Program(Nil) {
   use _ <- program.and_then(require_positive(
     request.flush_interval_ms,
     "flush_interval_ms",
@@ -96,7 +96,7 @@ fn validate_request(
   program.succeed(Nil)
 }
 
-fn require_positive(value: Int, field: String) -> program_types.Program(Nil) {
+fn require_positive(value: Int, field: String) -> Program(Nil) {
   case value > 0 {
     True -> program.succeed(Nil)
     False ->
@@ -106,11 +106,7 @@ fn require_positive(value: Int, field: String) -> program_types.Program(Nil) {
   }
 }
 
-fn require_max(
-  value: Int,
-  field: String,
-  max: Int,
-) -> program_types.Program(Nil) {
+fn require_max(value: Int, field: String, max: Int) -> Program(Nil) {
   case value <= max {
     True -> program.succeed(Nil)
     False ->
@@ -125,7 +121,7 @@ fn require_gte_field(
   field: String,
   other_value: Int,
   other_field: String,
-) -> program_types.Program(Nil) {
+) -> Program(Nil) {
   case value >= other_value {
     True -> program.succeed(Nil)
     False ->

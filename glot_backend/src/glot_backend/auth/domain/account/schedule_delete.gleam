@@ -1,6 +1,6 @@
 import gleam/json
 import gleam/option
-import gleam/time/timestamp
+import gleam/result
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/auth/effect/account as account_effect
 import glot_backend/job/domain/type_policy as job_type_policy_domain
@@ -11,22 +11,22 @@ import glot_backend/system/effect/error
 import glot_backend/system/effect/error/resource_error
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{type Program}
 import glot_backend/system/effect/transaction/transaction_effect
-import glot_backend/system/request/context
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/transaction/transaction_program
+import glot_backend/system/request/context.{type Context}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
-import glot_core/auth/account_model
-import glot_core/job/job_model
+import glot_core/auth/account_model.{type HydratedAccount}
+import glot_core/helpers/timestamp_helpers
+import glot_core/job/job_model.{type Job}
 import glot_core/public_action
 import youid/uuid.{type Uuid}
 
 const delete_delay_seconds = 86_400
 
-pub fn schedule_delete_account(
-  request_ctx: request_context.RequestContext,
-) -> program_types.Program(Nil) {
+pub fn schedule_delete_account(request_ctx: RequestContext) -> Program(Nil) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -63,7 +63,7 @@ pub fn schedule_delete_account(
       job_id,
       option.Some(ctx.request_id),
       ctx.timestamp,
-      add_seconds(ctx.timestamp, delete_delay_seconds),
+      timestamp_helpers.add_seconds(ctx.timestamp, delete_delay_seconds),
       session.user.account.identity.id,
       session.user.identity.email,
       delete_account_policy,
@@ -75,84 +75,74 @@ pub fn schedule_delete_account(
       ctx.timestamp,
     )
 
-  transaction_effect.run_all([
+  transaction_program.sequence([
     job_effect.create_job_tx(delete_job),
     account_effect.update_account_tx(updated_account),
     user_action_effect.create_user_action_tx(user_action),
   ])
+  |> transaction_effect.run()
 }
 
 fn require_no_pending_delete(
-  ctx: context.Context,
-  account: account_model.HydratedAccount,
-) -> program_types.Program(Nil) {
+  ctx: Context,
+  account: HydratedAccount,
+) -> Program(Nil) {
   case account.identity.delete_job_id {
     option.None -> program.succeed(Nil)
     option.Some(job_id) -> {
       use maybe_job <- program.and_then(job_effect.get_job_by_id(job_id))
-      case maybe_job {
-        option.Some(job) -> {
-          case is_pending_delete_job_for_account(job, account.identity.id) {
-            True ->
-              program.fail(error.resource(
-                resource_error.AccountDeleteAlreadyScheduled,
-              ))
-            False -> {
-              let repaired_account =
-                account_model.set_delete_job_id(
-                  account.identity,
-                  option.None,
-                  ctx.timestamp,
-                )
-              account_effect.update_account(repaired_account)
-            }
-          }
-        }
-        _ -> {
-          let repaired_account =
-            account_model.set_delete_job_id(
-              account.identity,
-              option.None,
-              ctx.timestamp,
-            )
-          account_effect.update_account(repaired_account)
-        }
-      }
+      use _ <- program.and_then(require_not_pending_delete(
+        maybe_job,
+        account.identity.id,
+      ))
+      repair_delete_job_id(ctx, account)
     }
   }
 }
 
-fn is_pending_delete_job_for_account(
-  job: job_model.Job,
+fn require_not_pending_delete(
+  maybe_job: option.Option(Job),
   account_id: Uuid,
-) -> Bool {
-  case
+) -> Program(Nil) {
+  let has_pending_delete =
+    maybe_job
+    |> option.map(is_pending_delete_job_for_account(_, account_id))
+    |> option.unwrap(False)
+
+  case has_pending_delete {
+    True ->
+      program.fail(error.resource(resource_error.AccountDeleteAlreadyScheduled))
+    False -> program.succeed(Nil)
+  }
+}
+
+fn repair_delete_job_id(
+  ctx: Context,
+  account: HydratedAccount,
+) -> Program(Nil) {
+  account.identity
+  |> account_model.set_delete_job_id(option.None, ctx.timestamp)
+  |> account_effect.update_account
+}
+
+fn is_pending_delete_job_for_account(job: Job, account_id: Uuid) -> Bool {
+  let is_pending_delete_job =
     job.job_type == job_model.DeleteAccountJob
     && job.status == job_model.Pending
     && job.completed_at == option.None
-  {
-    True ->
-      case job.payload {
-        option.Some(payload_json) ->
-          case
-            json.parse(
-              payload_json,
-              job_model.delete_account_job_payload_decoder(),
-            )
-          {
-            Ok(payload) -> payload.account_id == account_id
-            Error(_) -> False
-          }
-        option.None -> False
-      }
+
+  case is_pending_delete_job {
+    True -> delete_job_belongs_to_account(job, account_id)
     False -> False
   }
 }
 
-fn add_seconds(
-  ts: timestamp.Timestamp,
-  seconds_to_add: Int,
-) -> timestamp.Timestamp {
-  let #(seconds, nanos) = timestamp.to_unix_seconds_and_nanoseconds(ts)
-  timestamp.from_unix_seconds_and_nanoseconds(seconds + seconds_to_add, nanos)
+fn delete_job_belongs_to_account(job: Job, account_id: Uuid) -> Bool {
+  case job.payload {
+    option.Some(payload_json) ->
+      json.parse(payload_json, job_model.delete_account_job_payload_decoder())
+      |> result.map(fn(payload) { payload.account_id == account_id })
+      |> result.unwrap(False)
+    option.None -> False
+  }
 }

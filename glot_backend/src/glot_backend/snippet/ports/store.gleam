@@ -12,6 +12,8 @@ pub type Store {
       Result(option.Option(HydratedSnippet), db_error.DbQueryError),
     get_snippet_by_slug: fn(String) ->
       Result(option.Option(HydratedSnippet), db_error.DbQueryError),
+    get_snippet_by_slug_for_update: fn(String) ->
+      Result(option.Option(HydratedSnippet), db_error.DbQueryError),
     get_admin_snippet_by_slug: fn(String) ->
       Result(option.Option(HydratedSnippet), db_error.DbQueryError),
     list_snippets: fn(ListSnippetsFilter, CursorPagination) ->

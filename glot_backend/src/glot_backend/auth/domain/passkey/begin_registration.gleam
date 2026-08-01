@@ -2,24 +2,25 @@ import gleam/list
 import gleam/option
 import gleam/result
 import glot_backend/app_config/model/config as dynamic_config
-import glot_backend/auth/domain/passkey/shared as passkey_shared_domain
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/auth/effect/passkey as passkey_effect
 import glot_backend/auth/passkey/base64url
 import glot_backend/auth/passkey/effect/effect as webauthn_effect
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/basic/basic_effect
-import glot_backend/system/effect/error
+import glot_backend/system/effect/error.{type Error}
 import glot_backend/system/effect/error/infra_error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{type Program}
 import glot_backend/system/effect/transaction/transaction_effect
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/transaction/transaction_program
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
 import glot_core/auth/passkey_challenge_model
-import glot_core/auth/passkey_dto
+import glot_core/auth/passkey_dto.{type BeginPasskeyRegistrationResponse}
 import glot_core/email/email_address_model
+import glot_core/helpers/timestamp_helpers
 import glot_core/public_action
 import youid/uuid
 
@@ -28,8 +29,8 @@ const cose_alg_es256 = -7
 const cose_alg_rs256 = -257
 
 pub fn begin_passkey_registration(
-  request_ctx: request_context.RequestContext,
-) -> program_types.Program(passkey_dto.BeginPasskeyRegistrationResponse) {
+  request_ctx: RequestContext,
+) -> Program(BeginPasskeyRegistrationResponse) {
   let ctx = request_ctx.context
   let config = request_ctx.dynamic_config
 
@@ -64,16 +65,17 @@ pub fn begin_passkey_registration(
       flow: passkey_challenge_model.PasskeyRegistrationChallenge,
       challenge_state: challenge_state,
       created_at: ctx.timestamp,
-      expires_at: passkey_shared_domain.add_seconds(
+      expires_at: timestamp_helpers.add_seconds(
         ctx.timestamp,
         passkey_config.challenge_timeout_seconds,
       ),
     )
   use _ <- program.and_then(
-    transaction_effect.run_all([
+    transaction_program.sequence([
       passkey_effect.create_passkey_challenge_tx(challenge_record),
       user_action_effect.create_user_action_tx(user_action),
-    ]),
+    ])
+    |> transaction_effect.run(),
   )
 
   program.succeed(passkey_dto.BeginPasskeyRegistrationResponse(
@@ -93,6 +95,6 @@ pub fn begin_passkey_registration(
   ))
 }
 
-fn error_from_webauthn(message: String) -> error.Error {
+fn error_from_webauthn(message: String) -> Error {
   error.infra(infra_error.RunRequestClientError(message))
 }

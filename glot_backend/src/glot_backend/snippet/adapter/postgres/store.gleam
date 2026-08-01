@@ -7,6 +7,9 @@ pub fn new(db: db_helpers.Db) -> snippet_store.Store {
   snippet_store.Store(
     get_snippet_by_id: fn(id) { read.get_by_id(db, id) },
     get_snippet_by_slug: fn(slug) { read.get_by_slug(db, slug) },
+    get_snippet_by_slug_for_update: fn(slug) {
+      read.get_by_slug_for_update(db, slug)
+    },
     get_admin_snippet_by_slug: fn(slug) { read.get_admin_by_slug(db, slug) },
     list_snippets: fn(filter, pagination) { read.list(db, filter, pagination) },
     list_admin_snippets: fn(username, pagination) {

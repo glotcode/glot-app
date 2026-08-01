@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/auth/domain/session/current as current_session
@@ -7,19 +7,21 @@ import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/resource_error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/job_type_policy_dto
+import glot_core/admin/job_type_policy_dto.{
+  type JobTypePolicyResponse, type UpsertJobTypePolicyRequest,
+}
 import glot_core/admin_action
 import glot_core/api_action
-import glot_core/job/job_model
+import glot_core/job/job_model.{type JobTypePolicy}
 import glot_core/validation_error
 
 pub fn upsert_job_type_policy(
-  request_ctx: request_context.RequestContext,
-  request: job_type_policy_dto.UpsertJobTypePolicyRequest,
-) -> program_types.Program(job_type_policy_dto.JobTypePolicyResponse) {
+  request_ctx: RequestContext,
+  request: UpsertJobTypePolicyRequest,
+) -> Program(JobTypePolicyResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -44,15 +46,15 @@ pub fn upsert_job_type_policy(
 }
 
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(job_type_policy_dto.UpsertJobTypePolicyRequest) {
+  data: Dynamic,
+) -> Program(UpsertJobTypePolicyRequest) {
   program.decode_dynamic(data, job_type_policy_dto.request_decoder())
 }
 
 fn policy_from_request(
-  request: job_type_policy_dto.UpsertJobTypePolicyRequest,
+  request: UpsertJobTypePolicyRequest,
   now: Timestamp,
-) -> program_types.Program(job_model.JobTypePolicy) {
+) -> Program(JobTypePolicy) {
   case job_model.job_type_from_string(request.job_type) {
     Ok(job_type) ->
       program.succeed(job_model.JobTypePolicy(
@@ -68,9 +70,7 @@ fn policy_from_request(
   }
 }
 
-fn validate_policy(
-  policy: job_model.JobTypePolicy,
-) -> program_types.Program(Nil) {
+fn validate_policy(policy: JobTypePolicy) -> Program(Nil) {
   use _ <- program.and_then(require_positive(
     policy.max_attempts,
     "max_attempts",
@@ -97,7 +97,7 @@ fn validate_policy(
   program.succeed(Nil)
 }
 
-fn require_positive(value: Int, field: String) -> program_types.Program(Nil) {
+fn require_positive(value: Int, field: String) -> Program(Nil) {
   case value > 0 {
     True -> program.succeed(Nil)
     False ->
@@ -112,7 +112,7 @@ fn require_gte_field(
   field: String,
   other_value: Int,
   other_field: String,
-) -> program_types.Program(Nil) {
+) -> Program(Nil) {
   case value >= other_value {
     True -> program.succeed(Nil)
     False ->

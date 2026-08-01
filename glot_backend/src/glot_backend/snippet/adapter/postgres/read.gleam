@@ -38,6 +38,19 @@ pub fn get_by_slug(
   decode_optional(returned.rows, row.from_get_by_slug)
 }
 
+pub fn get_by_slug_for_update(
+  db: db_helpers.Db,
+  slug: String,
+) -> Result(option.Option(HydratedSnippet), db_error.DbQueryError) {
+  use returned <- result.try(
+    db_helpers.query(db, sql.get_snippet_by_slug_for_update(slug), fn(err) {
+      db_error.DbQueryError(string.inspect(err))
+    }),
+  )
+
+  decode_optional(returned.rows, row.from_get_by_slug_for_update)
+}
+
 pub fn get_admin_by_slug(
   db: db_helpers.Db,
   slug: String,

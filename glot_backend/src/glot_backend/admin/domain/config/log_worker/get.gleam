@@ -3,16 +3,16 @@ import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/log_worker_config_dto
+import glot_core/admin/log_worker_config_dto.{type LogWorkerConfigResponse}
 import glot_core/admin_action
 import glot_core/api_action
 
 pub fn get_log_worker_config(
-  request_ctx: request_context.RequestContext,
-) -> program_types.Program(log_worker_config_dto.LogWorkerConfigResponse) {
+  request_ctx: RequestContext,
+) -> Program(LogWorkerConfigResponse) {
   let config = request_ctx.dynamic_config
 
   use session <- program.and_then(current_session.require_session(request_ctx))

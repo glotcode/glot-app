@@ -1,5 +1,6 @@
 import gleam/dict
 import gleam/option
+import gleam/result
 import gleam/time/timestamp
 import glot_backend/logging/run_log/domain/cleanup as clean_run_log_domain
 import glot_backend/system/request/context
@@ -29,6 +30,12 @@ pub fn clean_run_log_deletes_only_old_rows_test() {
       id: fixture.must_uuid("00000000-0000-0000-0000-000000000d02"),
       created_at: timestamp.from_unix_seconds_and_nanoseconds(1_699_900_000, 0),
     )
+  let boundary_run_log =
+    run_log_model.RunLog(
+      ..old_run_log,
+      id: fixture.must_uuid("00000000-0000-0000-0000-000000000d03"),
+      created_at: timestamp.from_unix_seconds_and_nanoseconds(1_697_408_000, 0),
+    )
   let ctx =
     context.Context(
       ..fixture.test_context(),
@@ -39,6 +46,7 @@ pub fn clean_run_log_deletes_only_old_rows_test() {
       ..fixture.empty_test_state(),
       run_logs: dict.from_list([
         #(common.uuid_key(old_run_log.id), old_run_log),
+        #(common.uuid_key(boundary_run_log.id), boundary_run_log),
         #(common.uuid_key(recent_run_log.id), recent_run_log),
       ]),
     )
@@ -51,4 +59,21 @@ pub fn clean_run_log_deletes_only_old_rows_test() {
     == Error(Nil)
   assert dict.get(updated_db.run_logs, common.uuid_key(recent_run_log.id))
     == Ok(recent_run_log)
+  assert dict.get(updated_db.run_logs, common.uuid_key(boundary_run_log.id))
+    == Ok(boundary_run_log)
+}
+
+pub fn clean_run_log_propagates_delete_failure_test() {
+  let ctx = fixture.test_context()
+  let db = fixture.empty_test_state()
+
+  let #(run_result, updated_db) =
+    runner.run_with_run_log_failure(
+      clean_run_log_domain.clean_run_log(ctx),
+      ctx,
+      db,
+    )
+
+  assert result.is_error(run_result)
+  assert updated_db.run_logs == db.run_logs
 }

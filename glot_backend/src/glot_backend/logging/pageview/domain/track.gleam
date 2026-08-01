@@ -1,28 +1,28 @@
-import gleam/dynamic
-import gleam/option
+import gleam/dynamic.{type Dynamic}
+import gleam/option.{type Option}
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
-import glot_core/pageview_dto
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
+import glot_core/pageview_dto.{type PageviewRequest}
 import youid/uuid.{type Uuid}
 
 pub type TrackedPageview {
   TrackedPageview(
     id: Uuid,
-    session_id: option.Option(Uuid),
-    user_id: option.Option(Uuid),
+    session_id: Option(Uuid),
+    user_id: Option(Uuid),
     route: String,
     path: String,
   )
 }
 
 pub fn track_pageview(
-  request_ctx: request_context.RequestContext,
-  request: pageview_dto.PageviewRequest,
-) -> program_types.Program(TrackedPageview) {
+  request_ctx: RequestContext,
+  request: PageviewRequest,
+) -> Program(TrackedPageview) {
   use maybe_session <- program.and_then(current_session.get_session(request_ctx))
   let maybe_session_id =
     option.map(maybe_session, fn(session) { session.identity.id })
@@ -50,8 +50,6 @@ pub fn track_pageview(
   ))
 }
 
-pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(pageview_dto.PageviewRequest) {
+pub fn request_from_dynamic(data: Dynamic) -> Program(PageviewRequest) {
   program.decode_dynamic(data, pageview_dto.decoder())
 }

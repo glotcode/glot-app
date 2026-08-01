@@ -1,22 +1,26 @@
-import gleam/json
+import gleam/json.{type Json}
 import glot_backend/app_config/decoder/request_policy as request_policy_decoder
 import glot_backend/app_config/model/entry.{type AppConfigEntry}
-import glot_backend/app_config/model/system_config
-import glot_backend/auth/model/config as auth_feature_config
-import glot_backend/email/model/config as email_feature_config
-import glot_backend/logging/ingestion/model/config as logging_config
-import glot_backend/request_policy/model/config as request_policy_config
-import glot_backend/run_code/model/config as run_code_config
+import glot_backend/app_config/model/system_config.{
+  type CleanupConfig, type DebugConfig, type HttpPoolConfig,
+}
+import glot_backend/auth/model/config.{type AuthConfig, type PasskeyConfig} as _
+import glot_backend/email/model/config.{type CloudflareConfig, type EmailConfig} as _
+import glot_backend/logging/ingestion/model/config.{type Config} as _
+import glot_backend/request_policy/model/config.{
+  type AvailabilityConfig, type RateLimitPolicy,
+} as _
+import glot_backend/run_code/model/config.{
+  type DockerRunConfig, type LanguageVersionCacheWorkerConfig,
+} as _
 import glot_core/availability_mode
 import glot_core/public_action.{type PublicAction}
 
-pub fn debug(value: system_config.DebugConfig) -> List(AppConfigEntry) {
+pub fn debug(value: DebugConfig) -> List(AppConfigEntry) {
   [entry("debug", "enabled", json.bool(value.enabled))]
 }
 
-pub fn availability(
-  value: request_policy_config.AvailabilityConfig,
-) -> List(AppConfigEntry) {
+pub fn availability(value: AvailabilityConfig) -> List(AppConfigEntry) {
   [
     entry("availability", "mode", availability_mode.encode(value.mode)),
     entry("availability", "message", json.string(value.message)),
@@ -28,7 +32,7 @@ pub fn availability(
   ]
 }
 
-pub fn auth(value: auth_feature_config.AuthConfig) -> List(AppConfigEntry) {
+pub fn auth(value: AuthConfig) -> List(AppConfigEntry) {
   [
     entry("auth", "login_token_max_age", json.int(value.login_token_max_age)),
     entry(
@@ -64,9 +68,7 @@ pub fn auth(value: auth_feature_config.AuthConfig) -> List(AppConfigEntry) {
   ]
 }
 
-pub fn passkey(
-  value: auth_feature_config.PasskeyConfig,
-) -> List(AppConfigEntry) {
+pub fn passkey(value: PasskeyConfig) -> List(AppConfigEntry) {
   [
     entry("passkey", "origin", json.string(value.origin)),
     entry("passkey", "rp_id", json.string(value.rp_id)),
@@ -78,7 +80,7 @@ pub fn passkey(
   ]
 }
 
-pub fn cleanup(value: system_config.CleanupConfig) -> List(AppConfigEntry) {
+pub fn cleanup(value: CleanupConfig) -> List(AppConfigEntry) {
   [
     entry(
       "cleanup",
@@ -119,7 +121,7 @@ pub fn cleanup(value: system_config.CleanupConfig) -> List(AppConfigEntry) {
   ]
 }
 
-pub fn log_worker(value: logging_config.Config) -> List(AppConfigEntry) {
+pub fn log_worker(value: Config) -> List(AppConfigEntry) {
   [
     entry("log_worker", "flush_interval_ms", json.int(value.flush_interval_ms)),
     entry("log_worker", "max_batch_size", json.int(value.max_batch_size)),
@@ -127,7 +129,7 @@ pub fn log_worker(value: logging_config.Config) -> List(AppConfigEntry) {
   ]
 }
 
-pub fn http_pool(value: system_config.HttpPoolConfig) -> List(AppConfigEntry) {
+pub fn http_pool(value: HttpPoolConfig) -> List(AppConfigEntry) {
   [
     entry(
       "http_pool",
@@ -148,7 +150,7 @@ pub fn http_pool(value: system_config.HttpPoolConfig) -> List(AppConfigEntry) {
 }
 
 pub fn language_version_cache_worker(
-  value: run_code_config.LanguageVersionCacheWorkerConfig,
+  value: LanguageVersionCacheWorkerConfig,
 ) -> List(AppConfigEntry) {
   [
     entry(
@@ -176,7 +178,7 @@ pub fn language_version_cache_worker(
 
 pub fn rate_limit(
   action: PublicAction,
-  value: request_policy_config.RateLimitPolicy,
+  value: RateLimitPolicy,
 ) -> List(AppConfigEntry) {
   [
     entry(
@@ -187,9 +189,7 @@ pub fn rate_limit(
   ]
 }
 
-pub fn docker_run(
-  value: run_code_config.DockerRunConfig,
-) -> List(AppConfigEntry) {
+pub fn docker_run(value: DockerRunConfig) -> List(AppConfigEntry) {
   [
     entry("docker_run", "base_url", json.string(value.base_url)),
     entry("docker_run", "access_token", json.string(value.access_token)),
@@ -201,16 +201,14 @@ pub fn docker_run(
   ]
 }
 
-pub fn cloudflare(
-  value: email_feature_config.CloudflareConfig,
-) -> List(AppConfigEntry) {
+pub fn cloudflare(value: CloudflareConfig) -> List(AppConfigEntry) {
   [
     entry("cloudflare", "account_id", json.string(value.account_id)),
     entry("cloudflare", "api_token", json.string(value.api_token)),
   ]
 }
 
-pub fn email(value: email_feature_config.EmailConfig) -> List(AppConfigEntry) {
+pub fn email(value: EmailConfig) -> List(AppConfigEntry) {
   [
     entry("email", "from_address", json.string(value.from_address)),
     entry("email", "from_name", json.nullable(value.from_name, json.string)),
@@ -223,6 +221,6 @@ pub fn email(value: email_feature_config.EmailConfig) -> List(AppConfigEntry) {
   ]
 }
 
-fn entry(namespace: String, key: String, value: json.Json) -> AppConfigEntry {
+fn entry(namespace: String, key: String, value: Json) -> AppConfigEntry {
   entry.AppConfigEntry(namespace:, key:, value: json.to_string(value))
 }

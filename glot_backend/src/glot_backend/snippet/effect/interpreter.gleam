@@ -43,6 +43,21 @@ pub fn run(
         ),
       )
     }
+    snippet_algebra.GetSnippetBySlugForUpdate(slug, next) -> {
+      let started_at = erlang.perf_counter_ns()
+      let result = store.get_snippet_by_slug_for_update(slug)
+      continue(
+        next(result),
+        program_state.add_effect_measurement(
+          state,
+          effect_trace.SnippetEffectName(
+            snippet_algebra.GetSnippetBySlugForUpdateEffectName,
+          ),
+          effect_trace.DatabaseReadEffect,
+          started_at,
+        ),
+      )
+    }
     snippet_algebra.GetAdminSnippetBySlug(slug, next) -> {
       let started_at = erlang.perf_counter_ns()
       let result = store.get_admin_snippet_by_slug(slug)

@@ -17,6 +17,11 @@ pub type SnippetEffect(next) {
     next: fn(Result(option.Option(HydratedSnippet), db_error.DbQueryError)) ->
       next,
   )
+  GetSnippetBySlugForUpdate(
+    slug: String,
+    next: fn(Result(option.Option(HydratedSnippet), db_error.DbQueryError)) ->
+      next,
+  )
   GetAdminSnippetBySlug(
     slug: String,
     next: fn(Result(option.Option(HydratedSnippet), db_error.DbQueryError)) ->
@@ -56,6 +61,8 @@ pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
       GetSnippetById(id, next: fn(value) { f(next(value)) })
     GetSnippetBySlug(slug, next) ->
       GetSnippetBySlug(slug, next: fn(value) { f(next(value)) })
+    GetSnippetBySlugForUpdate(slug, next) ->
+      GetSnippetBySlugForUpdate(slug, next: fn(value) { f(next(value)) })
     GetAdminSnippetBySlug(slug, next) ->
       GetAdminSnippetBySlug(slug, next: fn(value) { f(next(value)) })
     ListSnippets(filter:, pagination:, next:) ->
@@ -84,6 +91,7 @@ pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
 pub type EffectName {
   GetSnippetByIdEffectName
   GetSnippetBySlugEffectName
+  GetSnippetBySlugForUpdateEffectName
   GetAdminSnippetBySlugEffectName
   ListSnippetsEffectName
   ListAdminSnippetsEffectName
@@ -97,6 +105,7 @@ pub fn effect_name_to_string(name: EffectName) -> String {
   case name {
     GetSnippetByIdEffectName -> "get_snippet_by_id"
     GetSnippetBySlugEffectName -> "get_snippet_by_slug"
+    GetSnippetBySlugForUpdateEffectName -> "get_snippet_by_slug_for_update"
     GetAdminSnippetBySlugEffectName -> "get_admin_snippet_by_slug"
     ListSnippetsEffectName -> "list_snippets"
     ListAdminSnippetsEffectName -> "list_admin_snippets"

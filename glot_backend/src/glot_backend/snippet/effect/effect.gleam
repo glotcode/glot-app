@@ -104,10 +104,10 @@ pub fn get_by_id_tx(
   program_types.TxImpure(get_by_id_effect(id, tx_query_next))
 }
 
-pub fn get_by_slug_tx(
+pub fn get_by_slug_for_update_tx(
   slug: String,
 ) -> program_types.TransactionProgram(option.Option(HydratedSnippet)) {
-  program_types.TxImpure(get_by_slug_effect(slug, tx_query_next))
+  program_types.TxImpure(get_by_slug_for_update_effect(slug, tx_query_next))
 }
 
 pub fn create_tx(
@@ -164,6 +164,17 @@ fn get_by_slug_effect(
     next,
 ) -> program_types.DbEffect(next) {
   program_types.SnippetEffect(snippet_algebra.GetSnippetBySlug(
+    slug:,
+    next: next,
+  ))
+}
+
+fn get_by_slug_for_update_effect(
+  slug: String,
+  next: fn(Result(option.Option(HydratedSnippet), db_error.DbQueryError)) ->
+    next,
+) -> program_types.DbEffect(next) {
+  program_types.SnippetEffect(snippet_algebra.GetSnippetBySlugForUpdate(
     slug:,
     next: next,
   ))

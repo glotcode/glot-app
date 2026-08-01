@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/option
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/job/effect/job/effect as job_effect
@@ -6,17 +6,17 @@ import glot_backend/request_policy/api_action as api_action_policy
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/resource_error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/job_dto
+import glot_core/admin/job_dto.{type GetJobRequest, type GetJobResponse}
 import glot_core/admin_action
 import glot_core/api_action
 
 pub fn get_job(
-  request_ctx: request_context.RequestContext,
-  request: job_dto.GetJobRequest,
-) -> program_types.Program(job_dto.GetJobResponse) {
+  request_ctx: RequestContext,
+  request: GetJobRequest,
+) -> Program(GetJobResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -34,8 +34,6 @@ pub fn get_job(
   program.succeed(job_dto.from_job_detail(job, ctx.timestamp))
 }
 
-pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(job_dto.GetJobRequest) {
+pub fn request_from_dynamic(data: Dynamic) -> Program(GetJobRequest) {
   program.decode_dynamic(data, job_dto.get_request_decoder())
 }

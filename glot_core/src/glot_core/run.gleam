@@ -96,16 +96,17 @@ pub fn run_request_payload_decoder() -> decode.Decoder(RunRequestPayload) {
 
 pub fn validate_request(
   request: RunRequest,
-) -> Result(Nil, validation_error.ValidationError) {
-  use _ <- result.try(validate_image(request.image))
-  validate_payload(request.payload)
+) -> Result(language.Language, validation_error.ValidationError) {
+  use request_language <- result.try(validate_image(request.image))
+  use _ <- result.try(validate_payload(request.payload))
+  Ok(request_language)
 }
 
 fn validate_image(
   image: String,
-) -> Result(Nil, validation_error.ValidationError) {
+) -> Result(language.Language, validation_error.ValidationError) {
   case language.from_container_image(image) {
-    option.Some(_) -> Ok(Nil)
+    option.Some(language) -> Ok(language)
     option.None -> Error(validation_error.UnknownRunLanguage(image))
   }
 }

@@ -7,6 +7,9 @@ pub fn defaults() -> store.Store {
   store.Store(
     get_snippet_by_id: fn(_) { unexpected.query("snippet.get_by_id") },
     get_snippet_by_slug: fn(_) { unexpected.query("snippet.get_by_slug") },
+    get_snippet_by_slug_for_update: fn(_) {
+      unexpected.query("snippet.get_by_slug_for_update")
+    },
     get_admin_snippet_by_slug: fn(_) {
       unexpected.query("snippet.get_admin_by_slug")
     },
@@ -27,6 +30,9 @@ pub fn new(test_state: state.State) -> store.Store {
       Ok(snippet.find_by_id(state.get(test_state), id))
     },
     get_snippet_by_slug: fn(slug) {
+      Ok(snippet.find_by_slug(state.get(test_state), slug))
+    },
+    get_snippet_by_slug_for_update: fn(slug) {
       Ok(snippet.find_by_slug(state.get(test_state), slug))
     },
     get_admin_snippet_by_slug: fn(slug) {

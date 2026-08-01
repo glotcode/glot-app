@@ -1,4 +1,4 @@
-import gleam/option
+import gleam/option.{type Option}
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/auth/effect/account as account_effect
 import glot_backend/job/effect/job/effect as job_effect
@@ -8,18 +8,21 @@ import glot_backend/system/effect/error
 import glot_backend/system/effect/error/resource_error
 import glot_backend/system/effect/log
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
+import glot_backend/system/effect/program_types.{
+  type Program, type TransactionProgram,
+}
 import glot_backend/system/effect/transaction/transaction_effect
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/transaction/transaction_program
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
-import glot_core/auth/account_model
-import glot_core/job/job_model
+import glot_core/auth/account_model.{type Account}
+import glot_core/job/job_model.{type Job}
 import glot_core/public_action
+import glot_core/user_action.{type UserAction}
+import youid/uuid.{type Uuid}
 
-pub fn cancel_delete_account(
-  request_ctx: request_context.RequestContext,
-) -> program_types.Program(Nil) {
+pub fn cancel_delete_account(request_ctx: RequestContext) -> Program(Nil) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -58,20 +61,38 @@ pub fn cancel_delete_account(
       ctx.timestamp,
     )
 
-  case maybe_job {
-    option.Some(job)
-      if job.job_type == job_model.DeleteAccountJob
-      && job.status == job_model.Pending
-    ->
-      transaction_effect.run_all([
-        job_effect.delete_job_tx(delete_job_id),
-        account_effect.update_account_tx(updated_account),
-        user_action_effect.create_user_action_tx(user_action),
-      ])
-    _ ->
-      transaction_effect.run_all([
-        account_effect.update_account_tx(updated_account),
-        user_action_effect.create_user_action_tx(user_action),
-      ])
+  prepare_cancel_delete_mutations(
+    maybe_job,
+    delete_job_id,
+    updated_account,
+    user_action,
+  )
+  |> transaction_program.sequence
+  |> transaction_effect.run()
+}
+
+fn prepare_cancel_delete_mutations(
+  maybe_job: Option(Job),
+  delete_job_id: Uuid,
+  updated_account: Account,
+  user_action: UserAction,
+) -> List(TransactionProgram(Nil)) {
+  let common_mutations = [
+    account_effect.update_account_tx(updated_account),
+    user_action_effect.create_user_action_tx(user_action),
+  ]
+
+  let should_delete_job =
+    maybe_job
+    |> option.map(is_pending_delete_job)
+    |> option.unwrap(False)
+
+  case should_delete_job {
+    True -> [job_effect.delete_job_tx(delete_job_id), ..common_mutations]
+    False -> common_mutations
   }
+}
+
+fn is_pending_delete_job(job: Job) -> Bool {
+  job.job_type == job_model.DeleteAccountJob && job.status == job_model.Pending
 }

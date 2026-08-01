@@ -308,7 +308,7 @@ pub fn validate_run_request_accepts_valid_payload_test() {
         stdin: option.Some("input"),
       ),
     ))
-    == Ok(Nil)
+    == Ok(language.Python)
 }
 
 pub fn validate_run_request_rejects_unknown_image_test() {
@@ -395,6 +395,20 @@ pub fn timestamp_from_unix_milliseconds_test() {
 
   assert timestamp.to_unix_seconds_and_nanoseconds(ts)
     == #(1_234_567, 890_000_000)
+}
+
+pub fn timestamp_add_and_subtract_seconds_test() {
+  let value = timestamp.from_unix_seconds_and_nanoseconds(100, 42)
+
+  assert value
+    |> timestamp_helpers.add_seconds(25)
+    |> timestamp.to_unix_seconds_and_nanoseconds
+    == #(125, 42)
+
+  assert value
+    |> timestamp_helpers.subtract_seconds(25)
+    |> timestamp.to_unix_seconds_and_nanoseconds
+    == #(75, 42)
 }
 
 pub fn paginate_initial_page_test() {

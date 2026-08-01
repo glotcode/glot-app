@@ -1,24 +1,29 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/list
 import gleam/option
 import glot_backend/app_config/effect/effect as app_config_effect
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/request_policy/api_action as api_action_policy
-import glot_backend/request_policy/model/config as request_policy_config
+import glot_backend/request_policy/model/config.{
+  type RateLimitMatch, type RateLimitPolicy,
+} as request_policy_config
 import glot_backend/system/effect/error
 import glot_backend/system/effect/program
-import glot_backend/system/effect/program_types
-import glot_backend/system/request/hydrated_context as request_context
+import glot_backend/system/effect/program_types.{type Program}
+import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
-import glot_core/admin/rate_limit_config_dto
+import glot_core/admin/rate_limit_config_dto.{
+  type RateLimitPolicyResponse, type RateLimitRule, type RuleMatch,
+  type UpsertRateLimitPolicyRequest,
+}
 import glot_core/admin_action
 import glot_core/api_action
 import glot_core/validation_error
 
 pub fn upsert_rate_limit_policy(
-  request_ctx: request_context.RequestContext,
-  request: rate_limit_config_dto.UpsertRateLimitPolicyRequest,
-) -> program_types.Program(rate_limit_config_dto.RateLimitPolicyResponse) {
+  request_ctx: RequestContext,
+  request: UpsertRateLimitPolicyRequest,
+) -> Program(RateLimitPolicyResponse) {
   let ctx = request_ctx.context
 
   use session <- program.and_then(current_session.require_session(request_ctx))
@@ -42,14 +47,12 @@ pub fn upsert_rate_limit_policy(
 }
 
 pub fn request_from_dynamic(
-  data: dynamic.Dynamic,
-) -> program_types.Program(rate_limit_config_dto.UpsertRateLimitPolicyRequest) {
+  data: Dynamic,
+) -> Program(UpsertRateLimitPolicyRequest) {
   program.decode_dynamic(data, rate_limit_config_dto.decoder())
 }
 
-fn validate_request(
-  request: rate_limit_config_dto.UpsertRateLimitPolicyRequest,
-) -> program_types.Program(Nil) {
+fn validate_request(request: UpsertRateLimitPolicyRequest) -> Program(Nil) {
   case list.is_empty(request.rules) {
     True -> program.fail(error.validation(validation_error.RulesMissing))
     False -> program.succeed(Nil)
@@ -57,8 +60,8 @@ fn validate_request(
 }
 
 fn policy_from_request(
-  request: rate_limit_config_dto.UpsertRateLimitPolicyRequest,
-) -> request_policy_config.RateLimitPolicy {
+  request: UpsertRateLimitPolicyRequest,
+) -> RateLimitPolicy {
   request_policy_config.RateLimitPolicy(rules: list.map(
     request.rules,
     policy_rule_from_dto_rule,
@@ -66,7 +69,7 @@ fn policy_from_request(
 }
 
 fn policy_rule_from_dto_rule(
-  rule: rate_limit_config_dto.RateLimitRule,
+  rule: RateLimitRule,
 ) -> request_policy_config.RateLimitRule {
   request_policy_config.RateLimitRule(
     match: policy_match_from_dto_match(rule.match),
@@ -74,9 +77,7 @@ fn policy_rule_from_dto_rule(
   )
 }
 
-fn policy_match_from_dto_match(
-  rule_match: rate_limit_config_dto.RuleMatch,
-) -> request_policy_config.RateLimitMatch {
+fn policy_match_from_dto_match(rule_match: RuleMatch) -> RateLimitMatch {
   case rule_match {
     rate_limit_config_dto.AnonymousMatch -> request_policy_config.AnonymousMatch
     rate_limit_config_dto.AuthenticatedMatch(account_tiers: account_tiers) ->
