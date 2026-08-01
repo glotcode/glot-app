@@ -4,6 +4,7 @@ import gleeunit
 import glot_core/loadable
 import glot_core/pagination_model
 import glot_core/route
+import glot_core/run
 import glot_core/snippet/snippet_dto
 import glot_frontend/api/response
 import glot_frontend/app/public_managed
@@ -12,15 +13,19 @@ import glot_frontend/app/public_page_message
 import glot_frontend/app/public_page_state
 import glot_frontend/app/public_root_managed
 import glot_frontend/navigation
+import glot_frontend/public/editor/command as editor_command
+import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle as editor_lifecycle
 import glot_frontend/public/editor/message as editor_message
 import glot_frontend/public/editor/model as editor_model
+import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/settings as editor_settings
 import glot_frontend/public/home/message
 import glot_frontend/public/login/message as login_message
 import glot_frontend/public/snippets/command as snippets_command
 import glot_frontend/public/snippets/message as snippets_message
 import glot_frontend/public/snippets/model as snippets_model
+import support/editor_fixture
 import youid/uuid
 
 pub fn main() -> Nil {
@@ -88,9 +93,10 @@ pub fn navigation_keeps_the_current_page_until_snippets_are_loaded_test() {
   assert public_root_managed.is_transitioning(loading)
   let assert public_root_managed.Batch([
     public_root_managed.CloseQuickActions,
-    public_root_managed.RunPage(public_page_command.Snippets(snippets_command.LoadSsr(
-      _,
-    ))),
+    public_root_managed.RunPage(
+      destination,
+      public_page_command.Snippets(snippets_command.LoadSsr(_)),
+    ),
     public_root_managed.TrackPageview(tracked_destination),
   ]) = loading_command
   assert tracked_destination == destination
@@ -150,10 +156,14 @@ pub fn slow_navigation_presents_the_destination_loading_state_after_its_delay_te
         )),
       ),
     )
-  let assert public_root_managed.RunPage(public_page_command.Snippets(snippets_command.Batch([
-    snippets_command.ListPublicSnippets(_, _),
-    snippets_command.Schedule(_, delay_elapsed),
-  ]))) = start_command
+  let assert public_root_managed.RunPage(
+    command_origin,
+    public_page_command.Snippets(snippets_command.Batch([
+      snippets_command.ListPublicSnippets(_, _),
+      snippets_command.Schedule(_, delay_elapsed),
+    ])),
+  ) = start_command
+  assert command_origin == destination
   let assert public_page_state.Home(_) =
     public_root_managed.presented_page(request_started)
 
@@ -397,7 +407,10 @@ pub fn page_app_events_are_lifted_into_root_commands_test() {
 
   let assert public_page_state.Login(_) = logged_in.lifecycle.page_model
   let assert public_root_managed.Batch([
-    public_root_managed.RunPage(public_page_command.Login(_)),
+    public_root_managed.RunPage(
+      route.Public(route.Login),
+      public_page_command.Login(_),
+    ),
     public_root_managed.GetSession,
   ]) = command
 }
@@ -422,9 +435,123 @@ pub fn editor_metadata_is_applied_when_the_resulting_state_changes_it_test() {
   let assert public_page_state.Editor(editor_model.Ready(_)) =
     loaded.lifecycle.page_model
   let assert public_root_managed.Batch([
-    public_root_managed.RunPage(public_page_command.Editor(_)),
+    public_root_managed.RunPage(command_origin, public_page_command.Editor(_)),
     public_root_managed.ApplyMetadata,
   ]) = command
+  assert command_origin == target
+}
+
+pub fn late_run_response_from_previous_snippet_is_ignored_test() {
+  let first_route = route.Public(route.Snippet("slow-snippet"))
+  let second_route = route.Public(route.Snippet("fast-snippet"))
+  let #(initial, _) = init(first_route)
+  let first = load_snippet(initial, "slow-snippet")
+  let #(first_running, first_run_command) = submit_run(first)
+  let assert public_root_managed.RunPage(
+    first_origin,
+    public_page_command.Editor(editor_command.RunCode(_, finish_first)),
+  ) = first_run_command
+  assert first_origin == first_route
+
+  let #(second_loading, _) =
+    public_root_managed.update(
+      first_running,
+      public_root_managed.LifecycleMsg(public_managed.UserNavigatedTo(
+        second_route,
+      )),
+    )
+  let second = load_snippet(second_loading, "fast-snippet")
+  let #(second_running, second_run_command) = submit_run(second)
+  let assert public_root_managed.RunPage(
+    second_origin,
+    public_page_command.Editor(editor_command.RunCode(_, finish_second)),
+  ) = second_run_command
+  assert second_origin == second_route
+
+  let #(second_finished, _) =
+    public_root_managed.update(
+      second_running,
+      public_root_managed.PageEffectMsg(
+        second_route,
+        public_page_message.EditorPageMsg(
+          finish_second(editor_fixture.successful_run(
+            stdout: "fast response",
+            stderr: "",
+            error: "",
+          )),
+        ),
+      ),
+    )
+  let #(after_late_response, command) =
+    public_root_managed.update(
+      second_finished,
+      public_root_managed.PageEffectMsg(
+        first_route,
+        public_page_message.EditorPageMsg(
+          finish_first(editor_fixture.successful_run(
+            stdout: "slow response",
+            stderr: "",
+            error: "",
+          )),
+        ),
+      ),
+    )
+
+  let assert public_page_state.Editor(editor_model.Ready(editor)) =
+    after_late_response.lifecycle.page_model
+  assert operations.execution_state(editor.operations)
+    == execution_operation.Completed(
+      Ok(run.SuccessfulRun(1_000_000, "fast response", "", "")),
+    )
+  assert command == public_root_managed.None
+}
+
+fn load_snippet(
+  model: public_root_managed.Model,
+  slug: String,
+) -> public_root_managed.Model {
+  let target = editor_lifecycle.ExistingEditor(slug)
+  let #(loading, _) =
+    public_root_managed.update(
+      model,
+      public_root_managed.PageMsg(
+        public_page_message.EditorPageMsg(
+          editor_message.Lifecycle(editor_message.EnvironmentLoaded(
+            target,
+            "",
+            editor_settings.defaults(),
+          )),
+        ),
+      ),
+    )
+  let #(loaded, _) =
+    public_root_managed.update(
+      loading,
+      public_root_managed.PageMsg(
+        public_page_message.EditorPageMsg(
+          editor_message.Lifecycle(editor_message.SnippetLoaded(
+            slug,
+            response.Success(editor_fixture.snippet(slug, slug)),
+          )),
+        ),
+      ),
+    )
+  loaded
+}
+
+fn submit_run(
+  model: public_root_managed.Model,
+) -> #(public_root_managed.Model, public_root_managed.Command) {
+  public_root_managed.update(
+    model,
+    public_root_managed.PageMsg(
+      public_page_message.EditorPageMsg(
+        editor_message.Editor(editor_message.Execution(
+          editor_message.RunSubmitted,
+        )),
+      ),
+    ),
+  )
 }
 
 fn init(

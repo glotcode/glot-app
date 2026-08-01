@@ -38,6 +38,7 @@ pub type Msg {
   NavigationObserved(route.Route, Presentation)
   NavigationPrepared(route.Route, Presentation)
   PageMsg(public_page_message.Msg)
+  PageEffectMsg(route.Route, public_page_message.Msg)
   QuickActionsMsg(quick_actions_managed.Msg)
   QuickActionSelected(QuickActionTarget)
   EditorRunShortcutPressed
@@ -46,7 +47,7 @@ pub type Msg {
 pub type Command {
   None
   Batch(List(Command))
-  RunPage(public_page_command.Command)
+  RunPage(route.Route, public_page_command.Command)
   GetSession
   RefreshSession
   TrackPageview(route.Route)
@@ -86,7 +87,7 @@ pub fn init(
     model,
     batch([
       ObserveNavigation,
-      from_lifecycle_command(lifecycle_command),
+      from_lifecycle_command(lifecycle_command, lifecycle.route),
       BindKeyboardShortcuts,
     ]),
   )
@@ -108,6 +109,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
     NavigationPrepared(destination, presentation) ->
       navigation_observed(model, destination, presentation)
     PageMsg(page_msg) -> update_page(model, page_msg)
+    PageEffectMsg(origin, page_msg) ->
+      case origin == model.lifecycle.route {
+        True -> update_page(model, page_msg)
+        False -> #(model, None)
+      }
     QuickActionsMsg(quick_action_msg) ->
       quick_actions_root_managed.update(
         model,
@@ -180,7 +186,7 @@ fn update_lifecycle(
   let next_model = Model(..model, lifecycle:, presentation:)
   let lifecycle_command =
     command
-    |> from_lifecycle_command
+    |> from_lifecycle_command(lifecycle.route)
     |> keep_metadata_unless_transitioning(presentation)
   let lifecycle_command = case
     page_presentation.did_present(presentation_transition),
@@ -245,7 +251,7 @@ fn update_page(
       #(
         next_model,
         batch([
-          run_page(transition.command),
+          run_page(transition.command, model.lifecycle.route),
           command_for_app_event(transition.event),
           metadata_command,
         ]),
@@ -355,14 +361,15 @@ fn without_metadata(command: Command) -> Command {
 
 fn from_lifecycle_command(
   command: public_managed.Command(public_page_command.Command),
+  origin: route.Route,
 ) -> Command {
   case command {
     public_managed.None -> None
     public_managed.Batch(commands) ->
       commands
-      |> list.map(from_lifecycle_command)
+      |> list.map(fn(command) { from_lifecycle_command(command, origin) })
       |> batch
-    public_managed.RunPage(page_command) -> run_page(page_command)
+    public_managed.RunPage(page_command) -> run_page(page_command, origin)
     public_managed.GetSession -> GetSession
     public_managed.RefreshSession -> RefreshSession
     public_managed.TrackPageview(target) -> TrackPageview(target)
@@ -372,10 +379,13 @@ fn from_lifecycle_command(
   }
 }
 
-fn run_page(command: public_page_command.Command) -> Command {
+fn run_page(
+  command: public_page_command.Command,
+  origin: route.Route,
+) -> Command {
   case public_page_command.is_none(command) {
     True -> None
-    False -> RunPage(command)
+    False -> RunPage(origin, command)
   }
 }
 

@@ -27,9 +27,9 @@ pub fn run(
     public_root_managed.None -> effect.none()
     public_root_managed.Batch(commands) ->
       effect.batch(list.map(commands, fn(command) { run(command, model) }))
-    public_root_managed.RunPage(page_command) ->
+    public_root_managed.RunPage(origin, page_command) ->
       public_page_production.run(page_command)
-      |> effect.map(public_root_managed.PageMsg)
+      |> effect.map(fn(msg) { public_root_managed.PageEffectMsg(origin, msg) })
     public_root_managed.GetSession ->
       account_api.get_session(fn(result) {
         public_root_managed.LifecycleMsg(public_managed.SessionLoaded(result))
