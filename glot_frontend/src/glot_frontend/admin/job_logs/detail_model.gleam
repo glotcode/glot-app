@@ -5,3 +5,7 @@ import youid/uuid
 pub type Model {
   Model(id: uuid.Uuid, log: loadable.Loadable(job_log_dto.JobLogDetailResponse))
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  loadable.is_terminal(model.log)
+}

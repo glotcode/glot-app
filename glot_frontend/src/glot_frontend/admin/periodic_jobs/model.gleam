@@ -73,3 +73,10 @@ pub type EditorState {
   Saved
   SaveError(String)
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  case model.status {
+    Ready | LoadError(_) -> True
+    NotLoaded | Loading -> False
+  }
+}

@@ -20,3 +20,7 @@ pub type Draft {
     html_body_template: String,
   )
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  loadable.is_terminal(model.template)
+}

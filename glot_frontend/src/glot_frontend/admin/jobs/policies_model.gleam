@@ -42,3 +42,7 @@ pub type Field {
   BaseBackoffSecondsField
   MaxBackoffSecondsField
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  loadable.is_terminal(model.policies)
+}

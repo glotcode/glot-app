@@ -11,6 +11,7 @@ import glot_frontend/admin/command
 import glot_frontend/admin/effect/config
 import glot_frontend/admin/effect/users
 import glot_frontend/admin/router_message
+import glot_frontend/admin/router_state
 import glot_frontend/api/response
 import glot_frontend/app/admin_managed
 import glot_frontend/app/admin_root_managed
@@ -50,9 +51,13 @@ pub fn authenticated_navigation_loads_and_accepts_the_initial_response_test() {
       command.Config(config.GetRateLimits(complete)),
     ])),
     admin_root_managed.TrackPageview(route.Admin(route.AdminRateLimits)),
+    admin_root_managed.ScheduleNavigationLoading(_, loading_generation),
   ]) = navigation_command
+  let assert router_state.AdminPage(_) =
+    router_state.page(admin_root_managed.presented_page(loading))
+  assert admin_root_managed.is_transitioning(loading)
 
-  let #(failed, _) =
+  let #(failed, failure_command) =
     update_lifecycle(
       loading,
       admin_managed.AdminPagesMsg(
@@ -65,10 +70,22 @@ pub fn authenticated_navigation_loads_and_accepts_the_initial_response_test() {
         ),
       ),
     )
+  assert failure_command == admin_root_managed.CommitNavigation
+  assert !admin_root_managed.is_transitioning(failed)
+  let assert router_state.AdminRateLimitsPage(_) =
+    router_state.page(admin_root_managed.presented_page(failed))
   let rendered =
     admin_root_view.view(failed)
     |> element.to_document_string
   assert string.contains(rendered, "Navigation request completed.")
+
+  let #(after_stale_delay, stale_delay_command) =
+    admin_root_managed.update(
+      failed,
+      admin_root_managed.NavigationLoadingDelayElapsed(loading_generation),
+    )
+  assert after_stale_delay == failed
+  assert stale_delay_command == admin_root_managed.None
 }
 
 pub fn response_from_page_left_during_navigation_is_ignored_test() {
@@ -86,6 +103,7 @@ pub fn response_from_page_left_during_navigation_is_ignored_test() {
       command.Config(config.GetRateLimits(rate_loaded)),
     ])),
     admin_root_managed.TrackPageview(_),
+    admin_root_managed.ScheduleNavigationLoading(_, _),
   ]) = rate_command
 
   let #(users_page, users_command) =
@@ -100,6 +118,7 @@ pub fn response_from_page_left_during_navigation_is_ignored_test() {
       command.Users(users.GetUsers(_, _)),
     ])),
     admin_root_managed.TrackPageview(_),
+    admin_root_managed.ScheduleNavigationLoading(_, _),
   ]) = users_command
 
   let stale =
@@ -111,6 +130,34 @@ pub fn response_from_page_left_during_navigation_is_ignored_test() {
 
   assert unchanged == users_page
   assert next_command == admin_root_managed.None
+}
+
+pub fn slow_admin_navigation_presents_its_loading_page_after_the_delay_test() {
+  let #(initial, _) = init(route.Admin(route.AdminHome))
+  let #(authenticated, _) = authenticate(initial)
+  let destination = route.Admin(route.AdminRateLimits)
+  let #(loading, navigation_command) =
+    update_lifecycle(authenticated, admin_managed.UserNavigatedTo(destination))
+  let assert admin_root_managed.Batch([
+    admin_root_managed.CloseQuickActions,
+    admin_root_managed.RunAdmin(_),
+    admin_root_managed.TrackPageview(_),
+    admin_root_managed.ScheduleNavigationLoading(_, generation),
+  ]) = navigation_command
+
+  let #(delayed, command) =
+    admin_root_managed.update(
+      loading,
+      admin_root_managed.NavigationLoadingDelayElapsed(generation),
+    )
+
+  assert command == admin_root_managed.CommitNavigation
+  assert !admin_root_managed.is_transitioning(delayed)
+  assert admin_root_managed.presented_route(delayed) == destination
+  let rendered =
+    admin_root_view.view(delayed)
+    |> element.to_document_string
+  assert string.contains(rendered, "Loading policies...")
 }
 
 pub fn navigation_closes_quick_actions_and_lifts_lifecycle_commands_test() {

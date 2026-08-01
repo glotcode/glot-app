@@ -54,3 +54,32 @@ pub fn new(page_model: PageModel) -> Model {
 pub fn page(model: Model) -> PageModel {
   model.page_model
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  case page(model) {
+    AdminPage(_) | EmptyPageModel -> True
+    AdminApiLogsPage(model) -> admin_api_logs_page.is_presentable(model)
+    AdminApiLogPage(model) -> admin_api_log_page.is_presentable(model)
+    AdminRunLogsPage(model) -> admin_run_logs_page.is_presentable(model)
+    AdminRunLogPage(model) -> admin_run_log_page.is_presentable(model)
+    AdminPeriodicJobsPage(model) ->
+      admin_periodic_jobs_page.is_presentable(model)
+    AdminPeriodicJobPage(model) -> admin_periodic_job_page.is_presentable(model)
+    AdminUsersPage(model) -> admin_users_page.is_presentable(model)
+    AdminUserPage(model) -> admin_user_page.is_presentable(model)
+    AdminJobsPage(model) -> admin_jobs_page.is_presentable(model)
+    AdminJobPage(model) -> admin_job_page.is_presentable(model)
+    AdminEmailTemplatesPage(model) ->
+      admin_email_templates_page.is_presentable(model)
+    AdminEmailTemplatePage(model) ->
+      admin_email_template_page.is_presentable(model)
+    AdminSnippetsPage(model) -> admin_snippets_page.is_presentable(model)
+    AdminSnippetPage(model) -> admin_snippet_page.is_presentable(model)
+    AdminJobLogsPage(model) -> admin_job_logs_page.is_presentable(model)
+    AdminJobLogPage(model) -> admin_job_log_page.is_presentable(model)
+    AdminConfigPage(model) -> admin_config_page.is_presentable(model)
+    AdminRateLimitsPage(model) -> admin_rate_limits_page.is_presentable(model)
+    AdminJobTypePoliciesPage(model) ->
+      admin_job_type_policies_page.is_presentable(model)
+  }
+}

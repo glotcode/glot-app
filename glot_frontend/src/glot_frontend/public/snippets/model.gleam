@@ -24,9 +24,6 @@ pub type Request {
 }
 
 pub fn is_presentable(model: Model) -> Bool {
-  case model.page {
-    loadable.Loaded(_) | loadable.LoadError(_) -> True
-    loadable.NotLoaded | loadable.Loading ->
-      delayed_loading.is_visible(model.loading_indicator)
-  }
+  loadable.is_terminal(model.page)
+  || delayed_loading.is_visible(model.loading_indicator)
 }

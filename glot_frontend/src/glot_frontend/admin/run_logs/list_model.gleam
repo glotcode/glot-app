@@ -27,3 +27,7 @@ pub type Model {
     request_generation: cursor_request.State,
   )
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  loadable.is_terminal(model.page)
+}

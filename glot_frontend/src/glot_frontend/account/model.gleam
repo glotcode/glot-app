@@ -61,13 +61,6 @@ pub type PasskeysStatus {
 }
 
 pub fn is_presentable(model: Model) -> Bool {
-  loadable_has_finished(model.account)
+  loadable.is_terminal(model.account)
   || delayed_loading.is_visible(model.account_loading_indicator)
-}
-
-fn loadable_has_finished(value: loadable.Loadable(a)) -> Bool {
-  case value {
-    loadable.Loaded(_) | loadable.LoadError(_) -> True
-    loadable.NotLoaded | loadable.Loading -> False
-  }
 }

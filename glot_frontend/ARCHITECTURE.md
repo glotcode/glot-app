@@ -94,14 +94,14 @@ production interpreters are thin effectful shells.
 
 ### Route presentation
 
-Public SPA navigation separates the page being prepared from the page being
-presented. The router may initialize a destination and run its commands while
+SPA navigation separates the page being prepared from the page being
+presented. A router may initialize a destination and run its commands while
 `app/page_presentation` keeps the previous page mounted. The destination is
-committed atomically once `public_page_state.is_presentable` reports that it
-can render meaningful content. Metadata is committed with the presented page,
-not when loading starts. Browser scrolling and focus are also deferred until
-the same presentation commit; changing browser history alone must not mutate
-the outgoing document.
+committed atomically once its root page state reports that it can render
+meaningful content. Public metadata is committed with the presented page, not
+when loading starts. Browser scrolling and focus are also deferred until the
+same presentation commit; changing browser history alone must not mutate the
+outgoing document.
 
 This mirrors document navigation: the current document remains visible while
 the next one is loading. New asynchronous page variants must define their
@@ -110,7 +110,10 @@ states, and deliberately revealed delayed-loading states are presentable;
 transient initialization and hidden loading states are not. Request identity
 still belongs to each feature and must reject stale responses. Each feature
 model owns its presentability decision, while `public_page_state` only combines
-those decisions across page variants.
+those decisions across public page variants and `admin/router_state` combines
+them across admin variants. Admin navigation owns one root-level delayed loader
+because its pages expose immediate loading states rather than feature-level
+loading-delay streams.
 
 ## Presentation
 

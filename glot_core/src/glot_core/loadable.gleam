@@ -35,3 +35,12 @@ pub fn is_loading(state: Loadable(data)) -> Bool {
     NotLoaded | Loaded(_) | LoadError(_) -> False
   }
 }
+
+/// Whether loading has reached a state that can be meaningfully presented.
+/// Both successful values and terminal errors are presentable outcomes.
+pub fn is_terminal(state: Loadable(data)) -> Bool {
+  case state {
+    Loaded(_) | LoadError(_) -> True
+    NotLoaded | Loading -> False
+  }
+}

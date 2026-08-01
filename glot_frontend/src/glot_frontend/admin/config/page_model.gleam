@@ -9,6 +9,7 @@ import glot_frontend/admin/config/http_pool
 import glot_frontend/admin/config/language_version_cache_worker
 import glot_frontend/admin/config/log_worker
 import glot_frontend/admin/config/passkey
+import glot_frontend/admin/config/section
 
 pub type Model {
   Model(
@@ -24,4 +25,18 @@ pub type Model {
     cloudflare: cloudflare.Model,
     email: email.Model,
   )
+}
+
+pub fn is_presentable(model: Model) -> Bool {
+  section.is_presentable(model.debug)
+  && section.is_presentable(model.availability)
+  && section.is_presentable(model.auth)
+  && section.is_presentable(model.passkey)
+  && section.is_presentable(model.cleanup)
+  && section.is_presentable(model.log_worker)
+  && section.is_presentable(model.http_pool)
+  && section.is_presentable(model.language_version_cache_worker)
+  && section.is_presentable(model.docker_run)
+  && section.is_presentable(model.cloudflare)
+  && section.is_presentable(model.email)
 }

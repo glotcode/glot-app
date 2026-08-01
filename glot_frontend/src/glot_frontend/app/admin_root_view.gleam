@@ -24,15 +24,16 @@ fn admin_view(
 ) -> Element(admin_root_managed.Msg) {
   let page_content =
     router_view.view(
-      router_state.page(model.lifecycle.page_model),
+      router_state.page(admin_root_managed.presented_page(model)),
       model.lifecycle.runtime.now,
     )
     |> element.map(fn(msg) {
       admin_root_managed.LifecycleMsg(admin_managed.AdminPagesMsg(msg))
     })
 
-  let content = case breadcrumbs.is_admin_route(model.lifecycle.route) {
-    True -> breadcrumbs.wrap(model.lifecycle.route, page_content)
+  let presented_route = admin_root_managed.presented_route(model)
+  let content = case breadcrumbs.is_admin_route(presented_route) {
+    True -> breadcrumbs.wrap(presented_route, page_content)
     False -> page_content
   }
 

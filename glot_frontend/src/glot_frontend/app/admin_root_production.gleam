@@ -1,5 +1,4 @@
 import gleam/list
-import gleam/option
 import glot_core/route
 import glot_frontend/admin/interpreter as admin_interpreter
 import glot_frontend/admin/production_ports as admin_ports
@@ -14,9 +13,10 @@ import glot_frontend/platform/clock
 import glot_frontend/platform/keyboard_shortcuts
 import glot_frontend/platform/page_visibility
 import glot_frontend/platform/quick_action_scroll
+import glot_frontend/platform/spa_navigation
+import glot_frontend/platform/timer
 import glot_web/page/top_bar
 import lustre/effect.{type Effect}
-import modem
 
 pub fn run(
   command: admin_root_managed.Command,
@@ -49,13 +49,12 @@ pub fn run(
         ))
       })
     admin_root_managed.ReplaceRoute(target) -> {
-      let #(path, query) = route.path_and_query(target)
-      modem.replace(path, query, option.None)
+      browser_navigation.replace(route.to_string(target))
     }
     admin_root_managed.LoadRoute(target) ->
       browser_navigation.load(route.to_string(target))
     admin_root_managed.ObserveNavigation ->
-      modem.init(fn(uri) {
+      spa_navigation.observe(fn(uri) {
         uri
         |> route.from_uri
         |> admin_managed.UserNavigatedTo
@@ -73,6 +72,13 @@ pub fn run(
     admin_root_managed.ScrollToQuickAction(index) ->
       quick_action_scroll.ensure_visible(index)
     admin_root_managed.Navigate(destination) -> navigate(destination)
+    admin_root_managed.ScheduleNavigationLoading(milliseconds, generation) ->
+      effect.from(fn(dispatch) {
+        timer.schedule(milliseconds, fn() {
+          dispatch(admin_root_managed.NavigationLoadingDelayElapsed(generation))
+        })
+      })
+    admin_root_managed.CommitNavigation -> spa_navigation.commit()
   }
 }
 
@@ -80,7 +86,7 @@ fn navigate(destination: route.Route) -> Effect(admin_root_managed.Msg) {
   case route.is_admin_route(destination) {
     True -> {
       let #(path, query) = route.path_and_query(destination)
-      modem.push(path, query, option.None)
+      spa_navigation.push(path, query)
     }
     False -> browser_navigation.load(route.to_string(destination))
   }

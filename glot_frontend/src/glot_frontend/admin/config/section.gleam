@@ -47,6 +47,13 @@ pub fn init(fields: fields) -> FormModel(fields) {
   )
 }
 
+pub fn is_presentable(model: FormModel(fields)) -> Bool {
+  case model.load_state {
+    Ready | LoadError(_) -> True
+    NotLoaded | Loading -> False
+  }
+}
+
 pub fn begin_load(
   model: FormModel(fields),
 ) -> #(FormModel(fields), Generation(LoadStream)) {

@@ -66,3 +66,9 @@ pub fn did_present(transition: Transition(page)) -> Bool {
     Held(_) | Updated(_) -> False
   }
 }
+
+/// Present a candidate after an application-owned loading delay has elapsed.
+/// This is used when the candidate's loading state is itself meaningful UI.
+pub fn force(candidate: page) -> Transition(page) {
+  Presented(Model(presented: candidate, transitioning: False))
+}

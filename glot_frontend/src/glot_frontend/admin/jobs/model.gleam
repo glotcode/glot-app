@@ -59,3 +59,10 @@ pub type CreateJobState {
   CreateJobError(String)
   CreateJobSaved(job_dto.JobDetailResponse)
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  case model.job_status {
+    Ready | LoadError(_) -> True
+    NotLoaded | Loading -> False
+  }
+}

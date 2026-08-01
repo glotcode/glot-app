@@ -17,8 +17,8 @@ import glot_frontend/api/admin/users as users_api
 import glot_frontend/platform/app_dialog
 import glot_frontend/platform/clock
 import glot_frontend/platform/local_datetime as local_datetime_adapter
+import glot_frontend/platform/spa_navigation
 import lustre/effect.{type Effect}
-import modem
 
 pub fn new() -> ports.Ports(msg) {
   ports.Ports(execute: run)
@@ -35,7 +35,7 @@ fn run(command: command.Command(msg)) -> Effect(msg) {
     command.Config(value) -> run_config(value)
     command.OpenDialog(id) -> app_dialog.open(id)
     command.CloseDialog(id) -> app_dialog.close(id)
-    command.Navigate(path) -> modem.push(path, option.None, option.None)
+    command.Navigate(path) -> spa_navigation.push(path, option.None)
     command.CurrentTime(complete) ->
       effect.from(fn(dispatch) { dispatch(complete(clock.now())) })
     command.FormatLocalDateTime(value, complete) ->

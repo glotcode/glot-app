@@ -8,3 +8,7 @@ pub type Model {
     ),
   )
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  loadable.is_terminal(model.templates)
+}

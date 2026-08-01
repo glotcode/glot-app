@@ -63,3 +63,7 @@ pub type UserMetadata {
     updated_at: Timestamp,
   )
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  loadable.is_terminal(model.user)
+}

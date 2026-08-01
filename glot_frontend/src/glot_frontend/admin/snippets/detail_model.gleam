@@ -17,3 +17,7 @@ pub type DeleteState {
   DeleteIdle
   Deleting
 }
+
+pub fn is_presentable(model: Model) -> Bool {
+  loadable.is_terminal(model.snippet)
+}

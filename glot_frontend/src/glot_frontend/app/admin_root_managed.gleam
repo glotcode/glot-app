@@ -6,17 +6,26 @@ import glot_frontend/admin/router_managed
 import glot_frontend/admin/router_message
 import glot_frontend/admin/router_state
 import glot_frontend/app/admin_managed
+import glot_frontend/app/page_presentation
 import glot_frontend/app/public_quick_actions
 import glot_frontend/app/quick_actions
 import glot_frontend/app/quick_actions_managed
 import glot_frontend/app/quick_actions_root_managed
+import glot_frontend/request_generation.{type Generation}
+import glot_frontend/ui/delayed_loading
 import glot_web/page/top_bar
 
 pub type Model {
   Model(
     lifecycle: admin_managed.Model(router_state.Model),
+    presentation: page_presentation.Model(Page),
+    navigation_loading: delayed_loading.State,
     quick_actions: quick_actions.Model,
   )
+}
+
+pub type Page {
+  Page(route: route.Route, model: router_state.Model)
 }
 
 pub type QuickActionTarget {
@@ -28,6 +37,7 @@ pub type Msg {
   QuickActionsMsg(quick_actions_managed.Msg)
   QuickActionSelected(QuickActionTarget)
   IgnoredEditorRunShortcut
+  NavigationLoadingDelayElapsed(Generation(delayed_loading.Stream))
 }
 
 pub type Command {
@@ -46,6 +56,8 @@ pub type Command {
   CloseQuickActions
   ScrollToQuickAction(Int)
   Navigate(route.Route)
+  ScheduleNavigationLoading(Int, Generation(delayed_loading.Stream))
+  CommitNavigation
 }
 
 pub fn init(
@@ -55,7 +67,16 @@ pub fn init(
 ) -> #(Model, Command) {
   let #(lifecycle, lifecycle_command) =
     admin_managed.init(initial_route, now, page_visible, pages())
-  let model = Model(lifecycle:, quick_actions: quick_actions.init())
+  let model =
+    Model(
+      lifecycle:,
+      presentation: page_presentation.init(Page(
+        route: lifecycle.route,
+        model: lifecycle.page_model,
+      )),
+      navigation_loading: delayed_loading.idle(),
+      quick_actions: quick_actions.init(),
+    )
   #(
     model,
     batch([
@@ -82,6 +103,8 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
         using: quick_actions_coordinator(),
       )
     IgnoredEditorRunShortcut -> #(model, None)
+    NavigationLoadingDelayElapsed(generation) ->
+      navigation_loading_delay_elapsed(model, generation)
   }
 }
 
@@ -91,7 +114,24 @@ fn update_lifecycle(
 ) -> #(Model, Command) {
   let #(lifecycle, command) =
     admin_managed.update(model.lifecycle, msg, pages())
-  let next_model = Model(..model, lifecycle:)
+  let route_changed = lifecycle.route != model.lifecycle.route
+  let candidate = Page(route: lifecycle.route, model: lifecycle.page_model)
+  let presentation_transition = case route_changed {
+    True -> page_presentation.begin(model.presentation, candidate, presentable)
+    False ->
+      page_presentation.advance(model.presentation, candidate, presentable)
+  }
+  let presentation = page_presentation.model(presentation_transition)
+  let #(navigation_loading, presentation_command) =
+    presentation_command(
+      model.navigation_loading,
+      presentation_transition,
+      route_changed,
+    )
+  let next_model =
+    Model(..model, lifecycle:, presentation:, navigation_loading:)
+  let lifecycle_command =
+    batch([from_lifecycle_command(command), presentation_command])
   case msg {
     admin_managed.UserNavigatedTo(_) -> {
       let #(reset_model, close_command) =
@@ -99,10 +139,84 @@ fn update_lifecycle(
           next_model,
           using: quick_actions_coordinator(),
         )
-      #(reset_model, batch([close_command, from_lifecycle_command(command)]))
+      #(reset_model, batch([close_command, lifecycle_command]))
     }
-    _ -> #(next_model, from_lifecycle_command(command))
+    _ -> #(next_model, lifecycle_command)
   }
+}
+
+fn presentable(page: Page) -> Bool {
+  router_state.is_presentable(page.model)
+}
+
+fn presentation_command(
+  navigation_loading: delayed_loading.State,
+  transition: page_presentation.Transition(Page),
+  route_changed: Bool,
+) -> #(delayed_loading.State, Command) {
+  case
+    page_presentation.did_present(transition),
+    route_changed,
+    page_presentation.is_transitioning(page_presentation.model(transition))
+  {
+    True, _, _ -> #(
+      delayed_loading.finish(navigation_loading),
+      CommitNavigation,
+    )
+    False, True, True -> {
+      let #(navigation_loading, generation) =
+        delayed_loading.begin(navigation_loading)
+      #(
+        navigation_loading,
+        ScheduleNavigationLoading(delayed_loading.delay(), generation),
+      )
+    }
+    False, _, _ -> #(navigation_loading, None)
+  }
+}
+
+fn navigation_loading_delay_elapsed(
+  model: Model,
+  generation: Generation(delayed_loading.Stream),
+) -> #(Model, Command) {
+  let navigation_loading =
+    delayed_loading.reveal(model.navigation_loading, generation)
+  case
+    delayed_loading.is_visible(navigation_loading),
+    page_presentation.is_transitioning(model.presentation)
+  {
+    True, True -> {
+      let candidate =
+        Page(route: model.lifecycle.route, model: model.lifecycle.page_model)
+      let presentation =
+        page_presentation.force(candidate)
+        |> page_presentation.model
+      #(
+        Model(
+          ..model,
+          presentation:,
+          navigation_loading: delayed_loading.finish(navigation_loading),
+        ),
+        CommitNavigation,
+      )
+    }
+    _, _ -> #(Model(..model, navigation_loading:), None)
+  }
+}
+
+pub fn presented_page(model: Model) -> router_state.Model {
+  let Page(model: page_model, ..) =
+    page_presentation.presented(model.presentation)
+  page_model
+}
+
+pub fn presented_route(model: Model) -> route.Route {
+  let Page(route:, ..) = page_presentation.presented(model.presentation)
+  route
+}
+
+pub fn is_transitioning(model: Model) -> Bool {
+  page_presentation.is_transitioning(model.presentation)
 }
 
 fn run_quick_action(
@@ -137,7 +251,7 @@ pub fn quick_action_sections(
 ) -> List(top_bar.Section(QuickActionTarget)) {
   public_quick_actions.sections(
     model.lifecycle.runtime.session,
-    model.lifecycle.route,
+    presented_route(model),
     model.quick_actions.query,
     [],
     NavigateTo,
