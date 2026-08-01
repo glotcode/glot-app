@@ -76,7 +76,7 @@ pub fn view(_model: Model) -> Element(Msg) {
           link_card(
             title: "Jobs",
             description: "Inspect the execution queue and iterate on the admin jobs workflow.",
-            target: route.Admin(route.AdminJobs),
+            target: route.Admin(route.AdminJobs(query: option.None)),
           ),
           link_card(
             title: "Job type policies",
@@ -100,12 +100,12 @@ pub fn view(_model: Model) -> Element(Msg) {
           link_card(
             title: "Users",
             description: "List accounts, inspect user state, and edit roles or account access.",
-            target: route.Admin(route.AdminUsers),
+            target: route.Admin(route.AdminUsers(query: option.None)),
           ),
           link_card(
             title: "Snippets",
             description: "Review saved user snippets and inspect their stored files in a read-only admin view.",
-            target: route.Admin(route.AdminSnippets),
+            target: route.Admin(route.AdminSnippets(query: option.None)),
           ),
         ]),
       ]),
@@ -124,17 +124,17 @@ pub fn view(_model: Model) -> Element(Msg) {
           link_card(
             title: "API logs",
             description: "Review retained API request logging by request ID.",
-            target: route.Admin(route.AdminApiLogs),
+            target: route.Admin(route.AdminApiLogs(query: option.None)),
           ),
           link_card(
             title: "Run logs",
             description: "Inspect retained execution outcomes with request, session, user, and language filters.",
-            target: route.Admin(route.AdminRunLogs),
+            target: route.Admin(route.AdminRunLogs(query: option.None)),
           ),
           link_card(
             title: "Job logs",
             description: "Scan operational job log output separately from the primary jobs queue view.",
-            target: route.Admin(route.AdminJobLogs),
+            target: route.Admin(route.AdminJobLogs(query: option.None)),
           ),
         ]),
       ]),
@@ -164,3 +164,5 @@ fn link_card(
     ],
   )
 }
+
+import gleam/option

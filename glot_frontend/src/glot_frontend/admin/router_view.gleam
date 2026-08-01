@@ -1,18 +1,18 @@
 import gleam/time/timestamp.{type Timestamp}
-import glot_frontend/admin/api_logs/detail as admin_api_log_page
-import glot_frontend/admin/api_logs/list as admin_api_logs_page
+import glot_frontend/admin/api_logs/detail_view as admin_api_log_page
+import glot_frontend/admin/api_logs/list_view as admin_api_logs_page
 import glot_frontend/admin/config/page_view as admin_config_page
-import glot_frontend/admin/email_templates/detail as admin_email_template_page
-import glot_frontend/admin/email_templates/list as admin_email_templates_page
+import glot_frontend/admin/email_templates/detail_view as admin_email_template_page
+import glot_frontend/admin/email_templates/list_view as admin_email_templates_page
 import glot_frontend/admin/home/page as admin_page
-import glot_frontend/admin/job_logs/detail as admin_job_log_page
-import glot_frontend/admin/job_logs/list as admin_job_logs_page
-import glot_frontend/admin/jobs/detail as admin_job_page
-import glot_frontend/admin/jobs/list as admin_jobs_page
+import glot_frontend/admin/job_logs/detail_view as admin_job_log_page
+import glot_frontend/admin/job_logs/list_view as admin_job_logs_page
+import glot_frontend/admin/jobs/list_view as admin_jobs_page
 import glot_frontend/admin/jobs/policies_view as admin_job_type_policies_page
-import glot_frontend/admin/periodic_jobs/detail as admin_periodic_job_page
+import glot_frontend/admin/jobs/view as admin_job_page
 import glot_frontend/admin/periodic_jobs/list_view as admin_periodic_jobs_page
-import glot_frontend/admin/rate_limits/page as admin_rate_limits_page
+import glot_frontend/admin/periodic_jobs/view as admin_periodic_job_page
+import glot_frontend/admin/rate_limits/view as admin_rate_limits_page
 import glot_frontend/admin/router_message.{
   type Msg, AdminApiLogPageMsg, AdminApiLogsPageMsg, AdminConfigPageMsg,
   AdminEmailTemplatePageMsg, AdminEmailTemplatesPageMsg, AdminJobLogPageMsg,
@@ -30,12 +30,12 @@ import glot_frontend/admin/router_state.{
   AdminRunLogPage, AdminRunLogsPage, AdminSnippetPage, AdminSnippetsPage,
   AdminUserPage, AdminUsersPage, EmptyPageModel,
 }
-import glot_frontend/admin/run_logs/detail as admin_run_log_page
-import glot_frontend/admin/run_logs/list as admin_run_logs_page
-import glot_frontend/admin/snippets/detail as admin_snippet_page
-import glot_frontend/admin/snippets/list as admin_snippets_page
-import glot_frontend/admin/users/detail as admin_user_page
-import glot_frontend/admin/users/list as admin_users_page
+import glot_frontend/admin/run_logs/detail_view as admin_run_log_page
+import glot_frontend/admin/run_logs/list_view as admin_run_logs_page
+import glot_frontend/admin/snippets/detail_view as admin_snippet_page
+import glot_frontend/admin/snippets/list_view as admin_snippets_page
+import glot_frontend/admin/users/list_view as admin_users_page
+import glot_frontend/admin/users/view as admin_user_page
 import glot_frontend/ui/not_found
 import lustre/element.{type Element}
 

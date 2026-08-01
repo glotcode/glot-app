@@ -3,8 +3,9 @@ import gleam/string
 import glot_core/admin/snippet_dto
 import glot_core/loadable
 import glot_core/pagination_model
+import glot_core/route
 import glot_frontend/admin/command as admin_effect
-import glot_frontend/admin/cursor_request
+import glot_frontend/admin/list_query
 import glot_frontend/admin/snippets/list_message.{
   ApplyFilterClicked, ClearFilterClicked, NextPageClicked, PreviousPageClicked,
   SnippetsLoaded, UsernameFilterChanged,
@@ -20,12 +21,15 @@ pub type Msg =
 
 const page_limit = 25
 
-pub fn init() -> #(Model, admin_effect.Command(Msg)) {
+pub fn init(
+  raw_query: option.Option(String),
+) -> #(Model, admin_effect.Command(Msg)) {
+  let query = list_query.parse(raw_query)
   #(
     Model(
       page: loadable.NotLoaded,
-      username_filter: "",
-      request_generation: cursor_request.initial(),
+      username_filter: list_query.value_or(query, "username", ""),
+      query: query,
     ),
     admin_effect.none(),
   )
@@ -33,7 +37,11 @@ pub fn init() -> #(Model, admin_effect.Command(Msg)) {
 
 pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
   case model.page {
-    loadable.NotLoaded -> load_initial(model)
+    loadable.NotLoaded ->
+      load_page(
+        Model(..model, page: loadable.Loading),
+        list_query.pagination(model.query, page_limit),
+      )
     loadable.Loading | loadable.Loaded(_) | loadable.LoadError(_) -> #(
       model,
       admin_effect.none(),
@@ -42,13 +50,8 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
-  let current_generation = cursor_request.generation(model.request_generation)
   case msg {
-    SnippetsLoaded(generation, _) if generation != current_generation -> #(
-      model,
-      admin_effect.none(),
-    )
-    SnippetsLoaded(_, result) ->
+    SnippetsLoaded(result) ->
       case result {
         _ -> #(
           Model(
@@ -68,40 +71,43 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
       admin_effect.none(),
     )
 
-    ApplyFilterClicked -> load_initial(model)
+    ApplyFilterClicked -> navigate(model, list_query.initial(page_limit))
 
     ClearFilterClicked ->
       case model.username_filter == "" {
         True -> #(model, admin_effect.none())
-        False -> load_initial(Model(..model, username_filter: ""))
+        False ->
+          navigate(
+            Model(..model, username_filter: ""),
+            list_query.initial(page_limit),
+          )
       }
 
     NextPageClicked ->
-      admin_cursor_page.next_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.next_pagination(model.page, page_limit) {
+        option.Some(pagination) -> navigate(model, pagination)
+        option.None -> #(model, admin_effect.none())
+      }
 
     PreviousPageClicked ->
-      admin_cursor_page.previous_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.previous_pagination(model.page, page_limit) {
+        option.Some(pagination) -> navigate(model, pagination)
+        option.None -> #(model, admin_effect.none())
+      }
   }
 }
 
-fn load_initial(model: Model) -> #(Model, admin_effect.Command(Msg)) {
-  admin_cursor_page.load_initial(
+fn navigate(model: Model, pagination: pagination_model.CursorPagination) {
+  #(
     model,
-    fn(model, page) { Model(..model, page: page) },
-    load_page,
-    page_limit,
+    admin_effect.Navigate(
+      route.Admin(
+        route.AdminSnippets(query: list_query.encode(
+          [#("username", option.Some(model.username_filter))],
+          pagination,
+        )),
+      ),
+    ),
   )
 }
 
@@ -109,9 +115,6 @@ fn load_page(
   model: Model,
   pagination: pagination_model.CursorPagination,
 ) -> #(Model, admin_effect.Command(Msg)) {
-  let #(request_generation, generation) =
-    cursor_request.begin(model.request_generation)
-  let model = Model(..model, request_generation: request_generation)
   #(
     model,
     admin_effect.get_admin_snippets(
@@ -119,7 +122,7 @@ fn load_page(
         pagination: pagination,
         username: filter_username(model.username_filter),
       ),
-      fn(result) { SnippetsLoaded(generation, result) },
+      SnippetsLoaded,
     ),
   )
 }

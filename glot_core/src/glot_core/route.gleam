@@ -31,21 +31,21 @@ pub type AccountRoute {
 
 pub type AdminRoute {
   AdminHome
-  AdminApiLogs
+  AdminApiLogs(query: option.Option(String))
   AdminApiLog(id: uuid.Uuid)
-  AdminRunLogs
+  AdminRunLogs(query: option.Option(String))
   AdminRunLog(id: uuid.Uuid)
   AdminPeriodicJobs
   AdminPeriodicJob(id: uuid.Uuid)
-  AdminUsers
+  AdminUsers(query: option.Option(String))
   AdminUser(id: uuid.Uuid)
-  AdminJobs
+  AdminJobs(query: option.Option(String))
   AdminJob(id: uuid.Uuid)
   AdminEmailTemplates
   AdminEmailTemplate(name: String)
-  AdminSnippets
+  AdminSnippets(query: option.Option(String))
   AdminSnippet(slug: String)
-  AdminJobLogs
+  AdminJobLogs(query: option.Option(String))
   AdminJobLog(id: uuid.Uuid)
   AdminConfig
   AdminRateLimits
@@ -60,13 +60,13 @@ pub fn from_uri(uri: Uri) -> Route {
     ["login"] -> Public(Login)
     ["account"] -> Account(AccountHome)
     ["admin"] -> Admin(AdminHome)
-    ["admin", "logs", "api"] -> Admin(AdminApiLogs)
+    ["admin", "logs", "api"] -> Admin(AdminApiLogs(query: uri.query))
     ["admin", "logs", "api", id] ->
       case uuid.from_string(id) {
         Ok(id) -> Admin(AdminApiLog(id))
         Error(_) -> NotFound(uri:)
       }
-    ["admin", "logs", "runs"] -> Admin(AdminRunLogs)
+    ["admin", "logs", "runs"] -> Admin(AdminRunLogs(query: uri.query))
     ["admin", "logs", "runs", id] ->
       case uuid.from_string(id) {
         Ok(id) -> Admin(AdminRunLog(id))
@@ -78,13 +78,13 @@ pub fn from_uri(uri: Uri) -> Route {
         Ok(id) -> Admin(AdminPeriodicJob(id))
         Error(_) -> NotFound(uri:)
       }
-    ["admin", "users"] -> Admin(AdminUsers)
+    ["admin", "users"] -> Admin(AdminUsers(query: uri.query))
     ["admin", "users", user_id] ->
       case uuid.from_string(user_id) {
         Ok(id) -> Admin(AdminUser(id))
         Error(_) -> NotFound(uri:)
       }
-    ["admin", "jobs"] -> Admin(AdminJobs)
+    ["admin", "jobs"] -> Admin(AdminJobs(query: uri.query))
     ["admin", "jobs", job_id] ->
       case uuid.from_string(job_id) {
         Ok(id) -> Admin(AdminJob(id))
@@ -92,9 +92,9 @@ pub fn from_uri(uri: Uri) -> Route {
       }
     ["admin", "email-templates"] -> Admin(AdminEmailTemplates)
     ["admin", "email-templates", name] -> Admin(AdminEmailTemplate(name: name))
-    ["admin", "snippets"] -> Admin(AdminSnippets)
+    ["admin", "snippets"] -> Admin(AdminSnippets(query: uri.query))
     ["admin", "snippets", slug] -> Admin(AdminSnippet(slug: slug))
-    ["admin", "logs", "job-logs"] -> Admin(AdminJobLogs)
+    ["admin", "logs", "job-logs"] -> Admin(AdminJobLogs(query: uri.query))
     ["admin", "logs", "job-logs", id] ->
       case uuid.from_string(id) {
         Ok(id) -> Admin(AdminJobLog(id))
@@ -145,6 +145,12 @@ pub fn path_and_query(route: Route) -> #(String, option.Option(String)) {
       "/account/snippets",
       snippet_query_string(after, before, option.None),
     )
+    Admin(AdminApiLogs(query)) -> #("/admin/logs/api", query)
+    Admin(AdminRunLogs(query)) -> #("/admin/logs/runs", query)
+    Admin(AdminUsers(query)) -> #("/admin/users", query)
+    Admin(AdminJobs(query)) -> #("/admin/jobs", query)
+    Admin(AdminSnippets(query)) -> #("/admin/snippets", query)
+    Admin(AdminJobLogs(query)) -> #("/admin/logs/job-logs", query)
     _ -> #(to_string(route), option.None)
   }
 }
@@ -195,27 +201,47 @@ fn account_route_to_string(route: AccountRoute) -> String {
 }
 
 fn admin_route_to_string(route: AdminRoute) -> String {
+  let path = admin_path(route)
+  case admin_query(route) {
+    option.Some(query) -> path <> "?" <> query
+    option.None -> path
+  }
+}
+
+fn admin_path(route: AdminRoute) -> String {
   case route {
     AdminHome -> "/admin"
-    AdminApiLogs -> "/admin/logs/api"
+    AdminApiLogs(_) -> "/admin/logs/api"
     AdminApiLog(id) -> "/admin/logs/api/" <> uuid.to_string(id)
-    AdminRunLogs -> "/admin/logs/runs"
+    AdminRunLogs(_) -> "/admin/logs/runs"
     AdminRunLog(id) -> "/admin/logs/runs/" <> uuid.to_string(id)
     AdminPeriodicJobs -> "/admin/periodic-jobs"
     AdminPeriodicJob(id) -> "/admin/periodic-jobs/" <> uuid.to_string(id)
-    AdminUsers -> "/admin/users"
+    AdminUsers(_) -> "/admin/users"
     AdminUser(id) -> "/admin/users/" <> uuid.to_string(id)
-    AdminJobs -> "/admin/jobs"
+    AdminJobs(_) -> "/admin/jobs"
     AdminJob(id) -> "/admin/jobs/" <> uuid.to_string(id)
     AdminEmailTemplates -> "/admin/email-templates"
     AdminEmailTemplate(name) -> "/admin/email-templates/" <> name
-    AdminSnippets -> "/admin/snippets"
+    AdminSnippets(_) -> "/admin/snippets"
     AdminSnippet(slug) -> "/admin/snippets/" <> slug
-    AdminJobLogs -> "/admin/logs/job-logs"
+    AdminJobLogs(_) -> "/admin/logs/job-logs"
     AdminJobLog(id) -> "/admin/logs/job-logs/" <> uuid.to_string(id)
     AdminConfig -> "/admin/config"
     AdminRateLimits -> "/admin/rate-limits"
     AdminJobTypePolicies -> "/admin/job-type-policies"
+  }
+}
+
+fn admin_query(route: AdminRoute) -> option.Option(String) {
+  case route {
+    AdminApiLogs(query)
+    | AdminRunLogs(query)
+    | AdminUsers(query)
+    | AdminJobs(query)
+    | AdminSnippets(query)
+    | AdminJobLogs(query) -> query
+    _ -> option.None
   }
 }
 
@@ -241,21 +267,21 @@ fn account_route_name(route: AccountRoute) -> String {
 fn admin_route_name(route: AdminRoute) -> String {
   case route {
     AdminHome -> "admin"
-    AdminApiLogs -> "admin_api_logs"
+    AdminApiLogs(_) -> "admin_api_logs"
     AdminApiLog(_) -> "admin_api_log"
-    AdminRunLogs -> "admin_run_logs"
+    AdminRunLogs(_) -> "admin_run_logs"
     AdminRunLog(_) -> "admin_run_log"
     AdminPeriodicJobs -> "admin_periodic_jobs"
     AdminPeriodicJob(_) -> "admin_periodic_job"
-    AdminUsers -> "admin_users"
+    AdminUsers(_) -> "admin_users"
     AdminUser(_) -> "admin_user"
-    AdminJobs -> "admin_jobs"
+    AdminJobs(_) -> "admin_jobs"
     AdminJob(_) -> "admin_job"
     AdminEmailTemplates -> "admin_email_templates"
     AdminEmailTemplate(_) -> "admin_email_template"
-    AdminSnippets -> "admin_snippets"
+    AdminSnippets(_) -> "admin_snippets"
     AdminSnippet(_) -> "admin_snippet"
-    AdminJobLogs -> "admin_job_logs"
+    AdminJobLogs(_) -> "admin_job_logs"
     AdminJobLog(_) -> "admin_job_log"
     AdminConfig -> "admin_config"
     AdminRateLimits -> "admin_rate_limits"

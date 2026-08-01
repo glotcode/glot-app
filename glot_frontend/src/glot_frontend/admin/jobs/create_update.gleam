@@ -216,5 +216,5 @@ fn change(model: Model, update_editor) {
 }
 
 fn navigate_to_job(job_id) {
-  admin_effect.Navigate(route.to_string(route.Admin(route.AdminJob(job_id))))
+  admin_effect.Navigate(route.Admin(route.AdminJob(job_id)))
 }

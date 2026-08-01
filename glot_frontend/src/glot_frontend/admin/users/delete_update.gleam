@@ -82,5 +82,5 @@ fn failed(model: Model, message: String) {
 }
 
 fn navigate_to_users() {
-  admin_effect.Navigate(route.to_string(route.Admin(route.AdminUsers)))
+  admin_effect.Navigate(route.Admin(route.AdminUsers(query: option.None)))
 }

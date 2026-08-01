@@ -22,6 +22,7 @@ import glot_core/admin/rate_limit_config_dto
 import glot_core/admin/run_log_dto
 import glot_core/admin/snippet_dto as admin_snippet_dto
 import glot_core/admin/user_dto
+import glot_core/route
 import glot_core/snippet/snippet_dto
 import glot_frontend/admin/effect/config
 import glot_frontend/admin/effect/content
@@ -41,7 +42,7 @@ pub type Command(msg) {
   Config(config.Command(msg))
   OpenDialog(String)
   CloseDialog(String)
-  Navigate(String)
+  Navigate(route.Route)
   CurrentTime(fn(Timestamp) -> msg)
   FormatLocalDateTime(Timestamp, fn(LocalDateTime) -> msg)
   ParseLocalDateTime(String, String, fn(ParseResult) -> msg)

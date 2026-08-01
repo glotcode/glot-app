@@ -1,7 +1,6 @@
 import glot_frontend/admin/router_state
 import glot_frontend/admin/router_view
 import glot_frontend/admin/ui/breadcrumbs
-import glot_frontend/app/admin_managed
 import glot_frontend/app/admin_root_managed
 import glot_frontend/app/public_quick_actions
 import glot_frontend/app/quick_actions_managed
@@ -22,16 +21,16 @@ pub fn view(
 fn admin_view(
   model: admin_root_managed.Model,
 ) -> Element(admin_root_managed.Msg) {
+  let presented_route = admin_root_managed.presented_route(model)
   let page_content =
     router_view.view(
       router_state.page(admin_root_managed.presented_page(model)),
       model.lifecycle.runtime.now,
     )
     |> element.map(fn(msg) {
-      admin_root_managed.LifecycleMsg(admin_managed.AdminPagesMsg(msg))
+      admin_root_managed.AdminPageMsg(presented_route, msg)
     })
 
-  let presented_route = admin_root_managed.presented_route(model)
   let content = case breadcrumbs.is_admin_route(presented_route) {
     True -> breadcrumbs.wrap(presented_route, page_content)
     False -> page_content

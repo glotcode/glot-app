@@ -1,12 +1,14 @@
+import gleam/option
 import glot_core/admin/api_log_dto
 import glot_core/loadable
-import glot_frontend/admin/api_logs/detail
+import glot_core/route
+import glot_frontend/admin/api_logs/detail_managed as detail
 import glot_frontend/admin/api_logs/detail_message
-import glot_frontend/admin/api_logs/list as api_logs
+import glot_frontend/admin/api_logs/list_managed as api_logs
 import glot_frontend/admin/api_logs/list_message as api_logs_message
 import glot_frontend/admin/command
 import glot_frontend/admin/effect/logs
-import glot_frontend/admin/email_templates/detail as email_template
+import glot_frontend/admin/email_templates/detail_managed as email_template
 import glot_frontend/admin/email_templates/detail_message as email_template_message
 import glot_frontend/admin/email_templates/detail_model as email_template_model
 import glot_frontend/admin/jobs/managed as job_detail
@@ -87,28 +89,17 @@ pub fn mapping_admin_commands_preserves_the_fixture_callback_test() {
   assert marker == 42
 }
 
-pub fn stale_admin_pagination_response_is_ignored_test() {
-  let assert Ok(id) = uuid.from_string("00000000-0000-4000-8000-000000000004")
-  let #(model, _) = api_logs.init()
-  let #(model, first_command) = api_logs.ensure_loaded(model)
-  let assert command.Logs(logs.GetApiLogs(_, complete_first)) = first_command
-
-  let #(model, second_command) =
+pub fn admin_list_filters_navigate_to_reproducible_urls_test() {
+  let #(model, _) = api_logs.init(option.None)
+  let #(_, filter_command) =
     api_logs.update(
       model,
       api_logs_message.ErrorFilterSelected(api_log_dto.OnlyApiLogsWithErrors),
     )
-  let assert command.Logs(logs.GetApiLogs(_, complete_second)) = second_command
-
-  let stale = response.ApiFailure(response.Error("stale", "Stale", id))
-  let #(model_after_stale, _) = api_logs.update(model, complete_first(stale))
-  assert model_after_stale == model
-
-  let latest = response.ApiFailure(response.Error("latest", "Latest", id))
-  let #(model_after_latest, _) =
-    api_logs.update(model_after_stale, complete_second(latest))
-  let assert loadable.LoadError(message) = model_after_latest.page
-  assert message == "Latest Request ID: 00000000-0000-4000-8000-000000000004"
+  assert filter_command
+    == command.Navigate(
+      route.Admin(route.AdminApiLogs(query: option.Some("error=errors_only"))),
+    )
 }
 
 pub fn stale_admin_mutation_response_is_ignored_test() {

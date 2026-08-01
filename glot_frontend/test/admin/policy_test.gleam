@@ -7,9 +7,9 @@ import glot_core/email/email_address_model
 import glot_core/loadable
 import glot_core/public_action
 import glot_core/rate_limit
-import glot_frontend/admin/cursor_request
 import glot_frontend/admin/jobs/create_job_policy
 import glot_frontend/admin/jobs/model as job_model
+import glot_frontend/admin/list_query
 import glot_frontend/admin/periodic_jobs/editor_policy as periodic_job_policy
 import glot_frontend/admin/periodic_jobs/model as periodic_job_model
 import glot_frontend/admin/rate_limits/model as rate_limit_model
@@ -113,7 +113,7 @@ pub fn user_list_filter_reports_active_fields_test() {
       role_filter: "",
       account_state_filter: "",
       account_tier_filter: "",
-      request_generation: cursor_request.initial(),
+      query: list_query.empty(),
     )
   assert list_filter.has_filters(model) == False
   assert list_filter.has_filters(

@@ -2,7 +2,7 @@ import gleam/option
 import glot_core/admin/job_dto
 import glot_core/loadable
 import glot_core/pagination_model
-import glot_frontend/admin/cursor_request
+import glot_frontend/admin/list_query
 
 pub type Model {
   Model(
@@ -10,7 +10,7 @@ pub type Model {
     summary: job_dto.JobsSummary,
     status_filter: job_dto.StatusFilter,
     job_type_filter: option.Option(String),
-    request_generation: cursor_request.State,
+    query: list_query.Query,
   )
 }
 

@@ -1,8 +1,10 @@
+import gleam/option
 import glot_core/admin/user_dto
 import glot_core/loadable
 import glot_core/pagination_model
+import glot_core/route
 import glot_frontend/admin/command as admin_effect
-import glot_frontend/admin/cursor_request
+import glot_frontend/admin/list_query
 import glot_frontend/admin/ui/cursor_page as admin_cursor_page
 import glot_frontend/admin/users/list_filter
 import glot_frontend/admin/users/list_message.{
@@ -14,15 +16,18 @@ import glot_frontend/admin/users/list_model.{Model}
 
 const page_limit = 25
 
-pub fn init() -> #(Model, admin_effect.Command(Msg)) {
+pub fn init(
+  raw_query: option.Option(String),
+) -> #(Model, admin_effect.Command(Msg)) {
+  let query = list_query.parse(raw_query)
   #(
     Model(
       page: loadable.NotLoaded,
-      search_filter: "",
-      role_filter: "",
-      account_state_filter: "",
-      account_tier_filter: "",
-      request_generation: cursor_request.initial(),
+      search_filter: list_query.value_or(query, "search", ""),
+      role_filter: list_query.value_or(query, "role", ""),
+      account_state_filter: list_query.value_or(query, "state", ""),
+      account_tier_filter: list_query.value_or(query, "tier", ""),
+      query: query,
     ),
     admin_effect.none(),
   )
@@ -30,7 +35,11 @@ pub fn init() -> #(Model, admin_effect.Command(Msg)) {
 
 pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
   case model.page {
-    loadable.NotLoaded -> load_initial(model)
+    loadable.NotLoaded ->
+      load_page(
+        Model(..model, page: loadable.Loading),
+        list_query.pagination(model.query, page_limit),
+      )
     loadable.Loading | loadable.Loaded(_) | loadable.LoadError(_) -> #(
       model,
       admin_effect.none(),
@@ -39,13 +48,8 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
-  let current_generation = cursor_request.generation(model.request_generation)
   case msg {
-    UsersLoaded(generation, _) if generation != current_generation -> #(
-      model,
-      admin_effect.none(),
-    )
-    UsersLoaded(_, result) ->
+    UsersLoaded(result) ->
       case result {
         _ -> #(
           Model(
@@ -80,12 +84,12 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
       admin_effect.none(),
     )
 
-    ApplyFilterClicked -> load_initial(model)
+    ApplyFilterClicked -> navigate(model, list_query.initial(page_limit))
 
     ClearFilterClicked ->
       case list_filter.has_filters(model) {
         True ->
-          load_initial(
+          navigate(
             Model(
               ..model,
               search_filter: "",
@@ -93,36 +97,41 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
               account_state_filter: "",
               account_tier_filter: "",
             ),
+            list_query.initial(page_limit),
           )
         False -> #(model, admin_effect.none())
       }
 
     NextPageClicked ->
-      admin_cursor_page.next_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.next_pagination(model.page, page_limit) {
+        option.Some(pagination) -> navigate(model, pagination)
+        option.None -> #(model, admin_effect.none())
+      }
 
     PreviousPageClicked ->
-      admin_cursor_page.previous_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.previous_pagination(model.page, page_limit) {
+        option.Some(pagination) -> navigate(model, pagination)
+        option.None -> #(model, admin_effect.none())
+      }
   }
 }
 
-fn load_initial(model: Model) -> #(Model, admin_effect.Command(Msg)) {
-  admin_cursor_page.load_initial(
+fn navigate(model: Model, pagination: pagination_model.CursorPagination) {
+  #(
     model,
-    fn(model, page) { Model(..model, page: page) },
-    load_page,
-    page_limit,
+    admin_effect.Navigate(
+      route.Admin(
+        route.AdminUsers(query: list_query.encode(
+          [
+            #("search", option.Some(model.search_filter)),
+            #("role", option.Some(model.role_filter)),
+            #("state", option.Some(model.account_state_filter)),
+            #("tier", option.Some(model.account_tier_filter)),
+          ],
+          pagination,
+        )),
+      ),
+    ),
   )
 }
 
@@ -130,9 +139,6 @@ fn load_page(
   model: Model,
   pagination: pagination_model.CursorPagination,
 ) -> #(Model, admin_effect.Command(Msg)) {
-  let #(request_generation, generation) =
-    cursor_request.begin(model.request_generation)
-  let model = Model(..model, request_generation: request_generation)
   #(
     model,
     admin_effect.get_admin_users(
@@ -145,7 +151,7 @@ fn load_page(
         account_state: list_filter.account_state(model.account_state_filter),
         account_tier: list_filter.account_tier(model.account_tier_filter),
       ),
-      fn(result) { UsersLoaded(generation, result) },
+      UsersLoaded,
     ),
   )
 }

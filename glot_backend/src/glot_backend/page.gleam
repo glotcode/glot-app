@@ -238,24 +238,24 @@ fn handle_page_request_with_runtime(
     route.Account(route.AccountSnippets(_, _)) ->
       private_spa("Your snippets | glot.io")
     route.Admin(route.AdminHome) -> admin_spa("glot.io - admin")
-    route.Admin(route.AdminApiLogs) -> admin_spa("glot.io - api logs")
+    route.Admin(route.AdminApiLogs(_)) -> admin_spa("glot.io - api logs")
     route.Admin(route.AdminApiLog(_)) -> admin_spa("glot.io - api log")
-    route.Admin(route.AdminRunLogs) -> admin_spa("glot.io - run logs")
+    route.Admin(route.AdminRunLogs(_)) -> admin_spa("glot.io - run logs")
     route.Admin(route.AdminRunLog(_)) -> admin_spa("glot.io - run log")
     route.Admin(route.AdminPeriodicJobs) -> admin_spa("glot.io - periodic jobs")
     route.Admin(route.AdminPeriodicJob(_)) ->
       admin_spa("glot.io - periodic job")
-    route.Admin(route.AdminUsers) -> admin_spa("glot.io - admin users")
+    route.Admin(route.AdminUsers(_)) -> admin_spa("glot.io - admin users")
     route.Admin(route.AdminUser(_)) -> admin_spa("glot.io - admin user")
-    route.Admin(route.AdminJobs) -> admin_spa("glot.io - admin jobs")
+    route.Admin(route.AdminJobs(_)) -> admin_spa("glot.io - admin jobs")
     route.Admin(route.AdminJob(_)) -> admin_spa("glot.io - admin job")
     route.Admin(route.AdminEmailTemplates) ->
       admin_spa("glot.io - email templates")
     route.Admin(route.AdminEmailTemplate(_)) ->
       admin_spa("glot.io - email template")
-    route.Admin(route.AdminSnippets) -> admin_spa("glot.io - admin snippets")
+    route.Admin(route.AdminSnippets(_)) -> admin_spa("glot.io - admin snippets")
     route.Admin(route.AdminSnippet(_)) -> admin_spa("glot.io - admin snippet")
-    route.Admin(route.AdminJobLogs) -> admin_spa("glot.io - job logs")
+    route.Admin(route.AdminJobLogs(_)) -> admin_spa("glot.io - job logs")
     route.Admin(route.AdminJobLog(_)) -> admin_spa("glot.io - job log")
     route.Admin(route.AdminConfig) -> admin_spa("glot.io - admin config")
     route.Admin(route.AdminRateLimits) ->

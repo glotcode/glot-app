@@ -1,6 +1,7 @@
 import gleam/list
 import gleam/option
 import glot_core/helpers/timestamp_helpers
+import glot_core/route
 import glot_frontend/admin/command
 import glot_frontend/admin/effect/config
 import glot_frontend/admin/effect/content
@@ -35,7 +36,10 @@ fn run(command: command.Command(msg)) -> Effect(msg) {
     command.Config(value) -> run_config(value)
     command.OpenDialog(id) -> app_dialog.open(id)
     command.CloseDialog(id) -> app_dialog.close(id)
-    command.Navigate(path) -> spa_navigation.push(path, option.None)
+    command.Navigate(target) -> {
+      let #(path, query) = route.path_and_query(target)
+      spa_navigation.push(path, query)
+    }
     command.CurrentTime(complete) ->
       effect.from(fn(dispatch) { dispatch(complete(clock.now())) })
     command.FormatLocalDateTime(value, complete) ->

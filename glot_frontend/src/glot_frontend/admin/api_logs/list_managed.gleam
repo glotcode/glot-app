@@ -1,15 +1,15 @@
 import gleam/option
-import gleam/string
 import glot_core/admin/api_log_dto
 import glot_core/loadable
 import glot_core/pagination_model
+import glot_core/route
 import glot_frontend/admin/api_logs/list_message.{
   ApplyFilters, ErrorFilterSelected, LogsLoaded, NextPageClicked,
   PreviousPageClicked, RequestIdFilterChanged,
 }
 import glot_frontend/admin/api_logs/list_model.{Model}
 import glot_frontend/admin/command as admin_effect
-import glot_frontend/admin/cursor_request
+import glot_frontend/admin/list_query
 import glot_frontend/admin/ui/cursor_page as admin_cursor_page
 import youid/uuid
 
@@ -21,15 +21,33 @@ pub type Msg =
 
 const page_limit = 25
 
-pub fn init() -> #(Model, admin_effect.Command(Msg)) {
+pub fn init(
+  raw_query: option.Option(String),
+) -> #(Model, admin_effect.Command(Msg)) {
+  let query = list_query.parse(raw_query)
+  let request_id_filter = list_query.value_or(query, "request_id", "")
+  let error_filter =
+    error_filter_from_string(list_query.value_or(query, "error", "all"))
+  let parsed_request_id =
+    list_query.optional_uuid(request_id_filter, "Request ID")
+  let #(page, applied_request_id_filter, request_id_error) = case
+    parsed_request_id
+  {
+    Ok(request_id) -> #(loadable.NotLoaded, request_id, option.None)
+    Error(message) -> #(
+      loadable.LoadError(message),
+      option.None,
+      option.Some(message),
+    )
+  }
   #(
     Model(
-      page: loadable.NotLoaded,
-      error_filter: api_log_dto.AllApiLogs,
-      request_id_filter: "",
-      applied_request_id_filter: option.None,
-      request_id_error: option.None,
-      request_generation: cursor_request.initial(),
+      page: page,
+      error_filter: error_filter,
+      request_id_filter: request_id_filter,
+      applied_request_id_filter: applied_request_id_filter,
+      request_id_error: request_id_error,
+      query: query,
     ),
     admin_effect.none(),
   )
@@ -37,7 +55,11 @@ pub fn init() -> #(Model, admin_effect.Command(Msg)) {
 
 pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
   case model.page {
-    loadable.NotLoaded -> load_initial(model)
+    loadable.NotLoaded ->
+      load_page(
+        Model(..model, page: loadable.Loading),
+        list_query.pagination(model.query, page_limit),
+      )
     loadable.Loading | loadable.Loaded(_) | loadable.LoadError(_) -> #(
       model,
       admin_effect.none(),
@@ -46,13 +68,8 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
-  let current_generation = cursor_request.generation(model.request_generation)
   case msg {
-    LogsLoaded(generation, _) if generation != current_generation -> #(
-      model,
-      admin_effect.none(),
-    )
-    LogsLoaded(_, result) ->
+    LogsLoaded(result) ->
       case result {
         _ -> #(
           Model(
@@ -71,8 +88,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
       case filter == model.error_filter {
         True -> #(model, admin_effect.none())
         False ->
-          load_initial(
-            Model(..model, error_filter: filter, request_id_error: option.None),
+          navigate(
+            model,
+            filter,
+            model.applied_request_id_filter,
+            list_query.initial(page_limit),
           )
       }
 
@@ -82,14 +102,13 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
     )
 
     ApplyFilters ->
-      case parse_uuid_filter(model.request_id_filter, "Request ID") {
+      case list_query.optional_uuid(model.request_id_filter, "Request ID") {
         Ok(request_id) ->
-          load_initial(
-            Model(
-              ..model,
-              applied_request_id_filter: request_id,
-              request_id_error: option.None,
-            ),
+          navigate(
+            model,
+            model.error_filter,
+            request_id,
+            list_query.initial(page_limit),
           )
         Error(message) -> #(
           Model(
@@ -102,31 +121,47 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
       }
 
     NextPageClicked ->
-      admin_cursor_page.next_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.next_pagination(model.page, page_limit) {
+        option.Some(pagination) ->
+          navigate(
+            model,
+            model.error_filter,
+            model.applied_request_id_filter,
+            pagination,
+          )
+        option.None -> #(model, admin_effect.none())
+      }
 
     PreviousPageClicked ->
-      admin_cursor_page.previous_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.previous_pagination(model.page, page_limit) {
+        option.Some(pagination) ->
+          navigate(
+            model,
+            model.error_filter,
+            model.applied_request_id_filter,
+            pagination,
+          )
+        option.None -> #(model, admin_effect.none())
+      }
   }
 }
 
-fn load_initial(model: Model) -> #(Model, admin_effect.Command(Msg)) {
-  admin_cursor_page.load_initial(
+fn navigate(model: Model, error_filter, request_id, pagination) {
+  let request_id = option.map(request_id, uuid.to_string)
+  let error = case error_filter {
+    api_log_dto.AllApiLogs -> option.None
+    api_log_dto.OnlyApiLogsWithErrors -> option.Some("errors_only")
+  }
+  #(
     model,
-    fn(model, page) { Model(..model, page: page) },
-    load_page,
-    page_limit,
+    admin_effect.Navigate(
+      route.Admin(
+        route.AdminApiLogs(query: list_query.encode(
+          [#("error", error), #("request_id", request_id)],
+          pagination,
+        )),
+      ),
+    ),
   )
 }
 
@@ -134,9 +169,6 @@ fn load_page(
   model: Model,
   pagination: pagination_model.CursorPagination,
 ) -> #(Model, admin_effect.Command(Msg)) {
-  let #(request_generation, generation) =
-    cursor_request.begin(model.request_generation)
-  let model = Model(..model, request_generation: request_generation)
   #(
     model,
     admin_effect.get_admin_api_logs(
@@ -145,23 +177,14 @@ fn load_page(
         request_id: model.applied_request_id_filter,
         error_filter: model.error_filter,
       ),
-      fn(result) { LogsLoaded(generation, result) },
+      LogsLoaded,
     ),
   )
 }
 
-fn parse_uuid_filter(
-  value: String,
-  label: String,
-) -> Result(option.Option(uuid.Uuid), String) {
-  let trimmed = string.trim(value)
-
-  case trimmed == "" {
-    True -> Ok(option.None)
-    False ->
-      case uuid.from_string(trimmed) {
-        Ok(id) -> Ok(option.Some(id))
-        Error(_) -> Error(label <> " must be a valid UUID.")
-      }
+fn error_filter_from_string(value: String) -> api_log_dto.ApiLogErrorFilter {
+  case value {
+    "errors_only" -> api_log_dto.OnlyApiLogsWithErrors
+    _ -> api_log_dto.AllApiLogs
   }
 }

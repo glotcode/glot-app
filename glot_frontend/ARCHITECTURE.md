@@ -108,12 +108,27 @@ the next one is loading. New asynchronous page variants must define their
 presentability policy. Successful data, useful empty states, terminal error
 states, and deliberately revealed delayed-loading states are presentable;
 transient initialization and hidden loading states are not. Request identity
-still belongs to each feature and must reject stale responses. Each feature
-model owns its presentability decision, while `public_page_state` only combines
-those decisions across public page variants and `admin/router_state` combines
-them across admin variants. Admin navigation owns one root-level delayed loader
-because its pages expose immediate loading states rather than feature-level
-loading-delay streams.
+belongs to a feature when multiple operations can overlap within the same
+route. Route-scoped page messages reject work originating from a route that is
+no longer current. Each feature model owns its presentability decision, while
+`public_page_state` only combines those decisions across public page variants
+and `admin/router_state` combines them across admin variants. Admin navigation
+owns one root-level delayed loader because its pages expose immediate loading
+states rather than feature-level loading-delay streams.
+
+Filterable admin lists treat the URL as the applied-state boundary. Each
+feature owns the names, parsing, validation, defaults, and canonical encoding
+of its filter fields; the shared route only preserves the raw query. Applying
+filters and moving between cursor pages emits typed navigation, which creates
+a fresh routed model and request. This makes direct loads, refreshes, and
+history traversal reproduce the same list state. Draft form input may remain
+local until the user applies it.
+
+Admin page commands and messages carry the route that originated them. The
+root accepts a page message only while that exact route is still current.
+Transport cancellation remains the prompt resource cleanup mechanism, while
+route identity is the correctness boundary for responses that were already
+queued when navigation began.
 
 ## Presentation
 

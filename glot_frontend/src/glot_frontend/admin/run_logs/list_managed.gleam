@@ -1,11 +1,11 @@
 import gleam/option
-import gleam/string
 import glot_core/admin/run_log_dto
 import glot_core/language
 import glot_core/loadable
 import glot_core/pagination_model
+import glot_core/route
 import glot_frontend/admin/command as admin_effect
-import glot_frontend/admin/cursor_request
+import glot_frontend/admin/list_query
 import glot_frontend/admin/run_logs/list_message.{
   ApplyFilters, LanguageFilterChanged, LogsLoaded, NextPageClicked,
   OutcomeFilterSelected, PreviousPageClicked, RequestIdFilterChanged,
@@ -23,24 +23,52 @@ pub type Msg =
 
 const page_limit = 25
 
-pub fn init() -> #(Model, admin_effect.Command(Msg)) {
+pub fn init(
+  raw_query: option.Option(String),
+) -> #(Model, admin_effect.Command(Msg)) {
+  let query = list_query.parse(raw_query)
+  let request_id_filter = list_query.value_or(query, "request_id", "")
+  let session_id_filter = list_query.value_or(query, "session_id", "")
+  let user_id_filter = list_query.value_or(query, "user_id", "")
+  let language_filter = list_query.value_or(query, "language", "all")
+  let #(
+    page,
+    request_id,
+    session_id,
+    user_id,
+    selected_language,
+    request_error,
+    session_error,
+    user_error,
+    language_error,
+  ) =
+    parse_initial_filters(
+      request_id_filter,
+      session_id_filter,
+      user_id_filter,
+      language_filter,
+    )
   #(
     Model(
-      page: loadable.NotLoaded,
-      outcome_filter: run_log_dto.AllRunLogs,
-      request_id_filter: "",
-      session_id_filter: "",
-      user_id_filter: "",
-      language_filter: "all",
-      applied_request_id_filter: option.None,
-      applied_session_id_filter: option.None,
-      applied_user_id_filter: option.None,
-      applied_language_filter: option.None,
-      request_id_error: option.None,
-      session_id_error: option.None,
-      user_id_error: option.None,
-      language_error: option.None,
-      request_generation: cursor_request.initial(),
+      page: page,
+      outcome_filter: outcome_filter_from_string(list_query.value_or(
+        query,
+        "outcome",
+        "all",
+      )),
+      request_id_filter: request_id_filter,
+      session_id_filter: session_id_filter,
+      user_id_filter: user_id_filter,
+      language_filter: language_filter,
+      applied_request_id_filter: request_id,
+      applied_session_id_filter: session_id,
+      applied_user_id_filter: user_id,
+      applied_language_filter: selected_language,
+      request_id_error: request_error,
+      session_id_error: session_error,
+      user_id_error: user_error,
+      language_error: language_error,
+      query: query,
     ),
     admin_effect.none(),
   )
@@ -48,7 +76,11 @@ pub fn init() -> #(Model, admin_effect.Command(Msg)) {
 
 pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
   case model.page {
-    loadable.NotLoaded -> load_initial(model)
+    loadable.NotLoaded ->
+      load_page(
+        Model(..model, page: loadable.Loading),
+        list_query.pagination(model.query, page_limit),
+      )
     loadable.Loading | loadable.Loaded(_) | loadable.LoadError(_) -> #(
       model,
       admin_effect.none(),
@@ -57,13 +89,8 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
-  let current_generation = cursor_request.generation(model.request_generation)
   case msg {
-    LogsLoaded(generation, _) if generation != current_generation -> #(
-      model,
-      admin_effect.none(),
-    )
-    LogsLoaded(_, result) ->
+    LogsLoaded(result) ->
       case result {
         _ -> #(
           Model(
@@ -82,15 +109,9 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
       case filter == model.outcome_filter {
         True -> #(model, admin_effect.none())
         False ->
-          load_initial(
-            Model(
-              ..model,
-              outcome_filter: filter,
-              request_id_error: option.None,
-              session_id_error: option.None,
-              user_id_error: option.None,
-              language_error: option.None,
-            ),
+          navigate(
+            Model(..model, outcome_filter: filter),
+            list_query.initial(page_limit),
           )
       }
 
@@ -115,26 +136,23 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
     )
 
     ApplyFilters ->
-      case parse_uuid_filter(model.request_id_filter, "Request ID") {
+      case list_query.optional_uuid(model.request_id_filter, "Request ID") {
         Ok(request_id) ->
-          case parse_uuid_filter(model.session_id_filter, "Session ID") {
+          case list_query.optional_uuid(model.session_id_filter, "Session ID") {
             Ok(session_id) ->
-              case parse_uuid_filter(model.user_id_filter, "User ID") {
+              case list_query.optional_uuid(model.user_id_filter, "User ID") {
                 Ok(user_id) ->
                   case parse_language_filter(model.language_filter) {
                     Ok(language_filter) ->
-                      load_initial(
+                      navigate(
                         Model(
                           ..model,
                           applied_request_id_filter: request_id,
                           applied_session_id_filter: session_id,
                           applied_user_id_filter: user_id,
                           applied_language_filter: language_filter,
-                          request_id_error: option.None,
-                          session_id_error: option.None,
-                          user_id_error: option.None,
-                          language_error: option.None,
                         ),
+                        list_query.initial(page_limit),
                       )
                     Error(message) -> #(
                       Model(
@@ -174,31 +192,48 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
       }
 
     NextPageClicked ->
-      admin_cursor_page.next_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.next_pagination(model.page, page_limit) {
+        option.Some(pagination) -> navigate(model, pagination)
+        option.None -> #(model, admin_effect.none())
+      }
 
     PreviousPageClicked ->
-      admin_cursor_page.previous_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.previous_pagination(model.page, page_limit) {
+        option.Some(pagination) -> navigate(model, pagination)
+        option.None -> #(model, admin_effect.none())
+      }
   }
 }
 
-fn load_initial(model: Model) -> #(Model, admin_effect.Command(Msg)) {
-  admin_cursor_page.load_initial(
+fn navigate(model: Model, pagination: pagination_model.CursorPagination) {
+  #(
     model,
-    fn(model, page) { Model(..model, page: page) },
-    load_page,
-    page_limit,
+    admin_effect.Navigate(
+      route.Admin(
+        route.AdminRunLogs(query: list_query.encode(
+          [
+            #("outcome", outcome_filter_query(model.outcome_filter)),
+            #(
+              "request_id",
+              option.map(model.applied_request_id_filter, uuid.to_string),
+            ),
+            #(
+              "session_id",
+              option.map(model.applied_session_id_filter, uuid.to_string),
+            ),
+            #(
+              "user_id",
+              option.map(model.applied_user_id_filter, uuid.to_string),
+            ),
+            #(
+              "language",
+              option.map(model.applied_language_filter, language.to_string),
+            ),
+          ],
+          pagination,
+        )),
+      ),
+    ),
   )
 }
 
@@ -206,9 +241,6 @@ fn load_page(
   model: Model,
   pagination: pagination_model.CursorPagination,
 ) -> #(Model, admin_effect.Command(Msg)) {
-  let #(request_generation, generation) =
-    cursor_request.begin(model.request_generation)
-  let model = Model(..model, request_generation: request_generation)
   #(
     model,
     admin_effect.get_admin_run_logs(
@@ -220,25 +252,9 @@ fn load_page(
         language: model.applied_language_filter,
         outcome_filter: model.outcome_filter,
       ),
-      fn(result) { LogsLoaded(generation, result) },
+      LogsLoaded,
     ),
   )
-}
-
-fn parse_uuid_filter(
-  value: String,
-  label: String,
-) -> Result(option.Option(uuid.Uuid), String) {
-  let trimmed = string.trim(value)
-
-  case trimmed == "" {
-    True -> Ok(option.None)
-    False ->
-      case uuid.from_string(trimmed) {
-        Ok(id) -> Ok(option.Some(id))
-        Error(_) -> Error(label <> " must be a valid UUID.")
-      }
-  }
 }
 
 fn parse_language_filter(
@@ -250,6 +266,95 @@ fn parse_language_filter(
       case language.from_string(selected) {
         option.Some(language) -> Ok(option.Some(language))
         option.None -> Error("Language must be a known runtime.")
+      }
+  }
+}
+
+fn outcome_filter_from_string(
+  value: String,
+) -> run_log_dto.RunLogOutcomeFilter {
+  case value {
+    "succeeded" -> run_log_dto.OnlySuccessfulRunLogs
+    "failed" -> run_log_dto.OnlyFailedRunLogs
+    _ -> run_log_dto.AllRunLogs
+  }
+}
+
+fn outcome_filter_query(
+  filter: run_log_dto.RunLogOutcomeFilter,
+) -> option.Option(String) {
+  case filter {
+    run_log_dto.AllRunLogs -> option.None
+    run_log_dto.OnlySuccessfulRunLogs -> option.Some("succeeded")
+    run_log_dto.OnlyFailedRunLogs -> option.Some("failed")
+  }
+}
+
+fn parse_initial_filters(request_id, session_id, user_id, selected_language) {
+  case list_query.optional_uuid(request_id, "Request ID") {
+    Error(message) -> #(
+      loadable.LoadError(message),
+      option.None,
+      option.None,
+      option.None,
+      option.None,
+      option.Some(message),
+      option.None,
+      option.None,
+      option.None,
+    )
+    Ok(request_id) ->
+      case list_query.optional_uuid(session_id, "Session ID") {
+        Error(message) -> #(
+          loadable.LoadError(message),
+          request_id,
+          option.None,
+          option.None,
+          option.None,
+          option.None,
+          option.Some(message),
+          option.None,
+          option.None,
+        )
+        Ok(session_id) ->
+          case list_query.optional_uuid(user_id, "User ID") {
+            Error(message) -> #(
+              loadable.LoadError(message),
+              request_id,
+              session_id,
+              option.None,
+              option.None,
+              option.None,
+              option.None,
+              option.Some(message),
+              option.None,
+            )
+            Ok(user_id) ->
+              case parse_language_filter(selected_language) {
+                Error(message) -> #(
+                  loadable.LoadError(message),
+                  request_id,
+                  session_id,
+                  user_id,
+                  option.None,
+                  option.None,
+                  option.None,
+                  option.None,
+                  option.Some(message),
+                )
+                Ok(language) -> #(
+                  loadable.NotLoaded,
+                  request_id,
+                  session_id,
+                  user_id,
+                  language,
+                  option.None,
+                  option.None,
+                  option.None,
+                  option.None,
+                )
+              }
+          }
       }
   }
 }

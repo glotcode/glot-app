@@ -3,7 +3,7 @@ import glot_core/admin/run_log_dto
 import glot_core/language
 import glot_core/loadable
 import glot_core/pagination_model
-import glot_frontend/admin/cursor_request
+import glot_frontend/admin/list_query
 import youid/uuid
 
 pub type Model {
@@ -24,7 +24,7 @@ pub type Model {
     session_id_error: option.Option(String),
     user_id_error: option.Option(String),
     language_error: option.Option(String),
-    request_generation: cursor_request.State,
+    query: list_query.Query,
   )
 }
 

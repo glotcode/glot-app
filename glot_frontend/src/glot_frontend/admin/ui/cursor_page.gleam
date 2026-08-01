@@ -1,24 +1,7 @@
 import gleam/option
 import glot_core/loadable
 import glot_core/pagination_model
-import glot_frontend/admin/command as admin_effect
 import glot_frontend/api/response as api_response
-
-pub fn ensure_loaded(
-  state: loadable.Loadable(pagination_model.CursorPage(a)),
-  load_effect: admin_effect.Command(msg),
-) -> #(
-  loadable.Loadable(pagination_model.CursorPage(a)),
-  admin_effect.Command(msg),
-) {
-  case state {
-    loadable.NotLoaded -> #(loadable.Loading, load_effect)
-    loadable.Loading | loadable.Loaded(_) | loadable.LoadError(_) -> #(
-      state,
-      admin_effect.none(),
-    )
-  }
-}
 
 pub fn current_page(
   state: loadable.Loadable(pagination_model.CursorPage(a)),
@@ -30,56 +13,28 @@ pub fn current_page(
   }
 }
 
-pub fn load_initial(
-  model: model,
-  update_page: fn(model, loadable.Loadable(pagination_model.CursorPage(a))) ->
-    model,
-  load_page: fn(model, pagination_model.CursorPagination) ->
-    #(model, admin_effect.Command(msg)),
+pub fn next_pagination(
+  state: loadable.Loadable(pagination_model.CursorPage(a)),
   limit: Int,
-) -> #(model, admin_effect.Command(msg)) {
-  load_page(
-    update_page(model, loadable.Loading),
-    pagination_model.InitialPage(limit: limit),
-  )
+) -> option.Option(pagination_model.CursorPagination) {
+  state
+  |> current_page
+  |> pagination_model.next_cursor
+  |> option.map(fn(cursor) {
+    pagination_model.AfterPage(cursor: cursor, limit: limit)
+  })
 }
 
-pub fn next_page(
-  model: model,
+pub fn previous_pagination(
   state: loadable.Loadable(pagination_model.CursorPage(a)),
-  update_page: fn(model, loadable.Loadable(pagination_model.CursorPage(a))) ->
-    model,
-  load_page: fn(model, pagination_model.CursorPagination) ->
-    #(model, admin_effect.Command(msg)),
   limit: Int,
-) -> #(model, admin_effect.Command(msg)) {
-  case pagination_model.next_cursor(current_page(state)) {
-    option.Some(cursor) ->
-      load_page(
-        update_page(model, loadable.Loading),
-        pagination_model.AfterPage(cursor: cursor, limit: limit),
-      )
-    option.None -> #(model, admin_effect.none())
-  }
-}
-
-pub fn previous_page(
-  model: model,
-  state: loadable.Loadable(pagination_model.CursorPage(a)),
-  update_page: fn(model, loadable.Loadable(pagination_model.CursorPage(a))) ->
-    model,
-  load_page: fn(model, pagination_model.CursorPagination) ->
-    #(model, admin_effect.Command(msg)),
-  limit: Int,
-) -> #(model, admin_effect.Command(msg)) {
-  case pagination_model.previous_cursor(current_page(state)) {
-    option.Some(cursor) ->
-      load_page(
-        update_page(model, loadable.Loading),
-        pagination_model.BeforePage(cursor: cursor, limit: limit),
-      )
-    option.None -> #(model, admin_effect.none())
-  }
+) -> option.Option(pagination_model.CursorPagination) {
+  state
+  |> current_page
+  |> pagination_model.previous_cursor
+  |> option.map(fn(cursor) {
+    pagination_model.BeforePage(cursor: cursor, limit: limit)
+  })
 }
 
 pub fn page_from_response(

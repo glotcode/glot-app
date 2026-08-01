@@ -47,10 +47,13 @@ pub fn authenticated_navigation_loads_and_accepts_the_initial_response_test() {
     update_lifecycle(authenticated, admin_managed.UserNavigatedTo(destination))
   let assert admin_root_managed.Batch([
     admin_root_managed.CloseQuickActions,
-    admin_root_managed.RunAdmin(command.Batch([
-      command.None,
-      command.Config(config.GetRateLimits(complete)),
-    ])),
+    admin_root_managed.RunAdmin(
+      destination,
+      command.Batch([
+        command.None,
+        command.Config(config.GetRateLimits(complete)),
+      ]),
+    ),
     admin_root_managed.TrackPageview(route.Admin(route.AdminRateLimits)),
     admin_root_managed.ScheduleNavigationLoading(_, loading_generation),
   ]) = navigation_command
@@ -59,9 +62,10 @@ pub fn authenticated_navigation_loads_and_accepts_the_initial_response_test() {
   assert admin_root_managed.is_transitioning(loading)
 
   let #(failed, failure_command) =
-    update_lifecycle(
+    admin_root_managed.update(
       loading,
-      admin_managed.AdminPagesMsg(
+      admin_root_managed.AdminPageMsg(
+        destination,
         complete(
           response.ApiFailure(response.Error(
             code: "fixture",
@@ -100,10 +104,13 @@ pub fn response_from_page_left_during_navigation_is_ignored_test() {
     )
   let assert admin_root_managed.Batch([
     admin_root_managed.CloseQuickActions,
-    admin_root_managed.RunAdmin(command.Batch([
-      command.None,
-      command.Config(config.GetRateLimits(rate_loaded)),
-    ])),
+    admin_root_managed.RunAdmin(
+      route.Admin(route.AdminRateLimits),
+      command.Batch([
+        command.None,
+        command.Config(config.GetRateLimits(rate_loaded)),
+      ]),
+    ),
     admin_root_managed.TrackPageview(_),
     admin_root_managed.ScheduleNavigationLoading(_, _),
   ]) = rate_command
@@ -111,14 +118,16 @@ pub fn response_from_page_left_during_navigation_is_ignored_test() {
   let #(users_page, users_command) =
     update_lifecycle(
       rate_limits,
-      admin_managed.UserNavigatedTo(route.Admin(route.AdminUsers)),
+      admin_managed.UserNavigatedTo(
+        route.Admin(route.AdminUsers(query: option.None)),
+      ),
     )
   let assert admin_root_managed.Batch([
     admin_root_managed.CloseQuickActions,
-    admin_root_managed.RunAdmin(command.Batch([
-      command.None,
-      command.Users(users.GetUsers(_, _)),
-    ])),
+    admin_root_managed.RunAdmin(
+      route.Admin(route.AdminUsers(query: option.None)),
+      command.Batch([command.None, command.Users(users.GetUsers(_, _))]),
+    ),
     admin_root_managed.TrackPageview(_),
     admin_root_managed.ScheduleNavigationLoading(_, _),
   ]) = users_command
@@ -128,7 +137,10 @@ pub fn response_from_page_left_during_navigation_is_ignored_test() {
       response.Success(rate_limit_config_dto.RateLimitPoliciesResponse([])),
     )
   let #(unchanged, next_command) =
-    update_lifecycle(users_page, admin_managed.AdminPagesMsg(stale))
+    admin_root_managed.update(
+      users_page,
+      admin_root_managed.AdminPageMsg(route.Admin(route.AdminRateLimits), stale),
+    )
 
   assert unchanged == users_page
   assert next_command == admin_root_managed.None
@@ -142,7 +154,7 @@ pub fn slow_admin_navigation_presents_its_loading_page_after_the_delay_test() {
     update_lifecycle(authenticated, admin_managed.UserNavigatedTo(destination))
   let assert admin_root_managed.Batch([
     admin_root_managed.CloseQuickActions,
-    admin_root_managed.RunAdmin(_),
+    admin_root_managed.RunAdmin(destination, _),
     admin_root_managed.TrackPageview(_),
     admin_root_managed.ScheduleNavigationLoading(_, generation),
   ]) = navigation_command
@@ -190,18 +202,22 @@ pub fn admin_traversal_restoration_survives_the_loading_transition_test() {
     )
   let assert admin_root_managed.Batch([
     admin_root_managed.CloseQuickActions,
-    admin_root_managed.RunAdmin(command.Batch([
-      command.None,
-      command.Config(config.GetRateLimits(complete)),
-    ])),
+    admin_root_managed.RunAdmin(
+      destination,
+      command.Batch([
+        command.None,
+        command.Config(config.GetRateLimits(complete)),
+      ]),
+    ),
     admin_root_managed.TrackPageview(_),
     admin_root_managed.ScheduleNavigationLoading(_, _),
   ]) = navigation_command
 
   let #(loaded, command) =
-    update_lifecycle(
+    admin_root_managed.update(
       loading,
-      admin_managed.AdminPagesMsg(
+      admin_root_managed.AdminPageMsg(
+        destination,
         complete(
           response.Success(rate_limit_config_dto.RateLimitPoliciesResponse([])),
         ),

@@ -68,9 +68,9 @@ fn init_page(
 ) -> #(PageModel, admin_effect.Command(Msg)) {
   case admin_route {
     route.AdminHome -> lift_page(admin_page.init(), AdminPage, AdminPageMsg)
-    route.AdminApiLogs ->
+    route.AdminApiLogs(query) ->
       lift_page(
-        admin_api_logs_page.init(),
+        admin_api_logs_page.init(query),
         AdminApiLogsPage,
         AdminApiLogsPageMsg,
       )
@@ -80,9 +80,9 @@ fn init_page(
         AdminApiLogPage,
         AdminApiLogPageMsg,
       )
-    route.AdminRunLogs ->
+    route.AdminRunLogs(query) ->
       lift_page(
-        admin_run_logs_page.init(),
+        admin_run_logs_page.init(query),
         AdminRunLogsPage,
         AdminRunLogsPageMsg,
       )
@@ -104,12 +104,12 @@ fn init_page(
         AdminPeriodicJobPage,
         AdminPeriodicJobPageMsg,
       )
-    route.AdminUsers ->
-      lift_page(admin_users_page.init(), AdminUsersPage, AdminUsersPageMsg)
+    route.AdminUsers(query) ->
+      lift_page(admin_users_page.init(query), AdminUsersPage, AdminUsersPageMsg)
     route.AdminUser(id) ->
       lift_page(admin_user_page.init(id), AdminUserPage, AdminUserPageMsg)
-    route.AdminJobs ->
-      lift_page(admin_jobs_page.init(), AdminJobsPage, AdminJobsPageMsg)
+    route.AdminJobs(query) ->
+      lift_page(admin_jobs_page.init(query), AdminJobsPage, AdminJobsPageMsg)
     route.AdminJob(job_id) ->
       lift_page(admin_job_page.init(job_id), AdminJobPage, AdminJobPageMsg)
     route.AdminEmailTemplates ->
@@ -124,9 +124,9 @@ fn init_page(
         AdminEmailTemplatePage,
         AdminEmailTemplatePageMsg,
       )
-    route.AdminSnippets ->
+    route.AdminSnippets(query) ->
       lift_page(
-        admin_snippets_page.init(),
+        admin_snippets_page.init(query),
         AdminSnippetsPage,
         AdminSnippetsPageMsg,
       )
@@ -136,9 +136,9 @@ fn init_page(
         AdminSnippetPage,
         AdminSnippetPageMsg,
       )
-    route.AdminJobLogs ->
+    route.AdminJobLogs(query) ->
       lift_page(
-        admin_job_logs_page.init(),
+        admin_job_logs_page.init(query),
         AdminJobLogsPage,
         AdminJobLogsPageMsg,
       )

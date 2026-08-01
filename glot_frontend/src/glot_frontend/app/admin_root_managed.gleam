@@ -36,6 +36,7 @@ pub type QuickActionTarget {
 
 pub type Msg {
   LifecycleMsg(admin_managed.Msg(router_message.Msg))
+  AdminPageMsg(route.Route, router_message.Msg)
   NavigationObserved(route.Route, Presentation)
   NavigationPrepared(route.Route, Presentation)
   QuickActionsMsg(quick_actions_managed.Msg)
@@ -47,7 +48,7 @@ pub type Msg {
 pub type Command {
   None
   Batch(List(Command))
-  RunAdmin(admin_command.Command(router_message.Msg))
+  RunAdmin(route.Route, admin_command.Command(router_message.Msg))
   GetSession
   RefreshSession
   TrackPageview(route.Route)
@@ -87,7 +88,7 @@ pub fn init(
     model,
     batch([
       ObserveNavigation,
-      from_lifecycle_command(lifecycle_command),
+      from_lifecycle_command(lifecycle_command, lifecycle.route),
       BindKeyboardShortcuts,
     ]),
   )
@@ -101,6 +102,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
         admin_managed.UserNavigatedTo(destination),
       )
     LifecycleMsg(lifecycle_msg) -> update_lifecycle(model, lifecycle_msg)
+    AdminPageMsg(origin, page_msg) ->
+      case origin == model.lifecycle.route {
+        True -> update_lifecycle(model, admin_managed.AdminPagesMsg(page_msg))
+        False -> #(model, None)
+      }
     NavigationObserved(destination, presentation) ->
       case destination == model.lifecycle.route {
         True -> navigation_observed(model, destination, presentation)
@@ -164,7 +170,10 @@ fn update_lifecycle(
   let next_model =
     Model(..model, lifecycle:, presentation:, navigation_loading:)
   let lifecycle_command =
-    batch([from_lifecycle_command(command), presentation_command])
+    batch([
+      from_lifecycle_command(command, lifecycle.route),
+      presentation_command,
+    ])
   case msg {
     admin_managed.UserNavigatedTo(_) -> {
       let #(reset_model, close_command) =
@@ -308,14 +317,15 @@ fn pages() -> admin_managed.Pages(
 
 fn from_lifecycle_command(
   command: admin_managed.Command(admin_command.Command(router_message.Msg)),
+  origin: route.Route,
 ) -> Command {
   case command {
     admin_managed.None -> None
     admin_managed.Batch(commands) ->
       commands
-      |> list.map(from_lifecycle_command)
+      |> list.map(fn(command) { from_lifecycle_command(command, origin) })
       |> batch
-    admin_managed.RunAdmin(command) -> run_admin(command)
+    admin_managed.RunAdmin(command) -> run_admin(command, origin)
     admin_managed.GetSession -> GetSession
     admin_managed.RefreshSession -> RefreshSession
     admin_managed.TrackPageview(target) -> TrackPageview(target)
@@ -325,10 +335,13 @@ fn from_lifecycle_command(
   }
 }
 
-fn run_admin(command: admin_command.Command(router_message.Msg)) -> Command {
+fn run_admin(
+  command: admin_command.Command(router_message.Msg),
+  origin: route.Route,
+) -> Command {
   case command {
     admin_command.None -> None
-    _ -> RunAdmin(command)
+    _ -> RunAdmin(origin, command)
   }
 }
 

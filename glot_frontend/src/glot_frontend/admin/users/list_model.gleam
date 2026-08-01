@@ -1,7 +1,7 @@
 import glot_core/admin/user_dto
 import glot_core/loadable
 import glot_core/pagination_model
-import glot_frontend/admin/cursor_request
+import glot_frontend/admin/list_query
 
 pub type Model {
   Model(
@@ -12,7 +12,7 @@ pub type Model {
     role_filter: String,
     account_state_filter: String,
     account_tier_filter: String,
-    request_generation: cursor_request.State,
+    query: list_query.Query,
   )
 }
 

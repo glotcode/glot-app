@@ -2,7 +2,7 @@ import gleam/option
 import glot_core/admin/api_log_dto
 import glot_core/loadable
 import glot_core/pagination_model
-import glot_frontend/admin/cursor_request
+import glot_frontend/admin/list_query
 import youid/uuid
 
 pub type Model {
@@ -14,7 +14,7 @@ pub type Model {
     request_id_filter: String,
     applied_request_id_filter: option.Option(uuid.Uuid),
     request_id_error: option.Option(String),
-    request_generation: cursor_request.State,
+    query: list_query.Query,
   )
 }
 

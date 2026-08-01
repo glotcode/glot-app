@@ -25,11 +25,9 @@ pub fn run(
   case command {
     admin_root_managed.None -> effect.none()
     admin_root_managed.Batch(commands) -> effect.batch(list.map(commands, run))
-    admin_root_managed.RunAdmin(command) ->
+    admin_root_managed.RunAdmin(origin, command) ->
       admin_interpreter.run(command, using: admin_ports.new())
-      |> effect.map(fn(msg) {
-        admin_root_managed.LifecycleMsg(admin_managed.AdminPagesMsg(msg))
-      })
+      |> effect.map(fn(msg) { admin_root_managed.AdminPageMsg(origin, msg) })
     admin_root_managed.GetSession ->
       account.get_session(fn(result) {
         admin_root_managed.LifecycleMsg(admin_managed.SessionLoaded(result))

@@ -156,5 +156,5 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
 }
 
 fn navigate_to_snippets() -> admin_effect.Command(Msg) {
-  admin_effect.Navigate(route.to_string(route.Admin(route.AdminSnippets)))
+  admin_effect.Navigate(route.Admin(route.AdminSnippets(query: option.None)))
 }

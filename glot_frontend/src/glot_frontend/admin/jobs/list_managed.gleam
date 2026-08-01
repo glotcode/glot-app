@@ -2,26 +2,34 @@ import gleam/option
 import glot_core/admin/job_dto
 import glot_core/loadable
 import glot_core/pagination_model
+import glot_core/route
 import glot_frontend/admin/command as admin_effect
-import glot_frontend/admin/cursor_request
 import glot_frontend/admin/jobs/list_message.{
   JobTypeFilterSelected, JobsLoaded, NextPageClicked, PreviousPageClicked,
   StatusFilterSelected,
 }
 import glot_frontend/admin/jobs/list_model.{Model}
+import glot_frontend/admin/list_query
 import glot_frontend/admin/ui/cursor_page as admin_cursor_page
 import glot_frontend/api/response as api_response
 
 const page_limit = 25
 
-pub fn init() -> #(Model, admin_effect.Command(Msg)) {
+pub fn init(
+  raw_query: option.Option(String),
+) -> #(Model, admin_effect.Command(Msg)) {
+  let query = list_query.parse(raw_query)
   #(
     Model(
       page: loadable.NotLoaded,
       summary: job_dto.empty_summary(),
-      status_filter: job_dto.AllStatuses,
-      job_type_filter: option.None,
-      request_generation: cursor_request.initial(),
+      status_filter: status_filter_from_string(list_query.value_or(
+        query,
+        "status",
+        "all",
+      )),
+      job_type_filter: list_query.value(query, "job_type"),
+      query: query,
     ),
     admin_effect.none(),
   )
@@ -29,7 +37,11 @@ pub fn init() -> #(Model, admin_effect.Command(Msg)) {
 
 pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
   case model.page {
-    loadable.NotLoaded -> load_initial(model)
+    loadable.NotLoaded ->
+      load_page(
+        Model(..model, page: loadable.Loading),
+        list_query.pagination(model.query, page_limit),
+      )
     loadable.Loading | loadable.Loaded(_) | loadable.LoadError(_) -> #(
       model,
       admin_effect.none(),
@@ -38,13 +50,8 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
-  let current_generation = cursor_request.generation(model.request_generation)
   case msg {
-    JobsLoaded(generation, _) if generation != current_generation -> #(
-      model,
-      admin_effect.none(),
-    )
-    JobsLoaded(_, result) ->
+    JobsLoaded(result) ->
       case result {
         api_response.Success(response) -> #(
           Model(
@@ -74,7 +81,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
     StatusFilterSelected(filter) ->
       case filter == model.status_filter {
         True -> #(model, admin_effect.none())
-        False -> load_initial(Model(..model, status_filter: filter))
+        False ->
+          navigate(
+            Model(..model, status_filter: filter),
+            list_query.initial(page_limit),
+          )
       }
 
     JobTypeFilterSelected(filter) -> {
@@ -82,36 +93,42 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
 
       case next_filter == model.job_type_filter {
         True -> #(model, admin_effect.none())
-        False -> load_initial(Model(..model, job_type_filter: next_filter))
+        False ->
+          navigate(
+            Model(..model, job_type_filter: next_filter),
+            list_query.initial(page_limit),
+          )
       }
     }
 
     NextPageClicked ->
-      admin_cursor_page.next_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.next_pagination(model.page, page_limit) {
+        option.Some(pagination) -> navigate(model, pagination)
+        option.None -> #(model, admin_effect.none())
+      }
 
     PreviousPageClicked ->
-      admin_cursor_page.previous_page(
-        model,
-        model.page,
-        fn(model, page) { Model(..model, page: page) },
-        load_page,
-        page_limit,
-      )
+      case admin_cursor_page.previous_pagination(model.page, page_limit) {
+        option.Some(pagination) -> navigate(model, pagination)
+        option.None -> #(model, admin_effect.none())
+      }
   }
 }
 
-fn load_initial(model: Model) -> #(Model, admin_effect.Command(Msg)) {
-  admin_cursor_page.load_initial(
+fn navigate(model: Model, pagination: pagination_model.CursorPagination) {
+  #(
     model,
-    fn(model, page) { Model(..model, page: page) },
-    load_page,
-    page_limit,
+    admin_effect.Navigate(
+      route.Admin(
+        route.AdminJobs(query: list_query.encode(
+          [
+            #("status", status_filter_query(model.status_filter)),
+            #("job_type", model.job_type_filter),
+          ],
+          pagination,
+        )),
+      ),
+    ),
   )
 }
 
@@ -119,9 +136,6 @@ fn load_page(
   model: Model,
   pagination: pagination_model.CursorPagination,
 ) -> #(Model, admin_effect.Command(Msg)) {
-  let #(request_generation, generation) =
-    cursor_request.begin(model.request_generation)
-  let model = Model(..model, request_generation: request_generation)
   #(
     model,
     admin_effect.get_admin_jobs(
@@ -131,7 +145,7 @@ fn load_page(
         job_type_filter: model.job_type_filter,
         periodic_job_id: option.None,
       ),
-      fn(result) { JobsLoaded(generation, result) },
+      JobsLoaded,
     ),
   )
 }
@@ -140,6 +154,26 @@ fn job_type_filter_value(value: String) -> option.Option(String) {
   case value {
     "all" -> option.None
     job_type -> option.Some(job_type)
+  }
+}
+
+fn status_filter_from_string(value: String) -> job_dto.StatusFilter {
+  case value {
+    "pending" -> job_dto.PendingStatus
+    "running" -> job_dto.RunningStatus
+    "failed" -> job_dto.FailedStatus
+    "done" -> job_dto.DoneStatus
+    _ -> job_dto.AllStatuses
+  }
+}
+
+fn status_filter_query(filter: job_dto.StatusFilter) -> option.Option(String) {
+  case filter {
+    job_dto.AllStatuses -> option.None
+    job_dto.PendingStatus -> option.Some("pending")
+    job_dto.RunningStatus -> option.Some("running")
+    job_dto.FailedStatus -> option.Some("failed")
+    job_dto.DoneStatus -> option.Some("done")
   }
 }
 

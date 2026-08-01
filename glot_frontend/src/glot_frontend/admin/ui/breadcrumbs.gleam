@@ -54,22 +54,22 @@ fn breadcrumbs(current_route: route.Route) -> List(Crumb) {
       link("Periodic jobs", route.Admin(route.AdminPeriodicJobs)),
       current("Periodic job detail"),
     ]
-    route.Admin(route.AdminUsers) -> [
+    route.Admin(route.AdminUsers(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       current("Users"),
     ]
     route.Admin(route.AdminUser(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
-      link("Users", route.Admin(route.AdminUsers)),
+      link("Users", route.Admin(route.AdminUsers(query: option.None))),
       current("User detail"),
     ]
-    route.Admin(route.AdminJobs) -> [
+    route.Admin(route.AdminJobs(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       current("Jobs"),
     ]
     route.Admin(route.AdminJob(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
-      link("Jobs", route.Admin(route.AdminJobs)),
+      link("Jobs", route.Admin(route.AdminJobs(query: option.None))),
       current("Job detail"),
     ]
     route.Admin(route.AdminEmailTemplates) -> [
@@ -81,16 +81,16 @@ fn breadcrumbs(current_route: route.Route) -> List(Crumb) {
       link("Email templates", route.Admin(route.AdminEmailTemplates)),
       current("Email template detail"),
     ]
-    route.Admin(route.AdminSnippets) -> [
+    route.Admin(route.AdminSnippets(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       current("Snippets"),
     ]
     route.Admin(route.AdminSnippet(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
-      link("Snippets", route.Admin(route.AdminSnippets)),
+      link("Snippets", route.Admin(route.AdminSnippets(query: option.None))),
       current("Snippet detail"),
     ]
-    route.Admin(route.AdminApiLogs) -> [
+    route.Admin(route.AdminApiLogs(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       link("Logs", route.Admin(route.AdminHome)),
       current("API logs"),
@@ -98,10 +98,10 @@ fn breadcrumbs(current_route: route.Route) -> List(Crumb) {
     route.Admin(route.AdminApiLog(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       link("Logs", route.Admin(route.AdminHome)),
-      link("API logs", route.Admin(route.AdminApiLogs)),
+      link("API logs", route.Admin(route.AdminApiLogs(query: option.None))),
       current("API log detail"),
     ]
-    route.Admin(route.AdminRunLogs) -> [
+    route.Admin(route.AdminRunLogs(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       link("Logs", route.Admin(route.AdminHome)),
       current("Run logs"),
@@ -109,10 +109,10 @@ fn breadcrumbs(current_route: route.Route) -> List(Crumb) {
     route.Admin(route.AdminRunLog(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       link("Logs", route.Admin(route.AdminHome)),
-      link("Run logs", route.Admin(route.AdminRunLogs)),
+      link("Run logs", route.Admin(route.AdminRunLogs(query: option.None))),
       current("Run log detail"),
     ]
-    route.Admin(route.AdminJobLogs) -> [
+    route.Admin(route.AdminJobLogs(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       link("Logs", route.Admin(route.AdminHome)),
       current("Job logs"),
@@ -120,7 +120,7 @@ fn breadcrumbs(current_route: route.Route) -> List(Crumb) {
     route.Admin(route.AdminJobLog(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       link("Logs", route.Admin(route.AdminHome)),
-      link("Job logs", route.Admin(route.AdminJobLogs)),
+      link("Job logs", route.Admin(route.AdminJobLogs(query: option.None))),
       current("Job log detail"),
     ]
     route.Public(_) | route.Account(_) | route.NotFound(_) -> []

@@ -101,7 +101,6 @@
         "src/glot_frontend/admin/job_logs/list_managed.gleam",
         "src/glot_frontend/admin/jobs/list_managed.gleam",
         "src/glot_frontend/admin/jobs/policies_managed.gleam",
-        "src/glot_frontend/admin/cursor_request.gleam",
         "src/glot_frontend/admin/run_logs/detail_managed.gleam",
         "src/glot_frontend/admin/run_logs/list_managed.gleam",
         "src/glot_frontend/admin/snippets/detail_managed.gleam",

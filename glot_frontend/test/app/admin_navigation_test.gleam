@@ -1,3 +1,4 @@
+import gleam/option
 import gleam/time/timestamp
 import gleeunit
 import glot_core/auth/session_dto
@@ -35,7 +36,7 @@ pub fn public_navigation_is_never_rewritten_test() {
 }
 
 pub fn administrators_keep_the_requested_admin_route_test() {
-  let target = route.Admin(route.AdminUsers)
+  let target = route.Admin(route.AdminUsers(query: option.None))
   assert admin_navigation.authorized_route(
       target,
       runtime.AuthenticatedSession(admin_session()),

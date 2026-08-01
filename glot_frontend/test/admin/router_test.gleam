@@ -1,11 +1,14 @@
 import gleam/list
+import gleam/option
 import gleam/string
 import gleam/time/timestamp
 import gleeunit
 import glot_core/route
 import glot_frontend/admin/command
 import glot_frontend/admin/effect/config
-import glot_frontend/admin/router
+import glot_frontend/admin/router_managed as router
+import glot_frontend/admin/router_state
+import glot_frontend/admin/router_view
 import glot_frontend/api/response
 import lustre/element
 import youid/uuid
@@ -41,7 +44,10 @@ pub fn authorized_route_initialization_retains_the_loading_state_test() {
   assert next_command == command.None
 
   let rendered =
-    router.view(failed_model, timestamp.from_unix_seconds(0))
+    router_view.view(
+      router_state.page(failed_model),
+      timestamp.from_unix_seconds(0),
+    )
     |> element.to_document_string
   assert string.contains(rendered, "Initial request reached the reducer.")
 }
@@ -49,21 +55,21 @@ pub fn authorized_route_initialization_retains_the_loading_state_test() {
 pub fn every_data_backed_admin_route_starts_a_data_request_test() {
   let id = uuid.v7()
   let data_routes = [
-    route.AdminApiLogs,
+    route.AdminApiLogs(query: option.None),
     route.AdminApiLog(id),
-    route.AdminRunLogs,
+    route.AdminRunLogs(query: option.None),
     route.AdminRunLog(id),
     route.AdminPeriodicJobs,
     route.AdminPeriodicJob(id),
-    route.AdminUsers,
+    route.AdminUsers(query: option.None),
     route.AdminUser(id),
-    route.AdminJobs,
+    route.AdminJobs(query: option.None),
     route.AdminJob(id),
     route.AdminEmailTemplates,
     route.AdminEmailTemplate("welcome"),
-    route.AdminSnippets,
+    route.AdminSnippets(query: option.None),
     route.AdminSnippet("fixture"),
-    route.AdminJobLogs,
+    route.AdminJobLogs(query: option.None),
     route.AdminJobLog(id),
     route.AdminConfig,
     route.AdminRateLimits,
