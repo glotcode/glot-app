@@ -56,11 +56,12 @@ pub fn run(
     public_root_managed.LoadRoute(target) ->
       browser_navigation.load(route.to_string(target))
     public_root_managed.ObserveNavigation ->
-      spa_navigation.observe(fn(uri) {
-        uri
-        |> route.from_uri
-        |> public_managed.UserNavigatedTo
-        |> public_root_managed.LifecycleMsg
+      spa_navigation.observe(fn(observed) {
+        let spa_navigation.Navigation(uri:, presentation:) = observed
+        public_root_managed.NavigationObserved(
+          route.from_uri(uri),
+          presentation,
+        )
       })
     public_root_managed.BindKeyboardShortcuts ->
       keyboard_shortcuts.bind(
@@ -74,7 +75,8 @@ pub fn run(
     public_root_managed.ScrollToQuickAction(index) ->
       quick_action_scroll.ensure_visible(index)
     public_root_managed.Navigate(destination) -> navigate(destination)
-    public_root_managed.CommitNavigation -> spa_navigation.commit()
+    public_root_managed.CommitNavigation(presentation) ->
+      spa_navigation.commit(presentation)
   }
 }
 

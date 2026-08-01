@@ -11,6 +11,7 @@ import glot_frontend/app/public_page_command
 import glot_frontend/app/public_page_message
 import glot_frontend/app/public_page_state
 import glot_frontend/app/public_root_managed
+import glot_frontend/navigation
 import glot_frontend/public/editor/lifecycle as editor_lifecycle
 import glot_frontend/public/editor/message as editor_message
 import glot_frontend/public/editor/model as editor_model
@@ -60,7 +61,7 @@ pub fn navigation_replaces_the_page_and_closes_quick_actions_test() {
       public_root_managed.CloseQuickActions,
       public_root_managed.TrackPageview(destination),
       public_root_managed.ApplyMetadata,
-      public_root_managed.CommitNavigation,
+      public_root_managed.CommitNavigation(navigation.Reset),
     ])
 }
 
@@ -118,7 +119,7 @@ pub fn navigation_keeps_the_current_page_until_snippets_are_loaded_test() {
   assert loaded_command
     == public_root_managed.Batch([
       public_root_managed.ApplyMetadata,
-      public_root_managed.CommitNavigation,
+      public_root_managed.CommitNavigation(navigation.Reset),
     ])
 }
 
@@ -170,7 +171,7 @@ pub fn slow_navigation_presents_the_destination_loading_state_after_its_delay_te
   assert delayed_command
     == public_root_managed.Batch([
       public_root_managed.ApplyMetadata,
-      public_root_managed.CommitNavigation,
+      public_root_managed.CommitNavigation(navigation.Reset),
     ])
 }
 
@@ -216,7 +217,7 @@ pub fn terminal_navigation_failure_is_presented_instead_of_holding_forever_test(
   assert command
     == public_root_managed.Batch([
       public_root_managed.ApplyMetadata,
-      public_root_managed.CommitNavigation,
+      public_root_managed.CommitNavigation(navigation.Reset),
     ])
 }
 
@@ -289,6 +290,65 @@ pub fn message_from_a_page_left_during_navigation_is_ignored_test() {
 
   assert unchanged == contact
   assert command == public_root_managed.None
+}
+
+pub fn traversal_restoration_is_retained_until_the_page_is_presentable_test() {
+  let #(initial, _) = init(route.Public(route.Home))
+  let destination =
+    route.Public(route.Snippets(
+      after: option.None,
+      before: option.None,
+      username: option.None,
+    ))
+  let #(loading, _) =
+    public_root_managed.update(
+      initial,
+      public_root_managed.NavigationObserved(
+        destination,
+        navigation.Restore(18, 720),
+      ),
+    )
+  let assert public_page_state.Snippets(snippets_model.Model(request:, ..)) =
+    loading.lifecycle.page_model
+
+  let #(loaded, command) =
+    public_root_managed.update(
+      loading,
+      public_root_managed.PageMsg(
+        public_page_message.SnippetsPageMsg(snippets_message.SnippetsLoaded(
+          request,
+          response.Success(
+            snippet_dto.ListSnippetsResponse(
+              page: pagination_model.InitialCursorPage(
+                items: [],
+                next_cursor: option.None,
+              ),
+            ),
+          ),
+        )),
+      ),
+    )
+
+  assert !public_root_managed.is_transitioning(loaded)
+  assert command
+    == public_root_managed.Batch([
+      public_root_managed.ApplyMetadata,
+      public_root_managed.CommitNavigation(navigation.Restore(18, 720)),
+    ])
+}
+
+pub fn same_route_traversal_restores_without_reinitializing_the_page_test() {
+  let target = route.Public(route.Contact)
+  let #(model, _) = init(target)
+  let #(unchanged, command) =
+    public_root_managed.update(
+      model,
+      public_root_managed.NavigationObserved(target, navigation.Restore(0, 410)),
+    )
+
+  assert unchanged.lifecycle == model.lifecycle
+  assert command
+    == public_root_managed.CommitNavigation(navigation.Restore(0, 410))
 }
 
 pub fn selecting_navigation_describes_dialog_and_route_commands_test() {

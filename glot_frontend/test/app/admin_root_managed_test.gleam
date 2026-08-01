@@ -16,6 +16,7 @@ import glot_frontend/api/response
 import glot_frontend/app/admin_managed
 import glot_frontend/app/admin_root_managed
 import glot_frontend/app/admin_root_view
+import glot_frontend/navigation
 import lustre/element
 import youid/uuid
 
@@ -70,7 +71,8 @@ pub fn authenticated_navigation_loads_and_accepts_the_initial_response_test() {
         ),
       ),
     )
-  assert failure_command == admin_root_managed.CommitNavigation
+  assert failure_command
+    == admin_root_managed.CommitNavigation(navigation.Reset)
   assert !admin_root_managed.is_transitioning(failed)
   let assert router_state.AdminRateLimitsPage(_) =
     router_state.page(admin_root_managed.presented_page(failed))
@@ -151,13 +153,64 @@ pub fn slow_admin_navigation_presents_its_loading_page_after_the_delay_test() {
       admin_root_managed.NavigationLoadingDelayElapsed(generation),
     )
 
-  assert command == admin_root_managed.CommitNavigation
+  assert command == admin_root_managed.CommitNavigation(navigation.Reset)
   assert !admin_root_managed.is_transitioning(delayed)
   assert admin_root_managed.presented_route(delayed) == destination
   let rendered =
     admin_root_view.view(delayed)
     |> element.to_document_string
   assert string.contains(rendered, "Loading policies...")
+}
+
+pub fn admin_traversal_restoration_survives_the_loading_transition_test() {
+  let #(initial, _) = init(route.Admin(route.AdminHome))
+  let #(authenticated, _) = authenticate(initial)
+  let destination = route.Admin(route.AdminRateLimits)
+  let #(loading, navigation_command) =
+    admin_root_managed.update(
+      authenticated,
+      admin_root_managed.NavigationObserved(
+        destination,
+        navigation.Restore(32, 960),
+      ),
+    )
+  let assert admin_root_managed.Batch([
+    admin_root_managed.CloseQuickActions,
+    admin_root_managed.RunAdmin(command.Batch([
+      command.None,
+      command.Config(config.GetRateLimits(complete)),
+    ])),
+    admin_root_managed.TrackPageview(_),
+    admin_root_managed.ScheduleNavigationLoading(_, _),
+  ]) = navigation_command
+
+  let #(loaded, command) =
+    update_lifecycle(
+      loading,
+      admin_managed.AdminPagesMsg(
+        complete(
+          response.Success(rate_limit_config_dto.RateLimitPoliciesResponse([])),
+        ),
+      ),
+    )
+
+  assert !admin_root_managed.is_transitioning(loaded)
+  assert command
+    == admin_root_managed.CommitNavigation(navigation.Restore(32, 960))
+}
+
+pub fn same_admin_route_traversal_restores_without_reloading_test() {
+  let target = route.Admin(route.AdminHome)
+  let #(model, _) = init(target)
+  let #(unchanged, command) =
+    admin_root_managed.update(
+      model,
+      admin_root_managed.NavigationObserved(target, navigation.Restore(0, 280)),
+    )
+
+  assert unchanged.lifecycle == model.lifecycle
+  assert command
+    == admin_root_managed.CommitNavigation(navigation.Restore(0, 280))
 }
 
 pub fn navigation_closes_quick_actions_and_lifts_lifecycle_commands_test() {

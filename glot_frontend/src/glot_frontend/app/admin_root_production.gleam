@@ -54,11 +54,9 @@ pub fn run(
     admin_root_managed.LoadRoute(target) ->
       browser_navigation.load(route.to_string(target))
     admin_root_managed.ObserveNavigation ->
-      spa_navigation.observe(fn(uri) {
-        uri
-        |> route.from_uri
-        |> admin_managed.UserNavigatedTo
-        |> admin_root_managed.LifecycleMsg
+      spa_navigation.observe(fn(observed) {
+        let spa_navigation.Navigation(uri:, presentation:) = observed
+        admin_root_managed.NavigationObserved(route.from_uri(uri), presentation)
       })
     admin_root_managed.BindKeyboardShortcuts ->
       keyboard_shortcuts.bind(
@@ -78,7 +76,8 @@ pub fn run(
           dispatch(admin_root_managed.NavigationLoadingDelayElapsed(generation))
         })
       })
-    admin_root_managed.CommitNavigation -> spa_navigation.commit()
+    admin_root_managed.CommitNavigation(presentation) ->
+      spa_navigation.commit(presentation)
   }
 }
 

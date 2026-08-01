@@ -11,6 +11,7 @@ import glot_frontend/app/public_quick_actions
 import glot_frontend/app/quick_actions
 import glot_frontend/app/quick_actions_managed
 import glot_frontend/app/quick_actions_root_managed
+import glot_frontend/navigation.{type Presentation}
 import glot_frontend/request_generation.{type Generation}
 import glot_frontend/ui/delayed_loading
 import glot_web/page/top_bar
@@ -19,6 +20,7 @@ pub type Model {
   Model(
     lifecycle: admin_managed.Model(router_state.Model),
     presentation: page_presentation.Model(Page),
+    navigation_presentation: Presentation,
     navigation_loading: delayed_loading.State,
     quick_actions: quick_actions.Model,
   )
@@ -34,6 +36,7 @@ pub type QuickActionTarget {
 
 pub type Msg {
   LifecycleMsg(admin_managed.Msg(router_message.Msg))
+  NavigationObserved(route.Route, Presentation)
   QuickActionsMsg(quick_actions_managed.Msg)
   QuickActionSelected(QuickActionTarget)
   IgnoredEditorRunShortcut
@@ -57,7 +60,7 @@ pub type Command {
   ScrollToQuickAction(Int)
   Navigate(route.Route)
   ScheduleNavigationLoading(Int, Generation(delayed_loading.Stream))
-  CommitNavigation
+  CommitNavigation(Presentation)
 }
 
 pub fn init(
@@ -74,6 +77,7 @@ pub fn init(
         route: lifecycle.route,
         model: lifecycle.page_model,
       )),
+      navigation_presentation: navigation.Reset,
       navigation_loading: delayed_loading.idle(),
       quick_actions: quick_actions.init(),
     )
@@ -89,7 +93,14 @@ pub fn init(
 
 pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
   case msg {
+    LifecycleMsg(admin_managed.UserNavigatedTo(destination)) ->
+      update_lifecycle(
+        Model(..model, navigation_presentation: navigation.Reset),
+        admin_managed.UserNavigatedTo(destination),
+      )
     LifecycleMsg(lifecycle_msg) -> update_lifecycle(model, lifecycle_msg)
+    NavigationObserved(destination, presentation) ->
+      navigation_observed(model, destination, presentation)
     QuickActionsMsg(quick_action_msg) ->
       quick_actions_root_managed.update(
         model,
@@ -105,6 +116,20 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
     IgnoredEditorRunShortcut -> #(model, None)
     NavigationLoadingDelayElapsed(generation) ->
       navigation_loading_delay_elapsed(model, generation)
+  }
+}
+
+fn navigation_observed(
+  model: Model,
+  destination: route.Route,
+  presentation: Presentation,
+) -> #(Model, Command) {
+  let model = Model(..model, navigation_presentation: presentation)
+  case destination == model.lifecycle.route, is_transitioning(model) {
+    True, False -> #(model, CommitNavigation(presentation))
+    True, True -> #(model, None)
+    False, _ ->
+      update_lifecycle(model, admin_managed.UserNavigatedTo(destination))
   }
 }
 
@@ -127,6 +152,7 @@ fn update_lifecycle(
       model.navigation_loading,
       presentation_transition,
       route_changed,
+      model.navigation_presentation,
     )
   let next_model =
     Model(..model, lifecycle:, presentation:, navigation_loading:)
@@ -153,6 +179,7 @@ fn presentation_command(
   navigation_loading: delayed_loading.State,
   transition: page_presentation.Transition(Page),
   route_changed: Bool,
+  navigation_presentation: Presentation,
 ) -> #(delayed_loading.State, Command) {
   case
     page_presentation.did_present(transition),
@@ -161,7 +188,7 @@ fn presentation_command(
   {
     True, _, _ -> #(
       delayed_loading.finish(navigation_loading),
-      CommitNavigation,
+      CommitNavigation(navigation_presentation),
     )
     False, True, True -> {
       let #(navigation_loading, generation) =
@@ -197,7 +224,7 @@ fn navigation_loading_delay_elapsed(
           presentation:,
           navigation_loading: delayed_loading.finish(navigation_loading),
         ),
-        CommitNavigation,
+        CommitNavigation(model.navigation_presentation),
       )
     }
     _, _ -> #(Model(..model, navigation_loading:), None)

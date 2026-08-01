@@ -15,6 +15,7 @@ import glot_frontend/app/quick_actions
 import glot_frontend/app/quick_actions_managed
 import glot_frontend/app/quick_actions_root_managed
 import glot_frontend/app/runtime
+import glot_frontend/navigation.{type Presentation}
 import glot_frontend/public/editor/message as editor_message
 import glot_web/page/top_bar
 
@@ -22,6 +23,7 @@ pub type Model {
   Model(
     lifecycle: public_managed.Model(public_page_state.Model),
     presentation: page_presentation.Model(public_page_state.Model),
+    navigation_presentation: Presentation,
     quick_actions: quick_actions.Model,
   )
 }
@@ -33,6 +35,7 @@ pub type QuickActionTarget {
 
 pub type Msg {
   LifecycleMsg(public_managed.Msg)
+  NavigationObserved(route.Route, Presentation)
   PageMsg(public_page_message.Msg)
   QuickActionsMsg(quick_actions_managed.Msg)
   QuickActionSelected(QuickActionTarget)
@@ -55,7 +58,7 @@ pub type Command {
   CloseQuickActions
   ScrollToQuickAction(Int)
   Navigate(route.Route)
-  CommitNavigation
+  CommitNavigation(Presentation)
 }
 
 pub fn init(
@@ -74,6 +77,7 @@ pub fn init(
     Model(
       lifecycle:,
       presentation: page_presentation.init(lifecycle.page_model),
+      navigation_presentation: navigation.Reset,
       quick_actions: quick_actions.init(),
     )
   #(
@@ -88,7 +92,14 @@ pub fn init(
 
 pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
   case msg {
+    LifecycleMsg(public_managed.UserNavigatedTo(destination)) ->
+      update_lifecycle(
+        Model(..model, navigation_presentation: navigation.Reset),
+        public_managed.UserNavigatedTo(destination),
+      )
     LifecycleMsg(lifecycle_msg) -> update_lifecycle(model, lifecycle_msg)
+    NavigationObserved(destination, presentation) ->
+      navigation_observed(model, destination, presentation)
     PageMsg(page_msg) -> update_page(model, page_msg)
     QuickActionsMsg(quick_action_msg) ->
       quick_actions_root_managed.update(
@@ -115,6 +126,20 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Command) {
           )
         _ -> #(model, None)
       }
+  }
+}
+
+fn navigation_observed(
+  model: Model,
+  destination: route.Route,
+  presentation: Presentation,
+) -> #(Model, Command) {
+  let model = Model(..model, navigation_presentation: presentation)
+  case destination == model.lifecycle.route, is_transitioning(model) {
+    True, False -> #(model, CommitNavigation(presentation))
+    True, True -> #(model, None)
+    False, _ ->
+      update_lifecycle(model, public_managed.UserNavigatedTo(destination))
   }
 }
 
@@ -154,8 +179,17 @@ fn update_lifecycle(
     page_presentation.did_present(presentation_transition),
     route_changed
   {
-    True, True -> batch([lifecycle_command, CommitNavigation])
-    True, False -> batch([lifecycle_command, ApplyMetadata, CommitNavigation])
+    True, True ->
+      batch([
+        lifecycle_command,
+        CommitNavigation(next_model.navigation_presentation),
+      ])
+    True, False ->
+      batch([
+        lifecycle_command,
+        ApplyMetadata,
+        CommitNavigation(next_model.navigation_presentation),
+      ])
     False, _ -> lifecycle_command
   }
   case msg {
@@ -220,7 +254,10 @@ fn with_navigation_commit(
 ) -> #(Model, Command) {
   let #(model, command) = result
   case page_presentation.did_present(transition) {
-    True -> #(model, batch([command, CommitNavigation]))
+    True -> #(
+      model,
+      batch([command, CommitNavigation(model.navigation_presentation)]),
+    )
     False -> result
   }
 }
