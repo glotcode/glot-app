@@ -56,6 +56,10 @@ pub fn embedded_json_escapes_html_significant_content_test() {
   )
 }
 
+pub fn plaintext_cannot_be_used_for_a_new_editor_test() {
+  assert editor.new("plaintext") == editor.UnsupportedLanguage("plaintext")
+}
+
 pub fn editor_document_embeds_large_ssr_payload_outside_app_attributes_test() {
   let large_source =
     string.repeat("x", times: 100_000)

@@ -1,10 +1,11 @@
 import gleam/option
+import glot_core/language
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/execution_update
 import glot_frontend/public/editor/file_update
 import glot_frontend/public/editor/message.{
   type EditorMsg, Execution, File, Metadata, RestoreDraft, Save, Settings,
-  SnippetInfo,
+  SnippetInfo, TabKeyPressed, TabSelected,
 }
 import glot_frontend/public/editor/metadata_update
 import glot_frontend/public/editor/model.{type Editor}
@@ -19,24 +20,34 @@ pub fn update(
   msg: EditorMsg,
   current_user_id: option.Option(Uuid),
 ) -> #(Editor, command.Command(EditorMsg)) {
-  case msg {
-    RestoreDraft(msg) ->
-      restore_draft_update.update(model, msg)
-      |> map_command(RestoreDraft)
-    Metadata(msg) ->
-      metadata_update.update(model, msg)
-      |> map_command(Metadata)
-    File(msg) -> file_update.update(model, msg) |> map_command(File)
-    Settings(msg) ->
-      settings_update.update(model, msg)
-      |> map_command(Settings)
-    Save(msg) ->
-      save_update.update(model, msg, current_user_id)
-      |> map_command(Save)
-    SnippetInfo(msg) ->
+  case language.is_writable(model.snippet.language), msg {
+    False, SnippetInfo(msg) ->
       snippet_info_update.update(model, msg)
       |> map_command(SnippetInfo)
-    Execution(msg) ->
+    False, Execution(TabSelected(tab)) ->
+      execution_update.update(model, TabSelected(tab))
+      |> map_command(Execution)
+    False, Execution(TabKeyPressed(tab, key)) ->
+      execution_update.update(model, TabKeyPressed(tab, key))
+      |> map_command(Execution)
+    False, _ -> #(model, command.none())
+    True, RestoreDraft(msg) ->
+      restore_draft_update.update(model, msg)
+      |> map_command(RestoreDraft)
+    True, Metadata(msg) ->
+      metadata_update.update(model, msg)
+      |> map_command(Metadata)
+    True, File(msg) -> file_update.update(model, msg) |> map_command(File)
+    True, Settings(msg) ->
+      settings_update.update(model, msg)
+      |> map_command(Settings)
+    True, Save(msg) ->
+      save_update.update(model, msg, current_user_id)
+      |> map_command(Save)
+    True, SnippetInfo(msg) ->
+      snippet_info_update.update(model, msg)
+      |> map_command(SnippetInfo)
+    True, Execution(msg) ->
       execution_update.update(model, msg)
       |> map_command(Execution)
   }

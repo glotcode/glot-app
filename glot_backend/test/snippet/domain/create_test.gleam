@@ -113,3 +113,37 @@ pub fn create_snippet_rejects_too_long_title_test() {
     == Error(error.validation(validation_error.FieldTooLong("title", 200)))
   assert db.write_steps == []
 }
+
+pub fn create_snippet_rejects_plaintext_test() {
+  let fixture =
+    fixture.integration_fixture(
+      next_uuids: [fixture.must_uuid("00000000-0000-0000-0000-000000000703")],
+      jobs: [],
+      account_delete_job_id: option.None,
+    )
+  let request =
+    snippet_dto.CreateSnippetRequest(
+      data: snippet_dto.SnippetData(
+        title: "Legacy-only language",
+        language: language.Plaintext,
+        visibility: snippet_model.Unlisted,
+        stdin: "",
+        run_instructions: option.None,
+        files: [snippet_model.File(name: "main.txt", content: "archive")],
+      ),
+    )
+
+  let #(run_result, db) =
+    runner.run_test_program(
+      create_snippet_domain.create_snippet(
+        request_context.new(fixture.ctx, fixture.state.dynamic_config),
+        request,
+      ),
+      fixture.ctx,
+      fixture.state,
+    )
+
+  assert run_result
+    == Error(error.validation(validation_error.ReadOnlyLanguage("plaintext")))
+  assert db.write_steps == []
+}

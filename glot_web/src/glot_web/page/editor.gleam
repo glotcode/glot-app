@@ -46,7 +46,7 @@ pub type EditorModel {
 }
 
 pub fn new(language_slug: String) -> ViewModel {
-  case language.from_string(language_slug) {
+  case language.from_writable_string(language_slug) {
     option.Some(lang) -> NewSnippet(default_editor_model(lang))
     option.None -> UnsupportedLanguage(language_slug)
   }

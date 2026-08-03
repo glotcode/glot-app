@@ -98,8 +98,12 @@ pub fn run_instructions_override_from_draft(
 pub fn version_run_command(
   lang: language.Language,
 ) -> command.Command(ExecutionMsg) {
-  command.GetLanguageVersion(
-    run.GetLanguageVersionRequest(language: lang),
-    fn(result) { VersionRunFinished(lang, result) },
-  )
+  case language.is_runnable(lang) {
+    False -> command.none()
+    True ->
+      command.GetLanguageVersion(
+        run.GetLanguageVersionRequest(language: lang),
+        fn(result) { VersionRunFinished(lang, result) },
+      )
+  }
 }

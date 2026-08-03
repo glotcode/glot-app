@@ -33,7 +33,7 @@ fn resolve_new(
       Unsupported(language_slug)
     option.Some(editor_ssr.LoadError(message)) -> Failed(message)
     option.Some(editor_ssr.ExistingSnippet(_)) | option.None ->
-      case language.from_string(language_slug) {
+      case language.from_writable_string(language_slug) {
         option.Some(language) -> StartNew(language)
         option.None -> Unsupported(language_slug)
       }

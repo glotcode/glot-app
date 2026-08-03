@@ -6,6 +6,7 @@ import lustre/element/svg
 
 pub fn language_logo(lang: Language) -> element.Element(msg) {
   case lang {
+    language.Plaintext -> plaintext()
     language.Assembly -> assembly()
     language.Ats -> ats()
     language.Bash -> bash()
@@ -51,6 +52,26 @@ pub fn language_logo(lang: Language) -> element.Element(msg) {
     language.TypeScript -> typescript()
     language.Zig -> zig()
   }
+}
+
+pub fn plaintext() -> element.Element(msg) {
+  svg.svg(
+    [
+      attribute.attribute("viewBox", "0 0 24 24"),
+      attribute.attribute("xmlns", "http://www.w3.org/2000/svg"),
+    ],
+    [
+      svg.path([
+        attribute.attribute(
+          "d",
+          "M6 2h8l4 4v16H6V2zm8 1.5V7h3.5M9 11h6M9 15h6M9 19h4",
+        ),
+        attribute.attribute("fill", "none"),
+        attribute.attribute("stroke", "currentColor"),
+        attribute.attribute("stroke-width", "1.5"),
+      ]),
+    ],
+  )
 }
 
 pub fn assembly() -> element.Element(msg) {

@@ -95,6 +95,22 @@ pub fn long_running_execution_replaces_the_disabled_button_with_cancel_test() {
   assert !string.contains(rendered, "disabled type=\"button\">Cancel</button>")
 }
 
+pub fn plaintext_editor_is_read_only_test() {
+  let editor = ready.new(language.Plaintext, settings.defaults())
+  let rendered = render(editor, option.Some(editor_fixture.owner_id()))
+
+  assert string.contains(rendered, "language=\"plaintext\"")
+  assert string.contains(
+    rendered,
+    "disabled type=\"button\">Not runnable</button>",
+  )
+  assert string.contains(
+    rendered,
+    "disabled type=\"button\">Read only</button>",
+  )
+  assert !string.contains(rendered, "aria-label=\"Edit snippet metadata\"")
+}
+
 fn new_editor() -> model.Editor {
   ready.new(language.JavaScript, settings.defaults())
 }

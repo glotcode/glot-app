@@ -54,6 +54,11 @@ pub fn update_snippet(
     ),
   ))
 
+  use existing <- program.and_then(snippet_lookup.require_by_slug(request.slug))
+  use _ <- program.and_then(snippet_validation.require_writable_snippet(
+    existing,
+  ))
+
   use _ <- program.and_then(snippet_validation.require_valid_fields(
     request.data,
   ))
@@ -102,6 +107,9 @@ fn update_snippet_tx(
 ) -> TransactionProgram(HydratedSnippet) {
   use existing <- transaction_program.and_then(
     snippet_lookup.require_by_slug_for_update(slug),
+  )
+  use _ <- transaction_program.and_then(
+    snippet_validation.require_writable_snippet_tx(existing),
   )
   use _ <- transaction_program.and_then(snippet_access.require_owner_tx(
     existing,

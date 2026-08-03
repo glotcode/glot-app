@@ -1,6 +1,7 @@
 import gleam/list
 import gleam/option
 import glot_core/api_action
+import glot_core/language
 import glot_core/public_action
 import glot_core/run
 import glot_frontend/api/response as api_response
@@ -57,9 +58,12 @@ pub fn update(
     }
 
     RunSubmitted ->
-      case operations.execution_is_running(model.operations) {
-        True -> #(model, command.none())
-        False -> execution_workflow.run_snippet(model)
+      case
+        language.is_runnable(model.snippet.language),
+        operations.execution_is_running(model.operations)
+      {
+        False, _ | _, True -> #(model, command.none())
+        True, False -> execution_workflow.run_snippet(model)
       }
 
     RunCancellationDelayElapsed(generation) ->

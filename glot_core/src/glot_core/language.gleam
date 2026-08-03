@@ -5,6 +5,7 @@ import gleam/option.{type Option, None, Some}
 import gleam/string
 
 pub type Language {
+  Plaintext
   Assembly
   Ats
   Bash
@@ -67,6 +68,7 @@ pub fn list() -> List(Language) {
 
 pub fn name(lang: Language) -> String {
   case lang {
+    Plaintext -> "Plaintext"
     Assembly -> "Assembly"
     Ats -> "Ats"
     Bash -> "Bash"
@@ -116,6 +118,7 @@ pub fn name(lang: Language) -> String {
 
 pub fn to_string(lang: Language) -> String {
   case lang {
+    Plaintext -> "plaintext"
     Assembly -> "assembly"
     Ats -> "ats"
     Bash -> "bash"
@@ -165,6 +168,7 @@ pub fn to_string(lang: Language) -> String {
 
 pub fn from_string(s: String) -> Option(Language) {
   case s {
+    "plaintext" -> Some(Plaintext)
     "assembly" -> Some(Assembly)
     "ats" -> Some(Ats)
     "bash" -> Some(Bash)
@@ -213,6 +217,21 @@ pub fn from_string(s: String) -> Option(Language) {
   }
 }
 
+pub fn is_runnable(lang: Language) -> Bool {
+  lang != Plaintext
+}
+
+pub fn is_writable(lang: Language) -> Bool {
+  lang != Plaintext
+}
+
+pub fn from_writable_string(value: String) -> Option(Language) {
+  case from_string(value) {
+    Some(Plaintext) | None -> None
+    Some(lang) -> Some(lang)
+  }
+}
+
 pub fn from_container_image(image: String) -> Option(Language) {
   list.find(list(), fn(lang) { container_image(lang) == image })
   |> option.from_result
@@ -233,6 +252,7 @@ pub fn decoder() -> decode.Decoder(Language) {
 
 pub fn file_extension(lang: Language) -> String {
   case lang {
+    Plaintext -> "txt"
     Assembly -> "asm"
     Ats -> "dats"
     Bash -> "sh"
@@ -282,6 +302,7 @@ pub fn file_extension(lang: Language) -> String {
 
 pub fn container_image(lang: Language) -> String {
   case lang {
+    Plaintext -> ""
     Assembly -> "glot/assembly:latest"
     Ats -> "glot/ats:latest"
     Bash -> "glot/bash:latest"
@@ -338,6 +359,7 @@ pub fn default_filename(lang: Language) -> String {
 
 fn version_command(lang: Language) -> String {
   case lang {
+    Plaintext -> ""
     Assembly -> "nasm --version"
     Ats -> "patscc -vats"
     Bash -> "bash --version | head -n 1"
@@ -415,6 +437,7 @@ pub fn run_instructions(
   other_files: List(String),
 ) -> RunInstructions {
   case lang {
+    Plaintext -> RunInstructions(build_commands: [], run_command: "")
     Assembly ->
       RunInstructions(
         build_commands: [
@@ -789,6 +812,7 @@ fn trim_final_newline(s: String) -> String {
 
 pub fn example_code(lang: Language) -> String {
   trim_final_newline(case lang {
+    Plaintext -> ""
     Assembly ->
       "section .data
     msg db \"Hello World!\", 0ah

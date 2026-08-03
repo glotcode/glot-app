@@ -1,5 +1,6 @@
 import gleam/list
 import gleam/option
+import glot_core/language
 import glot_frontend/public/editor/message.{
   type EditorMsg, type Msg, AddEntryClicked, EditMetadataClicked,
   Editor as EditorMessage, Execution, File, Metadata, RunCancellationSubmitted,
@@ -30,10 +31,22 @@ fn actions_for_model(
   model: Editor,
   current_user_id: option.Option(Uuid),
 ) -> List(top_bar.Action(EditorMsg)) {
+  case language.is_writable(model.snippet.language) {
+    False -> read_only_actions(model)
+    True -> writable_actions(model, current_user_id)
+  }
+}
+
+fn writable_actions(
+  model: Editor,
+  current_user_id: option.Option(Uuid),
+) -> List(top_bar.Action(EditorMsg)) {
   let execution_actions = case
+    language.is_runnable(model.snippet.language),
     operations.execution_is_running(model.operations)
   {
-    True -> [
+    False, _ -> []
+    True, True -> [
       top_bar.Action(
         label: "Cancel run",
         description: "Stop the current snippet run.",
@@ -42,7 +55,7 @@ fn actions_for_model(
         msg: Execution(RunCancellationSubmitted),
       ),
     ]
-    False -> [
+    True, False -> [
       top_bar.Action(
         label: "Run code",
         description: "Execute the current snippet.",
@@ -109,4 +122,19 @@ fn actions_for_model(
   |> list.append(base_actions)
   |> list.append(info_actions)
   |> list.append(title_actions)
+}
+
+fn read_only_actions(model: Editor) -> List(top_bar.Action(EditorMsg)) {
+  case model.snippet.slug {
+    option.Some(_) -> [
+      top_bar.Action(
+        label: "Snippet info",
+        description: "View snippet metadata.",
+        shortcut: [],
+        target_route: option.None,
+        msg: SnippetInfo(SnippetInfoClicked),
+      ),
+    ]
+    option.None -> []
+  }
 }

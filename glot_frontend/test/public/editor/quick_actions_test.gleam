@@ -33,6 +33,17 @@ pub fn execution_quick_action_follows_cancellation_availability_test() {
     == message.Editor(message.Execution(message.RunCancellationSubmitted))
 }
 
+pub fn plaintext_only_exposes_information_action_test() {
+  let base = ready.new(language.Plaintext, settings.defaults())
+  let editor =
+    model.Editor(
+      ..base,
+      snippet: model.Snippet(..base.snippet, slug: option.Some("legacy")),
+    )
+
+  assert labels(actions(editor)) == ["Snippet info"]
+}
+
 fn actions(editor: model.Editor) -> List(top_bar.Action(message.Msg)) {
   quick_actions.actions(model.Ready(editor), option.None)
 }

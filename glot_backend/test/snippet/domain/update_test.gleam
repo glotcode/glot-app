@@ -8,6 +8,7 @@ import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_core/validation_error
 import support/integration/fixture
+import support/integration/model
 import support/integration/profile/snippet as runner
 import support/integration/store/common
 
@@ -93,5 +94,51 @@ pub fn update_snippet_rejects_too_long_file_content_test() {
         100_000,
       )),
     )
+  assert db.write_steps == []
+}
+
+pub fn update_snippet_rejects_existing_plaintext_even_with_new_language_test() {
+  let fixture =
+    fixture.integration_fixture(
+      next_uuids: [fixture.must_uuid("00000000-0000-0000-0000-000000000704")],
+      jobs: [],
+      account_delete_job_id: option.None,
+    )
+  let plaintext =
+    snippet_model.Snippet(..fixture.snippet, language: language.Plaintext)
+  let state =
+    model.TestState(
+      ..fixture.state,
+      snippets: dict.insert(
+        fixture.state.snippets,
+        common.uuid_key(plaintext.id),
+        plaintext,
+      ),
+    )
+  let request =
+    snippet_dto.UpdateSnippetRequest(
+      slug: plaintext.slug,
+      data: snippet_dto.SnippetData(
+        title: "Attempted update",
+        language: language.Python,
+        visibility: snippet_model.Unlisted,
+        stdin: "",
+        run_instructions: option.None,
+        files: [snippet_model.File(name: "main.txt", content: "changed")],
+      ),
+    )
+
+  let #(run_result, db) =
+    runner.run_test_program(
+      update_snippet_domain.update_snippet(
+        request_context.new(fixture.ctx, state.dynamic_config),
+        request,
+      ),
+      fixture.ctx,
+      state,
+    )
+
+  assert run_result
+    == Error(error.validation(validation_error.ReadOnlyLanguage("plaintext")))
   assert db.write_steps == []
 }

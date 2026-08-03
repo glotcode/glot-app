@@ -1,3 +1,4 @@
+import gleam/list
 import gleam/option
 import gleam/regexp
 import gleam/time/timestamp
@@ -540,4 +541,14 @@ pub fn paginate_empty_before_page_reuses_request_cursor_test() {
       previous_cursor: option.None,
       next_cursor: pagination_model.from_string("x"),
     )
+}
+
+pub fn plaintext_is_persistable_but_not_runnable_test() {
+  assert language.from_string("plaintext") == option.Some(language.Plaintext)
+  assert language.to_string(language.Plaintext) == "plaintext"
+  assert language.is_runnable(language.Plaintext) == False
+  assert language.is_writable(language.Plaintext) == False
+  assert language.from_writable_string("plaintext") == option.None
+  assert language.from_writable_string("python") == option.Some(language.Python)
+  assert list.contains(language.list(), language.Plaintext) == False
 }
