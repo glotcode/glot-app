@@ -131,6 +131,8 @@ WHERE
     OR users.id = ANY(sqlc.arg(user_ids)::uuid[])
   )
   AND NOT users.id = ANY(sqlc.arg(skip_user_ids)::uuid[])
+  AND lower(snippets.title) <> ALL(sqlc.arg(excluded_titles)::text[])
+  AND snippets.language <> ALL(sqlc.arg(excluded_languages)::text[])
   AND (
     sqlc.narg(after_slug)::text IS NULL
     OR snippets.slug < sqlc.narg(after_slug)::text
@@ -174,6 +176,8 @@ WHERE
     OR users.id = ANY(sqlc.arg(user_ids)::uuid[])
   )
   AND NOT users.id = ANY(sqlc.arg(skip_user_ids)::uuid[])
+  AND lower(snippets.title) <> ALL(sqlc.arg(excluded_titles)::text[])
+  AND snippets.language <> ALL(sqlc.arg(excluded_languages)::text[])
   AND (
     sqlc.narg(before_slug)::text IS NULL
     OR snippets.slug > sqlc.narg(before_slug)::text

@@ -6,6 +6,7 @@ import glot_backend/snippet/adapter/postgres/row
 import glot_backend/sql
 import glot_backend/system/database as db_helpers
 import glot_backend/system/effect/error/db_error
+import glot_core/language
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter,
@@ -74,6 +75,9 @@ pub fn list(
     |> list.map(snippet_model.visibility_to_string)
   let skip_user_id_bits = filter.skip_user_ids |> list.map(uuid.to_bit_array)
   let user_id_bits = filter.user_ids |> list.map(uuid.to_bit_array)
+  let excluded_titles = filter.excluded_titles |> list.map(string.lowercase)
+  let excluded_languages =
+    filter.excluded_languages |> list.map(language.to_string)
 
   case pagination {
     pagination_model.BeforePage(before_slug, limit) ->
@@ -84,6 +88,8 @@ pub fn list(
           filter.usernames,
           user_id_bits,
           skip_user_id_bits,
+          excluded_titles,
+          excluded_languages,
           option.Some(pagination_model.to_string(before_slug)),
           limit,
         ),
@@ -110,6 +116,8 @@ pub fn list(
           filter.usernames,
           user_id_bits,
           skip_user_id_bits,
+          excluded_titles,
+          excluded_languages,
           after_slug,
           limit,
         ),

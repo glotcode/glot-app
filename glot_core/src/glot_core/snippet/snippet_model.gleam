@@ -142,6 +142,8 @@ pub type ListSnippetsFilter {
     usernames: List(String),
     user_ids: List(Uuid),
     skip_user_ids: List(Uuid),
+    excluded_titles: List(String),
+    excluded_languages: List(language.Language),
   )
 }
 
@@ -151,6 +153,8 @@ pub fn new_filter() -> ListSnippetsFilter {
     usernames: [],
     user_ids: [],
     skip_user_ids: [],
+    excluded_titles: [],
+    excluded_languages: [],
   )
 }
 
@@ -180,6 +184,20 @@ pub fn skip_user_ids(
   skip_user_ids: List(Uuid),
 ) -> ListSnippetsFilter {
   ListSnippetsFilter(..filter, skip_user_ids: skip_user_ids)
+}
+
+pub fn exclude_titles(
+  filter: ListSnippetsFilter,
+  excluded_titles: List(String),
+) -> ListSnippetsFilter {
+  ListSnippetsFilter(..filter, excluded_titles: excluded_titles)
+}
+
+pub fn exclude_languages(
+  filter: ListSnippetsFilter,
+  excluded_languages: List(language.Language),
+) -> ListSnippetsFilter {
+  ListSnippetsFilter(..filter, excluded_languages: excluded_languages)
 }
 
 fn validate_run_instructions(

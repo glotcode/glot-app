@@ -4587,6 +4587,8 @@ pub fn list_snippets_after(
   usernames usernames: List(String),
   user_ids user_ids: List(BitArray),
   skip_user_ids skip_user_ids: List(BitArray),
+  excluded_titles excluded_titles: List(String),
+  excluded_languages excluded_languages: List(String),
   after_slug after_slug: Option(String),
   page_limit page_limit: Int,
 ) {
@@ -4626,12 +4628,14 @@ WHERE
     OR users.id = ANY($3::uuid[])
   )
   AND NOT users.id = ANY($4::uuid[])
+  AND lower(snippets.title) <> ALL($5::text[])
+  AND snippets.language <> ALL($6::text[])
   AND (
-    $5::text IS NULL
-    OR snippets.slug < $5::text
+    $7::text IS NULL
+    OR snippets.slug < $7::text
   )
 ORDER BY snippets.slug DESC
-LIMIT $6"
+LIMIT $8"
   #(
     sql,
     [
@@ -4639,6 +4643,8 @@ LIMIT $6"
       dev.ParamList(list.map(usernames, dev.ParamString)),
       dev.ParamList(list.map(user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(skip_user_ids, dev.ParamBitArray)),
+      dev.ParamList(list.map(excluded_titles, dev.ParamString)),
+      dev.ParamList(list.map(excluded_languages, dev.ParamString)),
       dev.ParamNullable(option.map(after_slug, fn(v) { dev.ParamString(v) })),
       dev.ParamInt(page_limit),
     ],
@@ -4715,6 +4721,8 @@ pub fn list_snippets_before(
   usernames usernames: List(String),
   user_ids user_ids: List(BitArray),
   skip_user_ids skip_user_ids: List(BitArray),
+  excluded_titles excluded_titles: List(String),
+  excluded_languages excluded_languages: List(String),
   before_slug before_slug: Option(String),
   page_limit page_limit: Int,
 ) {
@@ -4754,12 +4762,14 @@ WHERE
     OR users.id = ANY($3::uuid[])
   )
   AND NOT users.id = ANY($4::uuid[])
+  AND lower(snippets.title) <> ALL($5::text[])
+  AND snippets.language <> ALL($6::text[])
   AND (
-    $5::text IS NULL
-    OR snippets.slug > $5::text
+    $7::text IS NULL
+    OR snippets.slug > $7::text
   )
 ORDER BY snippets.slug ASC
-LIMIT $6"
+LIMIT $8"
   #(
     sql,
     [
@@ -4767,6 +4777,8 @@ LIMIT $6"
       dev.ParamList(list.map(usernames, dev.ParamString)),
       dev.ParamList(list.map(user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(skip_user_ids, dev.ParamBitArray)),
+      dev.ParamList(list.map(excluded_titles, dev.ParamString)),
+      dev.ParamList(list.map(excluded_languages, dev.ParamString)),
       dev.ParamNullable(option.map(before_slug, fn(v) { dev.ParamString(v) })),
       dev.ParamInt(page_limit),
     ],

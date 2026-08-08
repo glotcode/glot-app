@@ -38,7 +38,9 @@ pub fn new(test_state: state.State) -> store.Store {
     get_admin_snippet_by_slug: fn(slug) {
       Ok(snippet.find_by_slug(state.get(test_state), slug))
     },
-    list_snippets: fn(_, _) { Ok([]) },
+    list_snippets: fn(filter, pagination) {
+      Ok(snippet.list_snippets(state.get(test_state), filter, pagination))
+    },
     list_admin_snippets: fn(_, _) { Ok([]) },
     delete_snippet: fn(id) {
       state.update(test_state, fn(db) { snippet.delete_snippet_by_id(db, id) })

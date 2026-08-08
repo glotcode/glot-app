@@ -11,11 +11,14 @@ import glot_backend/system/effect/program_types.{type Program}
 import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
+import glot_core/language
 import glot_core/public_action
 import glot_core/snippet/snippet_dto.{
   type ListPublicSnippetsRequest, type ListSnippetsResponse,
 }
 import glot_core/snippet/snippet_model
+
+const excluded_titles = ["Hello World", "Untitled", "Untitled snippet"]
 
 pub fn list_public_snippets(
   request_ctx: RequestContext,
@@ -53,7 +56,9 @@ pub fn list_public_snippets(
   use snippets <- program.and_then(snippet_effect.list(
     filter: snippet_model.new_filter()
       |> snippet_model.only_visibilities([snippet_model.Public])
-      |> snippet_model.only_usernames(request.usernames),
+      |> snippet_model.only_usernames(request.usernames)
+      |> snippet_model.exclude_titles(excluded_titles)
+      |> snippet_model.exclude_languages([language.Plaintext]),
     pagination: snippet_listing.fetch_pagination(pagination),
   ))
 

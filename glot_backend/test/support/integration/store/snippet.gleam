@@ -1,6 +1,9 @@
 import gleam/dict.{type Dict}
 import gleam/list
 import gleam/option
+import gleam/order
+import gleam/string
+import glot_core/pagination_model
 import glot_core/snippet/snippet_model
 import support/integration/model
 import support/integration/store/common
@@ -25,6 +28,49 @@ pub fn find_by_slug(
   |> list.find(fn(snippet) { snippet.slug == slug })
   |> option.from_result
   |> option.then(hydrate(db, _))
+}
+
+pub fn list_snippets(
+  db: model.TestState,
+  filter: snippet_model.ListSnippetsFilter,
+  pagination: pagination_model.CursorPagination,
+) -> List(snippet_model.HydratedSnippet) {
+  let snippets =
+    db.snippets
+    |> dict.values
+    |> list.filter(fn(snippet) { matches_filter(db, snippet, filter) })
+    |> list.sort(fn(left, right) {
+      reverse_order(string.compare(left.slug, right.slug))
+    })
+    |> list.filter_map(fn(snippet) {
+      hydrate(db, snippet) |> option.to_result(Nil)
+    })
+
+  case pagination {
+    pagination_model.InitialPage(limit) -> list.take(snippets, limit)
+    pagination_model.AfterPage(cursor, limit) ->
+      snippets
+      |> list.filter(fn(snippet) {
+        string.compare(
+          snippet.identity.slug,
+          pagination_model.to_string(cursor),
+        )
+        == order.Lt
+      })
+      |> list.take(limit)
+    pagination_model.BeforePage(cursor, limit) ->
+      snippets
+      |> list.filter(fn(snippet) {
+        string.compare(
+          snippet.identity.slug,
+          pagination_model.to_string(cursor),
+        )
+        == order.Gt
+      })
+      |> list.reverse
+      |> list.take(limit)
+      |> list.reverse
+  }
 }
 
 pub fn insert_snippet(
@@ -79,5 +125,37 @@ fn hydrate(
     Ok(user) ->
       option.Some(snippet_model.HydratedSnippet(identity: snippet, user: user))
     Error(_) -> option.None
+  }
+}
+
+fn matches_filter(
+  db: model.TestState,
+  snippet: snippet_model.Snippet,
+  filter: snippet_model.ListSnippetsFilter,
+) -> Bool {
+  case dict.get(db.users, common.uuid_key(snippet.user_id)) {
+    Error(_) -> False
+    Ok(user) ->
+      matches_optional_filter(filter.visibilities, snippet.visibility)
+      && matches_optional_filter(filter.usernames, user.username)
+      && matches_optional_filter(filter.user_ids, user.id)
+      && !list.contains(filter.skip_user_ids, user.id)
+      && !list.contains(
+        list.map(filter.excluded_titles, string.lowercase),
+        string.lowercase(snippet.title),
+      )
+      && !list.contains(filter.excluded_languages, snippet.language)
+  }
+}
+
+fn matches_optional_filter(values: List(a), value: a) -> Bool {
+  list.is_empty(values) || list.contains(values, value)
+}
+
+fn reverse_order(value: order.Order) -> order.Order {
+  case value {
+    order.Lt -> order.Gt
+    order.Eq -> order.Eq
+    order.Gt -> order.Lt
   }
 }
