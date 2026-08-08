@@ -40,6 +40,7 @@ pub fn environment_api_fixture_and_timer_drive_snippets_scenario_test() {
     command.Schedule(1000, delay_elapsed),
   ] = managed_scenario.pending(scenario)
   assert request.usernames == ["alice"]
+  assert request.pagination == pagination_model.InitialPage(limit: 20)
 
   let scenario = respond_at(scenario, 1, delay_elapsed)
   let visible_model = managed_scenario.model(scenario)

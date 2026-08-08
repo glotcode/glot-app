@@ -27,7 +27,7 @@ pub fn account_snippets_are_driven_by_api_and_timer_fixtures_test() {
     command.ListSnippets(request, snippets_loaded),
     command.Schedule(_, delay_elapsed),
   ] = managed_scenario.pending(scenario)
-  assert request.pagination == pagination_model.InitialPage(limit: 10)
+  assert request.pagination == pagination_model.InitialPage(limit: 20)
 
   let fixture =
     snippet_dto.ListSnippetsResponse(page: pagination_model.InitialCursorPage(

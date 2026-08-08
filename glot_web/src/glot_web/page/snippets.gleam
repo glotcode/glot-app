@@ -15,7 +15,7 @@ import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
 
-const page_limit = 10
+const page_limit = 20
 
 pub type ViewModel {
   ViewModel(

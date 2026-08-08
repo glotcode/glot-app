@@ -10,7 +10,7 @@ import glot_frontend/account/snippets/model.{type Model, type Request}
 import glot_frontend/api/response as api_response
 import glot_frontend/ui/delayed_loading
 
-const page_limit = 10
+const page_limit = 20
 
 pub fn init(after: option.Option(String), before: option.Option(String)) {
   let request = model.request(after:, before:)
