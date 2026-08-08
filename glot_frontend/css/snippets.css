@@ -78,6 +78,10 @@
 }
 
 .snippets-page__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--control-min-size);
   padding: 0.45rem 0.85rem;
   border: 1px solid var(--theme-border);
   background: var(--theme-surface);
