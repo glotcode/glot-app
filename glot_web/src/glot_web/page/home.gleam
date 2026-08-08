@@ -39,7 +39,7 @@ pub fn view(load_ad load_ad: Bool) -> Element(msg) {
               html.a(
                 [
                   attribute.class("home-hero__link"),
-                  attribute.href("https://github.com/prasmussen/glot"),
+                  attribute.href("https://github.com/glotcode/glot"),
                 ],
                 [html.text("open source")],
               ),

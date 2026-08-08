@@ -183,7 +183,7 @@ pub fn home_structured_data() -> Element(Nil) {
       ),
       #(
         "sameAs",
-        json.array(["https://github.com/prasmussen/glot"], json.string),
+        json.array(["https://github.com/glotcode/glot"], json.string),
       ),
     ])
 
