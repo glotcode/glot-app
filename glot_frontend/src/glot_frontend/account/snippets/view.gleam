@@ -43,21 +43,21 @@ pub fn view(model: snippets_model.Model, now: Timestamp) -> Element(Msg) {
                 html.text("Manage snippets created in your account."),
               ]),
             ]),
-            html.div([attribute.class("snippets-page__pagination")], [
-              pagination_button(
-                "Previous",
-                PreviousPageClicked,
-                snippets_model.can_go_previous(model),
-              ),
-              pagination_button(
-                "Next",
-                NextPageClicked,
-                snippets_model.can_go_next(model),
-              ),
-            ]),
           ]),
           status_view(model),
           content_view(model, now),
+          html.div([attribute.class("snippets-page__pagination")], [
+            pagination_button(
+              "Previous",
+              PreviousPageClicked,
+              snippets_model.can_go_previous(model),
+            ),
+            pagination_button(
+              "Next",
+              NextPageClicked,
+              snippets_model.can_go_next(model),
+            ),
+          ]),
         ]),
       ],
     ),

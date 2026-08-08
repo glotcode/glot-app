@@ -88,13 +88,13 @@ pub fn view(model: ViewModel, show_loading: Bool) -> Element(msg) {
               ]),
               active_filter_view(model.username),
             ]),
-            html.div([attribute.class("snippets-page__pagination")], [
-              pagination_button("Previous", previous_page_route(model)),
-              pagination_button("Next", next_page_route(model)),
-            ]),
           ]),
           status_view(model, show_loading),
           content_view(model),
+          html.div([attribute.class("snippets-page__pagination")], [
+            pagination_button("Previous", previous_page_route(model)),
+            pagination_button("Next", next_page_route(model)),
+          ]),
         ]),
       ],
     ),
