@@ -1,4 +1,5 @@
 import glot_core/route
+import glot_web/build_info
 import glot_web/page/footer
 import glot_web/page/top_bar
 import lustre/attribute
@@ -16,7 +17,10 @@ pub fn view(
     ]),
     top_bar.view(top_bar_model),
     content,
-    footer.view(account_route: footer_account_route),
+    footer.view(
+      account_route: footer_account_route,
+      build_info: build_info.current(),
+    ),
     element.element("glot-cookie-notice", [], []),
   ])
 }
