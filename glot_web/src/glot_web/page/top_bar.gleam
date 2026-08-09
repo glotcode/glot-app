@@ -205,6 +205,20 @@ pub fn navigation_actions(
         route.Public(route.Snippets(option.None, option.None, option.None)),
       ),
     ),
+    Action(
+      label: "Contact",
+      description: "Contact us about glot.io.",
+      shortcut: [],
+      target_route: option.Some(route.Public(route.Contact)),
+      msg: on_navigate(route.Public(route.Contact)),
+    ),
+    Action(
+      label: "Privacy",
+      description: "Read the privacy policy.",
+      shortcut: [],
+      target_route: option.Some(route.Public(route.Privacy)),
+      msg: on_navigate(route.Public(route.Privacy)),
+    ),
   ]
 
   case navigation_state {
