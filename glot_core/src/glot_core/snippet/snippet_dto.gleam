@@ -22,6 +22,7 @@ pub type ListPublicSnippetsRequest {
   ListPublicSnippetsRequest(
     pagination: pagination_model.CursorPagination,
     usernames: List(String),
+    languages: List(language.Language),
   )
 }
 
@@ -32,7 +33,12 @@ pub type ListSessionSnippetsRequest {
 pub fn list_public_decoder() -> decode.Decoder(ListPublicSnippetsRequest) {
   decode.then(pagination_model.request_decoder(), fn(pagination) {
     use usernames <- decode.field("usernames", decode.list(decode.string))
-    decode.success(ListPublicSnippetsRequest(pagination:, usernames:))
+    use languages <- decode.field("languages", decode.list(language.decoder()))
+    decode.success(ListPublicSnippetsRequest(
+      pagination:,
+      usernames:,
+      languages:,
+    ))
   })
 }
 

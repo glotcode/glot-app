@@ -4906,6 +4906,7 @@ pub type ListSnippetsAfter {
 pub fn list_snippets_after(
   visibilities visibilities: List(String),
   usernames usernames: List(String),
+  languages languages: List(String),
   user_ids user_ids: List(BitArray),
   skip_user_ids skip_user_ids: List(BitArray),
   excluded_titles excluded_titles: List(String),
@@ -4945,23 +4946,28 @@ WHERE
     OR users.username = ANY($2::text[])
   )
   AND (
-    cardinality($3::uuid[]) = 0
-    OR users.id = ANY($3::uuid[])
+    cardinality($3::text[]) = 0
+    OR snippets.language = ANY($3::text[])
   )
-  AND NOT users.id = ANY($4::uuid[])
-  AND lower(snippets.title) <> ALL($5::text[])
-  AND snippets.language <> ALL($6::text[])
   AND (
-    $7::text IS NULL
-    OR snippets.slug < $7::text
+    cardinality($4::uuid[]) = 0
+    OR users.id = ANY($4::uuid[])
+  )
+  AND NOT users.id = ANY($5::uuid[])
+  AND lower(snippets.title) <> ALL($6::text[])
+  AND snippets.language <> ALL($7::text[])
+  AND (
+    $8::text IS NULL
+    OR snippets.slug < $8::text
   )
 ORDER BY snippets.slug DESC
-LIMIT $8"
+LIMIT $9"
   #(
     sql,
     [
       dev.ParamList(list.map(visibilities, dev.ParamString)),
       dev.ParamList(list.map(usernames, dev.ParamString)),
+      dev.ParamList(list.map(languages, dev.ParamString)),
       dev.ParamList(list.map(user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(skip_user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(excluded_titles, dev.ParamString)),
@@ -5040,6 +5046,7 @@ pub type ListSnippetsBefore {
 pub fn list_snippets_before(
   visibilities visibilities: List(String),
   usernames usernames: List(String),
+  languages languages: List(String),
   user_ids user_ids: List(BitArray),
   skip_user_ids skip_user_ids: List(BitArray),
   excluded_titles excluded_titles: List(String),
@@ -5079,23 +5086,28 @@ WHERE
     OR users.username = ANY($2::text[])
   )
   AND (
-    cardinality($3::uuid[]) = 0
-    OR users.id = ANY($3::uuid[])
+    cardinality($3::text[]) = 0
+    OR snippets.language = ANY($3::text[])
   )
-  AND NOT users.id = ANY($4::uuid[])
-  AND lower(snippets.title) <> ALL($5::text[])
-  AND snippets.language <> ALL($6::text[])
   AND (
-    $7::text IS NULL
-    OR snippets.slug > $7::text
+    cardinality($4::uuid[]) = 0
+    OR users.id = ANY($4::uuid[])
+  )
+  AND NOT users.id = ANY($5::uuid[])
+  AND lower(snippets.title) <> ALL($6::text[])
+  AND snippets.language <> ALL($7::text[])
+  AND (
+    $8::text IS NULL
+    OR snippets.slug > $8::text
   )
 ORDER BY snippets.slug ASC
-LIMIT $8"
+LIMIT $9"
   #(
     sql,
     [
       dev.ParamList(list.map(visibilities, dev.ParamString)),
       dev.ParamList(list.map(usernames, dev.ParamString)),
+      dev.ParamList(list.map(languages, dev.ParamString)),
       dev.ParamList(list.map(user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(skip_user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(excluded_titles, dev.ParamString)),

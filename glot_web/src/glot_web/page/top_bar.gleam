@@ -199,10 +199,20 @@ pub fn navigation_actions(
       description: "Browse public code snippets.",
       shortcut: [],
       target_route: option.Some(
-        route.Public(route.Snippets(option.None, option.None, option.None)),
+        route.Public(route.Snippets(
+          option.None,
+          option.None,
+          option.None,
+          option.None,
+        )),
       ),
       msg: on_navigate(
-        route.Public(route.Snippets(option.None, option.None, option.None)),
+        route.Public(route.Snippets(
+          option.None,
+          option.None,
+          option.None,
+          option.None,
+        )),
       ),
     ),
     Action(

@@ -15,8 +15,10 @@ pub fn init(
   after after: option.Option(String),
   before before: option.Option(String),
   username username: option.Option(String),
+  language language_filter: option.Option(String),
 ) -> #(Model, Effect(Msg)) {
-  let #(model, command) = init_managed(after:, before:, username:)
+  let #(model, command) =
+    init_managed(after:, before:, username:, language: language_filter)
   #(model, interpret(command))
 }
 
@@ -24,8 +26,9 @@ pub fn init_managed(
   after after: option.Option(String),
   before before: option.Option(String),
   username username: option.Option(String),
+  language language_filter: option.Option(String),
 ) -> #(Model, command.Command(Msg)) {
-  managed.init(after:, before:, username:)
+  managed.init(after:, before:, username:, language: language_filter)
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {

@@ -77,6 +77,7 @@ pub fn navigation_keeps_the_current_page_until_snippets_are_loaded_test() {
       after: option.None,
       before: option.None,
       username: option.None,
+      language: option.None,
     ))
   let #(loading, loading_command) =
     public_root_managed.update(
@@ -136,6 +137,7 @@ pub fn slow_navigation_presents_the_destination_loading_state_after_its_delay_te
       after: option.None,
       before: option.None,
       username: option.None,
+      language: option.None,
     ))
   let #(loading, _) =
     public_root_managed.update(
@@ -191,6 +193,7 @@ pub fn terminal_navigation_failure_is_presented_instead_of_holding_forever_test(
       after: option.None,
       before: option.None,
       username: option.None,
+      language: option.None,
     ))
   let #(loading, _) =
     public_root_managed.update(
@@ -236,6 +239,7 @@ pub fn a_second_navigation_supersedes_a_pending_destination_test() {
       after: option.None,
       before: option.None,
       username: option.None,
+      language: option.None,
     ))
   let #(snippets_loading, _) =
     public_root_managed.update(
@@ -307,6 +311,7 @@ pub fn traversal_restoration_is_retained_until_the_page_is_presentable_test() {
       after: option.None,
       before: option.None,
       username: option.None,
+      language: option.None,
     ))
   let #(awaiting_cancellation, prepare_command) =
     public_root_managed.update(

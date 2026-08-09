@@ -119,6 +119,7 @@ pub fn snippets_loading_state_hides_table_test() {
     snippets.ViewModel(
       page: loadable.Loading,
       username: option.None,
+      language: option.None,
       now: timestamp.from_unix_seconds_and_nanoseconds(0, 0),
     )
     |> snippets.view(False)
@@ -133,6 +134,7 @@ pub fn snippets_empty_loaded_state_uses_placeholder_test() {
     snippets.ViewModel(
       page: loadable.Loaded(snippets.empty_page()),
       username: option.None,
+      language: option.None,
       now: timestamp.from_unix_seconds_and_nanoseconds(0, 0),
     )
     |> snippets.view(False)
@@ -169,6 +171,7 @@ pub fn populated_snippets_use_native_table_semantics_and_specific_link_names_tes
         next_cursor: option.None,
       )),
       username: option.None,
+      language: option.Some(language.JavaScript),
       now:,
     )
     |> snippets.view(False)
@@ -182,6 +185,16 @@ pub fn populated_snippets_use_native_table_semantics_and_specific_link_names_tes
   assert string.contains(
     rendered,
     "aria-label=\"Filter by user fixture-owner\"",
+  )
+  assert string.contains(
+    rendered,
+    "aria-label=\"Filter by language JavaScript\"",
+  )
+  assert string.contains(rendered, "/snippets?language=javascript")
+  assert string.contains(rendered, "Filtered by JavaScript")
+  assert string.contains(
+    rendered,
+    "/snippets?username=fixture-owner&amp;language=javascript",
   )
   assert !string.contains(rendered, "aria-label=\"Filter by user\"")
 }

@@ -138,6 +138,7 @@ fn matches_filter(
     Ok(user) ->
       matches_optional_filter(filter.visibilities, snippet.visibility)
       && matches_optional_filter(filter.usernames, user.username)
+      && matches_optional_filter(filter.languages, snippet.language)
       && matches_optional_filter(filter.user_ids, user.id)
       && !list.contains(filter.skip_user_ids, user.id)
       && !list.contains(

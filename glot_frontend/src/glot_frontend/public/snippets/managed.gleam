@@ -1,5 +1,6 @@
 import gleam/json
 import gleam/option
+import glot_core/language
 import glot_core/loadable
 import glot_frontend/api/response as api_response
 import glot_frontend/public/snippets/command
@@ -14,12 +15,15 @@ pub fn init(
   after after: option.Option(String),
   before before: option.Option(String),
   username username: option.Option(String),
+  language language_filter: option.Option(String),
 ) -> #(Model, command.Command(Msg)) {
-  let request = Request(after:, before:, username:)
+  let language_filter = option.then(language_filter, language.from_string)
+  let request = Request(after:, before:, username:, language: language_filter)
   #(
     Model(
       page: loadable.Loading,
       username: username,
+      language: language_filter,
       request:,
       loading_indicator: delayed_loading.idle(),
     ),
@@ -89,6 +93,7 @@ fn load_page(request: model.Request) -> command.Command(Msg) {
       after: request.after,
       before: request.before,
       username: request.username,
+      language: request.language,
     ),
     fn(result) { SnippetsLoaded(request, result) },
   )
@@ -124,10 +129,12 @@ fn from_view_model(view_model: snippets.ViewModel) -> Model {
   Model(
     page: view_model.page,
     username: view_model.username,
+    language: view_model.language,
     request: Request(
       after: option.None,
       before: option.None,
       username: view_model.username,
+      language: view_model.language,
     ),
     loading_indicator: delayed_loading.idle(),
   )

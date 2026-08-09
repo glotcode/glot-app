@@ -1,6 +1,7 @@
 import gleam/list
 import gleam/option
 import gleeunit
+import glot_core/language
 import glot_core/loadable
 import glot_core/pagination_model
 import glot_core/snippet/snippet_dto
@@ -29,6 +30,7 @@ pub fn environment_api_fixture_and_timer_drive_snippets_scenario_test() {
       after: option.None,
       before: option.None,
       username: option.Some("alice"),
+      language: option.Some("javascript"),
     )
   let scenario =
     managed_scenario.start(initial_model, initial_command, interpret)
@@ -40,6 +42,7 @@ pub fn environment_api_fixture_and_timer_drive_snippets_scenario_test() {
     command.Schedule(1000, delay_elapsed),
   ] = managed_scenario.pending(scenario)
   assert request.usernames == ["alice"]
+  assert request.languages == [language.JavaScript]
   assert request.pagination == pagination_model.InitialPage(limit: 20)
 
   let scenario = respond_at(scenario, 1, delay_elapsed)
@@ -85,12 +88,14 @@ pub fn stale_environment_response_is_ignored_test() {
       after: option.Some("new"),
       before: option.None,
       username: option.None,
+      language: option.None,
     )
   let stale_request =
     model.Request(
       after: option.Some("old"),
       before: option.None,
       username: option.None,
+      language: option.None,
     )
   let #(unchanged, next) =
     page.update_managed(model, message.EnvironmentLoaded(stale_request, ""))

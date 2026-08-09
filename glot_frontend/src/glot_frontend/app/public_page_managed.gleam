@@ -56,8 +56,9 @@ fn init_public(
       let #(model, next) = login_managed.init()
       #(Login(model), command.Login(next))
     }
-    route.Snippets(after:, before:, username:) -> {
-      let #(model, next) = snippets_managed.init(after:, before:, username:)
+    route.Snippets(after:, before:, username:, language:) -> {
+      let #(model, next) =
+        snippets_managed.init(after:, before:, username:, language:)
       #(Snippets(model), command.Snippets(next))
     }
     route.NewSnippet(language) -> {

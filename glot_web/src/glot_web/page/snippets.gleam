@@ -23,6 +23,7 @@ pub type ViewModel {
       pagination_model.CursorPage(snippet_dto.SnippetResponse),
     ),
     username: option.Option(String),
+    language: option.Option(language.Language),
     now: Timestamp,
   )
 }
@@ -35,10 +36,12 @@ pub fn public_request(
   after after: option.Option(String),
   before before: option.Option(String),
   username username: option.Option(String),
+  language language_filter: option.Option(language.Language),
 ) -> snippet_dto.ListPublicSnippetsRequest {
   snippet_dto.ListPublicSnippetsRequest(
     pagination: pagination_from_cursors(after, before),
     usernames: usernames_from_filter(username),
+    languages: languages_from_filter(language_filter),
   )
 }
 
@@ -48,9 +51,13 @@ pub fn decoder() -> decode.Decoder(ViewModel) {
     pagination_model.page_decoder("snippets", snippet_dto.response_decoder()),
   )
   use username <- decode.field("username", decode.optional(decode.string))
+  use language_filter <- decode.field(
+    "language",
+    decode.optional(language.decoder()),
+  )
   use now <- decode.field("now", timestamp_helpers.decoder())
   use page <- decode.field("state", state_decoder(page))
-  decode.success(ViewModel(page:, username:, now:))
+  decode.success(ViewModel(page:, username:, language: language_filter, now:))
 }
 
 pub fn encode(view_model: ViewModel) -> json.Json {
@@ -65,6 +72,7 @@ pub fn encode(view_model: ViewModel) -> json.Json {
       ),
     ),
     #("username", json.nullable(view_model.username, json.string)),
+    #("language", json.nullable(view_model.language, language.encode)),
     #("now", timestamp_helpers.encode(view_model.now)),
     #("state", encode_state(view_model.page)),
   ])
@@ -86,7 +94,7 @@ pub fn view(model: ViewModel, show_loading: Bool) -> Element(msg) {
               html.h1([attribute.class("snippets-page__title")], [
                 html.text("Public snippets"),
               ]),
-              active_filter_view(model.username),
+              active_filter_view(model.username, model.language),
             ]),
           ]),
           status_view(model, show_loading),
@@ -160,6 +168,7 @@ fn previous_page_route(model: ViewModel) -> option.Option(route.Route) {
           after: option.None,
           before: option.Some(pagination_model.to_string(previous_cursor)),
           username: model.username,
+          language: option.map(model.language, language.to_string),
         )),
       )
     option.None -> option.None
@@ -174,6 +183,7 @@ fn next_page_route(model: ViewModel) -> option.Option(route.Route) {
           after: option.Some(pagination_model.to_string(next_cursor)),
           before: option.None,
           username: model.username,
+          language: option.map(model.language, language.to_string),
         )),
       )
     option.None -> option.None
@@ -208,7 +218,8 @@ fn content_view(model: ViewModel) -> Element(msg) {
     loadable.Loaded(page) ->
       case pagination_model.items(page) {
         [] -> empty_state("No public snippets found.")
-        snippets -> snippets_table(snippets, model.now)
+        snippets ->
+          snippets_table(snippets, model.username, model.language, model.now)
       }
     loadable.NotLoaded | loadable.Loading | loadable.LoadError(_) ->
       html.div([attribute.class("snippets-page__content")], [])
@@ -237,12 +248,16 @@ fn loaded_page_or_empty(
   }
 }
 
-fn active_filter_view(username: option.Option(String)) -> Element(msg) {
-  case username {
-    option.Some(username) ->
+fn active_filter_view(
+  username: option.Option(String),
+  language_filter: option.Option(language.Language),
+) -> Element(msg) {
+  case username, language_filter {
+    option.None, option.None -> html.div([], [])
+    _, _ ->
       html.div([attribute.class("snippets-page__filters")], [
         html.span([attribute.class("snippets-page__filter")], [
-          html.text("Filtered by @" <> truncate_username(username)),
+          html.text(filter_label(username, language_filter)),
         ]),
         html.a(
           [
@@ -252,18 +267,37 @@ fn active_filter_view(username: option.Option(String)) -> Element(msg) {
                 after: option.None,
                 before: option.None,
                 username: option.None,
+                language: option.None,
               )),
             ),
           ],
           [html.text("Clear")],
         ),
       ])
-    option.None -> html.div([], [])
+  }
+}
+
+fn filter_label(
+  username: option.Option(String),
+  language_filter: option.Option(language.Language),
+) -> String {
+  case username, language_filter {
+    option.Some(username), option.Some(lang) ->
+      "Filtered by @"
+      <> truncate_username(username)
+      <> " and "
+      <> language.name(lang)
+    option.Some(username), option.None ->
+      "Filtered by @" <> truncate_username(username)
+    option.None, option.Some(lang) -> "Filtered by " <> language.name(lang)
+    option.None, option.None -> ""
   }
 }
 
 fn snippets_table(
   snippets: List(snippet_dto.SnippetResponse),
+  username: option.Option(String),
+  language_filter: option.Option(language.Language),
   now: Timestamp,
 ) -> Element(msg) {
   html.table([attribute.class("snippets-table")], [
@@ -299,20 +333,31 @@ fn snippets_table(
       ]),
     ]),
     html.tbody([attribute.class("snippets-table__body")], {
-      snippets |> list.map(fn(snippet) { snippet_row(snippet, now) })
+      snippets
+      |> list.map(fn(snippet) {
+        snippet_row(snippet, username, language_filter, now)
+      })
     }),
   ])
 }
 
 fn snippet_row(
   snippet: snippet_dto.SnippetResponse,
+  username: option.Option(String),
+  language_filter: option.Option(language.Language),
   now: Timestamp,
 ) -> Element(msg) {
   html.tr([attribute.class("snippets-table__row")], [
-    snippet_cell_link(
+    filter_cell_link(
       "snippets-table__cell snippets-table__cell--language",
       "Language",
-      route.Public(route.Snippet(snippet.slug)),
+      "Filter by language " <> language.name(snippet.data.language),
+      route.Public(route.Snippets(
+        after: option.None,
+        before: option.None,
+        username: username,
+        language: option.Some(language.to_string(snippet.data.language)),
+      )),
       language.name(snippet.data.language),
     ),
     snippet_cell_link(
@@ -346,6 +391,7 @@ fn snippet_row(
                 after: option.None,
                 before: option.None,
                 username: option.Some(snippet.user.username),
+                language: option.map(language_filter, language.to_string),
               )),
             ),
           ],
@@ -387,6 +433,32 @@ fn snippet_cell_link(
   ])
 }
 
+fn filter_cell_link(
+  class_name: String,
+  cell_label: String,
+  aria_label: String,
+  destination: route.Route,
+  value: String,
+) -> Element(msg) {
+  html.td([attribute.class(class_name)], [
+    html.a(
+      [
+        attribute.class("snippets-table__cell-link"),
+        attribute.attribute("aria-label", aria_label),
+        web_route.href(destination),
+      ],
+      [
+        html.span([attribute.class("snippets-table__cell-label")], [
+          html.text(cell_label),
+        ]),
+        html.span([attribute.class("snippets-table__cell-value")], [
+          html.text(value),
+        ]),
+      ],
+    ),
+  ])
+}
+
 fn pagination_button(
   label: String,
   destination: option.Option(route.Route),
@@ -412,6 +484,15 @@ fn pagination_button(
 fn usernames_from_filter(username: option.Option(String)) -> List(String) {
   case username {
     option.Some(username) -> [username]
+    option.None -> []
+  }
+}
+
+fn languages_from_filter(
+  language_filter: option.Option(language.Language),
+) -> List(language.Language) {
+  case language_filter {
+    option.Some(lang) -> [lang]
     option.None -> []
   }
 }

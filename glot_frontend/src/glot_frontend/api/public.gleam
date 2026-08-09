@@ -4,6 +4,7 @@ import glot_core/auth/login_dto
 import glot_core/auth/login_token_dto
 import glot_core/contact_dto
 import glot_core/email/email_address_model.{type EmailAddress}
+import glot_core/language
 import glot_core/pageview_dto
 import glot_core/pagination_model
 import glot_core/public_action
@@ -146,7 +147,10 @@ pub fn list_public_snippets(
       json.object(
         list.append(
           pagination_model.encode_request_fields(list_request.pagination),
-          [#("usernames", json.array(list_request.usernames, json.string))],
+          [
+            #("usernames", json.array(list_request.usernames, json.string)),
+            #("languages", json.array(list_request.languages, language.encode)),
+          ],
         ),
       )
     },

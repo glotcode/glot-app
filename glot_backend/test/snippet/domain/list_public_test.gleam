@@ -54,6 +54,14 @@ pub fn public_listing_excludes_default_titles_and_plaintext_test() {
       title: "Useful plaintext",
       language: language.Plaintext,
     )
+  let ruby =
+    snippet_model.Snippet(
+      ..fixture.snippet,
+      id: fixture.must_uuid("00000000-0000-0000-0000-000000000019"),
+      slug: "zz-snippet-ruby",
+      title: "Useful Ruby",
+      language: language.Ruby,
+    )
   let state =
     model.TestState(
       ..fixture.state,
@@ -65,12 +73,14 @@ pub fn public_listing_excludes_default_titles_and_plaintext_test() {
         )
         |> dict.insert(common.uuid_key(hello_world.id), hello_world)
         |> dict.insert(common.uuid_key(untitled_snippet.id), untitled_snippet)
-        |> dict.insert(common.uuid_key(plaintext.id), plaintext),
+        |> dict.insert(common.uuid_key(plaintext.id), plaintext)
+        |> dict.insert(common.uuid_key(ruby.id), ruby),
     )
   let request =
     snippet_dto.ListPublicSnippetsRequest(
-      pagination: pagination_model.InitialPage(1),
+      pagination: pagination_model.InitialPage(10),
       usernames: [],
+      languages: [language.Python],
     )
 
   let #(result, _) =

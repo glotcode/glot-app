@@ -50,6 +50,22 @@ pub fn admin_routes_round_trip_the_feature_owned_query_test() {
     == #("/admin/logs/api", option.Some("error=errors_only&after=cursor"))
 }
 
+pub fn public_snippet_route_round_trips_language_filter_test() {
+  let parsed =
+    route.from_uri(parse_uri(
+      "/snippets?after=cursor&username=petter&language=gleam",
+    ))
+  assert parsed
+    == route.Public(route.Snippets(
+      after: option.Some("cursor"),
+      before: option.None,
+      username: option.Some("petter"),
+      language: option.Some("gleam"),
+    ))
+  assert route.to_string(parsed)
+    == "/snippets?after=cursor&username=petter&language=gleam"
+}
+
 pub fn log_lists_restore_filters_and_cursor_requests_from_the_url_test() {
   let #(api_model, _) =
     api_logs.init(option.Some(

@@ -8,7 +8,12 @@ import lustre/element.{type Element}
 
 pub fn view(model: Model, now: Timestamp) -> Element(Msg) {
   snippets.view(
-    snippets.ViewModel(page: model.page, username: model.username, now: now),
+    snippets.ViewModel(
+      page: model.page,
+      username: model.username,
+      language: model.language,
+      now: now,
+    ),
     delayed_loading.is_visible(model.loading_indicator),
   )
 }

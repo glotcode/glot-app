@@ -262,7 +262,7 @@ fn handle_page_request_with_runtime(
       admin_spa("glot.io - admin rate limits")
     route.Admin(route.AdminJobTypePolicies) ->
       admin_spa("glot.io - admin job type policies")
-    route.Public(route.Snippets(after:, before:, username:)) ->
+    route.Public(route.Snippets(after:, before:, username:, language:)) ->
       run_page_program(
         "snippets page",
         snippets_page_domain.load_view_model(
@@ -270,6 +270,7 @@ fn handle_page_request_with_runtime(
           after,
           before,
           username,
+          language,
         ),
         runtime,
         ctx,

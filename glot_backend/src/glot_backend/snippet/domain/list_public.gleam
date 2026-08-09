@@ -57,6 +57,7 @@ pub fn list_public_snippets(
     filter: snippet_model.new_filter()
       |> snippet_model.only_visibilities([snippet_model.Public])
       |> snippet_model.only_usernames(request.usernames)
+      |> snippet_model.only_languages(request.languages)
       |> snippet_model.exclude_titles(excluded_titles)
       |> snippet_model.exclude_languages([language.Plaintext]),
     pagination: snippet_listing.fetch_pagination(pagination),

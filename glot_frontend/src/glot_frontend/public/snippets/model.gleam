@@ -1,4 +1,5 @@
 import gleam/option
+import glot_core/language
 import glot_core/loadable
 import glot_core/pagination_model
 import glot_core/snippet/snippet_dto
@@ -10,6 +11,7 @@ pub type Model {
       pagination_model.CursorPage(snippet_dto.SnippetResponse),
     ),
     username: option.Option(String),
+    language: option.Option(language.Language),
     request: Request,
     loading_indicator: delayed_loading.State,
   )
@@ -20,6 +22,7 @@ pub type Request {
     after: option.Option(String),
     before: option.Option(String),
     username: option.Option(String),
+    language: option.Option(language.Language),
   )
 }
 

@@ -67,6 +67,7 @@ pub fn snippets_page_ignores_loading_timer_from_previous_route_test() {
       after: option.Some("first"),
       before: option.None,
       username: option.None,
+      language: option.None,
     )
   let snippets_model.Model(request: first_request, ..) = first_model
   let #(second_model, _) =
@@ -74,6 +75,7 @@ pub fn snippets_page_ignores_loading_timer_from_previous_route_test() {
       after: option.Some("second"),
       before: option.None,
       username: option.None,
+      language: option.None,
     )
 
   let #(model_after_old_timer, _) =
@@ -126,9 +128,10 @@ pub fn snippets_route_to_string_includes_username_query_test() {
         after: option.Some("after-1"),
         before: option.None,
         username: option.Some("alice"),
+        language: option.Some("gleam"),
       )),
     )
-    == "/snippets?after=after-1&username=alice"
+    == "/snippets?after=after-1&username=alice&language=gleam"
 }
 
 pub fn admin_rate_limits_route_to_string_test() {

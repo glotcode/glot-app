@@ -103,6 +103,7 @@ pub fn read_only_mode_keeps_general_pages_available_test() {
           after: option.None,
           before: option.None,
           username: option.None,
+          language: option.None,
         )),
       ),
       config,

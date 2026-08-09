@@ -78,6 +78,7 @@ pub fn list(
   let excluded_titles = filter.excluded_titles |> list.map(string.lowercase)
   let excluded_languages =
     filter.excluded_languages |> list.map(language.to_string)
+  let languages = filter.languages |> list.map(language.to_string)
 
   case pagination {
     pagination_model.BeforePage(before_slug, limit) ->
@@ -86,6 +87,7 @@ pub fn list(
         sql.list_snippets_before(
           visibility_strings,
           filter.usernames,
+          languages,
           user_id_bits,
           skip_user_id_bits,
           excluded_titles,
@@ -114,6 +116,7 @@ pub fn list(
         sql.list_snippets_after(
           visibility_strings,
           filter.usernames,
+          languages,
           user_id_bits,
           skip_user_id_bits,
           excluded_titles,

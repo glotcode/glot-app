@@ -19,6 +19,7 @@ pub type PublicRoute {
     after: option.Option(String),
     before: option.Option(String),
     username: option.Option(String),
+    language: option.Option(String),
   )
   NewSnippet(language: String)
   Snippet(slug: String)
@@ -104,12 +105,12 @@ pub fn from_uri(uri: Uri) -> Route {
     ["admin", "rate-limits"] -> Admin(AdminRateLimits)
     ["admin", "job-type-policies"] -> Admin(AdminJobTypePolicies)
     ["account", "snippets"] -> {
-      let #(after, before, _) = snippet_query_params(uri)
+      let #(after, before, _, _) = snippet_query_params(uri)
       Account(AccountSnippets(after:, before:))
     }
     ["snippets"] -> {
-      let #(after, before, username) = snippet_query_params(uri)
-      Public(Snippets(after:, before:, username:))
+      let #(after, before, username, language) = snippet_query_params(uri)
+      Public(Snippets(after:, before:, username:, language:))
     }
     ["new", language] -> Public(NewSnippet(language: language))
     ["snippets", slug] -> Public(Snippet(slug: slug))
@@ -137,13 +138,13 @@ pub fn name(route: Route) -> String {
 
 pub fn path_and_query(route: Route) -> #(String, option.Option(String)) {
   case route {
-    Public(Snippets(after:, before:, username:)) -> #(
+    Public(Snippets(after:, before:, username:, language:)) -> #(
       "/snippets",
-      snippet_query_string(after, before, username),
+      snippet_query_string(after, before, username, language),
     )
     Account(AccountSnippets(after:, before:)) -> #(
       "/account/snippets",
-      snippet_query_string(after, before, option.None),
+      snippet_query_string(after, before, option.None, option.None),
     )
     Admin(AdminApiLogs(query)) -> #("/admin/logs/api", query)
     Admin(AdminRunLogs(query)) -> #("/admin/logs/runs", query)
@@ -175,8 +176,8 @@ fn public_route_to_string(route: PublicRoute) -> String {
     Contact -> "/contact"
     Privacy -> "/privacy"
     Login -> "/login"
-    Snippets(after:, before:, username:) -> {
-      let query = snippet_query_string(after, before, username)
+    Snippets(after:, before:, username:, language:) -> {
+      let query = snippet_query_string(after, before, username, language)
       case query {
         option.Some(query) -> "/snippets?" <> query
         option.None -> "/snippets"
@@ -191,7 +192,7 @@ fn account_route_to_string(route: AccountRoute) -> String {
   case route {
     AccountHome -> "/account"
     AccountSnippets(after:, before:) -> {
-      let query = snippet_query_string(after, before, option.None)
+      let query = snippet_query_string(after, before, option.None, option.None)
       case query {
         option.Some(query) -> "/account/snippets?" <> query
         option.None -> "/account/snippets"
@@ -251,7 +252,7 @@ fn public_route_name(route: PublicRoute) -> String {
     Contact -> "contact"
     Privacy -> "privacy"
     Login -> "login"
-    Snippets(_, _, _) -> "snippets"
+    Snippets(_, _, _, _) -> "snippets"
     NewSnippet(_) -> "new_snippet"
     Snippet(_) -> "snippet"
   }
@@ -291,7 +292,12 @@ fn admin_route_name(route: AdminRoute) -> String {
 
 fn snippet_query_params(
   uri: Uri,
-) -> #(option.Option(String), option.Option(String), option.Option(String)) {
+) -> #(
+  option.Option(String),
+  option.Option(String),
+  option.Option(String),
+  option.Option(String),
+) {
   case uri.query {
     option.Some(query) ->
       case uri.parse_query(query) {
@@ -299,10 +305,11 @@ fn snippet_query_params(
           query_param(params, "after"),
           query_param(params, "before"),
           query_param(params, "username"),
+          query_param(params, "language"),
         )
-        Error(_) -> #(option.None, option.None, option.None)
+        Error(_) -> #(option.None, option.None, option.None, option.None)
       }
-    option.None -> #(option.None, option.None, option.None)
+    option.None -> #(option.None, option.None, option.None, option.None)
   }
 }
 
@@ -320,12 +327,14 @@ fn snippet_query_string(
   after: option.Option(String),
   before: option.Option(String),
   username: option.Option(String),
+  language: option.Option(String),
 ) -> option.Option(String) {
   let pairs =
     []
     |> prepend_query_param("after", after)
     |> prepend_query_param("before", before)
     |> prepend_query_param("username", username)
+    |> prepend_query_param("language", language)
     |> list.reverse
 
   case pairs {

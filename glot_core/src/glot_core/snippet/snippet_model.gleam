@@ -140,6 +140,7 @@ pub type ListSnippetsFilter {
   ListSnippetsFilter(
     visibilities: List(Visibility),
     usernames: List(String),
+    languages: List(language.Language),
     user_ids: List(Uuid),
     skip_user_ids: List(Uuid),
     excluded_titles: List(String),
@@ -151,6 +152,7 @@ pub fn new_filter() -> ListSnippetsFilter {
   ListSnippetsFilter(
     visibilities: [],
     usernames: [],
+    languages: [],
     user_ids: [],
     skip_user_ids: [],
     excluded_titles: [],
@@ -170,6 +172,13 @@ pub fn only_usernames(
   usernames: List(String),
 ) -> ListSnippetsFilter {
   ListSnippetsFilter(..filter, usernames: usernames)
+}
+
+pub fn only_languages(
+  filter: ListSnippetsFilter,
+  languages: List(language.Language),
+) -> ListSnippetsFilter {
+  ListSnippetsFilter(..filter, languages: languages)
 }
 
 pub fn only_user_ids(

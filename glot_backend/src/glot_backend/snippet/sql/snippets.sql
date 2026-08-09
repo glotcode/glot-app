@@ -127,6 +127,10 @@ WHERE
     OR users.username = ANY(sqlc.arg(usernames)::text[])
   )
   AND (
+    cardinality(sqlc.arg(languages)::text[]) = 0
+    OR snippets.language = ANY(sqlc.arg(languages)::text[])
+  )
+  AND (
     cardinality(sqlc.arg(user_ids)::uuid[]) = 0
     OR users.id = ANY(sqlc.arg(user_ids)::uuid[])
   )
@@ -170,6 +174,10 @@ WHERE
   AND (
     cardinality(sqlc.arg(usernames)::text[]) = 0
     OR users.username = ANY(sqlc.arg(usernames)::text[])
+  )
+  AND (
+    cardinality(sqlc.arg(languages)::text[]) = 0
+    OR snippets.language = ANY(sqlc.arg(languages)::text[])
   )
   AND (
     cardinality(sqlc.arg(user_ids)::uuid[]) = 0
