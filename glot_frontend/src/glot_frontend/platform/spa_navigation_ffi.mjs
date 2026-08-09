@@ -79,25 +79,12 @@ function captureCurrentScroll(browserWindow, persist = false) {
 }
 
 function scheduleScrollCapture(browserWindow) {
-  captureCurrentScroll(browserWindow);
   if (scrollCaptureScheduled) return;
 
   scrollCaptureScheduled = true;
   browserWindow.requestAnimationFrame(() => {
     scrollCaptureScheduled = false;
-    const currentEntry = ensureCurrentEntry(browserWindow);
-
-    const position = scrollPositions.get(currentEntry.id);
-    if (!position) return;
-    browserWindow.history.replaceState(
-      stateWithEntry(browserWindow.history.state, {
-        version: entryStateVersion,
-        id: currentEntry.id,
-        ...position,
-      }),
-      "",
-      browserWindow.location.href,
-    );
+    captureCurrentScroll(browserWindow);
   });
 }
 
@@ -163,8 +150,13 @@ export function handleClick(event, dispatch, browserWindow = window) {
     return false;
   }
 
+  try {
+    createEntry(browserWindow, "pushState", destination.href);
+  } catch {
+    return false;
+  }
+
   event.preventDefault();
-  createEntry(browserWindow, "pushState", destination.href);
   dispatchReset(dispatch, destination.href);
   return true;
 }

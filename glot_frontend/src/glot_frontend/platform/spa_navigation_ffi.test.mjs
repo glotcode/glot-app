@@ -27,6 +27,7 @@ function fixtureUuid() {
 function browserFixture({
   href = "https://glot.io/",
   randomUUID = fixtureUuid,
+  pushStateError = null,
   scrollX = 0,
   scrollY = 0,
   state = { preserved: true },
@@ -65,6 +66,7 @@ function browserFixture({
       state,
       scrollRestoration: "auto",
       pushState(nextState, title, destination) {
+        if (pushStateError) throw pushStateError;
         calls.push(["pushState", nextState, title, destination]);
         this.state = nextState;
         setLocation(destination);
@@ -168,6 +170,26 @@ test("internal clicks create a fresh keyed history entry", () => {
   );
   assert.equal(historyCalls[1][3], "https://glot.io/snippets");
   assert.deepEqual(dispatched, [["https://glot.io/snippets", false, 0, 0]]);
+});
+
+test("failed history interception falls back to native link navigation", () => {
+  const fixture = clickFixture(
+    "https://glot.io/snippets?after=next-page",
+    browserFixture({ pushStateError: new Error("history rate limited") }),
+  );
+  const dispatched = [];
+
+  assert.equal(
+    handleClick(
+      fixture.event,
+      (...navigation) => dispatched.push(navigation),
+      fixture.browserWindow,
+    ),
+    false,
+  );
+
+  assert.equal(fixture.calls.includes("preventDefault"), false);
+  assert.deepEqual(dispatched, []);
 });
 
 test("entry identity remains unique when navigation is reinitialized", () => {
@@ -287,6 +309,25 @@ test("history traversal restores the scroll position of its entry", () => {
     640,
   ]);
   assert.equal(fixture.browserWindow.history.scrollRestoration, "manual");
+});
+
+test("scroll capture does not continuously mutate browser history", () => {
+  const fixture = browserFixture({ href: "https://glot.io/snippets" });
+  observe(() => {}, fixture.browserWindow, fixture.root);
+  const initialWrites = fixture.calls.filter(
+    (call) => Array.isArray(call) && call[0] === "replaceState",
+  ).length;
+
+  fixture.browserWindow.scrollY = 100;
+  fixture.listeners.get("scroll")();
+  fixture.browserWindow.scrollY = 200;
+  fixture.listeners.get("scroll")();
+  fixture.flushFrames();
+
+  const writesAfterScrolling = fixture.calls.filter(
+    (call) => Array.isArray(call) && call[0] === "replaceState",
+  ).length;
+  assert.equal(writesAfterScrolling, initialWrites);
 });
 
 test("programmatic push and replace notify with fresh presentation", () => {
