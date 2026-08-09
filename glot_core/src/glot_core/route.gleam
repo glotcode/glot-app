@@ -27,7 +27,11 @@ pub type PublicRoute {
 
 pub type AccountRoute {
   AccountHome
-  AccountSnippets(after: option.Option(String), before: option.Option(String))
+  AccountSnippets(
+    after: option.Option(String),
+    before: option.Option(String),
+    language: option.Option(String),
+  )
 }
 
 pub type AdminRoute {
@@ -105,8 +109,8 @@ pub fn from_uri(uri: Uri) -> Route {
     ["admin", "rate-limits"] -> Admin(AdminRateLimits)
     ["admin", "job-type-policies"] -> Admin(AdminJobTypePolicies)
     ["account", "snippets"] -> {
-      let #(after, before, _, _) = snippet_query_params(uri)
-      Account(AccountSnippets(after:, before:))
+      let #(after, before, _, language) = snippet_query_params(uri)
+      Account(AccountSnippets(after:, before:, language:))
     }
     ["snippets"] -> {
       let #(after, before, username, language) = snippet_query_params(uri)
@@ -142,9 +146,9 @@ pub fn path_and_query(route: Route) -> #(String, option.Option(String)) {
       "/snippets",
       snippet_query_string(after, before, username, language),
     )
-    Account(AccountSnippets(after:, before:)) -> #(
+    Account(AccountSnippets(after:, before:, language:)) -> #(
       "/account/snippets",
-      snippet_query_string(after, before, option.None, option.None),
+      snippet_query_string(after, before, option.None, language),
     )
     Admin(AdminApiLogs(query)) -> #("/admin/logs/api", query)
     Admin(AdminRunLogs(query)) -> #("/admin/logs/runs", query)
@@ -191,8 +195,8 @@ fn public_route_to_string(route: PublicRoute) -> String {
 fn account_route_to_string(route: AccountRoute) -> String {
   case route {
     AccountHome -> "/account"
-    AccountSnippets(after:, before:) -> {
-      let query = snippet_query_string(after, before, option.None, option.None)
+    AccountSnippets(after:, before:, language:) -> {
+      let query = snippet_query_string(after, before, option.None, language)
       case query {
         option.Some(query) -> "/account/snippets?" <> query
         option.None -> "/account/snippets"
@@ -261,7 +265,7 @@ fn public_route_name(route: PublicRoute) -> String {
 fn account_route_name(route: AccountRoute) -> String {
   case route {
     AccountHome -> "account"
-    AccountSnippets(_, _) -> "account_snippets"
+    AccountSnippets(_, _, _) -> "account_snippets"
   }
 }
 

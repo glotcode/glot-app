@@ -47,7 +47,8 @@ pub fn list_session_snippets(
 
   use snippets <- program.and_then(snippet_effect.list(
     filter: snippet_model.new_filter()
-      |> snippet_model.only_user_ids([session.user.identity.id]),
+      |> snippet_model.only_user_ids([session.user.identity.id])
+      |> snippet_model.only_languages(request.languages),
     pagination: snippet_listing.fetch_pagination(pagination),
   ))
 

@@ -11,7 +11,11 @@ import support/accessibility
 pub fn representative_feature_views_satisfy_the_markup_contract_test() {
   let #(login, _) = login_page.init_managed()
   let #(snippets, _) =
-    snippets_page.init_managed(after: option.None, before: option.None)
+    snippets_page.init_managed(
+      after: option.None,
+      before: option.None,
+      language: option.None,
+    )
   let #(rate_limits, _) = rate_limits_managed.init()
 
   [

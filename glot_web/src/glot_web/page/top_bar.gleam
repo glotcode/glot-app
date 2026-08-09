@@ -239,10 +239,18 @@ pub fn navigation_actions(
           description: "Manage snippets in your account.",
           shortcut: [],
           target_route: option.Some(
-            route.Account(route.AccountSnippets(option.None, option.None)),
+            route.Account(route.AccountSnippets(
+              option.None,
+              option.None,
+              option.None,
+            )),
           ),
           msg: on_navigate(
-            route.Account(route.AccountSnippets(option.None, option.None)),
+            route.Account(route.AccountSnippets(
+              option.None,
+              option.None,
+              option.None,
+            )),
           ),
         ),
         Action(
@@ -261,10 +269,18 @@ pub fn navigation_actions(
           description: "Manage snippets in your account.",
           shortcut: [],
           target_route: option.Some(
-            route.Account(route.AccountSnippets(option.None, option.None)),
+            route.Account(route.AccountSnippets(
+              option.None,
+              option.None,
+              option.None,
+            )),
           ),
           msg: on_navigate(
-            route.Account(route.AccountSnippets(option.None, option.None)),
+            route.Account(route.AccountSnippets(
+              option.None,
+              option.None,
+              option.None,
+            )),
           ),
         ),
         Action(

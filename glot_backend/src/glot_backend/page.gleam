@@ -235,7 +235,7 @@ fn handle_page_request_with_runtime(
     }
     route.Public(route.Login) -> public_spa(seo.login())
     route.Account(route.AccountHome) -> private_spa("Account | glot.io")
-    route.Account(route.AccountSnippets(_, _)) ->
+    route.Account(route.AccountSnippets(_, _, _)) ->
       private_spa("Your snippets | glot.io")
     route.Admin(route.AdminHome) -> admin_spa("glot.io - admin")
     route.Admin(route.AdminApiLogs(_)) -> admin_spa("glot.io - api logs")

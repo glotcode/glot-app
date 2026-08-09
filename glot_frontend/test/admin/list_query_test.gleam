@@ -66,6 +66,19 @@ pub fn public_snippet_route_round_trips_language_filter_test() {
     == "/snippets?after=cursor&username=petter&language=gleam"
 }
 
+pub fn account_snippet_route_round_trips_language_filter_test() {
+  let parsed =
+    route.from_uri(parse_uri("/account/snippets?before=cursor&language=python"))
+  assert parsed
+    == route.Account(route.AccountSnippets(
+      after: option.None,
+      before: option.Some("cursor"),
+      language: option.Some("python"),
+    ))
+  assert route.to_string(parsed)
+    == "/account/snippets?before=cursor&language=python"
+}
+
 pub fn log_lists_restore_filters_and_cursor_requests_from_the_url_test() {
   let #(api_model, _) =
     api_logs.init(option.Some(

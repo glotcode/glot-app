@@ -12,8 +12,9 @@ import glot_frontend/account/snippets/pagination_update
 pub fn init(
   after after: option.Option(String),
   before before: option.Option(String),
+  language language_filter: option.Option(String),
 ) {
-  loading_update.init(after, before)
+  loading_update.init(after, before, language_filter)
 }
 
 pub fn update(model: Model, msg: Msg) {

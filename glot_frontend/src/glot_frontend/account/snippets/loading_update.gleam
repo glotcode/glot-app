@@ -1,4 +1,5 @@
 import gleam/option
+import glot_core/language
 import glot_core/loadable
 import glot_core/pagination_model
 import glot_core/snippet/snippet_dto
@@ -12,14 +13,20 @@ import glot_frontend/ui/delayed_loading
 
 const page_limit = 20
 
-pub fn init(after: option.Option(String), before: option.Option(String)) {
-  let request = model.request(after:, before:)
+pub fn init(
+  after: option.Option(String),
+  before: option.Option(String),
+  language language_slug: option.Option(String),
+) {
+  let language_filter = option.then(language_slug, language.from_string)
+  let request = model.request(after:, before:, language: language_filter)
   let #(indicator, generation) = delayed_loading.begin(delayed_loading.idle())
   let state =
     model.Model(
       page: loadable.Loading,
       after:,
       before:,
+      language: language_filter,
       pending_delete: option.None,
       deleting_slug: option.None,
       mutation_error: option.None,
@@ -113,12 +120,24 @@ fn commands(request: Request, generation) {
 
 fn load_page(request: Request) {
   command.ListSnippets(
-    snippet_dto.ListSessionSnippetsRequest(pagination: pagination_from_cursors(
-      model.request_after(request),
-      model.request_before(request),
-    )),
+    snippet_dto.ListSessionSnippetsRequest(
+      pagination: pagination_from_cursors(
+        model.request_after(request),
+        model.request_before(request),
+      ),
+      languages: languages_from_filter(model.request_language(request)),
+    ),
     fn(result) { SnippetsLoaded(request, result) },
   )
+}
+
+fn languages_from_filter(
+  language_filter: option.Option(language.Language),
+) -> List(language.Language) {
+  case language_filter {
+    option.Some(lang) -> [lang]
+    option.None -> []
+  }
 }
 
 fn pagination_from_cursors(

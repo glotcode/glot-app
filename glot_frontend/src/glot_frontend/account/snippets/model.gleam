@@ -1,5 +1,6 @@
 import gleam/list
 import gleam/option
+import glot_core/language
 import glot_core/loadable
 import glot_core/pagination_model
 import glot_core/snippet/snippet_dto
@@ -12,6 +13,7 @@ pub type Model {
     ),
     after: option.Option(String),
     before: option.Option(String),
+    language: option.Option(language.Language),
     pending_delete: option.Option(snippet_dto.SnippetResponse),
     deleting_slug: option.Option(String),
     mutation_error: option.Option(String),
@@ -21,14 +23,19 @@ pub type Model {
 }
 
 pub opaque type Request {
-  Request(after: option.Option(String), before: option.Option(String))
+  Request(
+    after: option.Option(String),
+    before: option.Option(String),
+    language: option.Option(language.Language),
+  )
 }
 
 pub fn request(
   after after: option.Option(String),
   before before: option.Option(String),
+  language language_filter: option.Option(language.Language),
 ) -> Request {
-  Request(after:, before:)
+  Request(after:, before:, language: language_filter)
 }
 
 pub fn request_after(request: Request) -> option.Option(String) {
@@ -37,6 +44,10 @@ pub fn request_after(request: Request) -> option.Option(String) {
 
 pub fn request_before(request: Request) -> option.Option(String) {
   request.before
+}
+
+pub fn request_language(request: Request) -> option.Option(language.Language) {
+  request.language
 }
 
 pub fn is_presentable(model: Model) -> Bool {

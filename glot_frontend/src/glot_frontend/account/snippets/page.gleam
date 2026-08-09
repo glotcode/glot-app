@@ -22,16 +22,19 @@ pub type Request =
 pub fn init(
   after after: option.Option(String),
   before before: option.Option(String),
+  language language_filter: option.Option(String),
 ) -> #(Model, Effect(Msg)) {
-  let #(model, next_command) = managed.init(after:, before:)
+  let #(model, next_command) =
+    managed.init(after:, before:, language: language_filter)
   #(model, interpreter.run(next_command, using: production_ports.new()))
 }
 
 pub fn init_managed(
   after after: option.Option(String),
   before before: option.Option(String),
+  language language_filter: option.Option(String),
 ) -> #(Model, command.Command(Msg)) {
-  managed.init(after:, before:)
+  managed.init(after:, before:, language: language_filter)
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {

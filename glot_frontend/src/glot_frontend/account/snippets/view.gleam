@@ -42,6 +42,7 @@ pub fn view(model: snippets_model.Model, now: Timestamp) -> Element(Msg) {
               html.p([attribute.class("snippets-page__status")], [
                 html.text("Manage snippets created in your account."),
               ]),
+              active_filter_view(model.language),
             ]),
           ]),
           status_view(model),
@@ -109,11 +110,45 @@ fn content_view(model: snippets_model.Model, now: Timestamp) -> Element(Msg) {
   case model.page {
     loadable.Loaded(page) ->
       case pagination_model.items(page) {
-        [] -> empty_state("You have not created any snippets yet.")
+        [] -> empty_state(empty_message(model.language))
         _ -> snippets_table(page, model.deleting_slug, now)
       }
     loadable.NotLoaded | loadable.Loading | loadable.LoadError(_) ->
       html.div([attribute.class("snippets-page__content")], [])
+  }
+}
+
+fn empty_message(language_filter: option.Option(language.Language)) -> String {
+  case language_filter {
+    option.Some(lang) -> "No " <> language.name(lang) <> " snippets found."
+    option.None -> "You have not created any snippets yet."
+  }
+}
+
+fn active_filter_view(
+  language_filter: option.Option(language.Language),
+) -> Element(Msg) {
+  case language_filter {
+    option.Some(lang) ->
+      html.div([attribute.class("snippets-page__filters")], [
+        html.span([attribute.class("snippets-page__filter")], [
+          html.text("Filtered by " <> language.name(lang)),
+        ]),
+        html.a(
+          [
+            attribute.class("snippets-page__filter-clear"),
+            web_route.href(
+              route.Account(route.AccountSnippets(
+                after: option.None,
+                before: option.None,
+                language: option.None,
+              )),
+            ),
+          ],
+          [html.text("Clear")],
+        ),
+      ])
+    option.None -> html.div([], [])
   }
 }
 
@@ -188,10 +223,15 @@ fn snippet_row(
   let is_deleting = deleting_slug == option.Some(snippet.slug)
 
   html.tr([attribute.class("snippets-table__row snippets-table__row--manage")], [
-    snippet_cell_link(
+    filter_cell_link(
       "snippets-table__cell snippets-table__cell--language",
       "Language",
-      route.Public(route.Snippet(snippet.slug)),
+      "Filter by language " <> language.name(snippet.data.language),
+      route.Account(route.AccountSnippets(
+        after: option.None,
+        before: option.None,
+        language: option.Some(language.to_string(snippet.data.language)),
+      )),
       language.name(snippet.data.language),
     ),
     snippet_cell_link(
@@ -242,6 +282,32 @@ fn snippet_row(
         ),
       ]),
     ]),
+  ])
+}
+
+fn filter_cell_link(
+  class_name: String,
+  cell_label: String,
+  aria_label: String,
+  destination: route.Route,
+  value: String,
+) -> Element(Msg) {
+  html.td([attribute.class(class_name)], [
+    html.a(
+      [
+        attribute.class("snippets-table__cell-link"),
+        attribute.attribute("aria-label", aria_label),
+        web_route.href(destination),
+      ],
+      [
+        html.span([attribute.class("snippets-table__cell-label")], [
+          html.text(cell_label),
+        ]),
+        html.span([attribute.class("snippets-table__cell-value")], [
+          html.text(value),
+        ]),
+      ],
+    ),
   ])
 }
 

@@ -27,7 +27,10 @@ pub type ListPublicSnippetsRequest {
 }
 
 pub type ListSessionSnippetsRequest {
-  ListSessionSnippetsRequest(pagination: pagination_model.CursorPagination)
+  ListSessionSnippetsRequest(
+    pagination: pagination_model.CursorPagination,
+    languages: List(language.Language),
+  )
 }
 
 pub fn list_public_decoder() -> decode.Decoder(ListPublicSnippetsRequest) {
@@ -43,8 +46,10 @@ pub fn list_public_decoder() -> decode.Decoder(ListPublicSnippetsRequest) {
 }
 
 pub fn list_session_decoder() -> decode.Decoder(ListSessionSnippetsRequest) {
-  pagination_model.request_decoder()
-  |> decode.map(ListSessionSnippetsRequest)
+  decode.then(pagination_model.request_decoder(), fn(pagination) {
+    use languages <- decode.field("languages", decode.list(language.decoder()))
+    decode.success(ListSessionSnippetsRequest(pagination:, languages:))
+  })
 }
 
 pub type DeleteSnippetRequest {

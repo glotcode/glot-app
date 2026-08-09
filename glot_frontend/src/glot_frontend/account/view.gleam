@@ -182,6 +182,7 @@ fn snippets_section() -> Element(Msg) {
           route.Account(route.AccountSnippets(
             after: option.None,
             before: option.None,
+            language: option.None,
           )),
         ),
         attribute.class("account-page__link"),

@@ -1,5 +1,8 @@
 import gleam/list
 import gleam/option
+import gleam/string
+import gleam/time/timestamp
+import glot_core/language
 import glot_core/loadable
 import glot_core/pagination_model
 import glot_core/snippet/snippet_dto
@@ -8,6 +11,8 @@ import glot_frontend/account/snippets/message
 import glot_frontend/account/snippets/model
 import glot_frontend/account/snippets/page
 import glot_frontend/api/response
+import lustre/element
+import support/editor_fixture
 import support/managed_scenario
 import youid/uuid
 
@@ -20,7 +25,11 @@ type Scenario =
 
 pub fn account_snippets_are_driven_by_api_and_timer_fixtures_test() {
   let #(initial_model, initial_command) =
-    page.init_managed(after: option.None, before: option.None)
+    page.init_managed(
+      after: option.None,
+      before: option.None,
+      language: option.Some("python"),
+    )
   let scenario =
     managed_scenario.start(initial_model, initial_command, interpret)
   let assert [
@@ -28,6 +37,7 @@ pub fn account_snippets_are_driven_by_api_and_timer_fixtures_test() {
     command.Schedule(_, delay_elapsed),
   ] = managed_scenario.pending(scenario)
   assert request.pagination == pagination_model.InitialPage(limit: 20)
+  assert request.languages == [language.Python]
 
   let fixture =
     snippet_dto.ListSnippetsResponse(page: pagination_model.InitialCursorPage(
@@ -44,7 +54,12 @@ pub fn account_snippets_are_driven_by_api_and_timer_fixtures_test() {
 }
 
 pub fn deletion_covers_cancel_failure_retry_and_success_test() {
-  let #(model, _) = page.init_managed(after: option.None, before: option.None)
+  let #(model, _) =
+    page.init_managed(
+      after: option.None,
+      before: option.None,
+      language: option.None,
+    )
   let #(cancelled, cancel_command) =
     page.update_managed(model, message.DeleteCancelled)
   assert cancelled == model
@@ -80,6 +95,39 @@ pub fn deletion_covers_cancel_failure_retry_and_success_test() {
   ] = managed_scenario.pending(scenario)
   assert managed_scenario.model(scenario).deleting_slug == option.None
   assert managed_scenario.model(scenario).mutation_error == option.None
+}
+
+pub fn language_filter_renders_and_is_preserved_by_pagination_test() {
+  let #(initial, _) =
+    page.init_managed(
+      after: option.None,
+      before: option.None,
+      language: option.Some("javascript"),
+    )
+  let response =
+    snippet_dto.ListSnippetsResponse(page: pagination_model.InitialCursorPage(
+      items: [editor_fixture.snippet("fixture", "console.log(1)")],
+      next_cursor: option.Some(pagination_model.from_string("next-page")),
+    ))
+  let #(loaded, _) =
+    page.update_managed(
+      initial,
+      message.SnippetsLoaded(initial.request, response.Success(response)),
+    )
+  let rendered =
+    page.view(loaded, timestamp.from_unix_seconds(300))
+    |> element.to_document_string
+
+  assert string.contains(rendered, "Filtered by JavaScript")
+  assert string.contains(rendered, "Filter by language JavaScript")
+  assert string.contains(rendered, "/account/snippets?language=javascript")
+
+  let #(_, next) = page.update_managed(loaded, message.NextPageClicked)
+  assert next
+    == command.Navigate(
+      "/account/snippets",
+      option.Some("after=next-page&language=javascript"),
+    )
 }
 
 fn dispatch(scenario: Scenario, msg: message.Msg) -> Scenario {

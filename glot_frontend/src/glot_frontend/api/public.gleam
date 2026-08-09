@@ -169,9 +169,12 @@ pub fn list_session_snippets(
   request.send_public(
     req,
     fn(list_request) {
-      json.object(pagination_model.encode_request_fields(
-        list_request.pagination,
-      ))
+      json.object(
+        list.append(
+          pagination_model.encode_request_fields(list_request.pagination),
+          [#("languages", json.array(list_request.languages, language.encode))],
+        ),
+      )
     },
     snippet_dto.list_response_decoder(),
     to_msg,

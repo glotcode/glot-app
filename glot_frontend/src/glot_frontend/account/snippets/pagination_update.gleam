@@ -1,4 +1,5 @@
 import gleam/option
+import glot_core/language
 import glot_core/pagination_model
 import glot_core/route
 import glot_frontend/account/snippets/command
@@ -35,6 +36,7 @@ fn navigate_cursor(
             True -> option.None
             False -> cursor
           },
+          state.language,
         ),
       )
     }
@@ -42,8 +44,14 @@ fn navigate_cursor(
   }
 }
 
-fn navigate_to(after, before) {
+fn navigate_to(after, before, language_filter) {
   let #(path, query) =
-    route.path_and_query(route.Account(route.AccountSnippets(after:, before:)))
+    route.path_and_query(
+      route.Account(route.AccountSnippets(
+        after:,
+        before:,
+        language: option.map(language_filter, language.to_string),
+      )),
+    )
   command.Navigate(path, query)
 }

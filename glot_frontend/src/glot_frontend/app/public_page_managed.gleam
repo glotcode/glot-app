@@ -80,8 +80,9 @@ fn init_account(target: route.AccountRoute) -> #(Model, command.Command) {
       let #(model, next) = account_managed.init()
       #(Account(model), command.Account(next))
     }
-    route.AccountSnippets(after:, before:) -> {
-      let #(model, next) = account_snippets_managed.init(after:, before:)
+    route.AccountSnippets(after:, before:, language:) -> {
+      let #(model, next) =
+        account_snippets_managed.init(after:, before:, language:)
       #(ManageSnippets(model), command.ManageSnippets(next))
     }
   }
