@@ -1,4 +1,5 @@
 import gleam/dynamic
+import glot_backend/admin/domain/analytics/get as get_analytics_domain
 import glot_backend/admin/domain/api_log/get as get_api_log_domain
 import glot_backend/admin/domain/api_log/list as get_api_logs_domain
 import glot_backend/admin/domain/auth/account/delete as admin_delete_account_domain
@@ -59,6 +60,13 @@ pub fn dispatch(
   data: dynamic.Dynamic,
 ) -> program_types.Program(ApiResult) {
   case action {
+    admin_action.GetAdminAnalyticsAction -> {
+      use request <- program.and_then(get_analytics_domain.request_from_dynamic(
+        data,
+      ))
+      get_analytics_domain.get_analytics(request_ctx, request)
+      |> program.map(api_result.AdminAnalyticsResponse)
+    }
     admin_action.GetAdminDebugConfigAction ->
       get_debug_config_domain.get_debug_config(request_ctx)
       |> program.map(api_result.DebugConfigResponse)

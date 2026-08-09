@@ -4,6 +4,24 @@ import glot_backend/analytics/effect/algebra as analytics_algebra
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
 import glot_backend/system/effect/program_types
+import glot_core/admin/analytics_dto.{type AnalyticsResponse}
+
+pub fn get_analytics(
+  days: Int,
+  start_day: Date,
+  end_day: Date,
+) -> program_types.Program(AnalyticsResponse) {
+  program_types.Impure(
+    program_types.DbEffect(
+      program_types.AnalyticsEffect(analytics_algebra.GetAnalytics(
+        days:,
+        start_day:,
+        end_day:,
+        next: analytics_next,
+      )),
+    ),
+  )
+}
 
 pub fn get_max_completed_metrics_day() -> program_types.Program(Option(Date)) {
   program_types.Impure(
@@ -124,6 +142,15 @@ fn tx_next(
 fn query_next(
   result: Result(Option(Date), db_error.DbQueryError),
 ) -> program_types.Program(Option(Date)) {
+  case result {
+    Ok(value) -> program_types.Pure(value)
+    Error(err) -> program_types.Fail(error.database_query_error(err))
+  }
+}
+
+fn analytics_next(
+  result: Result(AnalyticsResponse, db_error.DbQueryError),
+) -> program_types.Program(AnalyticsResponse) {
   case result {
     Ok(value) -> program_types.Pure(value)
     Error(err) -> program_types.Fail(error.database_query_error(err))

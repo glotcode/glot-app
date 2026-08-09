@@ -1,3 +1,4 @@
+import glot_frontend/admin/analytics/message as admin_analytics_page
 import glot_frontend/admin/api_logs/detail_message as admin_api_log_page
 import glot_frontend/admin/api_logs/list_message as admin_api_logs_page
 import glot_frontend/admin/config/page_message as admin_config_page
@@ -21,6 +22,7 @@ import glot_frontend/admin/users/message as admin_user_page
 
 pub type Msg {
   AdminPageMsg(admin_page.Msg)
+  AdminAnalyticsPageMsg(admin_analytics_page.Msg)
   AdminApiLogsPageMsg(admin_api_logs_page.Msg)
   AdminApiLogPageMsg(admin_api_log_page.Msg)
   AdminRunLogsPageMsg(admin_run_logs_page.Msg)

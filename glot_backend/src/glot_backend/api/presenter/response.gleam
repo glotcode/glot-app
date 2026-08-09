@@ -5,6 +5,7 @@ import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
 import glot_backend/system/http/server_timing
 import glot_backend/system/request/context
+import glot_core/admin/analytics_dto
 import glot_core/admin/api_log_dto
 import glot_core/admin/auth_config_dto
 import glot_core/admin/availability_config_dto
@@ -83,6 +84,8 @@ pub fn error(
 
 fn success(request: wisp.Request, result: ApiResult) -> wisp.Response {
   case result {
+    api_result.AdminAnalyticsResponse(value) ->
+      success_body(analytics_dto.encode_response(value))
     api_result.TrackPageviewResponse(_) -> success_body(json.null())
     api_result.RunResultResponse(value) ->
       success_body(run.encode_run_result(value))

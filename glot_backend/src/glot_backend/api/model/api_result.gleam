@@ -3,6 +3,7 @@ import glot_backend/auth/domain/login_token/login as login_domain
 import glot_backend/auth/domain/session/issue as session_issue_domain
 import glot_backend/auth/domain/session/refresh as refresh_session_domain
 import glot_backend/logging/pageview/domain/track as track_pageview_domain
+import glot_core/admin/analytics_dto
 import glot_core/admin/api_log_dto
 import glot_core/admin/auth_config_dto
 import glot_core/admin/availability_config_dto
@@ -32,6 +33,7 @@ import glot_core/run
 import glot_core/snippet/snippet_dto
 
 pub type ApiResult {
+  AdminAnalyticsResponse(analytics_dto.AnalyticsResponse)
   TrackPageviewResponse(track_pageview_domain.TrackedPageview)
   RunResultResponse(run.RunResult)
   SessionResponse(option.Option(session_dto.SessionResponse))

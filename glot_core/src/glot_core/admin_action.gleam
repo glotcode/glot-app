@@ -4,6 +4,7 @@ import gleam/option
 import glot_core/server_timing_policy
 
 pub type AdminAction {
+  GetAdminAnalyticsAction
   GetAdminDebugConfigAction
   UpsertAdminDebugConfigAction
   GetAdminAvailabilityConfigAction
@@ -56,6 +57,7 @@ pub type AdminAction {
 
 pub fn list() -> List(AdminAction) {
   [
+    GetAdminAnalyticsAction,
     GetAdminDebugConfigAction,
     UpsertAdminDebugConfigAction,
     GetAdminAvailabilityConfigAction,
@@ -122,6 +124,7 @@ pub fn encode(action: AdminAction) -> json.Json {
 
 pub fn to_string(action: AdminAction) -> String {
   case action {
+    GetAdminAnalyticsAction -> "get_admin_analytics"
     GetAdminDebugConfigAction -> "get_admin_debug_config"
     UpsertAdminDebugConfigAction -> "upsert_admin_debug_config"
     GetAdminAvailabilityConfigAction -> "get_admin_availability_config"
@@ -177,6 +180,7 @@ pub fn to_string(action: AdminAction) -> String {
 
 pub fn from_string(action: String) -> option.Option(AdminAction) {
   case action {
+    "get_admin_analytics" -> option.Some(GetAdminAnalyticsAction)
     "get_admin_debug_config" -> option.Some(GetAdminDebugConfigAction)
     "upsert_admin_debug_config" -> option.Some(UpsertAdminDebugConfigAction)
     "get_admin_availability_config" ->

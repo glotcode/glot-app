@@ -38,7 +38,8 @@ pub fn public(action: PublicAction) -> transport.Ownership {
 
 pub fn admin(action: AdminAction) -> transport.Ownership {
   case action {
-    admin_action.GetAdminDebugConfigAction
+    admin_action.GetAdminAnalyticsAction
+    | admin_action.GetAdminDebugConfigAction
     | admin_action.GetAdminAvailabilityConfigAction
     | admin_action.GetAdminAuthConfigAction
     | admin_action.GetAdminPasskeyConfigAction

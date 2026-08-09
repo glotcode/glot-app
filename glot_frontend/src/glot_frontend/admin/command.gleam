@@ -1,6 +1,7 @@
 import gleam/list
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/admin/account_dto
+import glot_core/admin/analytics_dto
 import glot_core/admin/api_log_dto
 import glot_core/admin/auth_config_dto
 import glot_core/admin/availability_config_dto
@@ -24,6 +25,7 @@ import glot_core/admin/snippet_dto as admin_snippet_dto
 import glot_core/admin/user_dto
 import glot_core/route
 import glot_core/snippet/snippet_dto
+import glot_frontend/admin/effect/analytics
 import glot_frontend/admin/effect/config
 import glot_frontend/admin/effect/content
 import glot_frontend/admin/effect/jobs
@@ -40,6 +42,7 @@ pub type Command(msg) {
   Jobs(jobs.Command(msg))
   Content(content.Command(msg))
   Config(config.Command(msg))
+  Analytics(analytics.Command(msg))
   OpenDialog(String)
   CloseDialog(String)
   Navigate(route.Route)
@@ -66,6 +69,7 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
     Jobs(value) -> Jobs(jobs.map(value, transform))
     Content(value) -> Content(content.map(value, transform))
     Config(value) -> Config(config.map(value, transform))
+    Analytics(value) -> Analytics(analytics.map(value, transform))
     OpenDialog(id) -> OpenDialog(id)
     CloseDialog(id) -> CloseDialog(id)
     Navigate(path) -> Navigate(path)
@@ -76,6 +80,13 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
     ParseLocalDateTime(date, time, complete) ->
       ParseLocalDateTime(date, time, fn(result) { transform(complete(result)) })
   }
+}
+
+pub fn get_admin_analytics(
+  request: analytics_dto.GetAnalyticsRequest,
+  done: fn(response.Response(analytics_dto.AnalyticsResponse)) -> msg,
+) -> Command(msg) {
+  Analytics(analytics.GetAnalytics(request, done))
 }
 
 pub fn get_admin_api_logs(

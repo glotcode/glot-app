@@ -1,8 +1,15 @@
 import gleam/option.{type Option}
 import gleam/time/calendar.{type Date}
 import glot_backend/system/effect/error/db_error
+import glot_core/admin/analytics_dto.{type AnalyticsResponse}
 
 pub type AnalyticsEffect(next) {
+  GetAnalytics(
+    days: Int,
+    start_day: Date,
+    end_day: Date,
+    next: fn(Result(AnalyticsResponse, db_error.DbQueryError)) -> next,
+  )
   GetMaxCompletedMetricsDay(
     next: fn(Result(Option(Date), db_error.DbQueryError)) -> next,
   )
@@ -38,6 +45,10 @@ pub type AnalyticsEffect(next) {
 
 pub fn map(effect: AnalyticsEffect(a), f: fn(a) -> b) -> AnalyticsEffect(b) {
   case effect {
+    GetAnalytics(days:, start_day:, end_day:, next:) ->
+      GetAnalytics(days:, start_day:, end_day:, next: fn(value) {
+        f(next(value))
+      })
     GetMaxCompletedMetricsDay(next:) ->
       GetMaxCompletedMetricsDay(next: fn(value) { f(next(value)) })
     GetFirstMetricsSourceDay(before:, next:) ->
@@ -64,6 +75,7 @@ pub fn map(effect: AnalyticsEffect(a), f: fn(a) -> b) -> AnalyticsEffect(b) {
 }
 
 pub type EffectName {
+  GetAnalyticsEffectName
   GetMaxCompletedMetricsDayEffectName
   GetFirstMetricsSourceDayEffectName
   InsertMetricsPageviewDayEffectName
@@ -76,6 +88,7 @@ pub type EffectName {
 
 pub fn effect_name_to_string(name: EffectName) -> String {
   case name {
+    GetAnalyticsEffectName -> "get_analytics"
     GetMaxCompletedMetricsDayEffectName -> "get_max_completed_metrics_day"
     GetFirstMetricsSourceDayEffectName -> "get_first_metrics_source_day"
     InsertMetricsPageviewDayEffectName -> "insert_metrics_pageview_day"

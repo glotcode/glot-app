@@ -30,6 +30,25 @@ pub fn view(_model: Model) -> Element(Msg) {
       html.div([attribute.class("admin-page__group")], [
         html.div([attribute.class("admin-page__group-header")], [
           html.h3([attribute.class("admin-page__group-title")], [
+            html.text("Analytics"),
+          ]),
+          html.p([attribute.class("admin-page__group-copy")], [
+            html.text(
+              "Understand product activity, code execution, and service reliability from daily rollups.",
+            ),
+          ]),
+        ]),
+        html.div([attribute.class("admin-page__section-grid")], [
+          link_card(
+            title: "Analytics dashboard",
+            description: "Review pageviews, product events, runs, and reliability over configurable date ranges.",
+            target: route.Admin(route.AdminAnalytics),
+          ),
+        ]),
+      ]),
+      html.div([attribute.class("admin-page__group")], [
+        html.div([attribute.class("admin-page__group-header")], [
+          html.h3([attribute.class("admin-page__group-title")], [
             html.text("Configuration"),
           ]),
           html.p([attribute.class("admin-page__group-copy")], [

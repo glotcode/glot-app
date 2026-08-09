@@ -1,3 +1,4 @@
+import glot_frontend/admin/analytics/model as admin_analytics_page
 import glot_frontend/admin/api_logs/detail_model as admin_api_log_page
 import glot_frontend/admin/api_logs/list_model as admin_api_logs_page
 import glot_frontend/admin/config/page_model as admin_config_page
@@ -25,6 +26,7 @@ pub opaque type Model {
 
 pub type PageModel {
   AdminPage(admin_page.Model)
+  AdminAnalyticsPage(admin_analytics_page.Model)
   AdminApiLogsPage(admin_api_logs_page.Model)
   AdminApiLogPage(admin_api_log_page.Model)
   AdminRunLogsPage(admin_run_logs_page.Model)
@@ -58,6 +60,7 @@ pub fn page(model: Model) -> PageModel {
 pub fn is_presentable(model: Model) -> Bool {
   case page(model) {
     AdminPage(_) | EmptyPageModel -> True
+    AdminAnalyticsPage(model) -> admin_analytics_page.is_presentable(model)
     AdminApiLogsPage(model) -> admin_api_logs_page.is_presentable(model)
     AdminApiLogPage(model) -> admin_api_log_page.is_presentable(model)
     AdminRunLogsPage(model) -> admin_run_logs_page.is_presentable(model)

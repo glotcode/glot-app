@@ -13,6 +13,21 @@ pub fn run(
     #(Result(a, error.Error), program_state.State),
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
+    analytics_algebra.GetAnalytics(days:, start_day:, end_day:, next:) -> {
+      let started_at = erlang.perf_counter_ns()
+      let result = store.get_analytics(days, start_day, end_day)
+      continue(
+        next(result),
+        program_state.add_effect_measurement(
+          state,
+          effect_trace.AnalyticsEffectName(
+            analytics_algebra.GetAnalyticsEffectName,
+          ),
+          effect_trace.DatabaseReadEffect,
+          started_at,
+        ),
+      )
+    }
     analytics_algebra.GetMaxCompletedMetricsDay(next:) -> {
       let started_at = erlang.perf_counter_ns()
       let result = store.get_max_completed_metrics_day()

@@ -36,6 +36,7 @@ pub type AccountRoute {
 
 pub type AdminRoute {
   AdminHome
+  AdminAnalytics
   AdminApiLogs(query: option.Option(String))
   AdminApiLog(id: uuid.Uuid)
   AdminRunLogs(query: option.Option(String))
@@ -65,6 +66,7 @@ pub fn from_uri(uri: Uri) -> Route {
     ["login"] -> Public(Login)
     ["account"] -> Account(AccountHome)
     ["admin"] -> Admin(AdminHome)
+    ["admin", "analytics"] -> Admin(AdminAnalytics)
     ["admin", "logs", "api"] -> Admin(AdminApiLogs(query: uri.query))
     ["admin", "logs", "api", id] ->
       case uuid.from_string(id) {
@@ -216,6 +218,7 @@ fn admin_route_to_string(route: AdminRoute) -> String {
 fn admin_path(route: AdminRoute) -> String {
   case route {
     AdminHome -> "/admin"
+    AdminAnalytics -> "/admin/analytics"
     AdminApiLogs(_) -> "/admin/logs/api"
     AdminApiLog(id) -> "/admin/logs/api/" <> uuid.to_string(id)
     AdminRunLogs(_) -> "/admin/logs/runs"
@@ -272,6 +275,7 @@ fn account_route_name(route: AccountRoute) -> String {
 fn admin_route_name(route: AdminRoute) -> String {
   case route {
     AdminHome -> "admin"
+    AdminAnalytics -> "admin_analytics"
     AdminApiLogs(_) -> "admin_api_logs"
     AdminApiLog(_) -> "admin_api_log"
     AdminRunLogs(_) -> "admin_run_logs"

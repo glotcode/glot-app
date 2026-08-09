@@ -3,6 +3,7 @@ import gleam/option
 import glot_core/helpers/timestamp_helpers
 import glot_core/route
 import glot_frontend/admin/command
+import glot_frontend/admin/effect/analytics
 import glot_frontend/admin/effect/config
 import glot_frontend/admin/effect/content
 import glot_frontend/admin/effect/jobs
@@ -10,6 +11,7 @@ import glot_frontend/admin/effect/logs
 import glot_frontend/admin/effect/users
 import glot_frontend/admin/local_datetime
 import glot_frontend/admin/ports
+import glot_frontend/api/admin/analytics as analytics_api
 import glot_frontend/api/admin/config as config_api
 import glot_frontend/api/admin/content as content_api
 import glot_frontend/api/admin/jobs as jobs_api
@@ -34,6 +36,7 @@ fn run(command: command.Command(msg)) -> Effect(msg) {
     command.Jobs(value) -> run_jobs(value)
     command.Content(value) -> run_content(value)
     command.Config(value) -> run_config(value)
+    command.Analytics(value) -> run_analytics(value)
     command.OpenDialog(id) -> app_dialog.open(id)
     command.CloseDialog(id) -> app_dialog.close(id)
     command.Navigate(target) -> {
@@ -65,6 +68,13 @@ fn run(command: command.Command(msg)) -> Effect(msg) {
         }
         dispatch(complete(result))
       })
+  }
+}
+
+fn run_analytics(command: analytics.Command(msg)) -> Effect(msg) {
+  case command {
+    analytics.GetAnalytics(request, done) ->
+      analytics_api.get_admin_analytics(request, done)
   }
 }
 

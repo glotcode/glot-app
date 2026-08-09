@@ -33,6 +33,10 @@ pub fn wrap(
 fn breadcrumbs(current_route: route.Route) -> List(Crumb) {
   case current_route {
     route.Admin(route.AdminHome) -> [current("Admin")]
+    route.Admin(route.AdminAnalytics) -> [
+      link("Admin", route.Admin(route.AdminHome)),
+      current("Analytics"),
+    ]
     route.Admin(route.AdminConfig) -> [
       link("Admin", route.Admin(route.AdminHome)),
       current("App config"),

@@ -904,6 +904,192 @@ pub fn get_first_metrics_source_day_decoder() -> decode.Decoder(
   decode.success(GetFirstMetricsSourceDay(day:))
 }
 
+pub type ListMetricsPageviews {
+  ListMetricsPageviews(
+    day: Date,
+    route: String,
+    path: String,
+    views: Int,
+    unique_sessions: Int,
+    unique_users: Int,
+  )
+}
+
+pub fn list_metrics_pageviews(
+  start_day start_day: Date,
+  end_day end_day: Date,
+) {
+  let sql =
+    "SELECT day, route, path, views, unique_sessions, unique_users
+FROM metrics_pageview_daily
+WHERE day >= $1::date AND day < $2::date
+ORDER BY day DESC, views DESC, route ASC, path ASC"
+  #(
+    sql,
+    [dev.ParamDate(start_day), dev.ParamDate(end_day)],
+    list_metrics_pageviews_decoder(),
+  )
+}
+
+pub fn list_metrics_pageviews_decoder() -> decode.Decoder(ListMetricsPageviews) {
+  use day <- decode.field(0, dev.calendar_date_decoder())
+  use route <- decode.field(1, decode.string)
+  use path <- decode.field(2, decode.string)
+  use views <- decode.field(3, decode.int)
+  use unique_sessions <- decode.field(4, decode.int)
+  use unique_users <- decode.field(5, decode.int)
+  decode.success(ListMetricsPageviews(
+    day:,
+    route:,
+    path:,
+    views:,
+    unique_sessions:,
+    unique_users:,
+  ))
+}
+
+pub type ListMetricsProductEvents {
+  ListMetricsProductEvents(
+    day: Date,
+    event_name: String,
+    event_count: Int,
+    unique_sessions: Int,
+    unique_users: Int,
+  )
+}
+
+pub fn list_metrics_product_events(
+  start_day start_day: Date,
+  end_day end_day: Date,
+) {
+  let sql =
+    "SELECT day, event_name, event_count, unique_sessions, unique_users
+FROM metrics_product_event_daily
+WHERE day >= $1::date AND day < $2::date
+ORDER BY day DESC, event_count DESC, event_name ASC"
+  #(
+    sql,
+    [dev.ParamDate(start_day), dev.ParamDate(end_day)],
+    list_metrics_product_events_decoder(),
+  )
+}
+
+pub fn list_metrics_product_events_decoder() -> decode.Decoder(
+  ListMetricsProductEvents,
+) {
+  use day <- decode.field(0, dev.calendar_date_decoder())
+  use event_name <- decode.field(1, decode.string)
+  use event_count <- decode.field(2, decode.int)
+  use unique_sessions <- decode.field(3, decode.int)
+  use unique_users <- decode.field(4, decode.int)
+  decode.success(ListMetricsProductEvents(
+    day:,
+    event_name:,
+    event_count:,
+    unique_sessions:,
+    unique_users:,
+  ))
+}
+
+pub type ListMetricsRuns {
+  ListMetricsRuns(
+    day: Date,
+    language: String,
+    successful_runs: Int,
+    failed_runs: Int,
+    unique_sessions: Int,
+    unique_users: Int,
+  )
+}
+
+pub fn list_metrics_runs(start_day start_day: Date, end_day end_day: Date) {
+  let sql =
+    "SELECT
+  day,
+  language,
+  successful_runs,
+  failed_runs,
+  unique_sessions,
+  unique_users
+FROM metrics_run_daily
+WHERE day >= $1::date AND day < $2::date
+ORDER BY day DESC, successful_runs + failed_runs DESC, language ASC"
+  #(
+    sql,
+    [dev.ParamDate(start_day), dev.ParamDate(end_day)],
+    list_metrics_runs_decoder(),
+  )
+}
+
+pub fn list_metrics_runs_decoder() -> decode.Decoder(ListMetricsRuns) {
+  use day <- decode.field(0, dev.calendar_date_decoder())
+  use language <- decode.field(1, decode.string)
+  use successful_runs <- decode.field(2, decode.int)
+  use failed_runs <- decode.field(3, decode.int)
+  use unique_sessions <- decode.field(4, decode.int)
+  use unique_users <- decode.field(5, decode.int)
+  decode.success(ListMetricsRuns(
+    day:,
+    language:,
+    successful_runs:,
+    failed_runs:,
+    unique_sessions:,
+    unique_users:,
+  ))
+}
+
+pub type ListMetricsReliability {
+  ListMetricsReliability(
+    day: Date,
+    surface: String,
+    name: String,
+    request_count: Int,
+    error_count: Int,
+    avg_duration_ns: Int,
+  )
+}
+
+pub fn list_metrics_reliability(
+  start_day start_day: Date,
+  end_day end_day: Date,
+) {
+  let sql =
+    "SELECT
+  day,
+  surface,
+  name,
+  request_count,
+  error_count,
+  avg_duration_ns
+FROM metrics_reliability_daily
+WHERE day >= $1::date AND day < $2::date
+ORDER BY day DESC, request_count DESC, surface ASC, name ASC"
+  #(
+    sql,
+    [dev.ParamDate(start_day), dev.ParamDate(end_day)],
+    list_metrics_reliability_decoder(),
+  )
+}
+
+pub fn list_metrics_reliability_decoder() -> decode.Decoder(
+  ListMetricsReliability,
+) {
+  use day <- decode.field(0, dev.calendar_date_decoder())
+  use surface <- decode.field(1, decode.string)
+  use name <- decode.field(2, decode.string)
+  use request_count <- decode.field(3, decode.int)
+  use error_count <- decode.field(4, decode.int)
+  use avg_duration_ns <- decode.field(5, decode.int)
+  decode.success(ListMetricsReliability(
+    day:,
+    surface:,
+    name:,
+    request_count:,
+    error_count:,
+    avg_duration_ns:,
+  ))
+}
+
 pub fn insert_metrics_pageview_day(day day: Date) {
   let sql =
     "INSERT INTO metrics_pageview_daily (

@@ -74,6 +74,42 @@ FROM (
 ORDER BY day ASC
 LIMIT 1;
 
+-- name: ListMetricsPageviews :many
+SELECT day, route, path, views, unique_sessions, unique_users
+FROM metrics_pageview_daily
+WHERE day >= @start_day::date AND day < @end_day::date
+ORDER BY day DESC, views DESC, route ASC, path ASC;
+
+-- name: ListMetricsProductEvents :many
+SELECT day, event_name, event_count, unique_sessions, unique_users
+FROM metrics_product_event_daily
+WHERE day >= @start_day::date AND day < @end_day::date
+ORDER BY day DESC, event_count DESC, event_name ASC;
+
+-- name: ListMetricsRuns :many
+SELECT
+  day,
+  language,
+  successful_runs,
+  failed_runs,
+  unique_sessions,
+  unique_users
+FROM metrics_run_daily
+WHERE day >= @start_day::date AND day < @end_day::date
+ORDER BY day DESC, successful_runs + failed_runs DESC, language ASC;
+
+-- name: ListMetricsReliability :many
+SELECT
+  day,
+  surface,
+  name,
+  request_count,
+  error_count,
+  avg_duration_ns
+FROM metrics_reliability_daily
+WHERE day >= @start_day::date AND day < @end_day::date
+ORDER BY day DESC, request_count DESC, surface ASC, name ASC;
+
 -- name: InsertMetricsPageviewDay :exec
 INSERT INTO metrics_pageview_daily (
   day,

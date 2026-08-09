@@ -50,6 +50,11 @@
   gap: 1rem;
 }
 
+.admin-analytics {
+  display: grid;
+  gap: 1.25rem;
+}
+
 .admin-page__header {
   display: flex;
   align-items: start;

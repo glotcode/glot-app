@@ -1,4 +1,5 @@
 import gleam/time/timestamp.{type Timestamp}
+import glot_frontend/admin/analytics/view as admin_analytics_page
 import glot_frontend/admin/api_logs/detail_view as admin_api_log_page
 import glot_frontend/admin/api_logs/list_view as admin_api_logs_page
 import glot_frontend/admin/config/page_view as admin_config_page
@@ -14,21 +15,21 @@ import glot_frontend/admin/periodic_jobs/list_view as admin_periodic_jobs_page
 import glot_frontend/admin/periodic_jobs/view as admin_periodic_job_page
 import glot_frontend/admin/rate_limits/view as admin_rate_limits_page
 import glot_frontend/admin/router_message.{
-  type Msg, AdminApiLogPageMsg, AdminApiLogsPageMsg, AdminConfigPageMsg,
-  AdminEmailTemplatePageMsg, AdminEmailTemplatesPageMsg, AdminJobLogPageMsg,
-  AdminJobLogsPageMsg, AdminJobPageMsg, AdminJobTypePoliciesPageMsg,
-  AdminJobsPageMsg, AdminPageMsg, AdminPeriodicJobPageMsg,
-  AdminPeriodicJobsPageMsg, AdminRateLimitsPageMsg, AdminRunLogPageMsg,
-  AdminRunLogsPageMsg, AdminSnippetPageMsg, AdminSnippetsPageMsg,
-  AdminUserPageMsg, AdminUsersPageMsg,
+  type Msg, AdminAnalyticsPageMsg, AdminApiLogPageMsg, AdminApiLogsPageMsg,
+  AdminConfigPageMsg, AdminEmailTemplatePageMsg, AdminEmailTemplatesPageMsg,
+  AdminJobLogPageMsg, AdminJobLogsPageMsg, AdminJobPageMsg,
+  AdminJobTypePoliciesPageMsg, AdminJobsPageMsg, AdminPageMsg,
+  AdminPeriodicJobPageMsg, AdminPeriodicJobsPageMsg, AdminRateLimitsPageMsg,
+  AdminRunLogPageMsg, AdminRunLogsPageMsg, AdminSnippetPageMsg,
+  AdminSnippetsPageMsg, AdminUserPageMsg, AdminUsersPageMsg,
 }
 import glot_frontend/admin/router_state.{
-  type PageModel, AdminApiLogPage, AdminApiLogsPage, AdminConfigPage,
-  AdminEmailTemplatePage, AdminEmailTemplatesPage, AdminJobLogPage,
-  AdminJobLogsPage, AdminJobPage, AdminJobTypePoliciesPage, AdminJobsPage,
-  AdminPage, AdminPeriodicJobPage, AdminPeriodicJobsPage, AdminRateLimitsPage,
-  AdminRunLogPage, AdminRunLogsPage, AdminSnippetPage, AdminSnippetsPage,
-  AdminUserPage, AdminUsersPage, EmptyPageModel,
+  type PageModel, AdminAnalyticsPage, AdminApiLogPage, AdminApiLogsPage,
+  AdminConfigPage, AdminEmailTemplatePage, AdminEmailTemplatesPage,
+  AdminJobLogPage, AdminJobLogsPage, AdminJobPage, AdminJobTypePoliciesPage,
+  AdminJobsPage, AdminPage, AdminPeriodicJobPage, AdminPeriodicJobsPage,
+  AdminRateLimitsPage, AdminRunLogPage, AdminRunLogsPage, AdminSnippetPage,
+  AdminSnippetsPage, AdminUserPage, AdminUsersPage, EmptyPageModel,
 }
 import glot_frontend/admin/run_logs/detail_view as admin_run_log_page
 import glot_frontend/admin/run_logs/list_view as admin_run_logs_page
@@ -43,6 +44,8 @@ pub fn view(page: PageModel, now: Timestamp) -> Element(Msg) {
   case page {
     EmptyPageModel -> not_found.view()
     AdminPage(model) -> admin_page.view(model) |> element.map(AdminPageMsg)
+    AdminAnalyticsPage(model) ->
+      admin_analytics_page.view(model) |> element.map(AdminAnalyticsPageMsg)
     AdminApiLogsPage(model) ->
       admin_api_logs_page.view(model, now) |> element.map(AdminApiLogsPageMsg)
     AdminApiLogPage(model) ->

@@ -3,6 +3,7 @@ import support/integration/adapter/unexpected
 
 pub fn defaults() -> store.Store {
   store.Store(
+    get_analytics: fn(_, _, _) { unexpected.query("analytics.get") },
     get_max_completed_metrics_day: fn() {
       unexpected.query("analytics.max_day")
     },

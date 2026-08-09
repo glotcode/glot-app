@@ -1,4 +1,5 @@
 import glot_core/route
+import glot_frontend/admin/analytics/managed as admin_analytics_page
 import glot_frontend/admin/api_logs/detail_managed as admin_api_log_page
 import glot_frontend/admin/api_logs/list_managed as admin_api_logs_page
 import glot_frontend/admin/command as admin_effect
@@ -15,21 +16,21 @@ import glot_frontend/admin/periodic_jobs/list_managed as admin_periodic_jobs_pag
 import glot_frontend/admin/periodic_jobs/managed as admin_periodic_job_page
 import glot_frontend/admin/rate_limits/managed as admin_rate_limits_page
 import glot_frontend/admin/router_message.{
-  AdminApiLogPageMsg, AdminApiLogsPageMsg, AdminConfigPageMsg,
-  AdminEmailTemplatePageMsg, AdminEmailTemplatesPageMsg, AdminJobLogPageMsg,
-  AdminJobLogsPageMsg, AdminJobPageMsg, AdminJobTypePoliciesPageMsg,
-  AdminJobsPageMsg, AdminPageMsg, AdminPeriodicJobPageMsg,
-  AdminPeriodicJobsPageMsg, AdminRateLimitsPageMsg, AdminRunLogPageMsg,
-  AdminRunLogsPageMsg, AdminSnippetPageMsg, AdminSnippetsPageMsg,
-  AdminUserPageMsg, AdminUsersPageMsg,
+  AdminAnalyticsPageMsg, AdminApiLogPageMsg, AdminApiLogsPageMsg,
+  AdminConfigPageMsg, AdminEmailTemplatePageMsg, AdminEmailTemplatesPageMsg,
+  AdminJobLogPageMsg, AdminJobLogsPageMsg, AdminJobPageMsg,
+  AdminJobTypePoliciesPageMsg, AdminJobsPageMsg, AdminPageMsg,
+  AdminPeriodicJobPageMsg, AdminPeriodicJobsPageMsg, AdminRateLimitsPageMsg,
+  AdminRunLogPageMsg, AdminRunLogsPageMsg, AdminSnippetPageMsg,
+  AdminSnippetsPageMsg, AdminUserPageMsg, AdminUsersPageMsg,
 }
 import glot_frontend/admin/router_state.{
-  type PageModel, AdminApiLogPage, AdminApiLogsPage, AdminConfigPage,
-  AdminEmailTemplatePage, AdminEmailTemplatesPage, AdminJobLogPage,
-  AdminJobLogsPage, AdminJobPage, AdminJobTypePoliciesPage, AdminJobsPage,
-  AdminPage, AdminPeriodicJobPage, AdminPeriodicJobsPage, AdminRateLimitsPage,
-  AdminRunLogPage, AdminRunLogsPage, AdminSnippetPage, AdminSnippetsPage,
-  AdminUserPage, AdminUsersPage, EmptyPageModel,
+  type PageModel, AdminAnalyticsPage, AdminApiLogPage, AdminApiLogsPage,
+  AdminConfigPage, AdminEmailTemplatePage, AdminEmailTemplatesPage,
+  AdminJobLogPage, AdminJobLogsPage, AdminJobPage, AdminJobTypePoliciesPage,
+  AdminJobsPage, AdminPage, AdminPeriodicJobPage, AdminPeriodicJobsPage,
+  AdminRateLimitsPage, AdminRunLogPage, AdminRunLogsPage, AdminSnippetPage,
+  AdminSnippetsPage, AdminUserPage, AdminUsersPage, EmptyPageModel,
 }
 import glot_frontend/admin/run_logs/detail_managed as admin_run_log_page
 import glot_frontend/admin/run_logs/list_managed as admin_run_logs_page
@@ -68,6 +69,12 @@ fn init_page(
 ) -> #(PageModel, admin_effect.Command(Msg)) {
   case admin_route {
     route.AdminHome -> lift_page(admin_page.init(), AdminPage, AdminPageMsg)
+    route.AdminAnalytics ->
+      lift_page(
+        admin_analytics_page.init(),
+        AdminAnalyticsPage,
+        AdminAnalyticsPageMsg,
+      )
     route.AdminApiLogs(query) ->
       lift_page(
         admin_api_logs_page.init(query),
@@ -167,6 +174,12 @@ fn init_page(
 
 pub fn session_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
   case router_state.page(model) {
+    AdminAnalyticsPage(page_model) ->
+      lift_router_page(
+        admin_analytics_page.ensure_loaded(page_model),
+        AdminAnalyticsPage,
+        AdminAnalyticsPageMsg,
+      )
     AdminApiLogsPage(page_model) ->
       lift_router_page(
         admin_api_logs_page.ensure_loaded(page_model),
@@ -288,6 +301,12 @@ pub fn session_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
 
 pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
   case msg, router_state.page(model) {
+    AdminAnalyticsPageMsg(page_msg), AdminAnalyticsPage(page_model) ->
+      lift_router_page(
+        admin_analytics_page.update(page_model, page_msg),
+        AdminAnalyticsPage,
+        AdminAnalyticsPageMsg,
+      )
     AdminPageMsg(page_msg), AdminPage(page_model) ->
       lift_router_page(
         admin_page.update(page_model, page_msg),

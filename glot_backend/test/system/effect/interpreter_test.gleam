@@ -248,6 +248,7 @@ fn test_service_ports() -> service_ports.ServicePorts {
         upsert_entries: fn(_, _) { Ok(Nil) },
       ),
       analytics: analytics_store.Store(
+        get_analytics: fn(_, _, _) { panic as "not used" },
         get_max_completed_metrics_day: fn() { Ok(option.None) },
         get_first_metrics_source_day: fn(_) { Ok(option.None) },
         insert_metrics_pageview_day: fn(_) { Ok(Nil) },

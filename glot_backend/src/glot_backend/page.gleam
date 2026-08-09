@@ -238,6 +238,7 @@ fn handle_page_request_with_runtime(
     route.Account(route.AccountSnippets(_, _, _)) ->
       private_spa("Your snippets | glot.io")
     route.Admin(route.AdminHome) -> admin_spa("glot.io - admin")
+    route.Admin(route.AdminAnalytics) -> admin_spa("glot.io - analytics")
     route.Admin(route.AdminApiLogs(_)) -> admin_spa("glot.io - api logs")
     route.Admin(route.AdminApiLog(_)) -> admin_spa("glot.io - api log")
     route.Admin(route.AdminRunLogs(_)) -> admin_spa("glot.io - run logs")

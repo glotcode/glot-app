@@ -55,6 +55,7 @@ pub fn authorized_route_initialization_retains_the_loading_state_test() {
 pub fn every_data_backed_admin_route_starts_a_data_request_test() {
   let id = uuid.v7()
   let data_routes = [
+    route.AdminAnalytics,
     route.AdminApiLogs(query: option.None),
     route.AdminApiLog(id),
     route.AdminRunLogs(query: option.None),
@@ -88,6 +89,7 @@ pub fn every_data_backed_admin_route_starts_a_data_request_test() {
 fn has_data_request(command: command.Command(msg)) -> Bool {
   case command {
     command.Logs(_)
+    | command.Analytics(_)
     | command.Users(_)
     | command.Jobs(_)
     | command.Content(_)
