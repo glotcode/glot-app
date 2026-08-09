@@ -5095,6 +5095,7 @@ pub fn list_snippets_after(
   languages languages: List(String),
   user_ids user_ids: List(BitArray),
   skip_user_ids skip_user_ids: List(BitArray),
+  account_states account_states: List(String),
   excluded_titles excluded_titles: List(String),
   excluded_languages excluded_languages: List(String),
   after_slug after_slug: Option(String),
@@ -5122,6 +5123,7 @@ pub fn list_snippets_after(
   users.updated_at AS user_updated_at
 FROM snippets
 INNER JOIN users ON users.id = snippets.user_id
+INNER JOIN accounts ON accounts.id = users.account_id
 WHERE
   (
     cardinality($1::text[]) = 0
@@ -5140,14 +5142,18 @@ WHERE
     OR users.id = ANY($4::uuid[])
   )
   AND NOT users.id = ANY($5::uuid[])
-  AND lower(snippets.title) <> ALL($6::text[])
-  AND snippets.language <> ALL($7::text[])
   AND (
-    $8::text IS NULL
-    OR snippets.slug < $8::text
+    cardinality($6::text[]) = 0
+    OR accounts.account_state = ANY($6::text[])
+  )
+  AND lower(snippets.title) <> ALL($7::text[])
+  AND snippets.language <> ALL($8::text[])
+  AND (
+    $9::text IS NULL
+    OR snippets.slug < $9::text
   )
 ORDER BY snippets.slug DESC
-LIMIT $9"
+LIMIT $10"
   #(
     sql,
     [
@@ -5156,6 +5162,7 @@ LIMIT $9"
       dev.ParamList(list.map(languages, dev.ParamString)),
       dev.ParamList(list.map(user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(skip_user_ids, dev.ParamBitArray)),
+      dev.ParamList(list.map(account_states, dev.ParamString)),
       dev.ParamList(list.map(excluded_titles, dev.ParamString)),
       dev.ParamList(list.map(excluded_languages, dev.ParamString)),
       dev.ParamNullable(option.map(after_slug, fn(v) { dev.ParamString(v) })),
@@ -5235,6 +5242,7 @@ pub fn list_snippets_before(
   languages languages: List(String),
   user_ids user_ids: List(BitArray),
   skip_user_ids skip_user_ids: List(BitArray),
+  account_states account_states: List(String),
   excluded_titles excluded_titles: List(String),
   excluded_languages excluded_languages: List(String),
   before_slug before_slug: Option(String),
@@ -5262,6 +5270,7 @@ pub fn list_snippets_before(
   users.updated_at AS user_updated_at
 FROM snippets
 INNER JOIN users ON users.id = snippets.user_id
+INNER JOIN accounts ON accounts.id = users.account_id
 WHERE
   (
     cardinality($1::text[]) = 0
@@ -5280,14 +5289,18 @@ WHERE
     OR users.id = ANY($4::uuid[])
   )
   AND NOT users.id = ANY($5::uuid[])
-  AND lower(snippets.title) <> ALL($6::text[])
-  AND snippets.language <> ALL($7::text[])
   AND (
-    $8::text IS NULL
-    OR snippets.slug > $8::text
+    cardinality($6::text[]) = 0
+    OR accounts.account_state = ANY($6::text[])
+  )
+  AND lower(snippets.title) <> ALL($7::text[])
+  AND snippets.language <> ALL($8::text[])
+  AND (
+    $9::text IS NULL
+    OR snippets.slug > $9::text
   )
 ORDER BY snippets.slug ASC
-LIMIT $9"
+LIMIT $10"
   #(
     sql,
     [
@@ -5296,6 +5309,7 @@ LIMIT $9"
       dev.ParamList(list.map(languages, dev.ParamString)),
       dev.ParamList(list.map(user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(skip_user_ids, dev.ParamBitArray)),
+      dev.ParamList(list.map(account_states, dev.ParamString)),
       dev.ParamList(list.map(excluded_titles, dev.ParamString)),
       dev.ParamList(list.map(excluded_languages, dev.ParamString)),
       dev.ParamNullable(option.map(before_slug, fn(v) { dev.ParamString(v) })),

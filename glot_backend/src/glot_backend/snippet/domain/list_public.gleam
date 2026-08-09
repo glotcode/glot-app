@@ -11,6 +11,7 @@ import glot_backend/system/effect/program_types.{type Program}
 import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
+import glot_core/auth/account_model
 import glot_core/language
 import glot_core/public_action
 import glot_core/snippet/snippet_dto.{
@@ -56,6 +57,7 @@ pub fn list_public_snippets(
   use snippets <- program.and_then(snippet_effect.list(
     filter: snippet_model.new_filter()
       |> snippet_model.only_visibilities([snippet_model.Public])
+      |> snippet_model.only_account_states([account_model.Active])
       |> snippet_model.only_usernames(request.usernames)
       |> snippet_model.only_languages(request.languages)
       |> snippet_model.exclude_titles(excluded_titles)

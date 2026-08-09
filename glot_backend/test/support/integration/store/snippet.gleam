@@ -3,6 +3,7 @@ import gleam/list
 import gleam/option
 import gleam/order
 import gleam/string
+import glot_core/auth/account_model.{type AccountState}
 import glot_core/pagination_model
 import glot_core/snippet/snippet_model
 import support/integration/model
@@ -136,7 +137,8 @@ fn matches_filter(
   case dict.get(db.users, common.uuid_key(snippet.user_id)) {
     Error(_) -> False
     Ok(user) ->
-      matches_optional_filter(filter.visibilities, snippet.visibility)
+      matches_account_state_filter(db, user.account_id, filter.account_states)
+      && matches_optional_filter(filter.visibilities, snippet.visibility)
       && matches_optional_filter(filter.usernames, user.username)
       && matches_optional_filter(filter.languages, snippet.language)
       && matches_optional_filter(filter.user_ids, user.id)
@@ -146,6 +148,18 @@ fn matches_filter(
         string.lowercase(snippet.title),
       )
       && !list.contains(filter.excluded_languages, snippet.language)
+  }
+}
+
+fn matches_account_state_filter(
+  db: model.TestState,
+  account_id: uuid.Uuid,
+  account_states: List(AccountState),
+) -> Bool {
+  case dict.get(db.accounts, common.uuid_key(account_id)) {
+    Error(_) -> False
+    Ok(account) ->
+      matches_optional_filter(account_states, account.account_state)
   }
 }
 

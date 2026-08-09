@@ -5,6 +5,7 @@ import gleam/option
 import gleam/result
 import gleam/string
 import gleam/time/timestamp.{type Timestamp}
+import glot_core/auth/account_model.{type AccountState}
 import glot_core/auth/user_model.{type User}
 import glot_core/helpers/timestamp_helpers
 import glot_core/language
@@ -143,6 +144,7 @@ pub type ListSnippetsFilter {
     languages: List(language.Language),
     user_ids: List(Uuid),
     skip_user_ids: List(Uuid),
+    account_states: List(AccountState),
     excluded_titles: List(String),
     excluded_languages: List(language.Language),
   )
@@ -155,6 +157,7 @@ pub fn new_filter() -> ListSnippetsFilter {
     languages: [],
     user_ids: [],
     skip_user_ids: [],
+    account_states: [],
     excluded_titles: [],
     excluded_languages: [],
   )
@@ -193,6 +196,13 @@ pub fn skip_user_ids(
   skip_user_ids: List(Uuid),
 ) -> ListSnippetsFilter {
   ListSnippetsFilter(..filter, skip_user_ids: skip_user_ids)
+}
+
+pub fn only_account_states(
+  filter: ListSnippetsFilter,
+  account_states: List(AccountState),
+) -> ListSnippetsFilter {
+  ListSnippetsFilter(..filter, account_states: account_states)
 }
 
 pub fn exclude_titles(

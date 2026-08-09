@@ -117,6 +117,7 @@ SELECT
   users.updated_at AS user_updated_at
 FROM snippets
 INNER JOIN users ON users.id = snippets.user_id
+INNER JOIN accounts ON accounts.id = users.account_id
 WHERE
   (
     cardinality(sqlc.arg(visibilities)::text[]) = 0
@@ -135,6 +136,10 @@ WHERE
     OR users.id = ANY(sqlc.arg(user_ids)::uuid[])
   )
   AND NOT users.id = ANY(sqlc.arg(skip_user_ids)::uuid[])
+  AND (
+    cardinality(sqlc.arg(account_states)::text[]) = 0
+    OR accounts.account_state = ANY(sqlc.arg(account_states)::text[])
+  )
   AND lower(snippets.title) <> ALL(sqlc.arg(excluded_titles)::text[])
   AND snippets.language <> ALL(sqlc.arg(excluded_languages)::text[])
   AND (
@@ -166,6 +171,7 @@ SELECT
   users.updated_at AS user_updated_at
 FROM snippets
 INNER JOIN users ON users.id = snippets.user_id
+INNER JOIN accounts ON accounts.id = users.account_id
 WHERE
   (
     cardinality(sqlc.arg(visibilities)::text[]) = 0
@@ -184,6 +190,10 @@ WHERE
     OR users.id = ANY(sqlc.arg(user_ids)::uuid[])
   )
   AND NOT users.id = ANY(sqlc.arg(skip_user_ids)::uuid[])
+  AND (
+    cardinality(sqlc.arg(account_states)::text[]) = 0
+    OR accounts.account_state = ANY(sqlc.arg(account_states)::text[])
+  )
   AND lower(snippets.title) <> ALL(sqlc.arg(excluded_titles)::text[])
   AND snippets.language <> ALL(sqlc.arg(excluded_languages)::text[])
   AND (

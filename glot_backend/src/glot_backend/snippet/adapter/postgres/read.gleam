@@ -6,6 +6,7 @@ import glot_backend/snippet/adapter/postgres/row
 import glot_backend/sql
 import glot_backend/system/database as db_helpers
 import glot_backend/system/effect/error/db_error
+import glot_core/auth/account_model
 import glot_core/language
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/snippet_model.{
@@ -79,6 +80,8 @@ pub fn list(
   let excluded_languages =
     filter.excluded_languages |> list.map(language.to_string)
   let languages = filter.languages |> list.map(language.to_string)
+  let account_states =
+    filter.account_states |> list.map(account_model.account_state_to_string)
 
   case pagination {
     pagination_model.BeforePage(before_slug, limit) ->
@@ -90,6 +93,7 @@ pub fn list(
           languages,
           user_id_bits,
           skip_user_id_bits,
+          account_states,
           excluded_titles,
           excluded_languages,
           option.Some(pagination_model.to_string(before_slug)),
@@ -119,6 +123,7 @@ pub fn list(
           languages,
           user_id_bits,
           skip_user_id_bits,
+          account_states,
           excluded_titles,
           excluded_languages,
           after_slug,

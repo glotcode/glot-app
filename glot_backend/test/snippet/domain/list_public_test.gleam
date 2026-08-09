@@ -1,6 +1,7 @@
 import gleam/dict
 import gleam/option
 import glot_backend/snippet/domain/list_public
+import glot_backend/system/request/context
 import glot_backend/system/request/hydrated_context as request_context
 import glot_core/language
 import glot_core/pagination_model
@@ -103,4 +104,40 @@ pub fn public_listing_excludes_default_titles_and_plaintext_test() {
         user: fixture.user,
       )),
     ]
+}
+
+pub fn public_listing_excludes_snippets_from_suspended_accounts_test() {
+  let fixture =
+    fixture.suspended_integration_fixture(
+      next_uuids: [],
+      jobs: [],
+      account_delete_job_id: option.None,
+    )
+  let anonymous_ctx =
+    context.Context(
+      ..fixture.ctx,
+      client_info: context.ClientInfo(
+        ..fixture.ctx.client_info,
+        session_token: option.None,
+      ),
+    )
+  let request =
+    snippet_dto.ListPublicSnippetsRequest(
+      pagination: pagination_model.InitialPage(10),
+      usernames: [],
+      languages: [],
+    )
+
+  let #(result, _) =
+    runner.run_test_program(
+      list_public.list_public_snippets(
+        request_context.new(anonymous_ctx, fixture.state.dynamic_config),
+        request,
+      ),
+      anonymous_ctx,
+      fixture.state,
+    )
+
+  let assert Ok(response) = result
+  let assert pagination_model.InitialCursorPage([], option.None) = response.page
 }
