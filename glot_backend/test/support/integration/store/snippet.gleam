@@ -4,6 +4,7 @@ import gleam/option
 import gleam/order
 import gleam/string
 import glot_core/auth/account_model.{type AccountState}
+import glot_core/helpers/timestamp_helpers
 import glot_core/pagination_model
 import glot_core/snippet/snippet_model
 import support/integration/model
@@ -138,6 +139,10 @@ fn matches_filter(
     Error(_) -> False
     Ok(user) ->
       matches_account_state_filter(db, user.account_id, filter.account_states)
+      && matches_user_created_before(
+        user.created_at,
+        filter.user_created_before,
+      )
       && matches_optional_filter(filter.visibilities, snippet.visibility)
       && matches_optional_filter(filter.usernames, user.username)
       && matches_optional_filter(filter.languages, snippet.language)
@@ -148,6 +153,15 @@ fn matches_filter(
         string.lowercase(snippet.title),
       )
       && !list.contains(filter.excluded_languages, snippet.language)
+  }
+}
+
+fn matches_user_created_before(created_at, created_before) -> Bool {
+  case created_before {
+    option.None -> True
+    option.Some(cutoff) ->
+      timestamp_helpers.to_microseconds(created_at)
+      < timestamp_helpers.to_microseconds(cutoff)
   }
 }
 

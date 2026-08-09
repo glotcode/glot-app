@@ -5096,6 +5096,7 @@ pub fn list_snippets_after(
   user_ids user_ids: List(BitArray),
   skip_user_ids skip_user_ids: List(BitArray),
   account_states account_states: List(String),
+  user_created_before user_created_before: Option(Timestamp),
   excluded_titles excluded_titles: List(String),
   excluded_languages excluded_languages: List(String),
   after_slug after_slug: Option(String),
@@ -5146,14 +5147,18 @@ WHERE
     cardinality($6::text[]) = 0
     OR accounts.account_state = ANY($6::text[])
   )
-  AND lower(snippets.title) <> ALL($7::text[])
-  AND snippets.language <> ALL($8::text[])
   AND (
-    $9::text IS NULL
-    OR snippets.slug < $9::text
+    $7::timestamptz IS NULL
+    OR users.created_at < $7::timestamptz
+  )
+  AND lower(snippets.title) <> ALL($8::text[])
+  AND snippets.language <> ALL($9::text[])
+  AND (
+    $10::text IS NULL
+    OR snippets.slug < $10::text
   )
 ORDER BY snippets.slug DESC
-LIMIT $10"
+LIMIT $11"
   #(
     sql,
     [
@@ -5163,6 +5168,9 @@ LIMIT $10"
       dev.ParamList(list.map(user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(skip_user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(account_states, dev.ParamString)),
+      dev.ParamNullable(
+        option.map(user_created_before, fn(v) { dev.ParamTimestamp(v) }),
+      ),
       dev.ParamList(list.map(excluded_titles, dev.ParamString)),
       dev.ParamList(list.map(excluded_languages, dev.ParamString)),
       dev.ParamNullable(option.map(after_slug, fn(v) { dev.ParamString(v) })),
@@ -5243,6 +5251,7 @@ pub fn list_snippets_before(
   user_ids user_ids: List(BitArray),
   skip_user_ids skip_user_ids: List(BitArray),
   account_states account_states: List(String),
+  user_created_before user_created_before: Option(Timestamp),
   excluded_titles excluded_titles: List(String),
   excluded_languages excluded_languages: List(String),
   before_slug before_slug: Option(String),
@@ -5293,14 +5302,18 @@ WHERE
     cardinality($6::text[]) = 0
     OR accounts.account_state = ANY($6::text[])
   )
-  AND lower(snippets.title) <> ALL($7::text[])
-  AND snippets.language <> ALL($8::text[])
   AND (
-    $9::text IS NULL
-    OR snippets.slug > $9::text
+    $7::timestamptz IS NULL
+    OR users.created_at < $7::timestamptz
+  )
+  AND lower(snippets.title) <> ALL($8::text[])
+  AND snippets.language <> ALL($9::text[])
+  AND (
+    $10::text IS NULL
+    OR snippets.slug > $10::text
   )
 ORDER BY snippets.slug ASC
-LIMIT $10"
+LIMIT $11"
   #(
     sql,
     [
@@ -5310,6 +5323,9 @@ LIMIT $10"
       dev.ParamList(list.map(user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(skip_user_ids, dev.ParamBitArray)),
       dev.ParamList(list.map(account_states, dev.ParamString)),
+      dev.ParamNullable(
+        option.map(user_created_before, fn(v) { dev.ParamTimestamp(v) }),
+      ),
       dev.ParamList(list.map(excluded_titles, dev.ParamString)),
       dev.ParamList(list.map(excluded_languages, dev.ParamString)),
       dev.ParamNullable(option.map(before_slug, fn(v) { dev.ParamString(v) })),

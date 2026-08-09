@@ -12,6 +12,7 @@ import glot_backend/system/request/hydrated_context.{type RequestContext}
 import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
 import glot_core/auth/account_model
+import glot_core/helpers/timestamp_helpers
 import glot_core/language
 import glot_core/public_action
 import glot_core/snippet/snippet_dto.{
@@ -20,6 +21,8 @@ import glot_core/snippet/snippet_dto.{
 import glot_core/snippet/snippet_model
 
 const excluded_titles = ["Hello World", "Untitled", "Untitled snippet"]
+
+const minimum_user_age_seconds = 604_800
 
 pub fn list_public_snippets(
   request_ctx: RequestContext,
@@ -58,6 +61,10 @@ pub fn list_public_snippets(
     filter: snippet_model.new_filter()
       |> snippet_model.only_visibilities([snippet_model.Public])
       |> snippet_model.only_account_states([account_model.Active])
+      |> snippet_model.user_created_before(timestamp_helpers.subtract_seconds(
+        request_ctx.context.timestamp,
+        minimum_user_age_seconds,
+      ))
       |> snippet_model.only_usernames(request.usernames)
       |> snippet_model.only_languages(request.languages)
       |> snippet_model.exclude_titles(excluded_titles)

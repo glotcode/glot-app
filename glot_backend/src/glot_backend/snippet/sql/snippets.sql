@@ -140,6 +140,10 @@ WHERE
     cardinality(sqlc.arg(account_states)::text[]) = 0
     OR accounts.account_state = ANY(sqlc.arg(account_states)::text[])
   )
+  AND (
+    sqlc.narg(user_created_before)::timestamptz IS NULL
+    OR users.created_at < sqlc.narg(user_created_before)::timestamptz
+  )
   AND lower(snippets.title) <> ALL(sqlc.arg(excluded_titles)::text[])
   AND snippets.language <> ALL(sqlc.arg(excluded_languages)::text[])
   AND (
@@ -193,6 +197,10 @@ WHERE
   AND (
     cardinality(sqlc.arg(account_states)::text[]) = 0
     OR accounts.account_state = ANY(sqlc.arg(account_states)::text[])
+  )
+  AND (
+    sqlc.narg(user_created_before)::timestamptz IS NULL
+    OR users.created_at < sqlc.narg(user_created_before)::timestamptz
   )
   AND lower(snippets.title) <> ALL(sqlc.arg(excluded_titles)::text[])
   AND snippets.language <> ALL(sqlc.arg(excluded_languages)::text[])

@@ -145,6 +145,7 @@ pub type ListSnippetsFilter {
     user_ids: List(Uuid),
     skip_user_ids: List(Uuid),
     account_states: List(AccountState),
+    user_created_before: option.Option(Timestamp),
     excluded_titles: List(String),
     excluded_languages: List(language.Language),
   )
@@ -158,6 +159,7 @@ pub fn new_filter() -> ListSnippetsFilter {
     user_ids: [],
     skip_user_ids: [],
     account_states: [],
+    user_created_before: option.None,
     excluded_titles: [],
     excluded_languages: [],
   )
@@ -203,6 +205,13 @@ pub fn only_account_states(
   account_states: List(AccountState),
 ) -> ListSnippetsFilter {
   ListSnippetsFilter(..filter, account_states: account_states)
+}
+
+pub fn user_created_before(
+  filter: ListSnippetsFilter,
+  created_before: Timestamp,
+) -> ListSnippetsFilter {
+  ListSnippetsFilter(..filter, user_created_before: option.Some(created_before))
 }
 
 pub fn exclude_titles(
