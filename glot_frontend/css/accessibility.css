@@ -47,9 +47,12 @@ glot-codemirror:focus-within {
   outline-offset: var(--focus-ring-offset);
 }
 
+:where(a[href], button, input:not([type="hidden"]), select, textarea, summary) {
+  touch-action: manipulation;
+}
+
 :where(button, input:not([type="hidden"]), select, textarea) {
   min-block-size: var(--control-min-size);
-  touch-action: manipulation;
 }
 
 button {

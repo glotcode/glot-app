@@ -271,6 +271,12 @@
     text-align: center;
   }
 
+  .snippets-page__filter-clear {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--control-min-size);
+  }
+
   .snippets-table {
     border: 0;
     background: transparent;
@@ -319,7 +325,11 @@
   }
 
   .snippets-table__cell-link {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     width: 100%;
+    min-block-size: var(--control-min-size);
   }
 
   .snippets-table__actions {
