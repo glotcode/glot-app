@@ -1,4 +1,5 @@
 import gleam/dict.{type Dict}
+import gleam/int
 import gleam/list
 import gleam/option
 import gleam/order
@@ -6,6 +7,7 @@ import gleam/string
 import gleam/time/timestamp
 import glot_backend/auth/model/user_list_filters.{type UserListFilters}
 import glot_core/auth/account_model
+import glot_core/auth/email_change_token_model
 import glot_core/auth/login_token_model
 import glot_core/auth/passkey_challenge_model
 import glot_core/auth/passkey_credential_model
@@ -70,6 +72,136 @@ pub fn find_user_by_id(
       })
     Error(_) -> option.None
   }
+}
+
+pub fn update_user_last_login(
+  db: model.TestState,
+  id: uuid.Uuid,
+  now: timestamp.Timestamp,
+) -> model.TestState {
+  case dict.get(db.users, common.uuid_key(id)) {
+    Error(_) -> db
+    Ok(user) -> insert_user(db, user_model.mark_last_login(user, now))
+  }
+}
+
+pub fn update_user_email(db, id, email, now) -> model.TestState {
+  update_user_if_present(
+    db,
+    id,
+    fn(user) { user_model.change_email(user, email, now) },
+    "update_user_email",
+  )
+}
+
+pub fn update_user_username(db, id, username, now) -> model.TestState {
+  update_user_if_present(
+    db,
+    id,
+    fn(user) { user_model.change_username(user, username, now) },
+    "update_user_username",
+  )
+}
+
+pub fn update_user_role(db, id, role, now) -> model.TestState {
+  update_user_if_present(
+    db,
+    id,
+    fn(user) { user_model.change_role(user, role, now) },
+    "update_user_role",
+  )
+}
+
+fn update_user_if_present(
+  db: model.TestState,
+  id: uuid.Uuid,
+  change: fn(user_model.User) -> user_model.User,
+  step: String,
+) -> model.TestState {
+  case dict.get(db.users, common.uuid_key(id)) {
+    Error(_) -> db
+    Ok(user) ->
+      model.TestState(
+        ..db,
+        users: dict.insert(db.users, common.uuid_key(id), change(user)),
+        write_steps: [step, ..db.write_steps],
+      )
+  }
+}
+
+pub fn find_email_change_tokens_by_user_id(
+  db: model.TestState,
+  user_id: uuid.Uuid,
+  created_since: timestamp.Timestamp,
+  limit: Int,
+) -> List(email_change_token_model.EmailChangeToken) {
+  db.email_change_tokens
+  |> dict.to_list
+  |> list.filter(fn(entry) {
+    let token = entry.1
+    token.user_id == user_id
+    && token.used_at == option.None
+    && timestamp_helpers.to_microseconds(token.created_at)
+    >= timestamp_helpers.to_microseconds(created_since)
+  })
+  |> list.map(fn(entry) { entry.1 })
+  |> list.sort(fn(a, b) {
+    newest_token_order(a.created_at, a.id, b.created_at, b.id)
+  })
+  |> list.take(limit)
+}
+
+pub fn upsert_email_change_token(
+  db: model.TestState,
+  token: email_change_token_model.EmailChangeToken,
+) -> model.TestState {
+  model.TestState(
+    ..db,
+    email_change_tokens: dict.insert(
+      db.email_change_tokens,
+      common.uuid_key(token.id),
+      token,
+    ),
+    write_steps: ["upsert_email_change_token", ..db.write_steps],
+  )
+}
+
+pub fn delete_email_change_tokens_before(
+  db: model.TestState,
+  before: timestamp.Timestamp,
+) -> model.TestState {
+  let tokens =
+    dict.filter(db.email_change_tokens, fn(_, token) {
+      timestamp_helpers.to_microseconds(token.created_at)
+      >= timestamp_helpers.to_microseconds(before)
+    })
+  model.TestState(..db, email_change_tokens: tokens, deletion_steps: [
+    "delete_email_change_tokens_before",
+    ..db.deletion_steps
+  ])
+}
+
+pub fn invalidate_login_tokens(
+  db: model.TestState,
+  old_email: email_address_model.EmailAddress,
+  new_email: email_address_model.EmailAddress,
+  now: timestamp.Timestamp,
+) -> model.TestState {
+  let login_tokens =
+    db.login_tokens
+    |> dict.map_values(fn(_, token) {
+      case
+        token.used_at == option.None
+        && { token.email == old_email || token.email == new_email }
+      {
+        True -> login_token_model.mark_as_used(token, now)
+        False -> token
+      }
+    })
+  model.TestState(..db, login_tokens:, write_steps: [
+    "invalidate_login_tokens",
+    ..db.write_steps
+  ])
 }
 
 pub fn find_users(
@@ -161,15 +293,21 @@ pub fn find_login_tokens_by_email(
     login_token
   })
   |> list.sort(fn(a, b) {
-    case
-      timestamp_helpers.to_microseconds(a.created_at)
-      > timestamp_helpers.to_microseconds(b.created_at)
-    {
-      True -> order.Lt
-      False -> order.Gt
-    }
+    newest_token_order(a.created_at, a.id, b.created_at, b.id)
   })
   |> list.take(limit)
+}
+
+fn newest_token_order(a_created_at, a_id, b_created_at, b_id) {
+  case
+    int.compare(
+      timestamp_helpers.to_microseconds(b_created_at),
+      timestamp_helpers.to_microseconds(a_created_at),
+    )
+  {
+    order.Eq -> string.compare(common.uuid_key(b_id), common.uuid_key(a_id))
+    ordering -> ordering
+  }
 }
 
 pub fn find_passkey_credential_by_credential_id(

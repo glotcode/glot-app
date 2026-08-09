@@ -1,4 +1,5 @@
 import gleam/option
+import gleam/time/timestamp.{type Timestamp}
 import glot_backend/auth/effect/algebra/user as user_algebra
 import glot_backend/auth/effect/command_result
 import glot_backend/auth/effect/effect as auth_effect
@@ -45,12 +46,6 @@ pub fn create_user(user user: user_model.User) -> program_types.Program(Nil) {
   )
 }
 
-pub fn update_user(user user: user_model.User) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(update_user_effect(user, command_result.to_program)),
-  )
-}
-
 pub fn delete_users_by_account_id(id id: Uuid) -> program_types.Program(Nil) {
   program_types.Impure(
     program_types.DbEffect(delete_users_by_account_id_effect(
@@ -72,6 +67,86 @@ pub fn get_user_by_id_tx(
   program_types.TxImpure(get_user_by_id_effect(id, program_types.TxPure))
 }
 
+pub fn get_user_by_id_for_update_tx(
+  id: Uuid,
+) -> program_types.TransactionProgram(option.Option(user_model.HydratedUser)) {
+  program_types.TxImpure(
+    auth_effect.user(user_algebra.GetUserByIdForUpdate(
+      id:,
+      next: program_types.TxPure,
+    )),
+  )
+}
+
+pub fn lock_email_tx(
+  email: email_address_model.EmailAddress,
+) -> program_types.TransactionProgram(Nil) {
+  program_types.TxImpure(
+    auth_effect.user(user_algebra.LockEmail(
+      email:,
+      next: command_result.to_transaction_program,
+    )),
+  )
+}
+
+pub fn update_user_last_login_tx(
+  id: Uuid,
+  timestamp: Timestamp,
+) -> program_types.TransactionProgram(Nil) {
+  program_types.TxImpure(
+    auth_effect.user(user_algebra.UpdateUserLastLogin(
+      id:,
+      timestamp:,
+      next: command_result.to_transaction_program,
+    )),
+  )
+}
+
+pub fn update_user_email_tx(
+  id: Uuid,
+  email: email_address_model.EmailAddress,
+  timestamp: Timestamp,
+) -> program_types.TransactionProgram(Nil) {
+  program_types.TxImpure(
+    auth_effect.user(user_algebra.UpdateUserEmail(
+      id:,
+      email:,
+      timestamp:,
+      next: command_result.to_transaction_program,
+    )),
+  )
+}
+
+pub fn update_user_username_tx(
+  id: Uuid,
+  username: String,
+  timestamp: Timestamp,
+) -> program_types.TransactionProgram(Nil) {
+  program_types.TxImpure(
+    auth_effect.user(user_algebra.UpdateUserUsername(
+      id:,
+      username:,
+      timestamp:,
+      next: command_result.to_transaction_program,
+    )),
+  )
+}
+
+pub fn update_user_role_tx(
+  id: Uuid,
+  role: user_model.UserRole,
+  timestamp: Timestamp,
+) -> program_types.TransactionProgram(Nil) {
+  program_types.TxImpure(
+    auth_effect.user(user_algebra.UpdateUserRole(
+      id:,
+      role:,
+      timestamp:,
+      next: command_result.to_transaction_program,
+    )),
+  )
+}
+
 pub fn list_users_tx(
   pagination pagination: CursorPagination,
   filters filters: UserListFilters,
@@ -87,15 +162,6 @@ pub fn create_user_tx(
   user user: user_model.User,
 ) -> program_types.TransactionProgram(Nil) {
   program_types.TxImpure(create_user_effect(
-    user,
-    command_result.to_transaction_program,
-  ))
-}
-
-pub fn update_user_tx(
-  user user: user_model.User,
-) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(update_user_effect(
     user,
     command_result.to_transaction_program,
   ))
@@ -141,13 +207,6 @@ fn create_user_effect(
   next: fn(Result(Nil, db_error.DbCommandError)) -> next,
 ) -> program_types.DbEffect(next) {
   auth_effect.user(user_algebra.CreateUser(user: user, next: next))
-}
-
-fn update_user_effect(
-  user: user_model.User,
-  next: fn(Result(Nil, db_error.DbCommandError)) -> next,
-) -> program_types.DbEffect(next) {
-  auth_effect.user(user_algebra.UpdateUser(user: user, next: next))
 }
 
 fn delete_users_by_account_id_effect(

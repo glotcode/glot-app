@@ -19,7 +19,7 @@ pub type JobType {
   CleanJobLogJob
   CleanJobsJob
   CleanSessionsJob
-  CleanLoginTokensJob
+  CleanVerificationTokensJob
   CleanUserActionsJob
   AggregateMetricsJob
 }
@@ -35,7 +35,7 @@ pub fn job_type_to_string(job_type: JobType) -> String {
     CleanJobLogJob -> "clean_job_log"
     CleanJobsJob -> "clean_jobs"
     CleanSessionsJob -> "clean_sessions"
-    CleanLoginTokensJob -> "clean_login_tokens"
+    CleanVerificationTokensJob -> "clean_login_tokens"
     CleanUserActionsJob -> "clean_user_actions"
     AggregateMetricsJob -> "aggregate_metrics"
   }
@@ -54,7 +54,7 @@ pub fn job_type_from_string(
     "clean_job_log" -> Ok(CleanJobLogJob)
     "clean_jobs" -> Ok(CleanJobsJob)
     "clean_sessions" -> Ok(CleanSessionsJob)
-    "clean_login_tokens" -> Ok(CleanLoginTokensJob)
+    "clean_login_tokens" -> Ok(CleanVerificationTokensJob)
     "clean_user_actions" -> Ok(CleanUserActionsJob)
     "aggregate_metrics" -> Ok(AggregateMetricsJob)
     _ -> Error(validation_error.InvalidJobType(value))

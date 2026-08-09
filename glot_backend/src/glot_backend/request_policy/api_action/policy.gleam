@@ -52,6 +52,8 @@ fn for_public_action(action: PublicAction) -> Policy {
     public_action.ListAccountPasskeysAction ->
       authenticated(active_or_read_only())
     public_action.UpdateAccountAction -> authenticated(active_only())
+    public_action.BeginEmailChangeAction -> authenticated(active_only())
+    public_action.ConfirmEmailChangeAction -> authenticated(active_only())
     public_action.DeleteAccountSessionAction -> authenticated(active_only())
     public_action.DeleteAccountPasskeyAction -> authenticated(active_only())
     public_action.BeginPasskeyRegistrationAction -> authenticated(active_only())

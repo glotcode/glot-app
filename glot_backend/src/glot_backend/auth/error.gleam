@@ -12,6 +12,10 @@ pub type AuthError {
   AuthenticationRequired
   NotOwner
   AdminRequired
+  InvalidEmailChangeToken
+  EmailAlreadyInUse
+  EmailUnchanged
+  EmailChangeBlockedByPendingDeletion
 }
 
 pub fn status(err: AuthError) -> Int {
@@ -27,6 +31,9 @@ pub fn status(err: AuthError) -> Int {
     | AuthenticationRequired -> 401
     LoginTokenUsed -> 409
     NotOwner | AdminRequired -> 403
+    InvalidEmailChangeToken -> 400
+    EmailAlreadyInUse | EmailUnchanged | EmailChangeBlockedByPendingDeletion ->
+      409
     MissingUserIdAndIp -> 500
   }
 }
@@ -46,6 +53,11 @@ pub fn code(err: AuthError) -> String {
     AuthenticationRequired -> "authorization_authentication_required"
     NotOwner -> "authorization_not_owner"
     AdminRequired -> "authorization_admin_required"
+    InvalidEmailChangeToken -> "email_change_invalid_token"
+    EmailAlreadyInUse -> "email_change_email_in_use"
+    EmailUnchanged -> "email_change_email_unchanged"
+    EmailChangeBlockedByPendingDeletion ->
+      "email_change_blocked_by_pending_deletion"
   }
 }
 
@@ -64,6 +76,11 @@ pub fn message(err: AuthError) -> String {
     AuthenticationRequired -> "Authentication required"
     NotOwner -> "Not authorized"
     AdminRequired -> "Admin access required"
+    InvalidEmailChangeToken -> "Invalid email change verification code"
+    EmailAlreadyInUse -> "Email address is already in use"
+    EmailUnchanged -> "New email address matches the current email address"
+    EmailChangeBlockedByPendingDeletion ->
+      "Cancel scheduled account deletion before changing email"
   }
 }
 
@@ -82,5 +99,9 @@ pub fn to_string(err: AuthError) -> String {
     AuthenticationRequired -> "authorization_error:authentication_required"
     NotOwner -> "authorization_error:not_owner"
     AdminRequired -> "authorization_error:admin_required"
+    InvalidEmailChangeToken -> "email_change_error:invalid_token"
+    EmailAlreadyInUse -> "email_change_error:email_in_use"
+    EmailUnchanged -> "email_change_error:email_unchanged"
+    EmailChangeBlockedByPendingDeletion -> "email_change_error:pending_deletion"
   }
 }

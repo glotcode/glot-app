@@ -17,6 +17,8 @@ pub fn public(action: PublicAction) -> transport.Ownership {
     | public_action.RefreshSessionAction
     | public_action.LogoutAction
     | public_action.UpdateAccountAction
+    | public_action.BeginEmailChangeAction
+    | public_action.ConfirmEmailChangeAction
     | public_action.DeleteAccountSessionAction
     | public_action.DeleteAccountPasskeyAction
     | public_action.ScheduleDeleteAccountAction

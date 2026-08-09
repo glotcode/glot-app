@@ -1164,6 +1164,189 @@ WHERE id = $1"
   #(sql, [dev.ParamBitArray(id)])
 }
 
+pub type ListEmailChangeTokensByUserId {
+  ListEmailChangeTokensByUserId(
+    id: BitArray,
+    user_id: BitArray,
+    old_email: String,
+    new_email: String,
+    token: String,
+    attempt_count: Int,
+    created_at: Timestamp,
+    used_at: Option(Timestamp),
+  )
+}
+
+pub fn list_email_change_tokens_by_user_id(
+  user_id user_id: BitArray,
+  created_at created_at: Timestamp,
+  limit limit: Int,
+) {
+  let sql =
+    "SELECT id, user_id, old_email, new_email, token, attempt_count, created_at, used_at
+FROM email_change_tokens
+WHERE user_id = $1
+  AND used_at IS NULL
+  AND created_at >= $2
+ORDER BY created_at DESC, id DESC
+LIMIT $3"
+  #(
+    sql,
+    [
+      dev.ParamBitArray(user_id),
+      dev.ParamTimestamp(created_at),
+      dev.ParamInt(limit),
+    ],
+    list_email_change_tokens_by_user_id_decoder(),
+  )
+}
+
+pub fn list_email_change_tokens_by_user_id_decoder() -> decode.Decoder(
+  ListEmailChangeTokensByUserId,
+) {
+  use id <- decode.field(0, decode.bit_array)
+  use user_id <- decode.field(1, decode.bit_array)
+  use old_email <- decode.field(2, decode.string)
+  use new_email <- decode.field(3, decode.string)
+  use token <- decode.field(4, decode.string)
+  use attempt_count <- decode.field(5, decode.int)
+  use created_at <- decode.field(6, dev.datetime_decoder())
+  use used_at <- decode.field(7, decode.optional(dev.datetime_decoder()))
+  decode.success(ListEmailChangeTokensByUserId(
+    id:,
+    user_id:,
+    old_email:,
+    new_email:,
+    token:,
+    attempt_count:,
+    created_at:,
+    used_at:,
+  ))
+}
+
+pub type ListEmailChangeTokensByUserIdForUpdate {
+  ListEmailChangeTokensByUserIdForUpdate(
+    id: BitArray,
+    user_id: BitArray,
+    old_email: String,
+    new_email: String,
+    token: String,
+    attempt_count: Int,
+    created_at: Timestamp,
+    used_at: Option(Timestamp),
+  )
+}
+
+pub fn list_email_change_tokens_by_user_id_for_update(
+  user_id user_id: BitArray,
+  created_at created_at: Timestamp,
+  limit limit: Int,
+) {
+  let sql =
+    "SELECT id, user_id, old_email, new_email, token, attempt_count, created_at, used_at
+FROM email_change_tokens
+WHERE user_id = $1
+  AND used_at IS NULL
+  AND created_at >= $2
+ORDER BY created_at DESC, id DESC
+LIMIT $3
+FOR UPDATE"
+  #(
+    sql,
+    [
+      dev.ParamBitArray(user_id),
+      dev.ParamTimestamp(created_at),
+      dev.ParamInt(limit),
+    ],
+    list_email_change_tokens_by_user_id_for_update_decoder(),
+  )
+}
+
+pub fn list_email_change_tokens_by_user_id_for_update_decoder() -> decode.Decoder(
+  ListEmailChangeTokensByUserIdForUpdate,
+) {
+  use id <- decode.field(0, decode.bit_array)
+  use user_id <- decode.field(1, decode.bit_array)
+  use old_email <- decode.field(2, decode.string)
+  use new_email <- decode.field(3, decode.string)
+  use token <- decode.field(4, decode.string)
+  use attempt_count <- decode.field(5, decode.int)
+  use created_at <- decode.field(6, dev.datetime_decoder())
+  use used_at <- decode.field(7, decode.optional(dev.datetime_decoder()))
+  decode.success(ListEmailChangeTokensByUserIdForUpdate(
+    id:,
+    user_id:,
+    old_email:,
+    new_email:,
+    token:,
+    attempt_count:,
+    created_at:,
+    used_at:,
+  ))
+}
+
+pub fn insert_email_change_token(
+  id id: BitArray,
+  user_id user_id: BitArray,
+  old_email old_email: String,
+  new_email new_email: String,
+  token token: String,
+  attempt_count attempt_count: Int,
+  created_at created_at: Timestamp,
+  used_at used_at: Option(Timestamp),
+) {
+  let sql =
+    "INSERT INTO email_change_tokens (
+  id, user_id, old_email, new_email, token, attempt_count, created_at, used_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+  #(sql, [
+    dev.ParamBitArray(id),
+    dev.ParamBitArray(user_id),
+    dev.ParamString(old_email),
+    dev.ParamString(new_email),
+    dev.ParamString(token),
+    dev.ParamInt(attempt_count),
+    dev.ParamTimestamp(created_at),
+    dev.ParamNullable(option.map(used_at, fn(v) { dev.ParamTimestamp(v) })),
+  ])
+}
+
+pub fn update_email_change_token(
+  old_email old_email: String,
+  new_email new_email: String,
+  token token: String,
+  attempt_count attempt_count: Int,
+  created_at created_at: Timestamp,
+  used_at used_at: Option(Timestamp),
+  id id: BitArray,
+) {
+  let sql =
+    "UPDATE email_change_tokens SET
+  old_email = $1,
+  new_email = $2,
+  token = $3,
+  attempt_count = $4,
+  created_at = $5,
+  used_at = $6
+WHERE id = $7"
+  #(sql, [
+    dev.ParamString(old_email),
+    dev.ParamString(new_email),
+    dev.ParamString(token),
+    dev.ParamInt(attempt_count),
+    dev.ParamTimestamp(created_at),
+    dev.ParamNullable(option.map(used_at, fn(v) { dev.ParamTimestamp(v) })),
+    dev.ParamBitArray(id),
+  ])
+}
+
+pub fn delete_email_change_tokens_before(created_at created_at: Timestamp) {
+  let sql =
+    "DELETE FROM email_change_tokens
+WHERE created_at < $1"
+  #(sql, [dev.ParamTimestamp(created_at)])
+}
+
 pub type ListLoginTokensByEmail {
   ListLoginTokensByEmail(
     id: BitArray,
@@ -1186,7 +1369,7 @@ FROM login_tokens
 WHERE email = $1
   AND used_at IS NULL
   AND created_at >= $2
-ORDER BY created_at DESC
+ORDER BY created_at DESC, id DESC
 LIMIT $3
 FOR UPDATE"
   #(
@@ -1264,6 +1447,26 @@ pub fn delete_login_tokens_before(created_at created_at: Timestamp) {
     "DELETE FROM login_tokens
 WHERE created_at < $1"
   #(sql, [dev.ParamTimestamp(created_at)])
+}
+
+pub fn invalidate_login_tokens_by_emails(
+  used_at used_at: Option(Timestamp),
+  old_email old_email: String,
+  new_email new_email: String,
+) {
+  let sql =
+    "UPDATE login_tokens
+SET used_at = $1
+WHERE used_at IS NULL
+  AND (
+    email = $2::text
+    OR email = $3::text
+  )"
+  #(sql, [
+    dev.ParamNullable(option.map(used_at, fn(v) { dev.ParamTimestamp(v) })),
+    dev.ParamString(old_email),
+    dev.ParamString(new_email),
+  ])
 }
 
 pub type GetPasskeyCredentialByCredentialId {
@@ -2342,6 +2545,102 @@ pub fn get_user_by_id_decoder() -> decode.Decoder(GetUserById) {
   ))
 }
 
+pub type GetUserByIdForUpdate {
+  GetUserByIdForUpdate(
+    id: BitArray,
+    account_id: BitArray,
+    email: String,
+    username: String,
+    role: String,
+    account_state: String,
+    account_state_reason: Option(String),
+    account_tier: String,
+    delete_job_id: Option(BitArray),
+    delete_scheduled_at: Option(Timestamp),
+    last_login_at: Timestamp,
+    created_at: Timestamp,
+    updated_at: Timestamp,
+  )
+}
+
+pub fn get_user_by_id_for_update(id id: BitArray) {
+  let sql =
+    "SELECT
+  users.id,
+  users.account_id,
+  users.email,
+  users.username,
+  users.role,
+  accounts.account_state,
+  accounts.account_state_reason,
+  accounts.account_tier,
+  accounts.delete_job_id,
+  jobs.run_at AS delete_scheduled_at,
+  users.last_login_at,
+  users.created_at,
+  users.updated_at
+FROM users
+INNER JOIN accounts ON accounts.id = users.account_id
+LEFT JOIN jobs ON jobs.id = accounts.delete_job_id
+WHERE users.id = $1
+FOR UPDATE OF users"
+  #(sql, [dev.ParamBitArray(id)], get_user_by_id_for_update_decoder())
+}
+
+pub fn get_user_by_id_for_update_decoder() -> decode.Decoder(
+  GetUserByIdForUpdate,
+) {
+  use id <- decode.field(0, decode.bit_array)
+  use account_id <- decode.field(1, decode.bit_array)
+  use email <- decode.field(2, decode.string)
+  use username <- decode.field(3, decode.string)
+  use role <- decode.field(4, decode.string)
+  use account_state <- decode.field(5, decode.string)
+  use account_state_reason <- decode.field(6, decode.optional(decode.string))
+  use account_tier <- decode.field(7, decode.string)
+  use delete_job_id <- decode.field(8, decode.optional(decode.bit_array))
+  use delete_scheduled_at <- decode.field(
+    9,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use last_login_at <- decode.field(10, dev.datetime_decoder())
+  use created_at <- decode.field(11, dev.datetime_decoder())
+  use updated_at <- decode.field(12, dev.datetime_decoder())
+  decode.success(GetUserByIdForUpdate(
+    id:,
+    account_id:,
+    email:,
+    username:,
+    role:,
+    account_state:,
+    account_state_reason:,
+    account_tier:,
+    delete_job_id:,
+    delete_scheduled_at:,
+    last_login_at:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type LockEmail {
+  LockEmail(acquired: Int)
+}
+
+pub fn lock_email(email email: String) {
+  let sql =
+    "WITH email_lock AS (
+  SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))
+)
+SELECT 1::integer AS acquired FROM email_lock"
+  #(sql, [dev.ParamString(email)])
+}
+
+pub fn lock_email_decoder() -> decode.Decoder(LockEmail) {
+  use acquired <- decode.field(0, decode.int)
+  decode.success(LockEmail(acquired:))
+}
+
 pub type ListUsersAfter {
   ListUsersAfter(
     id: BitArray,
@@ -2618,34 +2917,56 @@ pub fn insert_user(
   ])
 }
 
-pub fn update_user(
-  account_id account_id: BitArray,
-  email email: String,
-  username username: String,
-  role role: String,
+pub fn update_user_last_login(
   last_login_at last_login_at: Timestamp,
-  created_at created_at: Timestamp,
   updated_at updated_at: Timestamp,
   id id: BitArray,
 ) {
   let sql =
     "UPDATE users
-SET
-  account_id = $1,
-  email = $2,
-  username = $3,
-  role = $4,
-  last_login_at = $5,
-  created_at = $6,
-  updated_at = $7
-WHERE id = $8"
+SET last_login_at = $1, updated_at = $2
+WHERE id = $3"
   #(sql, [
-    dev.ParamBitArray(account_id),
-    dev.ParamString(email),
-    dev.ParamString(username),
-    dev.ParamString(role),
     dev.ParamTimestamp(last_login_at),
-    dev.ParamTimestamp(created_at),
+    dev.ParamTimestamp(updated_at),
+    dev.ParamBitArray(id),
+  ])
+}
+
+pub fn update_user_email(
+  email email: String,
+  updated_at updated_at: Timestamp,
+  id id: BitArray,
+) {
+  let sql = "UPDATE users SET email = $1, updated_at = $2 WHERE id = $3"
+  #(sql, [
+    dev.ParamString(email),
+    dev.ParamTimestamp(updated_at),
+    dev.ParamBitArray(id),
+  ])
+}
+
+pub fn update_user_username(
+  username username: String,
+  updated_at updated_at: Timestamp,
+  id id: BitArray,
+) {
+  let sql = "UPDATE users SET username = $1, updated_at = $2 WHERE id = $3"
+  #(sql, [
+    dev.ParamString(username),
+    dev.ParamTimestamp(updated_at),
+    dev.ParamBitArray(id),
+  ])
+}
+
+pub fn update_user_role(
+  role role: String,
+  updated_at updated_at: Timestamp,
+  id id: BitArray,
+) {
+  let sql = "UPDATE users SET role = $1, updated_at = $2 WHERE id = $3"
+  #(sql, [
+    dev.ParamString(role),
     dev.ParamTimestamp(updated_at),
     dev.ParamBitArray(id),
   ])

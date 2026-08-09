@@ -66,6 +66,31 @@ pub fn run(
         )
       }
     }
+    user_algebra.GetUserByIdForUpdate(id:, next:) -> {
+      let started_at = erlang.perf_counter_ns()
+      let result = store.get_by_id_for_update(ctx.regexes.is_email, id)
+      case result {
+        Ok(value) ->
+          continue(
+            next(value),
+            program_state.add_effect_measurement(
+              state,
+              trace_name(user_algebra.GetUserByIdForUpdateEffectName),
+              effect_trace.DatabaseReadEffect,
+              started_at,
+            ),
+          )
+        Error(db_err) -> #(
+          Error(error.database_query_error(db_err)),
+          program_state.add_effect_measurement(
+            state,
+            trace_name(user_algebra.GetUserByIdForUpdateEffectName),
+            effect_trace.DatabaseReadEffect,
+            started_at,
+          ),
+        )
+      }
+    }
     user_algebra.ListUsers(pagination:, filters:, next:) -> {
       let started_at = erlang.perf_counter_ns()
       let result = store.list(ctx.regexes.is_email, pagination, filters)
@@ -104,14 +129,61 @@ pub fn run(
         ),
       )
     }
-    user_algebra.UpdateUser(user: user, next: next) -> {
+    user_algebra.UpdateUserLastLogin(id:, timestamp:, next:) -> {
       let started_at = erlang.perf_counter_ns()
-      let result = store.update(user)
       continue(
-        next(result),
+        next(store.update_last_login(id, timestamp)),
         program_state.add_effect_measurement(
           state,
-          trace_name(user_algebra.UpdateUserEffectName),
+          trace_name(user_algebra.UpdateUserLastLoginEffectName),
+          effect_trace.DatabaseWriteEffect,
+          started_at,
+        ),
+      )
+    }
+    user_algebra.UpdateUserEmail(id:, email:, timestamp:, next:) -> {
+      let started_at = erlang.perf_counter_ns()
+      continue(
+        next(store.update_email(id, email, timestamp)),
+        program_state.add_effect_measurement(
+          state,
+          trace_name(user_algebra.UpdateUserEmailEffectName),
+          effect_trace.DatabaseWriteEffect,
+          started_at,
+        ),
+      )
+    }
+    user_algebra.UpdateUserUsername(id:, username:, timestamp:, next:) -> {
+      let started_at = erlang.perf_counter_ns()
+      continue(
+        next(store.update_username(id, username, timestamp)),
+        program_state.add_effect_measurement(
+          state,
+          trace_name(user_algebra.UpdateUserUsernameEffectName),
+          effect_trace.DatabaseWriteEffect,
+          started_at,
+        ),
+      )
+    }
+    user_algebra.UpdateUserRole(id:, role:, timestamp:, next:) -> {
+      let started_at = erlang.perf_counter_ns()
+      continue(
+        next(store.update_role(id, role, timestamp)),
+        program_state.add_effect_measurement(
+          state,
+          trace_name(user_algebra.UpdateUserRoleEffectName),
+          effect_trace.DatabaseWriteEffect,
+          started_at,
+        ),
+      )
+    }
+    user_algebra.LockEmail(email:, next:) -> {
+      let started_at = erlang.perf_counter_ns()
+      continue(
+        next(store.lock_email(email)),
+        program_state.add_effect_measurement(
+          state,
+          trace_name(user_algebra.LockEmailEffectName),
           effect_trace.DatabaseWriteEffect,
           started_at,
         ),

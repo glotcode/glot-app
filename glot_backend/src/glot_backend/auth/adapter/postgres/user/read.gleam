@@ -39,6 +39,21 @@ pub fn get_by_id(
   })
 }
 
+pub fn get_by_id_for_update(
+  db: db_helpers.Db,
+  is_email: regexp.Regexp,
+  id: Uuid,
+) -> Result(option.Option(user_model.HydratedUser), db_error.DbQueryError) {
+  db_helpers.query(
+    db,
+    sql.get_user_by_id_for_update(uuid.to_bit_array(id)),
+    query_error,
+  )
+  |> result.try(fn(returned) {
+    row.hydrated_from_id_for_update_rows(is_email, returned.rows)
+  })
+}
+
 pub fn list(
   db: db_helpers.Db,
   is_email: regexp.Regexp,

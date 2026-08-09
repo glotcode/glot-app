@@ -2,8 +2,8 @@ import gleam/option.{type Option}
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/analytics/domain/aggregate_metrics as aggregate_metrics_domain
 import glot_backend/auth/domain/account/delete as delete_account_domain
-import glot_backend/auth/domain/cleanup/login_tokens as clean_login_tokens_domain
 import glot_backend/auth/domain/cleanup/sessions as clean_sessions_domain
+import glot_backend/auth/domain/cleanup/verification_tokens as clean_verification_tokens_domain
 import glot_backend/email/domain/send as send_email_domain
 import glot_backend/job/domain/cleanup/jobs as clean_jobs_domain
 import glot_backend/job/domain/cleanup/logs as clean_job_log_domain
@@ -95,8 +95,8 @@ fn delegate_job(ctx: Context, job: Job) -> Program(Nil) {
     job_model.CleanJobLogJob -> clean_job_log_domain.clean_job_log(ctx)
     job_model.CleanJobsJob -> clean_jobs_domain.clean_jobs(ctx)
     job_model.CleanSessionsJob -> clean_sessions_domain.clean_sessions(ctx)
-    job_model.CleanLoginTokensJob ->
-      clean_login_tokens_domain.clean_login_tokens(ctx)
+    job_model.CleanVerificationTokensJob ->
+      clean_verification_tokens_domain.clean_verification_tokens(ctx)
     job_model.CleanUserActionsJob ->
       clean_user_actions_domain.clean_user_actions(ctx)
     job_model.AggregateMetricsJob ->

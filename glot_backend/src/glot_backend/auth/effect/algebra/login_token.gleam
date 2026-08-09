@@ -22,6 +22,12 @@ pub type Effect(next) {
     before: Timestamp,
     next: fn(Result(Nil, db_error.DbCommandError)) -> next,
   )
+  InvalidateLoginTokensByEmails(
+    old_email: email_address_model.EmailAddress,
+    new_email: email_address_model.EmailAddress,
+    timestamp: Timestamp,
+    next: fn(Result(Nil, db_error.DbCommandError)) -> next,
+  )
 }
 
 pub type EffectName {
@@ -29,6 +35,7 @@ pub type EffectName {
   CreateLoginTokenEffectName
   UpdateLoginTokenEffectName
   DeleteLoginTokensBeforeEffectName
+  InvalidateLoginTokensByEmailsEffectName
 }
 
 pub fn map(effect: Effect(a), f: fn(a) -> b) -> Effect(b) {
@@ -50,6 +57,13 @@ pub fn map(effect: Effect(a), f: fn(a) -> b) -> Effect(b) {
       })
     DeleteLoginTokensBefore(before: before, next: next) ->
       DeleteLoginTokensBefore(before: before, next: fn(value) { f(next(value)) })
+    InvalidateLoginTokensByEmails(old_email:, new_email:, timestamp:, next:) ->
+      InvalidateLoginTokensByEmails(
+        old_email:,
+        new_email:,
+        timestamp:,
+        next: fn(value) { f(next(value)) },
+      )
   }
 }
 
@@ -59,5 +73,7 @@ pub fn effect_name_to_string(name: EffectName) -> String {
     CreateLoginTokenEffectName -> "create_login_token"
     UpdateLoginTokenEffectName -> "update_login_token"
     DeleteLoginTokensBeforeEffectName -> "delete_login_tokens_before"
+    InvalidateLoginTokensByEmailsEffectName ->
+      "invalidate_login_tokens_by_emails"
   }
 }

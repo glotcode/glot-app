@@ -372,7 +372,7 @@ fn job_type_values() -> List(String) {
     job_model.CleanRunLogJob,
     job_model.CleanJobLogJob,
     job_model.CleanJobsJob,
-    job_model.CleanLoginTokensJob,
+    job_model.CleanVerificationTokensJob,
     job_model.CleanUserActionsJob,
     job_model.AggregateMetricsJob,
   ]

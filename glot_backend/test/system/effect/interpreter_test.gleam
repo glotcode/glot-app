@@ -7,6 +7,7 @@ import glot_backend/app_config/ports/store as app_config_store
 import glot_backend/auth/passkey/ports/ceremony as passkey_ceremony
 import glot_backend/auth/ports as auth_ports
 import glot_backend/auth/ports/account_store
+import glot_backend/auth/ports/email_change_token_store
 import glot_backend/auth/ports/login_token_store
 import glot_backend/auth/ports/passkey_store
 import glot_backend/auth/ports/session_store
@@ -173,9 +174,14 @@ fn test_service_ports() -> service_ports.ServicePorts {
     user_store.UserStore(
       get_by_email: fn(_, _) { Ok(option.None) },
       get_by_id: fn(_, _) { Ok(option.None) },
+      get_by_id_for_update: fn(_, _) { Ok(option.None) },
       list: fn(_, _, _) { Ok([]) },
       create: fn(_) { Ok(Nil) },
-      update: fn(_) { Ok(Nil) },
+      update_last_login: fn(_, _) { Ok(Nil) },
+      update_email: fn(_, _, _) { Ok(Nil) },
+      update_username: fn(_, _, _) { Ok(Nil) },
+      update_role: fn(_, _, _) { Ok(Nil) },
+      lock_email: fn(_) { Ok(Nil) },
       delete_by_account_id: fn(_) { Ok(Nil) },
     )
   let sessions =
@@ -197,6 +203,7 @@ fn test_service_ports() -> service_ports.ServicePorts {
       create: fn(_) { Ok(Nil) },
       update: fn(_) { Ok(Nil) },
       delete_before: fn(_) { Ok(Nil) },
+      invalidate_by_emails: fn(_, _, _) { Ok(Nil) },
     )
   let passkeys =
     passkey_store.PasskeyStore(
@@ -209,6 +216,14 @@ fn test_service_ports() -> service_ports.ServicePorts {
       create_challenge: fn(_) { Ok(Nil) },
       delete_challenge: fn(_) { Ok(Nil) },
     )
+  let email_change_tokens =
+    email_change_token_store.EmailChangeTokenStore(
+      list_by_user_id: fn(_, _, _) { Ok([]) },
+      list_by_user_id_for_update: fn(_, _, _) { Ok([]) },
+      create: fn(_) { Ok(Nil) },
+      update: fn(_) { Ok(Nil) },
+      delete_before: fn(_) { Ok(Nil) },
+    )
   let auth =
     auth_ports.Ports(
       accounts: accounts,
@@ -216,6 +231,7 @@ fn test_service_ports() -> service_ports.ServicePorts {
       sessions: sessions,
       login_tokens: login_tokens,
       passkeys: passkeys,
+      email_change_tokens: email_change_tokens,
     )
   let database =
     database_ports.fixed(

@@ -95,6 +95,21 @@ pub fn delete_login_tokens_before_tx(
   ))
 }
 
+pub fn invalidate_by_emails_tx(
+  old_email: email_address_model.EmailAddress,
+  new_email: email_address_model.EmailAddress,
+  timestamp: Timestamp,
+) -> program_types.TransactionProgram(Nil) {
+  program_types.TxImpure(
+    auth_effect.login_token(login_token_algebra.InvalidateLoginTokensByEmails(
+      old_email:,
+      new_email:,
+      timestamp:,
+      next: command_result.to_transaction_program,
+    )),
+  )
+}
+
 fn list_login_tokens_by_email_effect(
   email: email_address_model.EmailAddress,
   created_since: Timestamp,

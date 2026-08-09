@@ -20,6 +20,18 @@ pub fn new(db: db_helpers.Db) -> login_token_store.LoginTokenStore {
     create: fn(token) { create(db, token) },
     update: fn(token) { update(db, token) },
     delete_before: fn(before) { delete_before(db, before) },
+    invalidate_by_emails: fn(old_email, new_email, timestamp) {
+      db_helpers.execute(
+        db,
+        sql.invalidate_login_tokens_by_emails(
+          used_at: option.Some(timestamp),
+          old_email: email_address_model.to_string(old_email),
+          new_email: email_address_model.to_string(new_email),
+        ),
+        fn(err) { db_error.DbCommandError(string.inspect(err)) },
+      )
+      |> result.map(fn(_) { Nil })
+    },
   )
 }
 

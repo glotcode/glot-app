@@ -162,5 +162,11 @@ fn auth_log_message(err: auth_error.AuthError) -> String {
       "Authorization error: authentication required"
     auth_error.NotOwner -> "Authorization error: not owner"
     auth_error.AdminRequired -> "Authorization error: admin required"
+    auth_error.InvalidEmailChangeToken ->
+      "Email change error: invalid verification code"
+    auth_error.EmailAlreadyInUse -> "Email change error: email already in use"
+    auth_error.EmailUnchanged -> "Email change error: email unchanged"
+    auth_error.EmailChangeBlockedByPendingDeletion ->
+      "Email change error: account deletion pending"
   }
 }

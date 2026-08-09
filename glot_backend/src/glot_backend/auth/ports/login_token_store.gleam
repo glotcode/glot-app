@@ -12,5 +12,10 @@ pub type LoginTokenStore {
     update: fn(login_token_model.LoginToken) ->
       Result(Nil, db_error.DbCommandError),
     delete_before: fn(Timestamp) -> Result(Nil, db_error.DbCommandError),
+    invalidate_by_emails: fn(
+      email_address_model.EmailAddress,
+      email_address_model.EmailAddress,
+      Timestamp,
+    ) -> Result(Nil, db_error.DbCommandError),
   )
 }

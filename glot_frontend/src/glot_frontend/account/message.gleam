@@ -27,6 +27,12 @@ pub type Msg {
   UsernameChanged(String)
   UsernameSubmitted
   AccountUpdated(api_response.Response(account_dto.AccountResponse))
+  EmailInputChanged(String)
+  EmailCodeChanged(String)
+  BeginEmailChangeSubmitted
+  EmailChangeBegun(api_response.Response(Nil))
+  ConfirmEmailChangeSubmitted
+  EmailChangeConfirmed(api_response.Response(account_dto.AccountResponse))
   BeginPasskeySubmitted
   BeganPasskeyRegistration(
     api_response.Response(passkey_dto.BeginPasskeyRegistrationResponse),

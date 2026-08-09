@@ -83,6 +83,25 @@ pub fn run(
         ),
       )
     }
+    login_token_algebra.InvalidateLoginTokensByEmails(
+      old_email:,
+      new_email:,
+      timestamp:,
+      next:,
+    ) -> {
+      let started_at = erlang.perf_counter_ns()
+      continue(
+        next(store.invalidate_by_emails(old_email, new_email, timestamp)),
+        program_state.add_effect_measurement(
+          state,
+          trace_name(
+            login_token_algebra.InvalidateLoginTokensByEmailsEffectName,
+          ),
+          effect_trace.DatabaseWriteEffect,
+          started_at,
+        ),
+      )
+    }
   }
 }
 

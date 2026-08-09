@@ -4,6 +4,8 @@ import glot_backend/auth/domain/account/cancel_delete as cancel_delete_account_d
 import glot_backend/auth/domain/account/get as get_account_domain
 import glot_backend/auth/domain/account/schedule_delete as schedule_delete_account_domain
 import glot_backend/auth/domain/account/update as update_account_domain
+import glot_backend/auth/domain/email_change/begin as begin_email_change_domain
+import glot_backend/auth/domain/email_change/confirm as confirm_email_change_domain
 import glot_backend/auth/domain/login_token/login as login_domain
 import glot_backend/auth/domain/login_token/send as send_login_token_domain
 import glot_backend/auth/domain/passkey/begin_login as begin_passkey_login_domain
@@ -81,6 +83,20 @@ pub fn dispatch(
         update_account_domain.request_from_dynamic(data),
       )
       update_account_domain.update_account(request_ctx, request)
+      |> program.map(api_result.AccountResponse)
+    }
+    public_action.BeginEmailChangeAction -> {
+      use request <- program.and_then(
+        begin_email_change_domain.request_from_dynamic(request_ctx, data),
+      )
+      begin_email_change_domain.begin_email_change(request_ctx, request)
+      |> program.map(fn(_) { api_result.NoContentResponse })
+    }
+    public_action.ConfirmEmailChangeAction -> {
+      use request <- program.and_then(
+        confirm_email_change_domain.request_from_dynamic(data),
+      )
+      confirm_email_change_domain.confirm_email_change(request_ctx, request)
       |> program.map(api_result.AccountResponse)
     }
     public_action.DeleteAccountPasskeyAction -> {

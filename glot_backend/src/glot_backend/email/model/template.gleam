@@ -12,6 +12,9 @@ pub type EmailTemplateName {
   LoginTokenTemplate
   AccountDeletedTemplate
   ContactTemplate
+  EmailChangeVerificationTemplate
+  EmailChangeAddressInUseTemplate
+  EmailChangedTemplate
 }
 
 pub type EmailTemplate {
@@ -29,6 +32,9 @@ pub fn to_db_name(name: EmailTemplateName) -> String {
     LoginTokenTemplate -> "login_token"
     AccountDeletedTemplate -> "account_deleted"
     ContactTemplate -> "contact"
+    EmailChangeVerificationTemplate -> "email_change_verification"
+    EmailChangeAddressInUseTemplate -> "email_change_address_in_use"
+    EmailChangedTemplate -> "email_changed"
   }
 }
 
@@ -39,6 +45,9 @@ pub fn from_db_name(
     "login_token" -> Ok(LoginTokenTemplate)
     "account_deleted" -> Ok(AccountDeletedTemplate)
     "contact" -> Ok(ContactTemplate)
+    "email_change_verification" -> Ok(EmailChangeVerificationTemplate)
+    "email_change_address_in_use" -> Ok(EmailChangeAddressInUseTemplate)
+    "email_changed" -> Ok(EmailChangedTemplate)
     _ -> Error(validation_error.UnknownEmailTemplate(name))
   }
 }
@@ -54,11 +63,21 @@ pub fn supported_tokens(name: EmailTemplateName) -> List(String) {
       "user_id",
       "request_id",
     ]
+    EmailChangeVerificationTemplate -> ["token"]
+    EmailChangeAddressInUseTemplate -> []
+    EmailChangedTemplate -> ["new_email"]
   }
 }
 
 pub fn list_names() -> List(EmailTemplateName) {
-  [LoginTokenTemplate, AccountDeletedTemplate, ContactTemplate]
+  [
+    LoginTokenTemplate,
+    AccountDeletedTemplate,
+    ContactTemplate,
+    EmailChangeVerificationTemplate,
+    EmailChangeAddressInUseTemplate,
+    EmailChangedTemplate,
+  ]
 }
 
 pub fn are_supported_tokens(

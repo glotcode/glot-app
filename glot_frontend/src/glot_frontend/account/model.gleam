@@ -10,6 +10,9 @@ pub type Model {
   Model(
     account: loadable.Loadable(account_dto.AccountResponse),
     username: String,
+    email_input: String,
+    email_code: String,
+    email_change_status: EmailChangeStatus,
     status: Status,
     account_loading_indicator: delayed_loading.State,
     danger_zone_expanded: Bool,
@@ -23,6 +26,16 @@ pub type Model {
     passkeys_status: PasskeysStatus,
     passkeys_loading_indicator: delayed_loading.State,
   )
+}
+
+pub type EmailChangeStatus {
+  EmailChangeIdle
+  SendingEmailCode
+  AwaitingEmailCode
+  ConfirmingEmailCode
+  EmailChanged
+  EmailChangeRequestError(String)
+  EmailChangeConfirmationError(String)
 }
 
 pub type Status {

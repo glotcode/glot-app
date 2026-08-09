@@ -223,7 +223,7 @@ fn job_type_label(job_type: String) -> String {
     "clean_run_log" -> "Clean run log"
     "clean_job_log" -> "Clean job log"
     "clean_jobs" -> "Clean jobs"
-    "clean_login_tokens" -> "Clean login tokens"
+    "clean_login_tokens" -> "Clean verification tokens"
     "clean_user_actions" -> "Clean user actions"
     "aggregate_metrics" -> "Aggregate metrics"
     "delete_account" -> "Delete account"

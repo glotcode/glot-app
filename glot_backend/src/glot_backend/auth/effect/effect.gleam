@@ -1,5 +1,6 @@
 import glot_backend/auth/effect/algebra
 import glot_backend/auth/effect/algebra/account as account_algebra
+import glot_backend/auth/effect/algebra/email_change as email_change_algebra
 import glot_backend/auth/effect/algebra/login_token as login_token_algebra
 import glot_backend/auth/effect/algebra/passkey as passkey_algebra
 import glot_backend/auth/effect/algebra/session as session_algebra
@@ -32,4 +33,10 @@ pub fn passkey(
   effect: passkey_algebra.Effect(next),
 ) -> program_types.DbEffect(next) {
   program_types.AuthEffect(algebra.Passkey(effect))
+}
+
+pub fn email_change(
+  effect: email_change_algebra.Effect(next),
+) -> program_types.DbEffect(next) {
+  program_types.AuthEffect(algebra.EmailChange(effect))
 }

@@ -1,10 +1,9 @@
 import gleam/dict
 import gleam/dynamic.{type Dynamic}
-import gleam/int
-import gleam/list
 import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/app_config/model/config as dynamic_config
+import glot_backend/auth/domain/verification_token/policy as verification_token_policy
 import glot_backend/auth/effect/login_token as login_token_effect
 import glot_backend/auth/effect/user as user_effect
 import glot_backend/email/domain/preparation as email_preparation
@@ -27,7 +26,6 @@ import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/api_action
 import glot_core/auth/login_token_dto.{type LoginTokenRequest}
 import glot_core/auth/login_token_model.{type LoginToken}
-import glot_core/helpers/timestamp_helpers
 import glot_core/job/job_model
 import glot_core/public_action
 
@@ -52,7 +50,10 @@ pub fn send_login_token(
   ))
   let auth_config = dynamic_config.auth_config(config)
 
-  use token <- program.and_then(basic_effect.new_token(8, token.Numeric))
+  use token <- program.and_then(basic_effect.new_token(
+    verification_token_policy.token_length,
+    token.Numeric,
+  ))
   use login_token_id <- program.and_then(basic_effect.uuid_v7())
   use job_id <- program.and_then(basic_effect.uuid_v7())
 
@@ -101,7 +102,7 @@ pub fn send_login_token(
   transaction_program.sequence([
     create_login_token_tx(
       login_token,
-      timestamp_helpers.subtract_seconds(
+      verification_token_policy.created_since(
         ctx.timestamp,
         auth_config.login_token_max_age,
       ),
@@ -120,12 +121,12 @@ fn create_login_token_tx(
     login_token_effect.list_login_tokens_by_email_tx(
       login_token.email,
       created_since,
-      2,
+      verification_token_policy.valid_token_count,
     ),
   )
   let attempt_count =
-    list.fold(valid_tokens, 0, fn(count, token) {
-      int.max(count, token.attempt_count)
+    verification_token_policy.shared_attempt_count(valid_tokens, fn(token) {
+      token.attempt_count
     })
 
   login_token_effect.create_login_token_tx(

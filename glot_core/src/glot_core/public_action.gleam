@@ -14,6 +14,8 @@ pub type PublicAction {
   ListAccountSessionsAction
   ListAccountPasskeysAction
   UpdateAccountAction
+  BeginEmailChangeAction
+  ConfirmEmailChangeAction
   DeleteAccountSessionAction
   DeleteAccountPasskeyAction
   ScheduleDeleteAccountAction
@@ -45,6 +47,8 @@ pub fn list() -> List(PublicAction) {
     ListAccountSessionsAction,
     ListAccountPasskeysAction,
     UpdateAccountAction,
+    BeginEmailChangeAction,
+    ConfirmEmailChangeAction,
     DeleteAccountSessionAction,
     DeleteAccountPasskeyAction,
     ScheduleDeleteAccountAction,
@@ -89,6 +93,8 @@ pub fn to_string(action: PublicAction) -> String {
     ListAccountSessionsAction -> "list_account_sessions"
     ListAccountPasskeysAction -> "list_account_passkeys"
     UpdateAccountAction -> "update_account"
+    BeginEmailChangeAction -> "begin_email_change"
+    ConfirmEmailChangeAction -> "confirm_email_change"
     DeleteAccountSessionAction -> "delete_account_session"
     DeleteAccountPasskeyAction -> "delete_account_passkey"
     ScheduleDeleteAccountAction -> "schedule_delete_account"
@@ -121,6 +127,8 @@ pub fn from_string(action: String) -> option.Option(PublicAction) {
     "list_account_sessions" -> option.Some(ListAccountSessionsAction)
     "list_account_passkeys" -> option.Some(ListAccountPasskeysAction)
     "update_account" -> option.Some(UpdateAccountAction)
+    "begin_email_change" -> option.Some(BeginEmailChangeAction)
+    "confirm_email_change" -> option.Some(ConfirmEmailChangeAction)
     "delete_account_session" -> option.Some(DeleteAccountSessionAction)
     "delete_account_passkey" -> option.Some(DeleteAccountPasskeyAction)
     "schedule_delete_account" -> option.Some(ScheduleDeleteAccountAction)
@@ -163,6 +171,8 @@ pub fn server_timing_policy(
     | ListAccountSessionsAction
     | ListAccountPasskeysAction
     | UpdateAccountAction
+    | BeginEmailChangeAction
+    | ConfirmEmailChangeAction
     | DeleteAccountSessionAction
     | DeleteAccountPasskeyAction
     | ScheduleDeleteAccountAction

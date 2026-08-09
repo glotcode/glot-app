@@ -4,6 +4,7 @@ import gleam/option
 import gleam/regexp
 import glot_core/auth/account_dto
 import glot_core/auth/account_session_dto
+import glot_core/auth/email_change_dto
 import glot_core/auth/passkey_dto
 import glot_core/auth/refresh_session_dto
 import glot_core/auth/session_dto
@@ -120,6 +121,34 @@ pub fn update_account(
         #("username", json.string(update_request.username)),
       ])
     },
+    account_dto.decoder(is_email),
+    to_msg,
+  )
+}
+
+pub fn begin_email_change(
+  change: email_change_dto.BeginEmailChangeRequest,
+  to_msg: fn(response.Response(Nil)) -> msg,
+) -> effect.Effect(msg) {
+  let req = request.PublicRequest(public_action.BeginEmailChangeAction, change)
+  request.send_public(
+    req,
+    email_change_dto.encode_begin_request,
+    client.nil_decoder(),
+    to_msg,
+  )
+}
+
+pub fn confirm_email_change(
+  change: email_change_dto.ConfirmEmailChangeRequest,
+  to_msg: fn(response.Response(account_dto.AccountResponse)) -> msg,
+) -> effect.Effect(msg) {
+  let assert Ok(is_email) = regexp.from_string(email_address_model.pattern)
+  let req =
+    request.PublicRequest(public_action.ConfirmEmailChangeAction, change)
+  request.send_public(
+    req,
+    email_change_dto.encode_confirm_request,
     account_dto.decoder(is_email),
     to_msg,
   )

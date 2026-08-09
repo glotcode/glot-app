@@ -41,6 +41,14 @@ pub fn change_username(
   User(..user, username: username, updated_at: timestamp)
 }
 
+pub fn change_email(
+  user: User,
+  email: email_address_model.EmailAddress,
+  timestamp: Timestamp,
+) -> User {
+  User(..user, email: email, updated_at: timestamp)
+}
+
 pub fn change_role(user: User, role: UserRole, timestamp: Timestamp) -> User {
   User(..user, role: role, updated_at: timestamp)
 }

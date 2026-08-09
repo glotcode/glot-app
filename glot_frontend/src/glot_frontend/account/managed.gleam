@@ -3,7 +3,8 @@ import glot_core/loadable
 import glot_frontend/account/command
 import glot_frontend/account/message.{type Msg, RuntimeLoaded}
 import glot_frontend/account/model.{
-  type Model, Idle, IdlePasskeys, LoadingSessions, Model, PasskeySetupIdle,
+  type Model, EmailChangeIdle, Idle, IdlePasskeys, LoadingSessions, Model,
+  PasskeySetupIdle,
 }
 import glot_frontend/account/update as account_update
 import glot_frontend/app/event.{type AppEvent}
@@ -14,6 +15,9 @@ pub fn init() -> #(Model, command.Command(Msg)) {
     Model(
       account: loadable.Loading,
       username: "",
+      email_input: "",
+      email_code: "",
+      email_change_status: EmailChangeIdle,
       status: Idle,
       account_loading_indicator: delayed_loading.idle(),
       danger_zone_expanded: False,

@@ -6,6 +6,7 @@ import glot_core/email/email_address_model
 import glot_core/loadable
 import glot_core/route
 import glot_frontend/account/deletion
+import glot_frontend/account/email_change_view
 import glot_frontend/account/message.{type Msg}
 import glot_web/route as web_route
 
@@ -100,6 +101,12 @@ fn account_form(
         html.text("Account Settings"),
       ]),
       account_settings_form(model),
+    ]),
+    html.section([attribute.class("app-panel")], [
+      html.h2([attribute.class("account-page__section-title")], [
+        html.text("Change Email"),
+      ]),
+      email_change_view.view(model),
     ]),
     html.section([attribute.class("app-panel")], [
       html.h2([attribute.class("account-page__section-title")], [

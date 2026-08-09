@@ -1,6 +1,7 @@
 import gleam/option
 import glot_core/auth/account_dto
 import glot_core/auth/account_session_dto
+import glot_core/auth/email_change_dto
 import glot_core/auth/passkey_dto
 import glot_core/auth/session_dto
 import glot_frontend/api/response
@@ -23,6 +24,14 @@ pub type Command(msg) {
   )
   UpdateAccount(
     account_dto.UpdateAccountRequest,
+    fn(response.Response(account_dto.AccountResponse)) -> msg,
+  )
+  BeginEmailChange(
+    email_change_dto.BeginEmailChangeRequest,
+    fn(response.Response(Nil)) -> msg,
+  )
+  ConfirmEmailChange(
+    email_change_dto.ConfirmEmailChangeRequest,
     fn(response.Response(account_dto.AccountResponse)) -> msg,
   )
   BeginPasskeyRegistration(

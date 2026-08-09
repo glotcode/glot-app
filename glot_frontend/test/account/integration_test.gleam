@@ -9,6 +9,7 @@ import glot_frontend/account/command
 import glot_frontend/account/message
 import glot_frontend/account/model as account_model
 import glot_frontend/account/page
+import glot_frontend/api/http_error
 import glot_frontend/api/response
 import glot_frontend/app/event as app_event
 import support/managed_scenario
@@ -109,6 +110,64 @@ pub fn passkey_deletion_covers_failure_retry_and_success_test() {
     managed_scenario.pending(scenario)
   assert managed_scenario.model(scenario).passkeys_status
     == account_model.LoadingPasskeys
+}
+
+pub fn email_change_requests_code_and_confirms_new_address_test() {
+  let #(initial_model, _) = page.init_managed()
+  let fixture = account_fixture()
+  let scenario =
+    managed_scenario.new(initial_model)
+    |> dispatch(message.AccountLoaded(response.Success(fixture)))
+    |> dispatch(message.EmailInputChanged(" NEW@EXAMPLE.COM "))
+    |> dispatch(message.BeginEmailChangeSubmitted)
+  let assert [command.BeginEmailChange(begin_request, began)] =
+    managed_scenario.pending(scenario)
+  assert email_address_model.to_string(begin_request.email) == "new@example.com"
+
+  let scenario = respond(scenario, began(response.Success(Nil)))
+  assert managed_scenario.model(scenario).email_change_status
+    == account_model.AwaitingEmailCode
+
+  let scenario =
+    scenario
+    |> dispatch(message.EmailCodeChanged("12345678"))
+    |> dispatch(message.ConfirmEmailChangeSubmitted)
+  let assert [command.ConfirmEmailChange(confirm_request, confirmed)] =
+    managed_scenario.pending(scenario)
+  assert confirm_request.token == "12345678"
+
+  let changed_account =
+    account_dto.AccountResponse(..fixture, email: begin_request.email)
+  let scenario = respond(scenario, confirmed(response.Success(changed_account)))
+  let model = managed_scenario.model(scenario)
+  assert model.account == loadable.Loaded(changed_account)
+  assert model.email_change_status == account_model.EmailChanged
+  assert managed_scenario.observed(scenario) == [app_event.RefreshSession]
+}
+
+pub fn failed_email_change_request_does_not_enable_confirmation_test() {
+  let #(initial_model, _) = page.init_managed()
+  let scenario =
+    managed_scenario.new(initial_model)
+    |> dispatch(message.AccountLoaded(response.Success(account_fixture())))
+    |> dispatch(message.EmailInputChanged("new@example.com"))
+    |> dispatch(message.BeginEmailChangeSubmitted)
+  let assert [command.BeginEmailChange(_, began)] =
+    managed_scenario.pending(scenario)
+  let scenario =
+    respond(scenario, began(response.HttpFailure(http_error.NetworkError)))
+  assert managed_scenario.model(scenario).email_change_status
+    == account_model.EmailChangeRequestError(
+      "Could not send the verification code.",
+    )
+
+  let scenario =
+    scenario
+    |> dispatch(message.EmailCodeChanged("12345678"))
+    |> dispatch(message.ConfirmEmailChangeSubmitted)
+  assert managed_scenario.pending(scenario) == []
+  assert managed_scenario.model(scenario).email_change_status
+    == account_model.EmailChangeRequestError("Request a new verification code.")
 }
 
 fn respond(scenario: Scenario, msg: message.Msg) -> Scenario {

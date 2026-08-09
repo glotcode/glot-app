@@ -24,6 +24,13 @@ pub fn hydrated_from_id_rows(
   decode_optional(rows, fn(row) { from_id_row(is_email, row) })
 }
 
+pub fn hydrated_from_id_for_update_rows(
+  is_email: regexp.Regexp,
+  rows: List(sql.GetUserByIdForUpdate),
+) -> Result(option.Option(user_model.HydratedUser), db_error.DbQueryError) {
+  decode_optional(rows, fn(row) { from_id_for_update_row(is_email, row) })
+}
+
 pub fn hydrated_from_after_rows(
   is_email: regexp.Regexp,
   rows: List(sql.ListUsersAfter),
@@ -81,6 +88,28 @@ fn from_id_row(
 ) -> Result(user_model.HydratedUser, db_error.DbQueryError) {
   from_fields(
     is_email: is_email,
+    id: row.id,
+    account_id: row.account_id,
+    email: row.email,
+    username: row.username,
+    role_name: row.role,
+    account_state_name: row.account_state,
+    account_state_reason: row.account_state_reason,
+    account_tier_name: row.account_tier,
+    delete_job_id: row.delete_job_id,
+    delete_scheduled_at: row.delete_scheduled_at,
+    last_login_at: row.last_login_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  )
+}
+
+fn from_id_for_update_row(
+  is_email: regexp.Regexp,
+  row: sql.GetUserByIdForUpdate,
+) -> Result(user_model.HydratedUser, db_error.DbQueryError) {
+  from_fields(
+    is_email:,
     id: row.id,
     account_id: row.account_id,
     email: row.email,

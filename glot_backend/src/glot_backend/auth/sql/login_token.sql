@@ -4,7 +4,7 @@ FROM login_tokens
 WHERE email = $1
   AND used_at IS NULL
   AND created_at >= $2
-ORDER BY created_at DESC
+ORDER BY created_at DESC, id DESC
 LIMIT $3
 FOR UPDATE;
 
@@ -17,3 +17,12 @@ UPDATE login_tokens SET email = $1, token = $2, attempt_count = $3, created_at =
 -- name: DeleteLoginTokensBefore :exec
 DELETE FROM login_tokens
 WHERE created_at < $1;
+
+-- name: InvalidateLoginTokensByEmails :exec
+UPDATE login_tokens
+SET used_at = $1
+WHERE used_at IS NULL
+  AND (
+    email = sqlc.arg(old_email)::text
+    OR email = sqlc.arg(new_email)::text
+  );

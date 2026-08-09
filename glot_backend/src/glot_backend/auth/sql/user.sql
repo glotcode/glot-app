@@ -38,6 +38,33 @@ INNER JOIN accounts ON accounts.id = users.account_id
 LEFT JOIN jobs ON jobs.id = accounts.delete_job_id
 WHERE users.id = $1;
 
+-- name: GetUserByIdForUpdate :one
+SELECT
+  users.id,
+  users.account_id,
+  users.email,
+  users.username,
+  users.role,
+  accounts.account_state,
+  accounts.account_state_reason,
+  accounts.account_tier,
+  accounts.delete_job_id,
+  jobs.run_at AS delete_scheduled_at,
+  users.last_login_at,
+  users.created_at,
+  users.updated_at
+FROM users
+INNER JOIN accounts ON accounts.id = users.account_id
+LEFT JOIN jobs ON jobs.id = accounts.delete_job_id
+WHERE users.id = $1
+FOR UPDATE OF users;
+
+-- name: LockEmail :exec
+WITH email_lock AS (
+  SELECT pg_advisory_xact_lock(hashtextextended(sqlc.arg(email)::text, 0))
+)
+SELECT 1::integer AS acquired FROM email_lock;
+
 -- name: ListUsersAfter :many
 SELECT
   users.id,
@@ -139,17 +166,19 @@ LIMIT sqlc.arg(page_limit);
 -- name: InsertUser :exec
 INSERT INTO users (id, account_id, email, username, role, last_login_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
--- name: UpdateUser :exec
+-- name: UpdateUserLastLogin :exec
 UPDATE users
-SET
-  account_id = $1,
-  email = $2,
-  username = $3,
-  role = $4,
-  last_login_at = $5,
-  created_at = $6,
-  updated_at = $7
-WHERE id = $8;
+SET last_login_at = $1, updated_at = $2
+WHERE id = $3;
+
+-- name: UpdateUserEmail :exec
+UPDATE users SET email = $1, updated_at = $2 WHERE id = $3;
+
+-- name: UpdateUserUsername :exec
+UPDATE users SET username = $1, updated_at = $2 WHERE id = $3;
+
+-- name: UpdateUserRole :exec
+UPDATE users SET role = $1, updated_at = $2 WHERE id = $3;
 
 -- name: DeleteUsersByAccountId :exec
 DELETE FROM users

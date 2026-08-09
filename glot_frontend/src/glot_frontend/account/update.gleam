@@ -1,16 +1,18 @@
 import glot_frontend/account/account_access_workflow
 import glot_frontend/account/command
+import glot_frontend/account/email_change_workflow
 import glot_frontend/account/initialization_workflow
 import glot_frontend/account/message.{
   type Msg, AccountLoaded, AccountLoadingDelayElapsed, AccountPasskeysLoaded,
   AccountSessionsLoaded, AccountUpdated, BeganPasskeyRegistration,
-  BeginPasskeySubmitted, CancelDeleteSubmitted, DeleteCanceled,
-  DeletePasskeySubmitted, DeleteScheduled, DeleteSessionSubmitted,
-  DeletedPasskey, DeletedSession, FinishedPasskeyRegistration, LoggedOut,
-  LogoutSubmitted, PasskeyRegistrationCreated, PasskeysLoadingDelayElapsed,
-  RuntimeLoaded, ScheduleDeleteSubmitted, SessionLoaded,
-  SessionsLoadingDelayElapsed, ToggleDangerZone, UsernameChanged,
-  UsernameSubmitted,
+  BeginEmailChangeSubmitted, BeginPasskeySubmitted, CancelDeleteSubmitted,
+  ConfirmEmailChangeSubmitted, DeleteCanceled, DeletePasskeySubmitted,
+  DeleteScheduled, DeleteSessionSubmitted, DeletedPasskey, DeletedSession,
+  EmailChangeBegun, EmailChangeConfirmed, EmailCodeChanged, EmailInputChanged,
+  FinishedPasskeyRegistration, LoggedOut, LogoutSubmitted,
+  PasskeyRegistrationCreated, PasskeysLoadingDelayElapsed, RuntimeLoaded,
+  ScheduleDeleteSubmitted, SessionLoaded, SessionsLoadingDelayElapsed,
+  ToggleDangerZone, UsernameChanged, UsernameSubmitted,
 }
 import glot_frontend/account/model.{type Model}
 import glot_frontend/account/passkeys_workflow
@@ -44,6 +46,13 @@ pub fn update(
 
     UsernameChanged(_) | UsernameSubmitted | AccountUpdated(_) ->
       profile_workflow.update(model, msg)
+
+    EmailInputChanged(_)
+    | EmailCodeChanged(_)
+    | BeginEmailChangeSubmitted
+    | EmailChangeBegun(_)
+    | ConfirmEmailChangeSubmitted
+    | EmailChangeConfirmed(_) -> email_change_workflow.update(model, msg)
 
     LogoutSubmitted
     | ScheduleDeleteSubmitted

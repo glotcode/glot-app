@@ -19,6 +19,10 @@ pub fn run(
     command.ListPasskeys(complete) -> ports.list_passkeys(complete)
     command.UpdateAccount(request, complete) ->
       ports.update_account(request, complete)
+    command.BeginEmailChange(request, complete) ->
+      ports.begin_email_change(request, complete)
+    command.ConfirmEmailChange(request, complete) ->
+      ports.confirm_email_change(request, complete)
     command.BeginPasskeyRegistration(complete) ->
       ports.begin_passkey_registration(complete)
     command.CreatePasskey(options, complete) ->

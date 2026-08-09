@@ -65,7 +65,8 @@ pub fn update_user(
 
   use _ <- program.and_then(
     transaction_program.sequence([
-      user_effect.update_user_tx(user),
+      user_effect.update_user_username_tx(user.id, user.username, ctx.timestamp),
+      user_effect.update_user_role_tx(user.id, user.role, ctx.timestamp),
       account_effect.update_account_tx(account),
       user_action_effect.create_user_action_tx(user_action),
     ])

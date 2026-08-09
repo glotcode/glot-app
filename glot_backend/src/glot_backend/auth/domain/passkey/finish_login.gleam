@@ -126,7 +126,10 @@ pub fn finish_passkey_login(
     transaction_program.sequence([
       passkey_effect.update_passkey_credential_tx(updated_credential),
       passkey_effect.delete_passkey_challenge_tx(challenge.id),
-      user_effect.update_user_tx(updated_user),
+      user_effect.update_user_last_login_tx(
+        updated_user.id,
+        updated_user.last_login_at,
+      ),
       session_effect.create_session_tx(session_issue.session),
       user_action_effect.create_user_action_tx(user_action),
     ])

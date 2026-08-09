@@ -1,5 +1,6 @@
 import glot_backend/auth/effect/algebra as auth_algebra
 import glot_backend/auth/effect/interpreter/account
+import glot_backend/auth/effect/interpreter/email_change
 import glot_backend/auth/effect/interpreter/login_token
 import glot_backend/auth/effect/interpreter/passkey
 import glot_backend/auth/effect/interpreter/session
@@ -28,5 +29,7 @@ pub fn run(
       login_token.run(effect, ports.login_tokens, state, continue)
     auth_algebra.Passkey(effect) ->
       passkey.run(effect, ports.passkeys, state, continue)
+    auth_algebra.EmailChange(effect) ->
+      email_change.run(effect, ports.email_change_tokens, state, continue)
   }
 }

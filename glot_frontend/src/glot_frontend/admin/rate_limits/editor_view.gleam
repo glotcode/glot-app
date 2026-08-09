@@ -260,6 +260,8 @@ pub fn action_label(action: public_action.PublicAction) -> String {
     public_action.ListAccountSessionsAction -> "List account sessions"
     public_action.ListAccountPasskeysAction -> "List account passkeys"
     public_action.UpdateAccountAction -> "Update account"
+    public_action.BeginEmailChangeAction -> "Begin email change"
+    public_action.ConfirmEmailChangeAction -> "Confirm email change"
     public_action.DeleteAccountSessionAction -> "Delete account session"
     public_action.DeleteAccountPasskeyAction -> "Delete account passkey"
     public_action.ScheduleDeleteAccountAction -> "Schedule account deletion"

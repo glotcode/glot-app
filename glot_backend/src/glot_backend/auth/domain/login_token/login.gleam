@@ -1,5 +1,4 @@
 import gleam/dynamic.{type Dynamic}
-import gleam/int
 import gleam/list
 import gleam/option.{type Option}
 import gleam/time/timestamp.{type Timestamp}
@@ -7,6 +6,7 @@ import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/auth/domain/session/issue.{
   type SessionIssue, type SessionIssueResult,
 } as session_issue_domain
+import glot_backend/auth/domain/verification_token/policy as verification_token_policy
 import glot_backend/auth/effect/account as account_effect
 import glot_backend/auth/effect/login_token as login_token_effect
 import glot_backend/auth/effect/session as session_effect
@@ -31,17 +31,12 @@ import glot_core/auth/login_dto.{type LoginRequest}
 import glot_core/auth/login_token_model.{type LoginToken}
 import glot_core/auth/user_model.{type HydratedUser, type User}
 import glot_core/email/email_address_model.{type EmailAddress}
-import glot_core/helpers/timestamp_helpers
 import glot_core/public_action
 import glot_core/user_action.{type UserAction}
 import youid/uuid.{type Uuid}
 
 pub type LoginResult =
   SessionIssueResult
-
-const max_login_token_attempts = 10
-
-const valid_login_token_count = 2
 
 type LoginTokenVerification {
   ValidToken
@@ -93,7 +88,7 @@ pub fn login(
       email: request.email,
       token: request.token,
       attempted_at: ctx.timestamp,
-      valid_token_created_since: timestamp_helpers.subtract_seconds(
+      valid_token_created_since: verification_token_policy.created_since(
         ctx.timestamp,
         auth_config.login_token_max_age,
       ),
@@ -142,13 +137,18 @@ type PreparedLogin {
 fn login_tx(
   prepared_login: PreparedLogin,
 ) -> TransactionProgram(LoginTokenVerification) {
+  // Email is the login identity. Serialize login/signup with email changes so
+  // token invalidation, uniqueness checks, and user creation have one order.
+  use _ <- transaction_program.and_then(user_effect.lock_email_tx(
+    prepared_login.email,
+  ))
   // Keep this lookup in the transaction because the query locks the tokens with
   // FOR UPDATE, preventing concurrent login attempts from losing updates.
   use tokens <- transaction_program.and_then(
     login_token_effect.list_login_tokens_by_email_tx(
       prepared_login.email,
       prepared_login.valid_token_created_since,
-      valid_login_token_count,
+      verification_token_policy.valid_token_count,
     ),
   )
   let token_preparation =
@@ -182,11 +182,14 @@ fn prepare_login_token_mutations(
   now: Timestamp,
 ) -> LoginTokenPreparation {
   let shared_attempt_count =
-    list.fold(tokens, 0, fn(count, token) {
-      int.max(count, token.attempt_count)
+    verification_token_policy.shared_attempt_count(tokens, fn(token) {
+      token.attempt_count
     })
 
-  case tokens, shared_attempt_count >= max_login_token_attempts {
+  case
+    tokens,
+    verification_token_policy.attempts_exhausted(shared_attempt_count)
+  {
     [], _ ->
       LoginTokenPreparation(InvalidToken, transaction_program.succeed(Nil))
     _, True ->
@@ -210,9 +213,9 @@ fn find_matching_token(
   tokens: List(LoginToken),
   provided_token: String,
 ) -> Option(LoginToken) {
-  tokens
-  |> list.find(fn(token) { token.token == provided_token })
-  |> option.from_result()
+  verification_token_policy.find_matching(tokens, provided_token, fn(token) {
+    token.token
+  })
 }
 
 fn verification_from_matching_token(
@@ -337,7 +340,10 @@ fn prepare_user_mutations(
         account_effect.create_account_tx(account),
         user_effect.create_user_tx(user),
       ])
-    ExistingUser(user) -> user_effect.update_user_tx(user)
+    // Login only owns the last-login fields. A full-row write here could
+    // overwrite a concurrent profile or email change based on a stale read.
+    ExistingUser(user) ->
+      user_effect.update_user_last_login_tx(user.id, user.last_login_at)
   }
 }
 

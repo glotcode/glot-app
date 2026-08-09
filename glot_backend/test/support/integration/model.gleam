@@ -4,6 +4,7 @@ import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/email/model/template as email_template
 import glot_backend/system/request/context
 import glot_core/auth/account_model
+import glot_core/auth/email_change_token_model
 import glot_core/auth/login_token_model
 import glot_core/auth/passkey_challenge_model
 import glot_core/auth/passkey_credential_model
@@ -34,6 +35,7 @@ pub type TestState {
     users: Dict(String, user_model.User),
     email_templates: Dict(String, email_template.EmailTemplate),
     login_tokens: Dict(String, login_token_model.LoginToken),
+    email_change_tokens: Dict(String, email_change_token_model.EmailChangeToken),
     passkey_credentials: Dict(
       String,
       passkey_credential_model.PasskeyCredential,

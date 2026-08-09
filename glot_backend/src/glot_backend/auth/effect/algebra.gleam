@@ -1,4 +1,5 @@
 import glot_backend/auth/effect/algebra/account
+import glot_backend/auth/effect/algebra/email_change
 import glot_backend/auth/effect/algebra/login_token
 import glot_backend/auth/effect/algebra/passkey
 import glot_backend/auth/effect/algebra/session
@@ -10,6 +11,7 @@ pub type AuthEffect(next) {
   Session(effect: session.Effect(next))
   LoginToken(effect: login_token.Effect(next))
   Passkey(effect: passkey.Effect(next))
+  EmailChange(effect: email_change.Effect(next))
 }
 
 pub fn map(effect: AuthEffect(a), f: fn(a) -> b) -> AuthEffect(b) {
@@ -19,6 +21,7 @@ pub fn map(effect: AuthEffect(a), f: fn(a) -> b) -> AuthEffect(b) {
     Session(effect) -> Session(session.map(effect, f))
     LoginToken(effect) -> LoginToken(login_token.map(effect, f))
     Passkey(effect) -> Passkey(passkey.map(effect, f))
+    EmailChange(effect) -> EmailChange(email_change.map(effect, f))
   }
 }
 
@@ -28,6 +31,7 @@ pub type EffectName {
   SessionName(session.EffectName)
   LoginTokenName(login_token.EffectName)
   PasskeyName(passkey.EffectName)
+  EmailChangeName(email_change.EffectName)
 }
 
 pub fn effect_name_to_string(name: EffectName) -> String {
@@ -37,5 +41,6 @@ pub fn effect_name_to_string(name: EffectName) -> String {
     SessionName(name) -> session.effect_name_to_string(name)
     LoginTokenName(name) -> login_token.effect_name_to_string(name)
     PasskeyName(name) -> passkey.effect_name_to_string(name)
+    EmailChangeName(name) -> email_change.effect_name_to_string(name)
   }
 }

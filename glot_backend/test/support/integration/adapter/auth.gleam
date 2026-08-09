@@ -1,5 +1,6 @@
 import glot_backend/auth/ports
 import glot_backend/auth/ports/account_store
+import glot_backend/auth/ports/email_change_token_store
 import glot_backend/auth/ports/login_token_store
 import glot_backend/auth/ports/passkey_store
 import glot_backend/auth/ports/session_store
@@ -18,9 +19,22 @@ pub fn defaults() -> ports.Ports {
     users: user_store.UserStore(
       get_by_email: fn(_, _) { unexpected.query("auth.users.get_by_email") },
       get_by_id: fn(_, _) { unexpected.query("auth.users.get_by_id") },
+      get_by_id_for_update: fn(_, _) {
+        unexpected.query("auth.users.get_by_id_for_update")
+      },
       list: fn(_, _, _) { unexpected.query("auth.users.list") },
       create: fn(_) { unexpected.command("auth.users.create") },
-      update: fn(_) { unexpected.command("auth.users.update") },
+      update_last_login: fn(_, _) {
+        unexpected.command("auth.users.update_last_login")
+      },
+      update_email: fn(_, _, _) {
+        unexpected.command("auth.users.update_email")
+      },
+      update_username: fn(_, _, _) {
+        unexpected.command("auth.users.update_username")
+      },
+      update_role: fn(_, _, _) { unexpected.command("auth.users.update_role") },
+      lock_email: fn(_) { unexpected.command("auth.users.lock_email") },
       delete_by_account_id: fn(_) {
         unexpected.command("auth.users.delete_by_account_id")
       },
@@ -58,6 +72,9 @@ pub fn defaults() -> ports.Ports {
       delete_before: fn(_) {
         unexpected.command("auth.login_tokens.delete_before")
       },
+      invalidate_by_emails: fn(_, _, _) {
+        unexpected.command("auth.login_tokens.invalidate_by_emails")
+      },
     ),
     passkeys: passkey_store.PasskeyStore(
       get_credential_by_credential_id: fn(_) {
@@ -85,6 +102,19 @@ pub fn defaults() -> ports.Ports {
         unexpected.command("auth.passkeys.delete_challenge")
       },
     ),
+    email_change_tokens: email_change_token_store.EmailChangeTokenStore(
+      list_by_user_id: fn(_, _, _) {
+        unexpected.query("auth.email_change_tokens.list_by_user_id")
+      },
+      list_by_user_id_for_update: fn(_, _, _) {
+        unexpected.query("auth.email_change_tokens.list_by_user_id_for_update")
+      },
+      create: fn(_) { unexpected.command("auth.email_change_tokens.create") },
+      update: fn(_) { unexpected.command("auth.email_change_tokens.update") },
+      delete_before: fn(_) {
+        unexpected.command("auth.email_change_tokens.delete_before")
+      },
+    ),
   )
 }
 
@@ -95,6 +125,7 @@ pub fn new(test_state: state.State) -> ports.Ports {
     sessions: sessions(test_state),
     login_tokens: login_tokens(test_state),
     passkeys: passkeys(test_state),
+    email_change_tokens: email_change_tokens(test_state),
   )
 }
 
@@ -121,6 +152,9 @@ fn users(test_state: state.State) -> user_store.UserStore {
       Ok(auth.find_user_by_email(state.get(test_state), email))
     },
     get_by_id: fn(_, id) { Ok(auth.find_user_by_id(state.get(test_state), id)) },
+    get_by_id_for_update: fn(_, id) {
+      Ok(auth.find_user_by_id(state.get(test_state), id))
+    },
     list: fn(_, pagination, filters) {
       Ok(auth.find_users(state.get(test_state), pagination, filters))
     },
@@ -128,10 +162,31 @@ fn users(test_state: state.State) -> user_store.UserStore {
       state.update(test_state, fn(db) { auth.insert_user(db, value) })
       Ok(Nil)
     },
-    update: fn(value) {
-      state.update(test_state, fn(db) { auth.insert_user(db, value) })
+    update_last_login: fn(id, timestamp) {
+      state.update(test_state, fn(db) {
+        auth.update_user_last_login(db, id, timestamp)
+      })
       Ok(Nil)
     },
+    update_email: fn(id, email, timestamp) {
+      state.update(test_state, fn(db) {
+        auth.update_user_email(db, id, email, timestamp)
+      })
+      Ok(Nil)
+    },
+    update_username: fn(id, username, timestamp) {
+      state.update(test_state, fn(db) {
+        auth.update_user_username(db, id, username, timestamp)
+      })
+      Ok(Nil)
+    },
+    update_role: fn(id, role, timestamp) {
+      state.update(test_state, fn(db) {
+        auth.update_user_role(db, id, role, timestamp)
+      })
+      Ok(Nil)
+    },
+    lock_email: fn(_) { Ok(Nil) },
     delete_by_account_id: fn(account_id) {
       state.update(test_state, fn(db) {
         auth.delete_users_by_account_id(db, account_id)
@@ -218,6 +273,53 @@ fn login_tokens(test_state: state.State) -> login_token_store.LoginTokenStore {
     delete_before: fn(before) {
       state.update(test_state, fn(db) {
         auth.delete_login_tokens_before(db, before)
+      })
+      Ok(Nil)
+    },
+    invalidate_by_emails: fn(old_email, new_email, timestamp) {
+      state.update(test_state, fn(db) {
+        auth.invalidate_login_tokens(db, old_email, new_email, timestamp)
+      })
+      Ok(Nil)
+    },
+  )
+}
+
+fn email_change_tokens(
+  test_state: state.State,
+) -> email_change_token_store.EmailChangeTokenStore {
+  email_change_token_store.EmailChangeTokenStore(
+    list_by_user_id: fn(user_id, created_since, limit) {
+      Ok(auth.find_email_change_tokens_by_user_id(
+        state.get(test_state),
+        user_id,
+        created_since,
+        limit,
+      ))
+    },
+    list_by_user_id_for_update: fn(user_id, created_since, limit) {
+      Ok(auth.find_email_change_tokens_by_user_id(
+        state.get(test_state),
+        user_id,
+        created_since,
+        limit,
+      ))
+    },
+    create: fn(token) {
+      state.update(test_state, fn(db) {
+        auth.upsert_email_change_token(db, token)
+      })
+      Ok(Nil)
+    },
+    update: fn(token) {
+      state.update(test_state, fn(db) {
+        auth.upsert_email_change_token(db, token)
+      })
+      Ok(Nil)
+    },
+    delete_before: fn(before) {
+      state.update(test_state, fn(db) {
+        auth.delete_email_change_tokens_before(db, before)
       })
       Ok(Nil)
     },

@@ -1,4 +1,5 @@
 import gleam/option
+import glot_core/email/email_address_model
 import glot_core/loadable
 import glot_frontend/account/command
 import glot_frontend/account/message.{
@@ -7,7 +8,7 @@ import glot_frontend/account/message.{
   SessionLoaded, SessionsLoadingDelayElapsed,
 }
 import glot_frontend/account/model.{
-  type Model, Idle, IdlePasskeys, LoadingPasskeys, Model,
+  type Model, EmailChangeIdle, Idle, IdlePasskeys, LoadingPasskeys, Model,
 }
 import glot_frontend/api/response as api_response
 import glot_frontend/app/event as app_event
@@ -29,6 +30,9 @@ pub fn update(
               ..model,
               account: loadable.Loaded(account),
               username: account.username,
+              email_input: email_address_model.to_string(account.email),
+              email_code: "",
+              email_change_status: EmailChangeIdle,
               status: Idle,
               account_loading_indicator: delayed_loading.finish(
                 model.account_loading_indicator,

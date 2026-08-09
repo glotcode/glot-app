@@ -87,6 +87,7 @@ pub fn integration_fixture(
       users: dict.from_list([#(common.uuid_key(user.id), user)]),
       email_templates: default_email_templates(),
       login_tokens: dict.new(),
+      email_change_tokens: dict.new(),
       passkey_credentials: dict.new(),
       passkey_challenges: dict.new(),
       sessions: dict.from_list([#(common.uuid_key(session.id), session)]),
@@ -184,6 +185,7 @@ pub fn empty_test_state() -> model.TestState {
     users: dict.new(),
     email_templates: default_email_templates(),
     login_tokens: dict.new(),
+    email_change_tokens: dict.new(),
     passkey_credentials: dict.new(),
     passkey_challenges: dict.new(),
     sessions: dict.new(),
@@ -234,6 +236,36 @@ pub fn default_email_templates() -> Dict(String, email_template.EmailTemplate) {
         updated_at: test_system_time(),
       ),
     ),
+    #(
+      email_template.to_db_name(email_template.EmailChangeVerificationTemplate),
+      email_template.EmailTemplate(
+        name: email_template.EmailChangeVerificationTemplate,
+        subject_template: "Verify your new email address",
+        text_body_template: "Code: {{token}}",
+        html_body_template: option.None,
+        updated_at: test_system_time(),
+      ),
+    ),
+    #(
+      email_template.to_db_name(email_template.EmailChangedTemplate),
+      email_template.EmailTemplate(
+        name: email_template.EmailChangedTemplate,
+        subject_template: "Your email address changed",
+        text_body_template: "Changed to {{new_email}}",
+        html_body_template: option.None,
+        updated_at: test_system_time(),
+      ),
+    ),
+    #(
+      email_template.to_db_name(email_template.EmailChangeAddressInUseTemplate),
+      email_template.EmailTemplate(
+        name: email_template.EmailChangeAddressInUseTemplate,
+        subject_template: "Email address already in use",
+        text_body_template: "This email address is already associated with a glot account, so the requested email change was not completed. Please choose a different email address.",
+        html_body_template: option.None,
+        updated_at: test_system_time(),
+      ),
+    ),
   ])
 }
 
@@ -250,7 +282,7 @@ pub fn default_job_type_policies() -> Dict(String, job_model.JobTypePolicy) {
     job_model.CleanJobLogJob,
     job_model.CleanJobsJob,
     job_model.CleanSessionsJob,
-    job_model.CleanLoginTokensJob,
+    job_model.CleanVerificationTokensJob,
     job_model.CleanUserActionsJob,
     job_model.AggregateMetricsJob,
   ]
