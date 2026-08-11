@@ -269,6 +269,51 @@ pub fn validate_snippet_fields_rejects_empty_build_command_test() {
     == Error(validation_error.EmptyField("runInstructions.buildCommands[0]"))
 }
 
+pub fn validate_snippet_fields_accepts_max_files_and_build_commands_test() {
+  assert snippet_model.validate_fields(
+      "Snippet",
+      "",
+      option.Some(language.RunInstructions(
+        build_commands: list.repeat("build", times: 5),
+        run_command: "run",
+      )),
+      list.repeat(
+        snippet_model.File(name: "main.gleam", content: ""),
+        times: 10,
+      ),
+    )
+    == Ok(Nil)
+}
+
+pub fn validate_snippet_fields_rejects_too_many_build_commands_test() {
+  assert snippet_model.validate_fields(
+      "Snippet",
+      "",
+      option.Some(language.RunInstructions(
+        build_commands: list.repeat("build", times: 6),
+        run_command: "run",
+      )),
+      [snippet_model.File(name: "main.gleam", content: "")],
+    )
+    == Error(validation_error.MustBeLessThanOrEqual(
+      "runInstructions.buildCommands",
+      5,
+    ))
+}
+
+pub fn validate_snippet_fields_rejects_too_many_files_test() {
+  assert snippet_model.validate_fields(
+      "Snippet",
+      "",
+      option.None,
+      list.repeat(
+        snippet_model.File(name: "main.gleam", content: ""),
+        times: 11,
+      ),
+    )
+    == Error(validation_error.MustBeLessThanOrEqual("files", 10))
+}
+
 pub fn cobol_example_code_preserves_fixed_format_indentation_test() {
   assert language.example_code(language.Cobol)
     == "       IDENTIFICATION DIVISION.

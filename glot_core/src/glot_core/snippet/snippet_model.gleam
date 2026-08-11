@@ -1,6 +1,7 @@
 import gleam/dynamic/decode
 import gleam/int
 import gleam/json
+import gleam/list
 import gleam/option
 import gleam/result
 import gleam/string
@@ -81,9 +82,13 @@ const run_command_max_length = 2000
 
 const build_command_max_length = 2000
 
+const build_commands_max_count = 5
+
 const file_name_max_length = 255
 
 const file_content_max_length = 100_000
+
+const files_max_count = 10
 
 pub fn encode_file(file: File) -> json.Json {
   json.object([
@@ -252,6 +257,20 @@ fn validate_build_commands(
   commands: List(String),
   index: Int,
 ) -> Result(Nil, validation_error.ValidationError) {
+  case list.length(commands) > build_commands_max_count {
+    True ->
+      Error(validation_error.MustBeLessThanOrEqual(
+        "runInstructions.buildCommands",
+        build_commands_max_count,
+      ))
+    False -> validate_build_command_fields(commands, index)
+  }
+}
+
+fn validate_build_command_fields(
+  commands: List(String),
+  index: Int,
+) -> Result(Nil, validation_error.ValidationError) {
   case commands {
     [] -> Ok(Nil)
     [command, ..rest] -> {
@@ -264,7 +283,7 @@ fn validate_build_commands(
         command,
         build_command_max_length,
       ))
-      validate_build_commands(rest, index + 1)
+      validate_build_command_fields(rest, index + 1)
     }
   }
 }
@@ -274,7 +293,12 @@ fn validate_files(
 ) -> Result(Nil, validation_error.ValidationError) {
   case files {
     [] -> Error(validation_error.FilesMissing)
-    _ -> validate_file_lengths(files, 0)
+    _ ->
+      case list.length(files) > files_max_count {
+        True ->
+          Error(validation_error.MustBeLessThanOrEqual("files", files_max_count))
+        False -> validate_file_lengths(files, 0)
+      }
   }
 }
 
