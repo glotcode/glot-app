@@ -3,7 +3,9 @@ import glot_backend/auth/effect/algebra/passkey as passkey_algebra
 import glot_backend/auth/effect/command_result
 import glot_backend/auth/effect/effect as auth_effect
 import glot_backend/system/effect/error/db_error
+import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types
+import glot_backend/system/effect/transaction/transaction_program
 import glot_core/auth/passkey_challenge_model
 import glot_core/auth/passkey_credential_model
 import youid/uuid.{type Uuid}
@@ -13,23 +15,19 @@ pub fn get_passkey_credential_by_credential_id(
 ) -> program_types.Program(
   option.Option(passkey_credential_model.PasskeyCredential),
 ) {
-  program_types.Impure(
-    program_types.DbEffect(get_passkey_credential_by_credential_id_effect(
-      credential_id,
-      program_types.Pure,
-    )),
-  )
+  program.perform_db(get_passkey_credential_by_credential_id_effect(
+    credential_id,
+    program.succeed,
+  ))
 }
 
 pub fn list_passkey_credentials_by_user_id(
   user_id user_id: Uuid,
 ) -> program_types.Program(List(passkey_credential_model.PasskeyCredential)) {
-  program_types.Impure(
-    program_types.DbEffect(list_passkey_credentials_by_user_id_effect(
-      user_id,
-      program_types.Pure,
-    )),
-  )
+  program.perform_db(list_passkey_credentials_by_user_id_effect(
+    user_id,
+    program.succeed,
+  ))
 }
 
 pub fn get_passkey_challenge_by_id(
@@ -37,63 +35,48 @@ pub fn get_passkey_challenge_by_id(
 ) -> program_types.Program(
   option.Option(passkey_challenge_model.PasskeyChallenge),
 ) {
-  program_types.Impure(
-    program_types.DbEffect(get_passkey_challenge_by_id_effect(
-      id,
-      program_types.Pure,
-    )),
-  )
+  program.perform_db(get_passkey_challenge_by_id_effect(id, program.succeed))
 }
 
 pub fn create_passkey_credential(
   passkey_credential passkey_credential: passkey_credential_model.PasskeyCredential,
 ) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(create_passkey_credential_effect(
-      passkey_credential,
-      command_result.to_program,
-    )),
-  )
+  program.perform_db(create_passkey_credential_effect(
+    passkey_credential,
+    command_result.to_program,
+  ))
 }
 
 pub fn create_passkey_challenge(
   passkey_challenge passkey_challenge: passkey_challenge_model.PasskeyChallenge,
 ) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(create_passkey_challenge_effect(
-      passkey_challenge,
-      command_result.to_program,
-    )),
-  )
+  program.perform_db(create_passkey_challenge_effect(
+    passkey_challenge,
+    command_result.to_program,
+  ))
 }
 
 pub fn delete_passkey_credential(id id: Uuid) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(delete_passkey_credential_effect(
-      id,
-      command_result.to_program,
-    )),
-  )
+  program.perform_db(delete_passkey_credential_effect(
+    id,
+    command_result.to_program,
+  ))
 }
 
 pub fn update_passkey_credential(
   passkey_credential passkey_credential: passkey_credential_model.PasskeyCredential,
 ) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(update_passkey_credential_effect(
-      passkey_credential,
-      command_result.to_program,
-    )),
-  )
+  program.perform_db(update_passkey_credential_effect(
+    passkey_credential,
+    command_result.to_program,
+  ))
 }
 
 pub fn delete_passkey_challenge(id id: Uuid) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(delete_passkey_challenge_effect(
-      id,
-      command_result.to_program,
-    )),
-  )
+  program.perform_db(delete_passkey_challenge_effect(
+    id,
+    command_result.to_program,
+  ))
 }
 
 pub fn get_passkey_credential_by_credential_id_tx(
@@ -101,9 +84,9 @@ pub fn get_passkey_credential_by_credential_id_tx(
 ) -> program_types.TransactionProgram(
   option.Option(passkey_credential_model.PasskeyCredential),
 ) {
-  program_types.TxImpure(get_passkey_credential_by_credential_id_effect(
+  transaction_program.perform(get_passkey_credential_by_credential_id_effect(
     credential_id,
-    program_types.TxPure,
+    transaction_program.succeed,
   ))
 }
 
@@ -112,9 +95,9 @@ pub fn list_passkey_credentials_by_user_id_tx(
 ) -> program_types.TransactionProgram(
   List(passkey_credential_model.PasskeyCredential),
 ) {
-  program_types.TxImpure(list_passkey_credentials_by_user_id_effect(
+  transaction_program.perform(list_passkey_credentials_by_user_id_effect(
     user_id,
-    program_types.TxPure,
+    transaction_program.succeed,
   ))
 }
 
@@ -123,16 +106,16 @@ pub fn get_passkey_challenge_by_id_tx(
 ) -> program_types.TransactionProgram(
   option.Option(passkey_challenge_model.PasskeyChallenge),
 ) {
-  program_types.TxImpure(get_passkey_challenge_by_id_effect(
+  transaction_program.perform(get_passkey_challenge_by_id_effect(
     id,
-    program_types.TxPure,
+    transaction_program.succeed,
   ))
 }
 
 pub fn create_passkey_credential_tx(
   passkey_credential passkey_credential: passkey_credential_model.PasskeyCredential,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(create_passkey_credential_effect(
+  transaction_program.perform(create_passkey_credential_effect(
     passkey_credential,
     command_result.to_transaction_program,
   ))
@@ -141,7 +124,7 @@ pub fn create_passkey_credential_tx(
 pub fn create_passkey_challenge_tx(
   passkey_challenge passkey_challenge: passkey_challenge_model.PasskeyChallenge,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(create_passkey_challenge_effect(
+  transaction_program.perform(create_passkey_challenge_effect(
     passkey_challenge,
     command_result.to_transaction_program,
   ))
@@ -150,7 +133,7 @@ pub fn create_passkey_challenge_tx(
 pub fn delete_passkey_credential_tx(
   id id: Uuid,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(delete_passkey_credential_effect(
+  transaction_program.perform(delete_passkey_credential_effect(
     id,
     command_result.to_transaction_program,
   ))
@@ -159,7 +142,7 @@ pub fn delete_passkey_credential_tx(
 pub fn update_passkey_credential_tx(
   passkey_credential passkey_credential: passkey_credential_model.PasskeyCredential,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(update_passkey_credential_effect(
+  transaction_program.perform(update_passkey_credential_effect(
     passkey_credential,
     command_result.to_transaction_program,
   ))
@@ -168,7 +151,7 @@ pub fn update_passkey_credential_tx(
 pub fn delete_passkey_challenge_tx(
   id id: Uuid,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(delete_passkey_challenge_effect(
+  transaction_program.perform(delete_passkey_challenge_effect(
     id,
     command_result.to_transaction_program,
   ))

@@ -21,6 +21,18 @@ pub fn fail(error: error.Error) -> program_types.Program(a) {
   program_types.Fail(error)
 }
 
+pub fn perform(
+  effect: program_types.Effect(program_types.Program(a)),
+) -> program_types.Program(a) {
+  program_types.Impure(effect)
+}
+
+pub fn perform_db(
+  effect: program_types.DbEffect(program_types.Program(a)),
+) -> program_types.Program(a) {
+  perform(program_types.DbEffect(effect))
+}
+
 pub fn and_then(
   effect: program_types.Program(a),
   f: fn(a) -> program_types.Program(b),
@@ -58,6 +70,15 @@ pub fn from_result(value: Result(a, error.Error)) -> program_types.Program(a) {
     Ok(v) -> program_types.Pure(v)
     Error(err) -> program_types.Fail(err)
   }
+}
+
+pub fn from_mapped_result(
+  value: Result(a, source_error),
+  map_error map_error: fn(source_error) -> error.Error,
+) -> program_types.Program(a) {
+  value
+  |> result.map_error(map_error)
+  |> from_result
 }
 
 pub fn from_option(

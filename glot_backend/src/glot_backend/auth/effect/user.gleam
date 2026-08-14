@@ -5,7 +5,9 @@ import glot_backend/auth/effect/command_result
 import glot_backend/auth/effect/effect as auth_effect
 import glot_backend/auth/model/user_list_filters.{type UserListFilters}
 import glot_backend/system/effect/error/db_error
+import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types
+import glot_backend/system/effect/transaction/transaction_program
 import glot_core/auth/user_model
 import glot_core/email/email_address_model
 import glot_core/pagination_model.{type CursorPagination}
@@ -14,66 +16,58 @@ import youid/uuid.{type Uuid}
 pub fn get_user_by_email(
   email email: email_address_model.EmailAddress,
 ) -> program_types.Program(option.Option(user_model.HydratedUser)) {
-  program_types.Impure(
-    program_types.DbEffect(get_user_by_email_effect(email, program_types.Pure)),
-  )
+  program.perform_db(get_user_by_email_effect(email, program.succeed))
 }
 
 pub fn get_user_by_id(
   id id: Uuid,
 ) -> program_types.Program(option.Option(user_model.HydratedUser)) {
-  program_types.Impure(
-    program_types.DbEffect(get_user_by_id_effect(id, program_types.Pure)),
-  )
+  program.perform_db(get_user_by_id_effect(id, program.succeed))
 }
 
 pub fn list_users(
   pagination pagination: CursorPagination,
   filters filters: UserListFilters,
 ) -> program_types.Program(List(user_model.HydratedUser)) {
-  program_types.Impure(
-    program_types.DbEffect(list_users_effect(
-      pagination,
-      filters,
-      program_types.Pure,
-    )),
-  )
+  program.perform_db(list_users_effect(pagination, filters, program.succeed))
 }
 
 pub fn create_user(user user: user_model.User) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(create_user_effect(user, command_result.to_program)),
-  )
+  program.perform_db(create_user_effect(user, command_result.to_program))
 }
 
 pub fn delete_users_by_account_id(id id: Uuid) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(delete_users_by_account_id_effect(
-      id,
-      command_result.to_program,
-    )),
-  )
+  program.perform_db(delete_users_by_account_id_effect(
+    id,
+    command_result.to_program,
+  ))
 }
 
 pub fn get_user_by_email_tx(
   email email: email_address_model.EmailAddress,
 ) -> program_types.TransactionProgram(option.Option(user_model.HydratedUser)) {
-  program_types.TxImpure(get_user_by_email_effect(email, program_types.TxPure))
+  transaction_program.perform(get_user_by_email_effect(
+    email,
+    transaction_program.succeed,
+  ))
 }
 
 pub fn get_user_by_id_tx(
   id id: Uuid,
 ) -> program_types.TransactionProgram(option.Option(user_model.HydratedUser)) {
-  program_types.TxImpure(get_user_by_id_effect(id, program_types.TxPure))
+  transaction_program.perform(get_user_by_id_effect(
+    id,
+    transaction_program.succeed,
+  ))
 }
 
 pub fn get_user_by_id_for_update_tx(
   id: Uuid,
 ) -> program_types.TransactionProgram(option.Option(user_model.HydratedUser)) {
-  program_types.TxImpure(
+  transaction_program.perform(
     auth_effect.user(user_algebra.GetUserByIdForUpdate(
       id:,
-      next: program_types.TxPure,
+      next: transaction_program.succeed,
     )),
   )
 }
@@ -81,7 +75,7 @@ pub fn get_user_by_id_for_update_tx(
 pub fn lock_email_tx(
   email: email_address_model.EmailAddress,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(
+  transaction_program.perform(
     auth_effect.user(user_algebra.LockEmail(
       email:,
       next: command_result.to_transaction_program,
@@ -93,7 +87,7 @@ pub fn update_user_last_login_tx(
   id: Uuid,
   timestamp: Timestamp,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(
+  transaction_program.perform(
     auth_effect.user(user_algebra.UpdateUserLastLogin(
       id:,
       timestamp:,
@@ -107,7 +101,7 @@ pub fn update_user_email_tx(
   email: email_address_model.EmailAddress,
   timestamp: Timestamp,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(
+  transaction_program.perform(
     auth_effect.user(user_algebra.UpdateUserEmail(
       id:,
       email:,
@@ -122,7 +116,7 @@ pub fn update_user_username_tx(
   username: String,
   timestamp: Timestamp,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(
+  transaction_program.perform(
     auth_effect.user(user_algebra.UpdateUserUsername(
       id:,
       username:,
@@ -137,7 +131,7 @@ pub fn update_user_role_tx(
   role: user_model.UserRole,
   timestamp: Timestamp,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(
+  transaction_program.perform(
     auth_effect.user(user_algebra.UpdateUserRole(
       id:,
       role:,
@@ -151,17 +145,17 @@ pub fn list_users_tx(
   pagination pagination: CursorPagination,
   filters filters: UserListFilters,
 ) -> program_types.TransactionProgram(List(user_model.HydratedUser)) {
-  program_types.TxImpure(list_users_effect(
+  transaction_program.perform(list_users_effect(
     pagination,
     filters,
-    program_types.TxPure,
+    transaction_program.succeed,
   ))
 }
 
 pub fn create_user_tx(
   user user: user_model.User,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(create_user_effect(
+  transaction_program.perform(create_user_effect(
     user,
     command_result.to_transaction_program,
   ))
@@ -170,7 +164,7 @@ pub fn create_user_tx(
 pub fn delete_users_by_account_id_tx(
   id id: Uuid,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(delete_users_by_account_id_effect(
+  transaction_program.perform(delete_users_by_account_id_effect(
     id,
     command_result.to_transaction_program,
   ))

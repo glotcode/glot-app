@@ -110,6 +110,22 @@ the transaction trace can include nested effect measurements and whether the
 transaction rolled back. Do not route that aggregate lifecycle through the
 ordinary measurement helpers.
 
+## Effect program construction
+
+Effect constructor modules should use the shared program helpers rather than
+constructing `Impure`, `DbEffect`, or `TxImpure` wrappers directly:
+
+- `program.perform` lifts an application effect into `Program`.
+- `program.perform_db` lifts a database effect into `Program`.
+- `transaction_program.perform` lifts a database effect into
+  `TransactionProgram`.
+
+Use `program.from_mapped_result` or
+`transaction_program.from_mapped_result` when an effect continuation needs to
+convert a port-specific error into the application error surface. Keep a
+feature-local effect builder when both normal and transactional programs use
+the same algebra operation with different continuations.
+
 ## Database boundary
 
 SQL sources live with their feature but are generated together into

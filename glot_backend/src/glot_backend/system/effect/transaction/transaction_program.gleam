@@ -12,6 +12,12 @@ pub fn fail(error: error.Error) -> program_types.TransactionProgram(a) {
   program_types.TxFail(error)
 }
 
+pub fn perform(
+  effect: program_types.DbEffect(program_types.TransactionProgram(a)),
+) -> program_types.TransactionProgram(a) {
+  program_types.TxImpure(effect)
+}
+
 pub fn and_then(
   program: program_types.TransactionProgram(a),
   f: fn(a) -> program_types.TransactionProgram(b),
@@ -39,6 +45,16 @@ pub fn from_result(
   case value {
     Ok(v) -> program_types.TxPure(v)
     Error(err) -> program_types.TxFail(err)
+  }
+}
+
+pub fn from_mapped_result(
+  value: Result(a, source_error),
+  map_error map_error: fn(source_error) -> error.Error,
+) -> program_types.TransactionProgram(a) {
+  case value {
+    Ok(v) -> program_types.TxPure(v)
+    Error(err) -> program_types.TxFail(map_error(err))
   }
 }
 

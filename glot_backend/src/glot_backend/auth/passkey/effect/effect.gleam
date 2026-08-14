@@ -1,4 +1,5 @@
 import glot_backend/auth/passkey/effect/algebra as webauthn_algebra
+import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types
 
 pub fn new_registration_challenge(
@@ -6,12 +7,12 @@ pub fn new_registration_challenge(
   rp_id: String,
   user_verification: String,
 ) -> program_types.Program(Result(#(String, BitArray), String)) {
-  program_types.Impure(
+  program.perform(
     program_types.WebauthnEffect(webauthn_algebra.NewRegistrationChallenge(
       origin,
       rp_id,
       user_verification,
-      program_types.Pure,
+      program.succeed,
     )),
   )
 }
@@ -21,12 +22,12 @@ pub fn register(
   client_data_json: String,
   challenge_state: BitArray,
 ) -> program_types.Program(Result(#(BitArray, BitArray, Int, BitArray), String)) {
-  program_types.Impure(
+  program.perform(
     program_types.WebauthnEffect(webauthn_algebra.Register(
       attestation_object,
       client_data_json,
       challenge_state,
-      program_types.Pure,
+      program.succeed,
     )),
   )
 }
@@ -37,13 +38,13 @@ pub fn new_authentication_challenge(
   user_verification: String,
   credentials: List(#(BitArray, BitArray)),
 ) -> program_types.Program(Result(#(String, List(String), BitArray), String)) {
-  program_types.Impure(
+  program.perform(
     program_types.WebauthnEffect(webauthn_algebra.NewAuthenticationChallenge(
       origin,
       rp_id,
       user_verification,
       credentials,
-      program_types.Pure,
+      program.succeed,
     )),
   )
 }
@@ -56,7 +57,7 @@ pub fn authenticate(
   challenge_state: BitArray,
   credentials: List(#(BitArray, BitArray)),
 ) -> program_types.Program(Result(#(Int, BitArray), String)) {
-  program_types.Impure(
+  program.perform(
     program_types.WebauthnEffect(webauthn_algebra.Authenticate(
       credential_id,
       authenticator_data,
@@ -64,7 +65,7 @@ pub fn authenticate(
       client_data_json,
       challenge_state,
       credentials,
-      program_types.Pure,
+      program.succeed,
     )),
   )
 }

@@ -1,7 +1,9 @@
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
+import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types
+import glot_backend/system/effect/transaction/transaction_program
 import glot_backend/user_action/effect/algebra as user_action_algebra
 import glot_core/rate_limit
 import glot_core/user_action.{type UserAction, type UserActionFilter}
@@ -9,59 +11,61 @@ import glot_core/user_action.{type UserAction, type UserActionFilter}
 pub fn count_user_actions(
   filter filter: UserActionFilter,
 ) -> program_types.Program(List(rate_limit.WindowCount)) {
-  program_types.Impure(
-    program_types.DbEffect(count_user_actions_effect(filter, program_types.Pure)),
-  )
+  program.perform_db(count_user_actions_effect(filter, program.succeed))
 }
 
 pub fn create_user_action(
   user_action user_action: UserAction,
 ) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(create_user_action_effect(user_action, command_next)),
+  program.perform_db(
+    create_user_action_effect(user_action, program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
   )
 }
 
 pub fn delete_before(before: Timestamp) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(delete_before_effect(before, command_next)),
+  program.perform_db(
+    delete_before_effect(before, program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
   )
-}
-
-fn command_next(
-  result: Result(Nil, db_error.DbCommandError),
-) -> program_types.Program(Nil) {
-  case result {
-    Ok(_) -> program_types.Pure(Nil)
-    Error(err) -> program_types.Fail(error.database_command_error(err))
-  }
 }
 
 pub fn count_user_actions_tx(
   filter filter: UserActionFilter,
 ) -> program_types.TransactionProgram(List(rate_limit.WindowCount)) {
-  program_types.TxImpure(count_user_actions_effect(filter, program_types.TxPure))
+  transaction_program.perform(count_user_actions_effect(
+    filter,
+    transaction_program.succeed,
+  ))
 }
 
 pub fn create_user_action_tx(
   user_action user_action: UserAction,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(create_user_action_effect(user_action, tx_command_next))
+  transaction_program.perform(
+    create_user_action_effect(
+      user_action,
+      transaction_program.from_mapped_result(
+        _,
+        map_error: error.database_command_error,
+      ),
+    ),
+  )
 }
 
 pub fn delete_before_tx(
   before: Timestamp,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(delete_before_effect(before, tx_command_next))
-}
-
-fn tx_command_next(
-  result: Result(Nil, db_error.DbCommandError),
-) -> program_types.TransactionProgram(Nil) {
-  case result {
-    Ok(_) -> program_types.TxPure(Nil)
-    Error(err) -> program_types.TxFail(error.database_command_error(err))
-  }
+  transaction_program.perform(
+    delete_before_effect(before, transaction_program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
+  )
 }
 
 fn count_user_actions_effect(

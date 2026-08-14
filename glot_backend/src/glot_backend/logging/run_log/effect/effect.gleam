@@ -4,55 +4,48 @@ import glot_backend/logging/effect/effect as logging_effect
 import glot_backend/logging/run_log/effect/algebra as run_log_algebra
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
+import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types
+import glot_backend/system/effect/transaction/transaction_program
 import glot_core/admin/run_log_dto
 import glot_core/run_log_model.{type RunLog}
 import youid/uuid.{type Uuid}
 
 pub fn create(run_log: RunLog) -> program_types.Program(Nil) {
-  program_types.Impure(program_types.DbEffect(create_effect(run_log, next)))
+  program.perform_db(
+    create_effect(run_log, program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
+  )
 }
 
 pub fn create_tx(run_log: RunLog) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(create_effect(run_log, tx_next))
+  transaction_program.perform(
+    create_effect(run_log, transaction_program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
+  )
 }
 
 pub fn list(
   request: run_log_dto.ListRunLogsRequest,
 ) -> program_types.Program(List(RunLog)) {
-  program_types.Impure(
-    program_types.DbEffect(list_effect(request, program_types.Pure)),
-  )
+  program.perform_db(list_effect(request, program.succeed))
 }
 
 pub fn get(id: Uuid) -> program_types.Program(Option(RunLog)) {
-  program_types.Impure(
-    program_types.DbEffect(get_effect(id, program_types.Pure)),
-  )
+  program.perform_db(get_effect(id, program.succeed))
 }
 
 pub fn delete_before(before: Timestamp) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(delete_before_effect(before, next)),
+  program.perform_db(
+    delete_before_effect(before, program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
   )
-}
-
-fn next(
-  result: Result(Nil, db_error.DbCommandError),
-) -> program_types.Program(Nil) {
-  case result {
-    Ok(_) -> program_types.Pure(Nil)
-    Error(err) -> program_types.Fail(error.database_command_error(err))
-  }
-}
-
-fn tx_next(
-  result: Result(Nil, db_error.DbCommandError),
-) -> program_types.TransactionProgram(Nil) {
-  case result {
-    Ok(_) -> program_types.TxPure(Nil)
-    Error(err) -> program_types.TxFail(error.database_command_error(err))
-  }
 }
 
 fn create_effect(

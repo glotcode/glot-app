@@ -4,7 +4,9 @@ import glot_backend/job/effect/effect as job_effect
 import glot_backend/job/effect/job/algebra as job_algebra
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
+import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types
+import glot_backend/system/effect/transaction/transaction_program
 import glot_core/job/job_model
 import glot_core/pagination_model.{type CursorPagination}
 import youid/uuid.{type Uuid}
@@ -13,77 +15,64 @@ pub fn get_next_job(
   now: Timestamp,
   pending_status: job_model.Status,
 ) -> program_types.Program(option.Option(job_model.Job)) {
-  program_types.Impure(
-    program_types.DbEffect(get_next_job_effect(
-      now,
-      pending_status,
-      program_types.Pure,
-    )),
-  )
+  program.perform_db(get_next_job_effect(now, pending_status, program.succeed))
 }
 
 pub fn get_expired_running_job(
   now: Timestamp,
   running_status: job_model.Status,
 ) -> program_types.Program(option.Option(job_model.Job)) {
-  program_types.Impure(
-    program_types.DbEffect(get_expired_running_job_effect(
-      now,
-      running_status,
-      program_types.Pure,
-    )),
-  )
+  program.perform_db(get_expired_running_job_effect(
+    now,
+    running_status,
+    program.succeed,
+  ))
 }
 
 pub fn list_jobs(
   filter filter: job_model.ListJobsFilter,
   pagination pagination: CursorPagination,
 ) -> program_types.Program(List(job_model.Job)) {
-  program_types.Impure(
-    program_types.DbEffect(list_jobs_effect(
-      filter,
-      pagination,
-      program_types.Pure,
-    )),
-  )
+  program.perform_db(list_jobs_effect(filter, pagination, program.succeed))
 }
 
 pub fn summarize_jobs(
   filter filter: job_model.ListJobsFilter,
   now now: Timestamp,
 ) -> program_types.Program(job_model.Summary) {
-  program_types.Impure(
-    program_types.DbEffect(summarize_jobs_effect(
-      filter,
-      now,
-      program_types.Pure,
-    )),
-  )
+  program.perform_db(summarize_jobs_effect(filter, now, program.succeed))
 }
 
 pub fn create_job(job j: job_model.Job) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(create_job_effect(j, command_next)),
+  program.perform_db(
+    create_job_effect(j, program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
   )
 }
 
 pub fn get_job_by_id(
   id id: Uuid,
 ) -> program_types.Program(option.Option(job_model.Job)) {
-  program_types.Impure(
-    program_types.DbEffect(get_job_by_id_effect(id, program_types.Pure)),
-  )
+  program.perform_db(get_job_by_id_effect(id, program.succeed))
 }
 
 pub fn update_job(job j: job_model.Job) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(update_job_effect(j, command_next)),
+  program.perform_db(
+    update_job_effect(j, program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
   )
 }
 
 pub fn delete_job(id id: Uuid) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(delete_job_effect(id, command_next)),
+  program.perform_db(
+    delete_job_effect(id, program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
   )
 }
 
@@ -91,28 +80,22 @@ pub fn delete_before(
   before: Timestamp,
   statuses: List(job_model.Status),
 ) -> program_types.Program(Nil) {
-  program_types.Impure(
-    program_types.DbEffect(delete_before_effect(before, statuses, command_next)),
+  program.perform_db(
+    delete_before_effect(before, statuses, program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
   )
-}
-
-fn command_next(
-  result: Result(Nil, db_error.DbCommandError),
-) -> program_types.Program(Nil) {
-  case result {
-    Ok(_) -> program_types.Pure(Nil)
-    Error(err) -> program_types.Fail(error.database_command_error(err))
-  }
 }
 
 pub fn get_next_job_tx(
   now: Timestamp,
   pending_status: job_model.Status,
 ) -> program_types.TransactionProgram(option.Option(job_model.Job)) {
-  program_types.TxImpure(get_next_job_effect(
+  transaction_program.perform(get_next_job_effect(
     now,
     pending_status,
-    program_types.TxPure,
+    transaction_program.succeed,
   ))
 }
 
@@ -120,49 +103,67 @@ pub fn get_expired_running_job_tx(
   now: Timestamp,
   running_status: job_model.Status,
 ) -> program_types.TransactionProgram(option.Option(job_model.Job)) {
-  program_types.TxImpure(get_expired_running_job_effect(
+  transaction_program.perform(get_expired_running_job_effect(
     now,
     running_status,
-    program_types.TxPure,
+    transaction_program.succeed,
   ))
 }
 
 pub fn create_job_tx(
   job j: job_model.Job,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(create_job_effect(j, tx_command_next))
+  transaction_program.perform(
+    create_job_effect(j, transaction_program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
+  )
 }
 
 pub fn get_job_by_id_tx(
   id id: Uuid,
 ) -> program_types.TransactionProgram(option.Option(job_model.Job)) {
-  program_types.TxImpure(get_job_by_id_effect(id, program_types.TxPure))
+  transaction_program.perform(get_job_by_id_effect(
+    id,
+    transaction_program.succeed,
+  ))
 }
 
 pub fn update_job_tx(
   job j: job_model.Job,
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(update_job_effect(j, tx_command_next))
+  transaction_program.perform(
+    update_job_effect(j, transaction_program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
+  )
 }
 
 pub fn delete_job_tx(id id: Uuid) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(delete_job_effect(id, tx_command_next))
+  transaction_program.perform(
+    delete_job_effect(id, transaction_program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
+  )
 }
 
 pub fn delete_before_tx(
   before: Timestamp,
   statuses: List(job_model.Status),
 ) -> program_types.TransactionProgram(Nil) {
-  program_types.TxImpure(delete_before_effect(before, statuses, tx_command_next))
-}
-
-fn tx_command_next(
-  result: Result(Nil, db_error.DbCommandError),
-) -> program_types.TransactionProgram(Nil) {
-  case result {
-    Ok(_) -> program_types.TxPure(Nil)
-    Error(err) -> program_types.TxFail(error.database_command_error(err))
-  }
+  transaction_program.perform(
+    delete_before_effect(
+      before,
+      statuses,
+      transaction_program.from_mapped_result(
+        _,
+        map_error: error.database_command_error,
+      ),
+    ),
+  )
 }
 
 fn get_next_job_effect(
