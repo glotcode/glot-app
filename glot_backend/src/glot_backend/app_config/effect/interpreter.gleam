@@ -11,9 +11,9 @@ import glot_backend/app_config/ports/store.{type Store}
 import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
+import glot_backend/system/effect/measured_interpreter
 import glot_backend/system/effect/program_state
 import glot_backend/system/effect/program_types
-import glot_backend/system/runtime/erlang
 
 pub fn run(
   effect: algebra.AppConfigEffect(program_types.Program(a)),
@@ -170,23 +170,23 @@ fn get_dynamic_config(
   continue: fn(program_types.Program(a), program_state.State) ->
     #(b, program_state.State),
 ) -> #(b, program_state.State) {
-  let started_at = erlang.perf_counter_ns()
-  let #(load_result, category) = case cache {
-    option.Some(port) -> {
-      let #(result, outcome) = port.lookup()
-      #(result, effect_trace.CacheReadEffect(outcome))
-    }
-    option.None -> #(load_from_store(store), effect_trace.DatabaseReadEffect)
-  }
-
-  continue(
-    next(load_result),
-    program_state.add_effect_measurement(
-      state,
-      effect_trace.AppConfigEffectName(algebra.GetDynamicConfigEffectName),
-      category,
-      started_at,
-    ),
+  measured_interpreter.run_with_kind(
+    fn() {
+      case cache {
+        option.Some(port) -> {
+          let #(result, outcome) = port.lookup()
+          #(result, effect_trace.CacheReadEffect(outcome))
+        }
+        option.None -> #(
+          load_from_store(store),
+          effect_trace.DatabaseReadEffect,
+        )
+      }
+    },
+    next,
+    name: effect_trace.AppConfigEffectName(algebra.GetDynamicConfigEffectName),
+    state: state,
+    continue: continue,
   )
 }
 
@@ -202,20 +202,17 @@ fn upsert(
   continue: fn(program_types.Program(a), program_state.State) ->
     #(b, program_state.State),
 ) -> #(b, program_state.State) {
-  let started_at = erlang.perf_counter_ns()
-  let upsert_result =
-    store.upsert_entries(entries, updated_at)
-    |> result.map_error(error.database_command_error)
-    |> result.try(fn(_) { refresh_dynamic_config(store, cache) })
-
-  continue(
-    next(upsert_result),
-    program_state.add_effect_measurement(
-      state,
-      effect_trace.AppConfigEffectName(effect_name),
-      effect_trace.DatabaseWriteEffect,
-      started_at,
-    ),
+  measured_interpreter.run(
+    fn() {
+      store.upsert_entries(entries, updated_at)
+      |> result.map_error(error.database_command_error)
+      |> result.try(fn(_) { refresh_dynamic_config(store, cache) })
+    },
+    next,
+    name: effect_trace.AppConfigEffectName(effect_name),
+    kind: effect_trace.DatabaseWriteEffect,
+    state: state,
+    continue: continue,
   )
 }
 

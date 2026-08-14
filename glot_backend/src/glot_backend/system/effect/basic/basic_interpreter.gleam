@@ -8,11 +8,11 @@ import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
 import glot_backend/system/effect/log
+import glot_backend/system/effect/measured_interpreter
 import glot_backend/system/effect/program_state
 import glot_backend/system/effect/program_types
 import glot_backend/system/effect/runtime
 import glot_backend/system/request/context
-import glot_backend/system/runtime/erlang
 
 pub fn run(
   effect: basic_algebra.BasicEffect(program_types.Program(a)),
@@ -23,90 +23,74 @@ pub fn run(
     #(Result(a, error.Error), program_state.State),
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
-    basic_algebra.NewToken(length, alphabet, next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let value = runtime.services.system.basic.new_token(length, alphabet)
-      continue(
-        next(value),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.BasicEffectName(basic_algebra.NewTokenEffectName),
-          effect_trace.RuntimeEffect,
-          started_at,
-        ),
+    basic_algebra.NewToken(length, alphabet, next) ->
+      measured_interpreter.run(
+        fn() { runtime.services.system.basic.new_token(length, alphabet) },
+        next,
+        name: effect_trace.BasicEffectName(basic_algebra.NewTokenEffectName),
+        kind: effect_trace.RuntimeEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    basic_algebra.SystemTime(next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let value = runtime.services.system.basic.system_time()
-      continue(
-        next(value),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.BasicEffectName(basic_algebra.SystemTimeEffectName),
-          effect_trace.RuntimeEffect,
-          started_at,
-        ),
+    basic_algebra.SystemTime(next) ->
+      measured_interpreter.run(
+        runtime.services.system.basic.system_time,
+        next,
+        name: effect_trace.BasicEffectName(basic_algebra.SystemTimeEffectName),
+        kind: effect_trace.RuntimeEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    basic_algebra.UuidV7(next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let value = runtime.services.system.basic.uuid_v7(ctx.timestamp)
-      continue(
-        next(value),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.BasicEffectName(basic_algebra.UuidV7EffectName),
-          effect_trace.RuntimeEffect,
-          started_at,
-        ),
+    basic_algebra.UuidV7(next) ->
+      measured_interpreter.run(
+        fn() { runtime.services.system.basic.uuid_v7(ctx.timestamp) },
+        next,
+        name: effect_trace.BasicEffectName(basic_algebra.UuidV7EffectName),
+        kind: effect_trace.RuntimeEffect,
+        state: state,
+        continue: continue,
       )
-    }
     basic_algebra.Log(level, fields, next) -> {
       case level {
-        log.Info -> {
-          let started_at = erlang.perf_counter_ns()
-          let state = program_state.add_info_fields(state, fields)
-          continue(
-            next,
-            program_state.add_effect_measurement(
-              state,
-              effect_trace.BasicEffectName(basic_algebra.LogEffectName(level)),
-              effect_trace.LogEffect,
-              started_at,
-            ),
+        log.Info ->
+          measured_interpreter.run_with_state(
+            fn(state) { #(next, program_state.add_info_fields(state, fields)) },
+            fn(next) { next },
+            name: effect_trace.BasicEffectName(basic_algebra.LogEffectName(
+              level,
+            )),
+            kind: effect_trace.LogEffect,
+            state: state,
+            continue: continue,
           )
-        }
-        log.Warn -> {
-          let started_at = erlang.perf_counter_ns()
-          let state = program_state.add_warning_fields(state, fields)
-          continue(
-            next,
-            program_state.add_effect_measurement(
-              state,
-              effect_trace.BasicEffectName(basic_algebra.LogEffectName(level)),
-              effect_trace.LogEffect,
-              started_at,
-            ),
+        log.Warn ->
+          measured_interpreter.run_with_state(
+            fn(state) {
+              #(next, program_state.add_warning_fields(state, fields))
+            },
+            fn(next) { next },
+            name: effect_trace.BasicEffectName(basic_algebra.LogEffectName(
+              level,
+            )),
+            kind: effect_trace.LogEffect,
+            state: state,
+            continue: continue,
           )
-        }
         log.Debug ->
           case debug_enabled(runtime) {
-            True -> {
-              let started_at = erlang.perf_counter_ns()
-              let state = program_state.add_debug_fields(state, fields)
-              continue(
-                next,
-                program_state.add_effect_measurement(
-                  state,
-                  effect_trace.BasicEffectName(basic_algebra.LogEffectName(
-                    level,
-                  )),
-                  effect_trace.LogEffect,
-                  started_at,
-                ),
+            True ->
+              measured_interpreter.run_with_state(
+                fn(state) {
+                  #(next, program_state.add_debug_fields(state, fields))
+                },
+                fn(next) { next },
+                name: effect_trace.BasicEffectName(basic_algebra.LogEffectName(
+                  level,
+                )),
+                kind: effect_trace.LogEffect,
+                state: state,
+                continue: continue,
               )
-            }
             False -> continue(next, state)
           }
       }

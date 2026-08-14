@@ -2,8 +2,8 @@ import glot_backend/snippet/effect/algebra as snippet_algebra
 import glot_backend/snippet/ports/store.{type Store}
 import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
+import glot_backend/system/effect/measured_interpreter
 import glot_backend/system/effect/program_state
-import glot_backend/system/runtime/erlang
 
 pub fn run(
   effect: snippet_algebra.SnippetEffect(next_program),
@@ -13,153 +13,99 @@ pub fn run(
     #(Result(a, error.Error), program_state.State),
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
-    snippet_algebra.GetSnippetById(id, next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.get_snippet_by_id(id)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(
-            snippet_algebra.GetSnippetByIdEffectName,
-          ),
-          effect_trace.DatabaseReadEffect,
-          started_at,
-        ),
+    snippet_algebra.GetSnippetById(id, next) ->
+      measured_interpreter.run(
+        fn() { store.get_snippet_by_id(id) },
+        next,
+        name: trace_name(snippet_algebra.GetSnippetByIdEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    snippet_algebra.GetSnippetBySlug(slug, next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.get_snippet_by_slug(slug)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(
-            snippet_algebra.GetSnippetBySlugEffectName,
-          ),
-          effect_trace.DatabaseReadEffect,
-          started_at,
-        ),
+    snippet_algebra.GetSnippetBySlug(slug, next) ->
+      measured_interpreter.run(
+        fn() { store.get_snippet_by_slug(slug) },
+        next,
+        name: trace_name(snippet_algebra.GetSnippetBySlugEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    snippet_algebra.GetSnippetBySlugForUpdate(slug, next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.get_snippet_by_slug_for_update(slug)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(
-            snippet_algebra.GetSnippetBySlugForUpdateEffectName,
-          ),
-          effect_trace.DatabaseReadEffect,
-          started_at,
-        ),
+    snippet_algebra.GetSnippetBySlugForUpdate(slug, next) ->
+      measured_interpreter.run(
+        fn() { store.get_snippet_by_slug_for_update(slug) },
+        next,
+        name: trace_name(snippet_algebra.GetSnippetBySlugForUpdateEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    snippet_algebra.GetAdminSnippetBySlug(slug, next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.get_admin_snippet_by_slug(slug)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(
-            snippet_algebra.GetAdminSnippetBySlugEffectName,
-          ),
-          effect_trace.DatabaseReadEffect,
-          started_at,
-        ),
+    snippet_algebra.GetAdminSnippetBySlug(slug, next) ->
+      measured_interpreter.run(
+        fn() { store.get_admin_snippet_by_slug(slug) },
+        next,
+        name: trace_name(snippet_algebra.GetAdminSnippetBySlugEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    snippet_algebra.ListSnippets(filter:, pagination:, next:) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.list_snippets(filter, pagination)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(snippet_algebra.ListSnippetsEffectName),
-          effect_trace.DatabaseReadEffect,
-          started_at,
-        ),
+    snippet_algebra.ListSnippets(filter:, pagination:, next:) ->
+      measured_interpreter.run(
+        fn() { store.list_snippets(filter, pagination) },
+        next,
+        name: trace_name(snippet_algebra.ListSnippetsEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    snippet_algebra.ListAdminSnippets(username:, pagination:, next:) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.list_admin_snippets(username, pagination)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(
-            snippet_algebra.ListAdminSnippetsEffectName,
-          ),
-          effect_trace.DatabaseReadEffect,
-          started_at,
-        ),
+    snippet_algebra.ListAdminSnippets(username:, pagination:, next:) ->
+      measured_interpreter.run(
+        fn() { store.list_admin_snippets(username, pagination) },
+        next,
+        name: trace_name(snippet_algebra.ListAdminSnippetsEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    snippet_algebra.DeleteSnippet(id, next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.delete_snippet(id)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(
-            snippet_algebra.DeleteSnippetEffectName,
-          ),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    snippet_algebra.DeleteSnippet(id, next) ->
+      measured_interpreter.run(
+        fn() { store.delete_snippet(id) },
+        next,
+        name: trace_name(snippet_algebra.DeleteSnippetEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    snippet_algebra.DeleteSnippetsByAccountId(account_id:, next:) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.delete_snippets_by_account_id(account_id)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(
-            snippet_algebra.DeleteSnippetsByAccountIdEffectName,
-          ),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    snippet_algebra.DeleteSnippetsByAccountId(account_id:, next:) ->
+      measured_interpreter.run(
+        fn() { store.delete_snippets_by_account_id(account_id) },
+        next,
+        name: trace_name(snippet_algebra.DeleteSnippetsByAccountIdEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    snippet_algebra.CreateSnippet(snippet_value, next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.create_snippet(snippet_value)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(
-            snippet_algebra.CreateSnippetEffectName,
-          ),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    snippet_algebra.CreateSnippet(snippet_value, next) ->
+      measured_interpreter.run(
+        fn() { store.create_snippet(snippet_value) },
+        next,
+        name: trace_name(snippet_algebra.CreateSnippetEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    snippet_algebra.UpdateSnippet(snippet_value, next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.update_snippet(snippet_value)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.SnippetEffectName(
-            snippet_algebra.UpdateSnippetEffectName,
-          ),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    snippet_algebra.UpdateSnippet(snippet_value, next) ->
+      measured_interpreter.run(
+        fn() { store.update_snippet(snippet_value) },
+        next,
+        name: trace_name(snippet_algebra.UpdateSnippetEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
   }
+}
+
+fn trace_name(name: snippet_algebra.EffectName) -> effect_trace.EffectName {
+  effect_trace.SnippetEffectName(name)
 }

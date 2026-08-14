@@ -80,6 +80,36 @@ Global composition is intentionally centralized:
 Adding an entirely new feature requires updating these composition roots.
 Adding a subfeature or operation to an existing bundled feature should not.
 
+## Effect interpreter measurements
+
+Effect interpreters should use `system/effect/measured_interpreter.gleam` for
+the standard operation, continuation, and trace-measurement lifecycle. Choose
+the helper according to the operation's semantics:
+
+- `run` measures an operation and passes its returned value unchanged to the
+  effect continuation. A returned `Result` remains a value for the effect
+  program to handle.
+- `run_or_fail` measures an operation returning `Result`, passes a successful
+  value to the effect continuation, and maps a failure directly to the
+  application error surface without invoking the continuation.
+- `run_with_kind` is for operations whose `EffectKind` is known only after
+  execution, such as a lookup classified by its cache outcome.
+- `run_with_state` is for operations that update `program_state.State` before
+  continuing, such as collecting structured log fields.
+
+At call sites, keep the operation and effect continuation as the first two
+positional arguments. Pass error mapping, trace metadata, interpreter state,
+and the interpreter continuation with labels so their roles remain explicit.
+
+Keep feature-specific decisions and port composition in the feature
+interpreter or a small local helper. Pass that operation to the measurement
+helper rather than moving business behavior into the shared module.
+
+Transaction interpretation is intentionally different. It owns its timing so
+the transaction trace can include nested effect measurements and whether the
+transaction rolled back. Do not route that aggregate lifecycle through the
+ordinary measurement helpers.
+
 ## Database boundary
 
 SQL sources live with their feature but are generated together into

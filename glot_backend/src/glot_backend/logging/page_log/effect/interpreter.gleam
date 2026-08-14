@@ -3,8 +3,8 @@ import glot_backend/logging/page_log/effect/algebra as page_log_algebra
 import glot_backend/logging/page_log/ports/store.{type Store}
 import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
+import glot_backend/system/effect/measured_interpreter
 import glot_backend/system/effect/program_state
-import glot_backend/system/runtime/erlang
 
 pub fn run(
   effect: page_log_algebra.PageLogEffect(next_program),
@@ -14,19 +14,15 @@ pub fn run(
     #(Result(a, error.Error), program_state.State),
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
-    page_log_algebra.DeletePageLogBefore(before:, next:) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.delete_before(before)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          trace_name(page_log_algebra.DeletePageLogBeforeEffectName),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    page_log_algebra.DeletePageLogBefore(before:, next:) ->
+      measured_interpreter.run(
+        fn() { store.delete_before(before) },
+        next,
+        name: trace_name(page_log_algebra.DeletePageLogBeforeEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
   }
 }
 

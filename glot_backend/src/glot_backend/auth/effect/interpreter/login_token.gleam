@@ -3,8 +3,8 @@ import glot_backend/auth/effect/algebra/login_token as login_token_algebra
 import glot_backend/auth/ports/login_token_store.{type LoginTokenStore}
 import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
+import glot_backend/system/effect/measured_interpreter
 import glot_backend/system/effect/program_state
-import glot_backend/system/runtime/erlang
 
 pub fn run(
   effect: login_token_algebra.Effect(next_program),
@@ -19,89 +19,59 @@ pub fn run(
       created_since:,
       limit:,
       next:,
-    ) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.list_by_email(email, created_since, limit)
-      case result {
-        Ok(value) ->
-          continue(
-            next(value),
-            program_state.add_effect_measurement(
-              state,
-              trace_name(login_token_algebra.ListLoginTokensByEmailEffectName),
-              effect_trace.DatabaseReadEffect,
-              started_at,
-            ),
-          )
-        Error(error) -> #(
-          Error(error.database_query_error(error)),
-          program_state.add_effect_measurement(
-            state,
-            trace_name(login_token_algebra.ListLoginTokensByEmailEffectName),
-            effect_trace.DatabaseReadEffect,
-            started_at,
-          ),
-        )
-      }
-    }
-    login_token_algebra.CreateLoginToken(login_token: login_token, next: next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.create(login_token)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          trace_name(login_token_algebra.CreateLoginTokenEffectName),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    ) ->
+      measured_interpreter.run_or_fail(
+        fn() { store.list_by_email(email, created_since, limit) },
+        next,
+        map_error: error.database_query_error,
+        name: trace_name(login_token_algebra.ListLoginTokensByEmailEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    login_token_algebra.UpdateLoginToken(login_token: login_token, next: next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.update(login_token)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          trace_name(login_token_algebra.UpdateLoginTokenEffectName),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    login_token_algebra.CreateLoginToken(login_token: login_token, next: next) ->
+      measured_interpreter.run(
+        fn() { store.create(login_token) },
+        next,
+        name: trace_name(login_token_algebra.CreateLoginTokenEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    login_token_algebra.DeleteLoginTokensBefore(before: before, next: next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.delete_before(before)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          trace_name(login_token_algebra.DeleteLoginTokensBeforeEffectName),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    login_token_algebra.UpdateLoginToken(login_token: login_token, next: next) ->
+      measured_interpreter.run(
+        fn() { store.update(login_token) },
+        next,
+        name: trace_name(login_token_algebra.UpdateLoginTokenEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
+    login_token_algebra.DeleteLoginTokensBefore(before: before, next: next) ->
+      measured_interpreter.run(
+        fn() { store.delete_before(before) },
+        next,
+        name: trace_name(login_token_algebra.DeleteLoginTokensBeforeEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
     login_token_algebra.InvalidateLoginTokensByEmails(
       old_email:,
       new_email:,
       timestamp:,
       next:,
-    ) -> {
-      let started_at = erlang.perf_counter_ns()
-      continue(
-        next(store.invalidate_by_emails(old_email, new_email, timestamp)),
-        program_state.add_effect_measurement(
-          state,
-          trace_name(
-            login_token_algebra.InvalidateLoginTokensByEmailsEffectName,
-          ),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
+    ) ->
+      measured_interpreter.run(
+        fn() { store.invalidate_by_emails(old_email, new_email, timestamp) },
+        next,
+        name: trace_name(
+          login_token_algebra.InvalidateLoginTokensByEmailsEffectName,
         ),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
   }
 }
 

@@ -3,8 +3,8 @@ import glot_backend/auth/effect/algebra/account as account_algebra
 import glot_backend/auth/ports/account_store.{type AccountStore}
 import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
+import glot_backend/system/effect/measured_interpreter
 import glot_backend/system/effect/program_state
-import glot_backend/system/runtime/erlang
 
 pub fn run(
   effect: account_algebra.Effect(next_program),
@@ -14,45 +14,33 @@ pub fn run(
     #(Result(a, error.Error), program_state.State),
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
-    account_algebra.CreateAccount(account: account, next: next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.create(account)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          trace_name(account_algebra.CreateAccountEffectName),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    account_algebra.CreateAccount(account: account, next: next) ->
+      measured_interpreter.run(
+        fn() { store.create(account) },
+        next,
+        name: trace_name(account_algebra.CreateAccountEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    account_algebra.UpdateAccount(account: account, next: next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.update(account)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          trace_name(account_algebra.UpdateAccountEffectName),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    account_algebra.UpdateAccount(account: account, next: next) ->
+      measured_interpreter.run(
+        fn() { store.update(account) },
+        next,
+        name: trace_name(account_algebra.UpdateAccountEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
-    account_algebra.DeleteAccount(account_id: account_id, next: next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.delete(account_id)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          trace_name(account_algebra.DeleteAccountEffectName),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    account_algebra.DeleteAccount(account_id: account_id, next: next) ->
+      measured_interpreter.run(
+        fn() { store.delete(account_id) },
+        next,
+        name: trace_name(account_algebra.DeleteAccountEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
       )
-    }
   }
 }
 

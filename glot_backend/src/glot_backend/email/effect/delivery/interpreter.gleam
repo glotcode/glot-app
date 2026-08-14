@@ -10,10 +10,10 @@ import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
 import glot_backend/system/effect/error/resource_error
+import glot_backend/system/effect/measured_interpreter
 import glot_backend/system/effect/program_state
 import glot_backend/system/effect/program_types
 import glot_backend/system/request/context
-import glot_backend/system/runtime/erlang
 import wisp
 
 pub fn run(
@@ -27,38 +27,37 @@ pub fn run(
     #(Result(a, error.Error), program_state.State),
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
-    email_algebra.SendEmail(message, next) -> {
-      let started_at = erlang.perf_counter_ns()
-      let send_result =
-        load_config(app_config_cache, app_config_store)
-        |> result.try(fn(config) {
-          let email_config = dynamic_config.email_config(config)
-          case dynamic_config.cloudflare_config(config) {
-            option.Some(cloudflare) ->
-              sender.send(
-                cloudflare,
-                message,
-                option.unwrap(
-                  context.remaining_timeout_ms(ctx),
-                  email_config.default_timeout_ms,
-                ),
-              )
-            option.None -> {
-              wisp.log_error("Missing cloudflare app_config for email sending")
-              Error(error.resource(resource_error.CloudflareConfigNotFound))
+    email_algebra.SendEmail(message, next) ->
+      measured_interpreter.run(
+        fn() {
+          load_config(app_config_cache, app_config_store)
+          |> result.try(fn(config) {
+            let email_config = dynamic_config.email_config(config)
+            case dynamic_config.cloudflare_config(config) {
+              option.Some(cloudflare) ->
+                sender.send(
+                  cloudflare,
+                  message,
+                  option.unwrap(
+                    context.remaining_timeout_ms(ctx),
+                    email_config.default_timeout_ms,
+                  ),
+                )
+              option.None -> {
+                wisp.log_error(
+                  "Missing cloudflare app_config for email sending",
+                )
+                Error(error.resource(resource_error.CloudflareConfigNotFound))
+              }
             }
-          }
-        })
-      continue(
-        next(send_result),
-        program_state.add_effect_measurement(
-          state,
-          effect_trace.EmailEffectName(email_algebra.SendEmailEffectName),
-          effect_trace.EmailCallEffect,
-          started_at,
-        ),
+          })
+        },
+        next,
+        name: effect_trace.EmailEffectName(email_algebra.SendEmailEffectName),
+        kind: effect_trace.EmailCallEffect,
+        state: state,
+        continue: continue,
       )
-    }
   }
 }
 

@@ -2,9 +2,9 @@ import glot_backend/auth/passkey/effect/algebra
 import glot_backend/auth/passkey/ports/ceremony.{type Ceremony}
 import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
+import glot_backend/system/effect/measured_interpreter
 import glot_backend/system/effect/program_state
 import glot_backend/system/effect/program_types
-import glot_backend/system/runtime/erlang
 
 pub fn run(
   effect: algebra.WebauthnEffect(program_types.Program(a)),
@@ -15,14 +15,17 @@ pub fn run(
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
     algebra.NewRegistrationChallenge(origin, rp_id, user_verification, next) ->
-      continue_with_measurement(
+      measured_interpreter.run(
         fn() {
           ceremony.new_registration_challenge(origin, rp_id, user_verification)
         },
         next,
-        algebra.NewRegistrationChallengeEffectName,
-        state,
-        continue,
+        name: effect_trace.WebauthnEffectName(
+          algebra.NewRegistrationChallengeEffectName,
+        ),
+        kind: effect_trace.RuntimeEffect,
+        state: state,
+        continue: continue,
       )
     algebra.Register(
       attestation_object,
@@ -30,7 +33,7 @@ pub fn run(
       challenge_state,
       next,
     ) ->
-      continue_with_measurement(
+      measured_interpreter.run(
         fn() {
           ceremony.register(
             attestation_object,
@@ -39,9 +42,10 @@ pub fn run(
           )
         },
         next,
-        algebra.RegisterEffectName,
-        state,
-        continue,
+        name: effect_trace.WebauthnEffectName(algebra.RegisterEffectName),
+        kind: effect_trace.RuntimeEffect,
+        state: state,
+        continue: continue,
       )
     algebra.NewAuthenticationChallenge(
       origin,
@@ -50,7 +54,7 @@ pub fn run(
       credentials,
       next,
     ) ->
-      continue_with_measurement(
+      measured_interpreter.run(
         fn() {
           ceremony.new_authentication_challenge(
             origin,
@@ -60,9 +64,12 @@ pub fn run(
           )
         },
         next,
-        algebra.NewAuthenticationChallengeEffectName,
-        state,
-        continue,
+        name: effect_trace.WebauthnEffectName(
+          algebra.NewAuthenticationChallengeEffectName,
+        ),
+        kind: effect_trace.RuntimeEffect,
+        state: state,
+        continue: continue,
       )
     algebra.Authenticate(
       credential_id,
@@ -73,7 +80,7 @@ pub fn run(
       credentials,
       next,
     ) ->
-      continue_with_measurement(
+      measured_interpreter.run(
         fn() {
           ceremony.authenticate(
             credential_id,
@@ -85,30 +92,10 @@ pub fn run(
           )
         },
         next,
-        algebra.AuthenticateEffectName,
-        state,
-        continue,
+        name: effect_trace.WebauthnEffectName(algebra.AuthenticateEffectName),
+        kind: effect_trace.RuntimeEffect,
+        state: state,
+        continue: continue,
       )
   }
-}
-
-fn continue_with_measurement(
-  operation: fn() -> Result(value, String),
-  next: fn(Result(value, String)) -> program_types.Program(a),
-  effect_name: algebra.EffectName,
-  state: program_state.State,
-  continue: fn(program_types.Program(a), program_state.State) ->
-    #(Result(a, error.Error), program_state.State),
-) -> #(Result(a, error.Error), program_state.State) {
-  let started_at = erlang.perf_counter_ns()
-  let result = operation()
-  continue(
-    next(result),
-    program_state.add_effect_measurement(
-      state,
-      effect_trace.WebauthnEffectName(effect_name),
-      effect_trace.RuntimeEffect,
-      started_at,
-    ),
-  )
 }

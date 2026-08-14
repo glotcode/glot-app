@@ -3,8 +3,8 @@ import glot_backend/job/effect/log/algebra as job_log_algebra
 import glot_backend/job/ports/log_store.{type LogStore}
 import glot_backend/system/effect/effect_trace
 import glot_backend/system/effect/error
+import glot_backend/system/effect/measured_interpreter
 import glot_backend/system/effect/program_state
-import glot_backend/system/runtime/erlang
 
 pub fn run(
   effect: job_log_algebra.JobLogEffect(next_program),
@@ -14,69 +14,35 @@ pub fn run(
     #(Result(a, error.Error), program_state.State),
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
-    job_log_algebra.ListJobLogs(request:, next:) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.list(request)
-      case result {
-        Ok(value) ->
-          continue(
-            next(value),
-            program_state.add_effect_measurement(
-              state,
-              trace_name(job_log_algebra.ListJobLogsEffectName),
-              effect_trace.DatabaseReadEffect,
-              started_at,
-            ),
-          )
-        Error(query_error) -> #(
-          Error(error.database_query_error(query_error)),
-          program_state.add_effect_measurement(
-            state,
-            trace_name(job_log_algebra.ListJobLogsEffectName),
-            effect_trace.DatabaseReadEffect,
-            started_at,
-          ),
-        )
-      }
-    }
-    job_log_algebra.GetJobLog(id:, next:) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.get(id)
-      case result {
-        Ok(value) ->
-          continue(
-            next(value),
-            program_state.add_effect_measurement(
-              state,
-              trace_name(job_log_algebra.GetJobLogEffectName),
-              effect_trace.DatabaseReadEffect,
-              started_at,
-            ),
-          )
-        Error(query_error) -> #(
-          Error(error.database_query_error(query_error)),
-          program_state.add_effect_measurement(
-            state,
-            trace_name(job_log_algebra.GetJobLogEffectName),
-            effect_trace.DatabaseReadEffect,
-            started_at,
-          ),
-        )
-      }
-    }
-    job_log_algebra.DeleteJobLogBefore(before:, next:) -> {
-      let started_at = erlang.perf_counter_ns()
-      let result = store.delete_before(before)
-      continue(
-        next(result),
-        program_state.add_effect_measurement(
-          state,
-          trace_name(job_log_algebra.DeleteJobLogBeforeEffectName),
-          effect_trace.DatabaseWriteEffect,
-          started_at,
-        ),
+    job_log_algebra.ListJobLogs(request:, next:) ->
+      measured_interpreter.run_or_fail(
+        fn() { store.list(request) },
+        next,
+        map_error: error.database_query_error,
+        name: trace_name(job_log_algebra.ListJobLogsEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
       )
-    }
+    job_log_algebra.GetJobLog(id:, next:) ->
+      measured_interpreter.run_or_fail(
+        fn() { store.get(id) },
+        next,
+        map_error: error.database_query_error,
+        name: trace_name(job_log_algebra.GetJobLogEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
+      )
+    job_log_algebra.DeleteJobLogBefore(before:, next:) ->
+      measured_interpreter.run(
+        fn() { store.delete_before(before) },
+        next,
+        name: trace_name(job_log_algebra.DeleteJobLogBeforeEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
   }
 }
 
