@@ -69,3 +69,15 @@ export function focusElement(id) {
 
   element.focus();
 }
+
+export function blurElement(id) {
+  window.requestAnimationFrame(() => {
+    const element = document.getElementById(id);
+
+    if (!(element instanceof HTMLElement)) {
+      return;
+    }
+
+    element.blur();
+  });
+}

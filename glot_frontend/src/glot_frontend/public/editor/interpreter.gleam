@@ -30,6 +30,7 @@ pub fn run(
     command.OpenDialogNextFrame(id) -> ports.open_dialog_next_frame(id)
     command.CloseDialog(id) -> ports.close_dialog(id)
     command.Focus(id) -> ports.focus(id)
+    command.Blur(id) -> ports.blur(id)
     command.Navigate(path) -> ports.navigate(path)
     command.Schedule(milliseconds, msg) -> ports.schedule(milliseconds, msg)
   }

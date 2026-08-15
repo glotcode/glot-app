@@ -3,9 +3,10 @@ import glot_core/language
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/execution_update
 import glot_frontend/public/editor/file_update
+import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{
   type EditorMsg, Execution, File, Metadata, RestoreDraft, Save, Settings,
-  SnippetInfo, TabKeyPressed, TabSelected,
+  SnippetInfo, TabKeyPressed, TabSelected, UnfocusClicked,
 }
 import glot_frontend/public/editor/metadata_update
 import glot_frontend/public/editor/model.{type Editor}
@@ -21,6 +22,7 @@ pub fn update(
   current_user_id: option.Option(Uuid),
 ) -> #(Editor, command.Command(EditorMsg)) {
   case language.is_writable(model.snippet.language), msg {
+    _, UnfocusClicked -> #(model, command.Blur(ids.editor))
     False, SnippetInfo(msg) ->
       snippet_info_update.update(model, msg)
       |> map_command(SnippetInfo)

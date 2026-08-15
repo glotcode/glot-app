@@ -21,6 +21,7 @@ pub type Msg {
 }
 
 pub type EditorMsg {
+  UnfocusClicked
   RestoreDraft(RestoreDraftMsg)
   Metadata(MetadataMsg)
   File(FileMsg)

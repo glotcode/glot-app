@@ -40,6 +40,7 @@ pub type Command(msg) {
   OpenDialogNextFrame(String)
   CloseDialog(String)
   Focus(String)
+  Blur(String)
   Navigate(String)
   Schedule(Int, msg)
 }
@@ -79,6 +80,7 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
     OpenDialogNextFrame(id) -> OpenDialogNextFrame(id)
     CloseDialog(id) -> CloseDialog(id)
     Focus(id) -> Focus(id)
+    Blur(id) -> Blur(id)
     Navigate(path) -> Navigate(path)
     Schedule(delay, msg) -> Schedule(delay, transform(msg))
   }

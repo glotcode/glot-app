@@ -1,12 +1,14 @@
 import gleam/list
 import gleam/option
 import glot_core/language
+import glot_frontend/public/editor/command
 import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/quick_actions
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/settings
+import glot_frontend/public/editor/update
 import glot_web/page/top_bar
 
 pub fn execution_quick_action_follows_cancellation_availability_test() {
@@ -33,7 +35,7 @@ pub fn execution_quick_action_follows_cancellation_availability_test() {
     == message.Editor(message.Execution(message.RunCancellationSubmitted))
 }
 
-pub fn plaintext_only_exposes_information_action_test() {
+pub fn plaintext_exposes_information_and_unfocus_actions_test() {
   let base = ready.new(language.Plaintext, settings.defaults())
   let editor =
     model.Editor(
@@ -41,7 +43,17 @@ pub fn plaintext_only_exposes_information_action_test() {
       snippet: model.Snippet(..base.snippet, slug: option.Some("legacy")),
     )
 
-  assert labels(actions(editor)) == ["Snippet info"]
+  assert labels(actions(editor)) == ["Snippet info", "Unfocus editor"]
+}
+
+pub fn unfocus_action_blurs_the_editor_without_changing_it_test() {
+  let editor = ready.new(language.JavaScript, settings.defaults())
+  let editor_actions = actions(editor)
+  let assert Ok(top_bar.Action(msg: message.Editor(msg), ..)) =
+    list.find(editor_actions, fn(action) { action.label == "Unfocus editor" })
+
+  assert update.update(editor, msg, option.None)
+    == #(editor, command.Blur("editor-page-codemirror"))
 }
 
 fn actions(editor: model.Editor) -> List(top_bar.Action(message.Msg)) {

@@ -43,6 +43,7 @@ pub type Ports(msg) {
     open_dialog_next_frame: fn(String) -> Effect(msg),
     close_dialog: fn(String) -> Effect(msg),
     focus: fn(String) -> Effect(msg),
+    blur: fn(String) -> Effect(msg),
     navigate: fn(String) -> Effect(msg),
     schedule: fn(Int, msg) -> Effect(msg),
   )

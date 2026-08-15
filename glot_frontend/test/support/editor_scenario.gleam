@@ -55,6 +55,7 @@ pub type ObservedEffect {
   DialogOpenedNextFrame(String)
   DialogClosed(String)
   ElementFocused(String)
+  ElementBlurred(String)
   Navigated(String)
   RunCancelled
   MessageScheduled(Int, message.Msg)
@@ -414,6 +415,7 @@ fn interpret(
       append_observed(scenario, DialogOpenedNextFrame(id))
     command.CloseDialog(id) -> append_observed(scenario, DialogClosed(id))
     command.Focus(id) -> append_observed(scenario, ElementFocused(id))
+    command.Blur(id) -> append_observed(scenario, ElementBlurred(id))
     command.Navigate(path) -> append_observed(scenario, Navigated(path))
     command.Schedule(milliseconds, msg) -> {
       let scenario =

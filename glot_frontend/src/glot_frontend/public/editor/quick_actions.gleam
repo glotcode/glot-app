@@ -5,7 +5,7 @@ import glot_frontend/public/editor/message.{
   type EditorMsg, type Msg, AddEntryClicked, EditMetadataClicked,
   Editor as EditorMessage, Execution, File, Metadata, RunCancellationSubmitted,
   RunSubmitted, Save, SaveClicked, Settings, SettingsClicked, SnippetInfo,
-  SnippetInfoClicked,
+  SnippetInfoClicked, UnfocusClicked,
 }
 import glot_frontend/public/editor/model.{
   type Editor, type Model, Lifecycle, Ready,
@@ -31,10 +31,22 @@ fn actions_for_model(
   model: Editor,
   current_user_id: option.Option(Uuid),
 ) -> List(top_bar.Action(EditorMsg)) {
-  case language.is_writable(model.snippet.language) {
+  let actions = case language.is_writable(model.snippet.language) {
     False -> read_only_actions(model)
     True -> writable_actions(model, current_user_id)
   }
+
+  list.append(actions, [unfocus_action()])
+}
+
+fn unfocus_action() -> top_bar.Action(EditorMsg) {
+  top_bar.Action(
+    label: "Unfocus editor",
+    description: "Move keyboard focus away from the code editor.",
+    shortcut: [],
+    target_route: option.None,
+    msg: UnfocusClicked,
+  )
 }
 
 fn writable_actions(

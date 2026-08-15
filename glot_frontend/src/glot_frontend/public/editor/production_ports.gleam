@@ -32,6 +32,7 @@ pub fn new() -> ports.Ports(msg) {
     open_dialog_next_frame: app_dialog.open_next_frame,
     close_dialog: app_dialog.close,
     focus: app_dialog.focus,
+    blur: app_dialog.blur,
     navigate: fn(path) { spa_navigation.push(path, option.None) },
     schedule: fn(milliseconds, msg) {
       effect.from(fn(dispatch) {

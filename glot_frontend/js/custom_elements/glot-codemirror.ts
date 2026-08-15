@@ -532,6 +532,11 @@ export class GlotCodeMirror extends HTMLElement {
     this._view?.focus();
   }
 
+  blur() {
+    this._view?.contentDOM.blur();
+    super.blur();
+  }
+
   // Helpers
   private _getLanguageExtension(name: string): Promise<Extension> | null {
     const factory = languageMap[name];
