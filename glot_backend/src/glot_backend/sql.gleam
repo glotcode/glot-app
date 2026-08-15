@@ -3272,6 +3272,7 @@ WHERE name = $1"
 pub type ListJobTypePolicies {
   ListJobTypePolicies(
     job_type: String,
+    queue_name: String,
     max_attempts: Int,
     timeout_seconds: Int,
     base_backoff_seconds: Int,
@@ -3285,6 +3286,7 @@ pub fn list_job_type_policies() {
   let sql =
     "SELECT
   job_type,
+  queue_name,
   max_attempts,
   timeout_seconds,
   base_backoff_seconds,
@@ -3298,14 +3300,16 @@ ORDER BY job_type ASC"
 
 pub fn list_job_type_policies_decoder() -> decode.Decoder(ListJobTypePolicies) {
   use job_type <- decode.field(0, decode.string)
-  use max_attempts <- decode.field(1, decode.int)
-  use timeout_seconds <- decode.field(2, decode.int)
-  use base_backoff_seconds <- decode.field(3, decode.int)
-  use max_backoff_seconds <- decode.field(4, decode.int)
-  use created_at <- decode.field(5, dev.datetime_decoder())
-  use updated_at <- decode.field(6, dev.datetime_decoder())
+  use queue_name <- decode.field(1, decode.string)
+  use max_attempts <- decode.field(2, decode.int)
+  use timeout_seconds <- decode.field(3, decode.int)
+  use base_backoff_seconds <- decode.field(4, decode.int)
+  use max_backoff_seconds <- decode.field(5, decode.int)
+  use created_at <- decode.field(6, dev.datetime_decoder())
+  use updated_at <- decode.field(7, dev.datetime_decoder())
   decode.success(ListJobTypePolicies(
     job_type:,
+    queue_name:,
     max_attempts:,
     timeout_seconds:,
     base_backoff_seconds:,
@@ -3318,6 +3322,7 @@ pub fn list_job_type_policies_decoder() -> decode.Decoder(ListJobTypePolicies) {
 pub type GetJobTypePolicyByJobType {
   GetJobTypePolicyByJobType(
     job_type: String,
+    queue_name: String,
     max_attempts: Int,
     timeout_seconds: Int,
     base_backoff_seconds: Int,
@@ -3331,6 +3336,7 @@ pub fn get_job_type_policy_by_job_type(job_type job_type: String) {
   let sql =
     "SELECT
   job_type,
+  queue_name,
   max_attempts,
   timeout_seconds,
   base_backoff_seconds,
@@ -3346,14 +3352,16 @@ pub fn get_job_type_policy_by_job_type_decoder() -> decode.Decoder(
   GetJobTypePolicyByJobType,
 ) {
   use job_type <- decode.field(0, decode.string)
-  use max_attempts <- decode.field(1, decode.int)
-  use timeout_seconds <- decode.field(2, decode.int)
-  use base_backoff_seconds <- decode.field(3, decode.int)
-  use max_backoff_seconds <- decode.field(4, decode.int)
-  use created_at <- decode.field(5, dev.datetime_decoder())
-  use updated_at <- decode.field(6, dev.datetime_decoder())
+  use queue_name <- decode.field(1, decode.string)
+  use max_attempts <- decode.field(2, decode.int)
+  use timeout_seconds <- decode.field(3, decode.int)
+  use base_backoff_seconds <- decode.field(4, decode.int)
+  use max_backoff_seconds <- decode.field(5, decode.int)
+  use created_at <- decode.field(6, dev.datetime_decoder())
+  use updated_at <- decode.field(7, dev.datetime_decoder())
   decode.success(GetJobTypePolicyByJobType(
     job_type:,
+    queue_name:,
     max_attempts:,
     timeout_seconds:,
     base_backoff_seconds:,
@@ -3365,6 +3373,7 @@ pub fn get_job_type_policy_by_job_type_decoder() -> decode.Decoder(
 
 pub fn upsert_job_type_policy(
   job_type job_type: String,
+  queue_name queue_name: String,
   max_attempts max_attempts: Int,
   timeout_seconds timeout_seconds: Int,
   base_backoff_seconds base_backoff_seconds: Int,
@@ -3374,6 +3383,7 @@ pub fn upsert_job_type_policy(
   let sql =
     "INSERT INTO job_type_policies (
   job_type,
+  queue_name,
   max_attempts,
   timeout_seconds,
   base_backoff_seconds,
@@ -3381,15 +3391,17 @@ pub fn upsert_job_type_policy(
   created_at,
   updated_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $6)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
 ON CONFLICT (job_type) DO UPDATE
-SET max_attempts = EXCLUDED.max_attempts,
+SET queue_name = EXCLUDED.queue_name,
+    max_attempts = EXCLUDED.max_attempts,
     timeout_seconds = EXCLUDED.timeout_seconds,
     base_backoff_seconds = EXCLUDED.base_backoff_seconds,
     max_backoff_seconds = EXCLUDED.max_backoff_seconds,
     updated_at = EXCLUDED.updated_at"
   #(sql, [
     dev.ParamString(job_type),
+    dev.ParamString(queue_name),
     dev.ParamInt(max_attempts),
     dev.ParamInt(timeout_seconds),
     dev.ParamInt(base_backoff_seconds),
@@ -3404,6 +3416,8 @@ pub type GetJobById {
     request_id: Option(BitArray),
     periodic_job_id: Option(BitArray),
     job_type: String,
+    queue_name: String,
+    dedupe_key: Option(String),
     payload: Option(String),
     status: String,
     attempts: Int,
@@ -3429,6 +3443,8 @@ pub fn get_job_by_id(id id: BitArray) {
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -3454,29 +3470,33 @@ pub fn get_job_by_id_decoder() -> decode.Decoder(GetJobById) {
   use request_id <- decode.field(1, decode.optional(decode.bit_array))
   use periodic_job_id <- decode.field(2, decode.optional(decode.bit_array))
   use job_type <- decode.field(3, decode.string)
-  use payload <- decode.field(4, decode.optional(decode.string))
-  use status <- decode.field(5, decode.string)
-  use attempts <- decode.field(6, decode.int)
-  use max_attempts <- decode.field(7, decode.int)
-  use timeout_seconds <- decode.field(8, decode.int)
-  use base_backoff_seconds <- decode.field(9, decode.int)
-  use max_backoff_seconds <- decode.field(10, decode.int)
-  use run_at <- decode.field(11, dev.datetime_decoder())
-  use started_at <- decode.field(12, decode.optional(dev.datetime_decoder()))
+  use queue_name <- decode.field(4, decode.string)
+  use dedupe_key <- decode.field(5, decode.optional(decode.string))
+  use payload <- decode.field(6, decode.optional(decode.string))
+  use status <- decode.field(7, decode.string)
+  use attempts <- decode.field(8, decode.int)
+  use max_attempts <- decode.field(9, decode.int)
+  use timeout_seconds <- decode.field(10, decode.int)
+  use base_backoff_seconds <- decode.field(11, decode.int)
+  use max_backoff_seconds <- decode.field(12, decode.int)
+  use run_at <- decode.field(13, dev.datetime_decoder())
+  use started_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
   use lease_expires_at <- decode.field(
-    13,
+    15,
     decode.optional(dev.datetime_decoder()),
   )
-  use completed_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
-  use timed_out_at <- decode.field(15, decode.optional(dev.datetime_decoder()))
-  use last_error <- decode.field(16, decode.optional(decode.string))
-  use created_at <- decode.field(17, dev.datetime_decoder())
-  use updated_at <- decode.field(18, dev.datetime_decoder())
+  use completed_at <- decode.field(16, decode.optional(dev.datetime_decoder()))
+  use timed_out_at <- decode.field(17, decode.optional(dev.datetime_decoder()))
+  use last_error <- decode.field(18, decode.optional(decode.string))
+  use created_at <- decode.field(19, dev.datetime_decoder())
+  use updated_at <- decode.field(20, dev.datetime_decoder())
   decode.success(GetJobById(
     id:,
     request_id:,
     periodic_job_id:,
     job_type:,
+    queue_name:,
+    dedupe_key:,
     payload:,
     status:,
     attempts:,
@@ -3501,6 +3521,8 @@ pub type GetNextJob {
     request_id: Option(BitArray),
     periodic_job_id: Option(BitArray),
     job_type: String,
+    queue_name: String,
+    dedupe_key: Option(String),
     payload: Option(String),
     status: String,
     attempts: Int,
@@ -3519,13 +3541,19 @@ pub type GetNextJob {
   )
 }
 
-pub fn get_next_job(pending_status pending_status: String, now now: Timestamp) {
+pub fn get_next_job(
+  pending_status pending_status: String,
+  queue_name queue_name: String,
+  now now: Timestamp,
+) {
   let sql =
     "SELECT
   id,
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -3543,14 +3571,19 @@ pub fn get_next_job(pending_status pending_status: String, now now: Timestamp) {
   updated_at
 FROM jobs
 WHERE jobs.status = $1
-  AND run_at <= $2
+  AND queue_name = $2
+  AND run_at <= $3
   AND started_at IS NULL
 ORDER BY run_at ASC, created_at ASC
 LIMIT 1
 FOR UPDATE SKIP LOCKED"
   #(
     sql,
-    [dev.ParamString(pending_status), dev.ParamTimestamp(now)],
+    [
+      dev.ParamString(pending_status),
+      dev.ParamString(queue_name),
+      dev.ParamTimestamp(now),
+    ],
     get_next_job_decoder(),
   )
 }
@@ -3560,29 +3593,33 @@ pub fn get_next_job_decoder() -> decode.Decoder(GetNextJob) {
   use request_id <- decode.field(1, decode.optional(decode.bit_array))
   use periodic_job_id <- decode.field(2, decode.optional(decode.bit_array))
   use job_type <- decode.field(3, decode.string)
-  use payload <- decode.field(4, decode.optional(decode.string))
-  use status <- decode.field(5, decode.string)
-  use attempts <- decode.field(6, decode.int)
-  use max_attempts <- decode.field(7, decode.int)
-  use timeout_seconds <- decode.field(8, decode.int)
-  use base_backoff_seconds <- decode.field(9, decode.int)
-  use max_backoff_seconds <- decode.field(10, decode.int)
-  use run_at <- decode.field(11, dev.datetime_decoder())
-  use started_at <- decode.field(12, decode.optional(dev.datetime_decoder()))
+  use queue_name <- decode.field(4, decode.string)
+  use dedupe_key <- decode.field(5, decode.optional(decode.string))
+  use payload <- decode.field(6, decode.optional(decode.string))
+  use status <- decode.field(7, decode.string)
+  use attempts <- decode.field(8, decode.int)
+  use max_attempts <- decode.field(9, decode.int)
+  use timeout_seconds <- decode.field(10, decode.int)
+  use base_backoff_seconds <- decode.field(11, decode.int)
+  use max_backoff_seconds <- decode.field(12, decode.int)
+  use run_at <- decode.field(13, dev.datetime_decoder())
+  use started_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
   use lease_expires_at <- decode.field(
-    13,
+    15,
     decode.optional(dev.datetime_decoder()),
   )
-  use completed_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
-  use timed_out_at <- decode.field(15, decode.optional(dev.datetime_decoder()))
-  use last_error <- decode.field(16, decode.optional(decode.string))
-  use created_at <- decode.field(17, dev.datetime_decoder())
-  use updated_at <- decode.field(18, dev.datetime_decoder())
+  use completed_at <- decode.field(16, decode.optional(dev.datetime_decoder()))
+  use timed_out_at <- decode.field(17, decode.optional(dev.datetime_decoder()))
+  use last_error <- decode.field(18, decode.optional(decode.string))
+  use created_at <- decode.field(19, dev.datetime_decoder())
+  use updated_at <- decode.field(20, dev.datetime_decoder())
   decode.success(GetNextJob(
     id:,
     request_id:,
     periodic_job_id:,
     job_type:,
+    queue_name:,
+    dedupe_key:,
     payload:,
     status:,
     attempts:,
@@ -3607,6 +3644,8 @@ pub type GetExpiredRunningJob {
     request_id: Option(BitArray),
     periodic_job_id: Option(BitArray),
     job_type: String,
+    queue_name: String,
+    dedupe_key: Option(String),
     payload: Option(String),
     status: String,
     attempts: Int,
@@ -3627,6 +3666,7 @@ pub type GetExpiredRunningJob {
 
 pub fn get_expired_running_job(
   running_status running_status: String,
+  queue_name queue_name: String,
   now now: Option(Timestamp),
 ) {
   let sql =
@@ -3635,6 +3675,8 @@ pub fn get_expired_running_job(
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -3652,8 +3694,9 @@ pub fn get_expired_running_job(
   updated_at
 FROM jobs
 WHERE jobs.status = $1
+  AND queue_name = $2
   AND lease_expires_at IS NOT NULL
-  AND lease_expires_at <= $2
+  AND lease_expires_at <= $3
 ORDER BY lease_expires_at ASC, created_at ASC
 LIMIT 1
 FOR UPDATE SKIP LOCKED"
@@ -3661,6 +3704,7 @@ FOR UPDATE SKIP LOCKED"
     sql,
     [
       dev.ParamString(running_status),
+      dev.ParamString(queue_name),
       dev.ParamNullable(option.map(now, fn(v) { dev.ParamTimestamp(v) })),
     ],
     get_expired_running_job_decoder(),
@@ -3672,29 +3716,33 @@ pub fn get_expired_running_job_decoder() -> decode.Decoder(GetExpiredRunningJob)
   use request_id <- decode.field(1, decode.optional(decode.bit_array))
   use periodic_job_id <- decode.field(2, decode.optional(decode.bit_array))
   use job_type <- decode.field(3, decode.string)
-  use payload <- decode.field(4, decode.optional(decode.string))
-  use status <- decode.field(5, decode.string)
-  use attempts <- decode.field(6, decode.int)
-  use max_attempts <- decode.field(7, decode.int)
-  use timeout_seconds <- decode.field(8, decode.int)
-  use base_backoff_seconds <- decode.field(9, decode.int)
-  use max_backoff_seconds <- decode.field(10, decode.int)
-  use run_at <- decode.field(11, dev.datetime_decoder())
-  use started_at <- decode.field(12, decode.optional(dev.datetime_decoder()))
+  use queue_name <- decode.field(4, decode.string)
+  use dedupe_key <- decode.field(5, decode.optional(decode.string))
+  use payload <- decode.field(6, decode.optional(decode.string))
+  use status <- decode.field(7, decode.string)
+  use attempts <- decode.field(8, decode.int)
+  use max_attempts <- decode.field(9, decode.int)
+  use timeout_seconds <- decode.field(10, decode.int)
+  use base_backoff_seconds <- decode.field(11, decode.int)
+  use max_backoff_seconds <- decode.field(12, decode.int)
+  use run_at <- decode.field(13, dev.datetime_decoder())
+  use started_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
   use lease_expires_at <- decode.field(
-    13,
+    15,
     decode.optional(dev.datetime_decoder()),
   )
-  use completed_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
-  use timed_out_at <- decode.field(15, decode.optional(dev.datetime_decoder()))
-  use last_error <- decode.field(16, decode.optional(decode.string))
-  use created_at <- decode.field(17, dev.datetime_decoder())
-  use updated_at <- decode.field(18, dev.datetime_decoder())
+  use completed_at <- decode.field(16, decode.optional(dev.datetime_decoder()))
+  use timed_out_at <- decode.field(17, decode.optional(dev.datetime_decoder()))
+  use last_error <- decode.field(18, decode.optional(decode.string))
+  use created_at <- decode.field(19, dev.datetime_decoder())
+  use updated_at <- decode.field(20, dev.datetime_decoder())
   decode.success(GetExpiredRunningJob(
     id:,
     request_id:,
     periodic_job_id:,
     job_type:,
+    queue_name:,
+    dedupe_key:,
     payload:,
     status:,
     attempts:,
@@ -3719,6 +3767,8 @@ pub type ListJobsAfter {
     request_id: Option(BitArray),
     periodic_job_id: Option(BitArray),
     job_type: String,
+    queue_name: String,
+    dedupe_key: Option(String),
     payload: Option(String),
     status: String,
     attempts: Int,
@@ -3750,6 +3800,8 @@ pub fn list_jobs_after(
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -3804,29 +3856,33 @@ pub fn list_jobs_after_decoder() -> decode.Decoder(ListJobsAfter) {
   use request_id <- decode.field(1, decode.optional(decode.bit_array))
   use periodic_job_id <- decode.field(2, decode.optional(decode.bit_array))
   use job_type <- decode.field(3, decode.string)
-  use payload <- decode.field(4, decode.optional(decode.string))
-  use status <- decode.field(5, decode.string)
-  use attempts <- decode.field(6, decode.int)
-  use max_attempts <- decode.field(7, decode.int)
-  use timeout_seconds <- decode.field(8, decode.int)
-  use base_backoff_seconds <- decode.field(9, decode.int)
-  use max_backoff_seconds <- decode.field(10, decode.int)
-  use run_at <- decode.field(11, dev.datetime_decoder())
-  use started_at <- decode.field(12, decode.optional(dev.datetime_decoder()))
+  use queue_name <- decode.field(4, decode.string)
+  use dedupe_key <- decode.field(5, decode.optional(decode.string))
+  use payload <- decode.field(6, decode.optional(decode.string))
+  use status <- decode.field(7, decode.string)
+  use attempts <- decode.field(8, decode.int)
+  use max_attempts <- decode.field(9, decode.int)
+  use timeout_seconds <- decode.field(10, decode.int)
+  use base_backoff_seconds <- decode.field(11, decode.int)
+  use max_backoff_seconds <- decode.field(12, decode.int)
+  use run_at <- decode.field(13, dev.datetime_decoder())
+  use started_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
   use lease_expires_at <- decode.field(
-    13,
+    15,
     decode.optional(dev.datetime_decoder()),
   )
-  use completed_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
-  use timed_out_at <- decode.field(15, decode.optional(dev.datetime_decoder()))
-  use last_error <- decode.field(16, decode.optional(decode.string))
-  use created_at <- decode.field(17, dev.datetime_decoder())
-  use updated_at <- decode.field(18, dev.datetime_decoder())
+  use completed_at <- decode.field(16, decode.optional(dev.datetime_decoder()))
+  use timed_out_at <- decode.field(17, decode.optional(dev.datetime_decoder()))
+  use last_error <- decode.field(18, decode.optional(decode.string))
+  use created_at <- decode.field(19, dev.datetime_decoder())
+  use updated_at <- decode.field(20, dev.datetime_decoder())
   decode.success(ListJobsAfter(
     id:,
     request_id:,
     periodic_job_id:,
     job_type:,
+    queue_name:,
+    dedupe_key:,
     payload:,
     status:,
     attempts:,
@@ -3851,6 +3907,8 @@ pub type ListJobsBefore {
     request_id: Option(BitArray),
     periodic_job_id: Option(BitArray),
     job_type: String,
+    queue_name: String,
+    dedupe_key: Option(String),
     payload: Option(String),
     status: String,
     attempts: Int,
@@ -3882,6 +3940,8 @@ pub fn list_jobs_before(
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -3936,29 +3996,33 @@ pub fn list_jobs_before_decoder() -> decode.Decoder(ListJobsBefore) {
   use request_id <- decode.field(1, decode.optional(decode.bit_array))
   use periodic_job_id <- decode.field(2, decode.optional(decode.bit_array))
   use job_type <- decode.field(3, decode.string)
-  use payload <- decode.field(4, decode.optional(decode.string))
-  use status <- decode.field(5, decode.string)
-  use attempts <- decode.field(6, decode.int)
-  use max_attempts <- decode.field(7, decode.int)
-  use timeout_seconds <- decode.field(8, decode.int)
-  use base_backoff_seconds <- decode.field(9, decode.int)
-  use max_backoff_seconds <- decode.field(10, decode.int)
-  use run_at <- decode.field(11, dev.datetime_decoder())
-  use started_at <- decode.field(12, decode.optional(dev.datetime_decoder()))
+  use queue_name <- decode.field(4, decode.string)
+  use dedupe_key <- decode.field(5, decode.optional(decode.string))
+  use payload <- decode.field(6, decode.optional(decode.string))
+  use status <- decode.field(7, decode.string)
+  use attempts <- decode.field(8, decode.int)
+  use max_attempts <- decode.field(9, decode.int)
+  use timeout_seconds <- decode.field(10, decode.int)
+  use base_backoff_seconds <- decode.field(11, decode.int)
+  use max_backoff_seconds <- decode.field(12, decode.int)
+  use run_at <- decode.field(13, dev.datetime_decoder())
+  use started_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
   use lease_expires_at <- decode.field(
-    13,
+    15,
     decode.optional(dev.datetime_decoder()),
   )
-  use completed_at <- decode.field(14, decode.optional(dev.datetime_decoder()))
-  use timed_out_at <- decode.field(15, decode.optional(dev.datetime_decoder()))
-  use last_error <- decode.field(16, decode.optional(decode.string))
-  use created_at <- decode.field(17, dev.datetime_decoder())
-  use updated_at <- decode.field(18, dev.datetime_decoder())
+  use completed_at <- decode.field(16, decode.optional(dev.datetime_decoder()))
+  use timed_out_at <- decode.field(17, decode.optional(dev.datetime_decoder()))
+  use last_error <- decode.field(18, decode.optional(decode.string))
+  use created_at <- decode.field(19, dev.datetime_decoder())
+  use updated_at <- decode.field(20, dev.datetime_decoder())
   decode.success(ListJobsBefore(
     id:,
     request_id:,
     periodic_job_id:,
     job_type:,
+    queue_name:,
+    dedupe_key:,
     payload:,
     status:,
     attempts:,
@@ -4241,6 +4305,8 @@ pub fn insert_job(
   request_id request_id: Option(BitArray),
   periodic_job_id periodic_job_id: Option(BitArray),
   job_type job_type: String,
+  queue_name queue_name: String,
+  dedupe_key dedupe_key: Option(String),
   payload payload: Option(String),
   status status: String,
   attempts attempts: Int,
@@ -4263,6 +4329,8 @@ pub fn insert_job(
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -4278,7 +4346,10 @@ pub fn insert_job(
   last_error,
   created_at,
   updated_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)"
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+ON CONFLICT (dedupe_key)
+  WHERE dedupe_key IS NOT NULL AND status IN ('pending', 'running')
+DO NOTHING"
   #(sql, [
     dev.ParamBitArray(id),
     dev.ParamNullable(option.map(request_id, fn(v) { dev.ParamBitArray(v) })),
@@ -4286,6 +4357,8 @@ pub fn insert_job(
       option.map(periodic_job_id, fn(v) { dev.ParamBitArray(v) }),
     ),
     dev.ParamString(job_type),
+    dev.ParamString(queue_name),
+    dev.ParamNullable(option.map(dedupe_key, fn(v) { dev.ParamString(v) })),
     dev.ParamNullable(option.map(payload, fn(v) { dev.ParamString(v) })),
     dev.ParamString(status),
     dev.ParamInt(attempts),
@@ -4387,6 +4460,8 @@ pub fn update_job(
   request_id request_id: Option(BitArray),
   periodic_job_id periodic_job_id: Option(BitArray),
   job_type job_type: String,
+  queue_name queue_name: String,
+  dedupe_key dedupe_key: Option(String),
   payload payload: Option(String),
   status status: String,
   attempts attempts: Int,
@@ -4408,22 +4483,37 @@ pub fn update_job(
 SET request_id = $2,
     periodic_job_id = $3,
     job_type = $4,
-    payload = $5,
-    status = $6,
-    attempts = $7,
-    max_attempts = $8,
-    timeout_seconds = $9,
-    base_backoff_seconds = $10,
-    max_backoff_seconds = $11,
-    run_at = $12,
-    started_at = $13,
-    lease_expires_at = $14,
-    completed_at = $15,
-    timed_out_at = $16,
-    last_error = $17,
-    created_at = $18,
-    updated_at = $19
-WHERE id = $1"
+    queue_name = $5,
+    dedupe_key = $6,
+    payload = $7,
+    status = $8,
+    attempts = $9,
+    max_attempts = $10,
+    timeout_seconds = $11,
+    base_backoff_seconds = $12,
+    max_backoff_seconds = $13,
+    run_at = $14,
+    started_at = $15,
+    lease_expires_at = $16,
+    completed_at = $17,
+    timed_out_at = $18,
+    last_error = $19,
+    created_at = $20,
+    updated_at = $21
+WHERE id = $1
+  -- Reject a late completion from an older attempt after recovery/reclaim.
+  AND (
+    (
+      $8 = 'running'
+      AND jobs.status = 'pending'
+      AND jobs.attempts + 1 = $9
+    )
+    OR (
+      $8 <> 'running'
+      AND jobs.status = 'running'
+      AND jobs.attempts = $9
+    )
+  )"
   #(sql, [
     dev.ParamBitArray(id),
     dev.ParamNullable(option.map(request_id, fn(v) { dev.ParamBitArray(v) })),
@@ -4431,6 +4521,8 @@ WHERE id = $1"
       option.map(periodic_job_id, fn(v) { dev.ParamBitArray(v) }),
     ),
     dev.ParamString(job_type),
+    dev.ParamString(queue_name),
+    dev.ParamNullable(option.map(dedupe_key, fn(v) { dev.ParamString(v) })),
     dev.ParamNullable(option.map(payload, fn(v) { dev.ParamString(v) })),
     dev.ParamString(status),
     dev.ParamInt(attempts),
@@ -4448,6 +4540,65 @@ WHERE id = $1"
     dev.ParamNullable(option.map(last_error, fn(v) { dev.ParamString(v) })),
     dev.ParamTimestamp(created_at),
     dev.ParamTimestamp(updated_at),
+  ])
+}
+
+pub type ClaimJobQueueSlot {
+  ClaimJobQueueSlot(queue_name: String)
+}
+
+pub fn claim_job_queue_slot(
+  job_id job_id: Option(BitArray),
+  lease_expires_at lease_expires_at: Option(Timestamp),
+  queue_name queue_name: String,
+) {
+  let sql =
+    "UPDATE job_queue_slots AS slots
+SET job_id = $1,
+    lease_expires_at = $2
+WHERE (slots.queue_name, slots.slot_number) = (
+  SELECT candidate.queue_name, candidate.slot_number
+  FROM job_queue_slots AS candidate
+  WHERE candidate.queue_name = $3
+    AND candidate.job_id IS NULL
+  ORDER BY candidate.slot_number
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED
+)
+RETURNING queue_name"
+  #(
+    sql,
+    [
+      dev.ParamNullable(option.map(job_id, fn(v) { dev.ParamBitArray(v) })),
+      dev.ParamNullable(
+        option.map(lease_expires_at, fn(v) { dev.ParamTimestamp(v) }),
+      ),
+      dev.ParamString(queue_name),
+    ],
+    claim_job_queue_slot_decoder(),
+  )
+}
+
+pub fn claim_job_queue_slot_decoder() -> decode.Decoder(ClaimJobQueueSlot) {
+  use queue_name <- decode.field(0, decode.string)
+  decode.success(ClaimJobQueueSlot(queue_name:))
+}
+
+pub fn release_job_queue_slot(
+  job_id job_id: Option(BitArray),
+  lease_expires_at lease_expires_at: Option(Timestamp),
+) {
+  let sql =
+    "UPDATE job_queue_slots
+SET job_id = NULL,
+    lease_expires_at = NULL
+WHERE job_id = $1
+  AND lease_expires_at = $2"
+  #(sql, [
+    dev.ParamNullable(option.map(job_id, fn(v) { dev.ParamBitArray(v) })),
+    dev.ParamNullable(
+      option.map(lease_expires_at, fn(v) { dev.ParamTimestamp(v) }),
+    ),
   ])
 }
 
@@ -5654,7 +5805,7 @@ pub fn update_snippet(
   id id: BitArray,
 ) {
   let sql =
-    "UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10 WHERE id = $11"
+    "UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10, spam_decision = NULL, spam_confidence = NULL, spam_reason_code = NULL, spam_classified_at = NULL, spam_classification_attempts = 0, spam_classification_last_error = NULL, spam_classification_failed_at = NULL WHERE id = $11"
   #(sql, [
     dev.ParamString(slug),
     dev.ParamBitArray(user_id),
@@ -5669,6 +5820,123 @@ pub fn update_snippet(
     dev.ParamTimestamp(created_at),
     dev.ParamTimestamp(updated_at),
     dev.ParamBitArray(id),
+  ])
+}
+
+pub type GetNewestUnclassifiedSnippet {
+  GetNewestUnclassifiedSnippet(
+    id: BitArray,
+    slug: String,
+    user_id: BitArray,
+    language: String,
+    title: String,
+    visibility: String,
+    stdin: String,
+    run_instructions: Option(String),
+    files: String,
+    created_at: Timestamp,
+    updated_at: Timestamp,
+  )
+}
+
+pub fn get_newest_unclassified_snippet() {
+  let sql =
+    "SELECT id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at
+FROM snippets
+WHERE spam_decision IS NULL
+  AND spam_classification_failed_at IS NULL
+ORDER BY updated_at DESC, id DESC
+LIMIT 1"
+  #(sql, [], get_newest_unclassified_snippet_decoder())
+}
+
+pub fn get_newest_unclassified_snippet_decoder() -> decode.Decoder(
+  GetNewestUnclassifiedSnippet,
+) {
+  use id <- decode.field(0, decode.bit_array)
+  use slug <- decode.field(1, decode.string)
+  use user_id <- decode.field(2, decode.bit_array)
+  use language <- decode.field(3, decode.string)
+  use title <- decode.field(4, decode.string)
+  use visibility <- decode.field(5, decode.string)
+  use stdin <- decode.field(6, decode.string)
+  use run_instructions <- decode.field(7, decode.optional(decode.string))
+  use files <- decode.field(8, decode.string)
+  use created_at <- decode.field(9, dev.datetime_decoder())
+  use updated_at <- decode.field(10, dev.datetime_decoder())
+  decode.success(GetNewestUnclassifiedSnippet(
+    id:,
+    slug:,
+    user_id:,
+    language:,
+    title:,
+    visibility:,
+    stdin:,
+    run_instructions:,
+    files:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub fn store_spam_classification(
+  spam_decision spam_decision: Option(String),
+  spam_confidence spam_confidence: Option(Int),
+  spam_reason_code spam_reason_code: Option(String),
+  spam_classified_at spam_classified_at: Option(Timestamp),
+  id id: BitArray,
+  updated_at updated_at: Timestamp,
+) {
+  let sql =
+    "UPDATE snippets
+SET spam_decision = $1,
+    spam_confidence = $2,
+    spam_reason_code = $3,
+    spam_classified_at = $4,
+    spam_classification_last_error = NULL,
+    spam_classification_failed_at = NULL
+WHERE id = $5
+  AND updated_at = $6
+  AND spam_decision IS NULL
+  AND spam_classification_failed_at IS NULL"
+  #(sql, [
+    dev.ParamNullable(option.map(spam_decision, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(spam_confidence, fn(v) { dev.ParamInt(v) })),
+    dev.ParamNullable(
+      option.map(spam_reason_code, fn(v) { dev.ParamString(v) }),
+    ),
+    dev.ParamNullable(
+      option.map(spam_classified_at, fn(v) { dev.ParamTimestamp(v) }),
+    ),
+    dev.ParamBitArray(id),
+    dev.ParamTimestamp(updated_at),
+  ])
+}
+
+pub fn store_spam_classification_failure(
+  spam_classification_last_error spam_classification_last_error: Option(String),
+  spam_classification_failed_at spam_classification_failed_at: Option(Timestamp),
+  id id: BitArray,
+  updated_at updated_at: Timestamp,
+) {
+  let sql =
+    "UPDATE snippets
+SET spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1,
+    spam_classification_last_error = $1,
+    spam_classification_failed_at = $2
+WHERE id = $3
+  AND updated_at = $4
+  AND spam_decision IS NULL
+  AND spam_classification_failed_at IS NULL"
+  #(sql, [
+    dev.ParamNullable(
+      option.map(spam_classification_last_error, fn(v) { dev.ParamString(v) }),
+    ),
+    dev.ParamNullable(
+      option.map(spam_classification_failed_at, fn(v) { dev.ParamTimestamp(v) }),
+    ),
+    dev.ParamBitArray(id),
+    dev.ParamTimestamp(updated_at),
   ])
 }
 

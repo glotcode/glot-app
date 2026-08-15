@@ -220,6 +220,7 @@ fn run_app_config_effect(
             default_timeout_ms: 60_000,
           ),
           docker_run: option.None,
+          spam_classifier: option.None,
           cloudflare: option.None,
           email: option.None,
           rate_limit_policies: dict.new(),

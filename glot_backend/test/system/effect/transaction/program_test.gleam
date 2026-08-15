@@ -279,6 +279,8 @@ fn test_job(id: uuid.Uuid) -> job_model.Job {
     request_id: option.None,
     periodic_job_id: option.None,
     job_type: job_model.CleanJobsJob,
+    queue: job_model.DefaultQueue,
+    dedupe_key: option.None,
     payload: option.None,
     status: job_model.Pending,
     attempts: 0,

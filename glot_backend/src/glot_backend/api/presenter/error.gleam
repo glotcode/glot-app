@@ -84,10 +84,18 @@ pub fn to_response(ctx: context.Context, err: error.Error) -> wisp.Response {
       wisp.log_error("Job timeout exceeded")
       error_response(ctx, status, code, message)
     }
+    error.InfraError(infra_error.JobInterruptedForShutdown) -> {
+      wisp.log_error("Job interrupted for shutdown")
+      error_response(ctx, status, code, message)
+    }
     error.InfraError(infra_error.JobPayloadMissing(job_type)) -> {
       wisp.log_error(
         "Job payload missing for " <> job_model.job_type_to_string(job_type),
       )
+      error_response(ctx, status, code, message)
+    }
+    error.InfraError(infra_error.SpamClassifierError(_)) -> {
+      wisp.log_error("Spam classifier error")
       error_response(ctx, status, code, message)
     }
   }

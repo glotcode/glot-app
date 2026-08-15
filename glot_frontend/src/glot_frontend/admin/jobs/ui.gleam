@@ -1,6 +1,25 @@
 import glot_frontend/admin/ui/layout as admin_layout
 import lustre/element.{type Element}
 
+pub fn job_type_label(job_type: String) -> String {
+  case job_type {
+    "clean_api_log" -> "Clean API log"
+    "clean_page_log" -> "Clean page log"
+    "clean_pageview_log" -> "Clean pageview log"
+    "clean_run_log" -> "Clean run log"
+    "clean_job_log" -> "Clean job log"
+    "clean_jobs" -> "Clean jobs"
+    "clean_sessions" -> "Clean sessions"
+    "clean_login_tokens" -> "Clean verification tokens"
+    "clean_user_actions" -> "Clean user actions"
+    "aggregate_metrics" -> "Aggregate metrics"
+    "classify_snippet" -> "Classify snippet"
+    "delete_account" -> "Delete account"
+    "send_email" -> "Send email"
+    _ -> job_type
+  }
+}
+
 pub fn status_text(status: String, overdue: Bool) -> String {
   case status, overdue {
     "pending", True -> "Pending • overdue"

@@ -6,6 +6,7 @@ import glot_core/admin/periodic_job_dto
 import glot_core/helpers/timestamp_helpers
 import glot_core/loadable
 import glot_core/route
+import glot_frontend/admin/jobs/ui as admin_job_ui
 import glot_frontend/admin/ui/layout as admin_layout
 import glot_frontend/admin/ui/status as admin_status
 import glot_frontend/admin/ui/table as admin_table
@@ -106,7 +107,7 @@ fn periodic_job_row(
   admin_table.row([
     admin_table.cell(job_type_column(), [
       html.span([attribute.class("admin-table__value--primary")], [
-        html.text(job_type_label(periodic_job.job_type)),
+        html.text(admin_job_ui.job_type_label(periodic_job.job_type)),
       ]),
     ]),
     admin_table.cell(state_column(), [
@@ -212,22 +213,5 @@ fn optional_relative_timestamp(
   case value {
     option.Some(timestamp) -> timestamp_helpers.relative_label(timestamp, now)
     option.None -> "Never"
-  }
-}
-
-fn job_type_label(job_type: String) -> String {
-  case job_type {
-    "clean_api_log" -> "Clean API log"
-    "clean_page_log" -> "Clean page log"
-    "clean_pageview_log" -> "Clean pageview log"
-    "clean_run_log" -> "Clean run log"
-    "clean_job_log" -> "Clean job log"
-    "clean_jobs" -> "Clean jobs"
-    "clean_login_tokens" -> "Clean verification tokens"
-    "clean_user_actions" -> "Clean user actions"
-    "aggregate_metrics" -> "Aggregate metrics"
-    "delete_account" -> "Delete account"
-    "send_email" -> "Send email"
-    _ -> job_type
   }
 }

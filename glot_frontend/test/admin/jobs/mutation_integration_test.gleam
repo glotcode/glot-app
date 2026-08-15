@@ -185,6 +185,7 @@ fn policy_fixture(
   let now = timestamp.from_unix_seconds(0)
   job_type_policy_dto.JobTypePolicyResponse(
     job_type: "fixture",
+    queue_name: "default",
     max_attempts: max_attempts,
     timeout_seconds: 60,
     base_backoff_seconds: 1,
@@ -217,6 +218,8 @@ fn job_fixture(id: uuid.Uuid) -> job_dto.JobDetailResponse {
     request_id: option.None,
     periodic_job_id: option.None,
     job_type: "fixture",
+    queue_name: "default",
+    dedupe_key: option.None,
     payload: option.None,
     status: "pending",
     attempts: 0,

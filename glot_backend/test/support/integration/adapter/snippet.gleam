@@ -1,3 +1,4 @@
+import gleam/option
 import glot_backend/snippet/ports/store
 import support/integration/adapter/state
 import support/integration/adapter/unexpected
@@ -21,6 +22,15 @@ pub fn defaults() -> store.Store {
     },
     create_snippet: fn(_) { unexpected.command("snippet.create") },
     update_snippet: fn(_) { unexpected.command("snippet.update") },
+    get_newest_unclassified_snippet: fn() {
+      unexpected.query("snippet.get_newest_unclassified")
+    },
+    store_spam_classification: fn(_, _, _) {
+      unexpected.command("snippet.store_spam_classification")
+    },
+    store_spam_classification_failure: fn(_, _, _) {
+      unexpected.command("snippet.store_spam_classification_failure")
+    },
   )
 }
 
@@ -60,5 +70,8 @@ pub fn new(test_state: state.State) -> store.Store {
       state.update(test_state, fn(db) { snippet.insert_snippet(db, value) })
       Ok(Nil)
     },
+    get_newest_unclassified_snippet: fn() { Ok(option.None) },
+    store_spam_classification: fn(_, _, _) { Ok(Nil) },
+    store_spam_classification_failure: fn(_, _, _) { Ok(Nil) },
   )
 }

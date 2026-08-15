@@ -56,17 +56,27 @@ fn policy_from_request(
   now: Timestamp,
 ) -> Program(JobTypePolicy) {
   case job_model.job_type_from_string(request.job_type) {
-    Ok(job_type) ->
-      program.succeed(job_model.JobTypePolicy(
-        job_type: job_type,
-        max_attempts: request.max_attempts,
-        timeout_seconds: request.timeout_seconds,
-        base_backoff_seconds: request.base_backoff_seconds,
-        max_backoff_seconds: request.max_backoff_seconds,
-        created_at: now,
-        updated_at: now,
-      ))
     Error(err) -> program.fail(error.validation(err))
+    Ok(job_type) ->
+      case job_model.queue_from_string(request.queue_name) {
+        Error(_) ->
+          program.fail(
+            error.validation(validation_error.InvalidJobQueue(
+              request.queue_name,
+            )),
+          )
+        Ok(queue) ->
+          program.succeed(job_model.JobTypePolicy(
+            job_type: job_type,
+            queue: queue,
+            max_attempts: request.max_attempts,
+            timeout_seconds: request.timeout_seconds,
+            base_backoff_seconds: request.base_backoff_seconds,
+            max_backoff_seconds: request.max_backoff_seconds,
+            created_at: now,
+            updated_at: now,
+          ))
+      }
   }
 }
 

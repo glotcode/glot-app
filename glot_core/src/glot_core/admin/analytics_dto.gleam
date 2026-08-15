@@ -98,7 +98,10 @@ pub fn response_decoder() -> decode.Decoder(AnalyticsResponse) {
 pub fn encode_response(response: AnalyticsResponse) -> json.Json {
   json.object([
     #("days", json.int(response.days)),
-    #("completedThrough", json.nullable(response.completed_through, json.string)),
+    #(
+      "completedThrough",
+      json.nullable(response.completed_through, json.string),
+    ),
     #("pageviews", json.array(response.pageviews, encode_pageview)),
     #(
       "productEvents",
@@ -116,7 +119,14 @@ fn pageview_decoder() -> decode.Decoder(PageviewMetric) {
   use views <- decode.field("views", decode.int)
   use unique_sessions <- decode.field("uniqueSessions", decode.int)
   use unique_users <- decode.field("uniqueUsers", decode.int)
-  decode.success(PageviewMetric(day, route, path, views, unique_sessions, unique_users))
+  decode.success(PageviewMetric(
+    day,
+    route,
+    path,
+    views,
+    unique_sessions,
+    unique_users,
+  ))
 }
 
 fn product_event_decoder() -> decode.Decoder(ProductEventMetric) {

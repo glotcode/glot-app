@@ -25,6 +25,7 @@ pub type Message {
   Tick
   AttemptCompleted(pid: process.Pid, log_entry: log_entry.LogEntry)
   AttemptTimedOut(pid: process.Pid)
+  InterruptForShutdown(reply: process.Subject(Result(Nil, String)))
 }
 
 pub type Deps {
@@ -36,6 +37,8 @@ pub type Deps {
     process_job: fn(context.Context, job_model.Job) ->
       #(Result(Nil, error.Error), program_state.State),
     timeout_job: fn(context.Context, job_model.Job) -> Result(Nil, String),
+    interrupt_job_for_shutdown: fn(context.Context, job_model.Job) ->
+      Result(Nil, String),
     insert_job_log: fn(log_entry.LogEntry) -> Result(Nil, String),
     spawn_attempt: fn(fn() -> Nil) -> process.Pid,
     send_after: fn(process.Subject(Message), Int, Message) -> process.Timer,
@@ -142,6 +145,30 @@ pub fn supervised(
   })
 }
 
+pub fn supervised_named(
+  name: process.Name(Message),
+  config: context.Config,
+  regexes: context.Regexes,
+  server_mode: Controller,
+  tracker: Tracker,
+  deps: Deps,
+) {
+  supervision.worker(fn() {
+    start_named_with_deps(name, config, regexes, server_mode, tracker, deps)
+  })
+}
+
+pub fn interrupt_for_shutdown(
+  subject: process.Subject(Message),
+) -> Result(Nil, String) {
+  let reply = process.new_subject()
+  process.send(subject, InterruptForShutdown(reply))
+  case process.receive(reply, 7000) {
+    Ok(result) -> result
+    Error(_) -> Error("job executor shutdown interruption timed out")
+  }
+}
+
 fn handle_message(
   state: State,
   message: Message,
@@ -186,7 +213,44 @@ fn handle_message(
         _ -> actor.continue(state)
       }
     }
+    InterruptForShutdown(reply) -> {
+      let #(next_state, result) = interrupt_active_attempt(state)
+      process.send(reply, result)
+      actor.continue(next_state)
+    }
   }
+}
+
+fn interrupt_active_attempt(state: State) -> #(State, Result(Nil, String)) {
+  let state = cancel_tick(state)
+  case core.active_attempt(state.core) {
+    option.None -> #(state, Ok(Nil))
+    option.Some(active) -> {
+      state.deps.cancel_timer(active.timer)
+      state.deps.kill(active.pid)
+      let shutdown_ctx =
+        context_from_state(state, active.job.request_id, option.Some(5))
+      case state.deps.interrupt_job_for_shutdown(shutdown_ctx, active.job) {
+        Error(err) -> #(state, Error(err))
+        Ok(Nil) -> {
+          let log_entry = prepare_interrupted_log_entry(active.ctx, active.job)
+          let #(next_core, commands) =
+            core.on_attempt_interrupted_for_shutdown(
+              state.core,
+              active.pid,
+              log_entry,
+            )
+          let next_state = State(..state, core: next_core)
+          #(run_commands(next_state, commands), Ok(Nil))
+        }
+      }
+    }
+  }
+}
+
+fn cancel_tick(state: State) -> State {
+  let _ = tick_worker_support.cancel(state.tick_timer)
+  State(..state, tick_timer: option.None)
 }
 
 fn schedule_tick_after(state: State, delay: Int) -> State {
@@ -309,6 +373,18 @@ fn prepare_recovered_timeout_log_entry(
   log_entry.LogEntry(
     ..prepare_timeout_log_entry(ctx, job),
     created_at: ctx.timestamp,
+  )
+}
+
+fn prepare_interrupted_log_entry(
+  ctx: context.Context,
+  job: job_model.Job,
+) -> log_entry.LogEntry {
+  prepare_log_entry(
+    ctx,
+    program_state.new_state(),
+    job,
+    Error(error.infra(infra_error.JobInterruptedForShutdown)),
   )
 }
 

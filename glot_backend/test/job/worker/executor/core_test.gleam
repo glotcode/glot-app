@@ -57,6 +57,26 @@ pub fn timed_out_attempt_requests_timeout_and_followup_test() {
   assert count_command(commands, is_trigger_now) == 1
 }
 
+pub fn interrupted_attempt_finishes_without_timeout_or_followup_test() {
+  let subject = process.new_subject()
+  let timer = process.send_after(subject, 1000, Nil)
+  let pid = process.self()
+  let state = active_state(pid, timer)
+
+  let #(next_state, commands) =
+    job_worker_core.on_attempt_interrupted_for_shutdown(
+      state,
+      pid,
+      test_log_entry(),
+    )
+
+  assert job_worker_core.active_attempt(next_state) == option.None
+  assert count_command(commands, is_job_finished) == 1
+  assert count_command(commands, is_insert_log) == 1
+  assert count_command(commands, is_timeout_job) == 0
+  assert count_command(commands, is_trigger_now) == 0
+}
+
 fn active_state(
   pid: process.Pid,
   timer: process.Timer,
@@ -85,6 +105,8 @@ fn test_job_and_context() -> #(job_model.Job, context.Context) {
       request_id: option.Some(request_id),
       periodic_job_id: option.None,
       job_type: job_model.CleanJobsJob,
+      queue: job_model.DefaultQueue,
+      dedupe_key: option.None,
       payload: option.None,
       status: job_model.Pending,
       attempts: 1,

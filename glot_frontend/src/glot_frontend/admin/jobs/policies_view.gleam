@@ -1,13 +1,13 @@
 import gleam/list
-import gleam/string
 import glot_core/loadable
 import glot_frontend/admin/jobs/policies_message.{
   type Msg, FieldChanged, ResetClicked, SaveClicked,
 }
 import glot_frontend/admin/jobs/policies_model.{
   type Model, type PolicyEditor, BaseBackoffSecondsField, MaxAttemptsField,
-  MaxBackoffSecondsField, TimeoutSecondsField,
+  MaxBackoffSecondsField, QueueNameField, TimeoutSecondsField,
 }
+import glot_frontend/admin/jobs/ui as admin_job_ui
 import glot_frontend/admin/ui/form as admin_form
 import glot_frontend/admin/ui/layout as admin_layout
 import glot_frontend/admin/ui/status as admin_status
@@ -60,7 +60,7 @@ fn policy_card(editor: PolicyEditor) -> Element(Msg) {
       html.div([attribute.class("admin-page__policy-header")], [
         html.div([], [
           html.h3([attribute.class("admin-page__policy-title")], [
-            html.text(job_type_label(editor.job_type)),
+            html.text(admin_job_ui.job_type_label(editor.job_type)),
           ]),
           html.p([attribute.class("admin-page__policy-subtitle")], [
             html.text(editor.job_type),
@@ -69,6 +69,18 @@ fn policy_card(editor: PolicyEditor) -> Element(Msg) {
         badge_for_editor(editor, dirty),
       ]),
       html.div([attribute.class("admin-page__field-grid")], [
+        admin_form.select_input(
+          label: "Queue",
+          help: "Execution pool for this job type.",
+          value: editor.draft.queue_name,
+          on_input: fn(value) {
+            FieldChanged(editor.job_type, QueueNameField, value)
+          },
+          options: [
+            #("default", "Default"),
+            #("spam_classifier", "Spam classifier"),
+          ],
+        ),
         admin_form.text_input(
           label: "Max attempts",
           help: "Retry limit for new jobs of this type.",
@@ -155,9 +167,4 @@ fn save_button_text(state: mutation.MutationState) -> String {
     mutation.Saving -> "Saving..."
     mutation.Idle | mutation.Saved | mutation.SaveError(_) -> "Save policy"
   }
-}
-
-fn job_type_label(job_type: String) -> String {
-  job_type
-  |> string.replace(each: "_", with: " ")
 }

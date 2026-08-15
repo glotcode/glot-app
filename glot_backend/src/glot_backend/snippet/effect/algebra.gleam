@@ -1,9 +1,11 @@
 import gleam/option
+import gleam/time/timestamp.{type Timestamp}
 import glot_backend/system/effect/error/db_error
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
 }
+import glot_core/snippet/spam_classification
 import youid/uuid.{type Uuid}
 
 pub type SnippetEffect(next) {
@@ -53,6 +55,26 @@ pub type SnippetEffect(next) {
     snippet: Snippet,
     next: fn(Result(Nil, db_error.DbCommandError)) -> next,
   )
+  GetNewestUnclassifiedSnippet(
+    next: fn(
+      Result(
+        option.Option(spam_classification.Candidate),
+        db_error.DbQueryError,
+      ),
+    ) -> next,
+  )
+  StoreSpamClassification(
+    id: Uuid,
+    expected_updated_at: Timestamp,
+    classification: spam_classification.ClassificationResult,
+    next: fn(Result(Nil, db_error.DbCommandError)) -> next,
+  )
+  StoreSpamClassificationFailure(
+    id: Uuid,
+    expected_updated_at: Timestamp,
+    failure: spam_classification.ClassificationFailure,
+    next: fn(Result(Nil, db_error.DbCommandError)) -> next,
+  )
 }
 
 pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
@@ -85,6 +107,22 @@ pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
       CreateSnippet(snippet, next: fn(value) { f(next(value)) })
     UpdateSnippet(snippet, next) ->
       UpdateSnippet(snippet, next: fn(value) { f(next(value)) })
+    GetNewestUnclassifiedSnippet(next:) ->
+      GetNewestUnclassifiedSnippet(next: fn(value) { f(next(value)) })
+    StoreSpamClassification(id:, expected_updated_at:, classification:, next:) ->
+      StoreSpamClassification(
+        id:,
+        expected_updated_at:,
+        classification:,
+        next: fn(value) { f(next(value)) },
+      )
+    StoreSpamClassificationFailure(id:, expected_updated_at:, failure:, next:) ->
+      StoreSpamClassificationFailure(
+        id:,
+        expected_updated_at:,
+        failure:,
+        next: fn(value) { f(next(value)) },
+      )
   }
 }
 
@@ -99,6 +137,9 @@ pub type EffectName {
   DeleteSnippetsByAccountIdEffectName
   CreateSnippetEffectName
   UpdateSnippetEffectName
+  GetNewestUnclassifiedSnippetEffectName
+  StoreSpamClassificationEffectName
+  StoreSpamClassificationFailureEffectName
 }
 
 pub fn effect_name_to_string(name: EffectName) -> String {
@@ -113,5 +154,9 @@ pub fn effect_name_to_string(name: EffectName) -> String {
     DeleteSnippetsByAccountIdEffectName -> "delete_snippets_by_account_id"
     CreateSnippetEffectName -> "create_snippet"
     UpdateSnippetEffectName -> "update_snippet"
+    GetNewestUnclassifiedSnippetEffectName -> "get_newest_unclassified_snippet"
+    StoreSpamClassificationEffectName -> "store_spam_classification"
+    StoreSpamClassificationFailureEffectName ->
+      "store_spam_classification_failure"
   }
 }

@@ -9,6 +9,7 @@ import glot_frontend/admin/config/http_pool
 import glot_frontend/admin/config/language_version_cache_worker
 import glot_frontend/admin/config/log_worker
 import glot_frontend/admin/config/passkey
+import glot_frontend/admin/config/spam_classifier
 
 pub type Msg {
   DebugMsg(debug.Msg)
@@ -20,6 +21,7 @@ pub type Msg {
   HttpPoolMsg(http_pool.Msg)
   LanguageVersionCacheWorkerMsg(language_version_cache_worker.Msg)
   DockerRunMsg(docker_run.Msg)
+  SpamClassifierMsg(spam_classifier.Msg)
   CloudflareMsg(cloudflare.Msg)
   EmailMsg(email.Msg)
 }

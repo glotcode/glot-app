@@ -104,12 +104,17 @@ pub fn summarize(
 
 pub fn get_next(
   db: db_helpers.Db,
+  queue: job_model.Queue,
   now: Timestamp,
   pending_status: job_model.Status,
 ) -> Result(option.Option(job_model.Job), db_error.DbQueryError) {
   use returned <- result.try(db_helpers.query(
     db,
-    sql.get_next_job(job_model.status_to_string(pending_status), now),
+    sql.get_next_job(
+      pending_status: job_model.status_to_string(pending_status),
+      queue_name: job_model.queue_to_string(queue),
+      now: now,
+    ),
     query_error,
   ))
 
@@ -118,6 +123,7 @@ pub fn get_next(
 
 pub fn get_expired_running(
   db: db_helpers.Db,
+  queue: job_model.Queue,
   now: Timestamp,
   running_status: job_model.Status,
 ) -> Result(option.Option(job_model.Job), db_error.DbQueryError) {
@@ -125,6 +131,7 @@ pub fn get_expired_running(
     db,
     sql.get_expired_running_job(
       running_status: job_model.status_to_string(running_status),
+      queue_name: job_model.queue_to_string(queue),
       now: option.Some(now),
     ),
     query_error,

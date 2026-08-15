@@ -49,6 +49,8 @@ pub type AdminAction {
   UpsertAdminJobTypePolicyAction
   GetAdminDockerRunConfigAction
   UpsertAdminDockerRunConfigAction
+  GetAdminSpamClassifierConfigAction
+  UpsertAdminSpamClassifierConfigAction
   GetAdminCloudflareConfigAction
   UpsertAdminCloudflareConfigAction
   GetAdminEmailConfigAction
@@ -102,6 +104,8 @@ pub fn list() -> List(AdminAction) {
     UpsertAdminJobTypePolicyAction,
     GetAdminDockerRunConfigAction,
     UpsertAdminDockerRunConfigAction,
+    GetAdminSpamClassifierConfigAction,
+    UpsertAdminSpamClassifierConfigAction,
     GetAdminCloudflareConfigAction,
     UpsertAdminCloudflareConfigAction,
     GetAdminEmailConfigAction,
@@ -171,6 +175,9 @@ pub fn to_string(action: AdminAction) -> String {
     UpsertAdminJobTypePolicyAction -> "upsert_admin_job_type_policy"
     GetAdminDockerRunConfigAction -> "get_admin_docker_run_config"
     UpsertAdminDockerRunConfigAction -> "upsert_admin_docker_run_config"
+    GetAdminSpamClassifierConfigAction -> "get_admin_spam_classifier_config"
+    UpsertAdminSpamClassifierConfigAction ->
+      "upsert_admin_spam_classifier_config"
     GetAdminCloudflareConfigAction -> "get_admin_cloudflare_config"
     UpsertAdminCloudflareConfigAction -> "upsert_admin_cloudflare_config"
     GetAdminEmailConfigAction -> "get_admin_email_config"
@@ -235,6 +242,10 @@ pub fn from_string(action: String) -> option.Option(AdminAction) {
     "get_admin_docker_run_config" -> option.Some(GetAdminDockerRunConfigAction)
     "upsert_admin_docker_run_config" ->
       option.Some(UpsertAdminDockerRunConfigAction)
+    "get_admin_spam_classifier_config" ->
+      option.Some(GetAdminSpamClassifierConfigAction)
+    "upsert_admin_spam_classifier_config" ->
+      option.Some(UpsertAdminSpamClassifierConfigAction)
     "get_admin_cloudflare_config" -> option.Some(GetAdminCloudflareConfigAction)
     "upsert_admin_cloudflare_config" ->
       option.Some(UpsertAdminCloudflareConfigAction)

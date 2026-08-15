@@ -26,6 +26,7 @@ import glot_core/admin/periodic_job_dto
 import glot_core/admin/rate_limit_config_dto
 import glot_core/admin/run_log_dto
 import glot_core/admin/snippet_dto as admin_snippet_dto
+import glot_core/admin/spam_classifier_config_dto
 import glot_core/admin/user_dto
 import glot_core/api_action.{type ApiAction}
 import glot_core/api_error_dto
@@ -168,6 +169,8 @@ fn success(request: wisp.Request, result: ApiResult) -> wisp.Response {
       success_body(job_type_policy_dto.encode_policy_response(value))
     api_result.DockerRunConfigResponse(value) ->
       success_body(docker_run_config_dto.encode_response(value))
+    api_result.SpamClassifierConfigResponse(value) ->
+      success_body(spam_classifier_config_dto.encode_response(value))
     api_result.CloudflareConfigResponse(value) ->
       success_body(cloudflare_config_dto.encode_response(value))
     api_result.EmailConfigResponse(value) ->

@@ -22,6 +22,27 @@ pub type JobType {
   CleanVerificationTokensJob
   CleanUserActionsJob
   AggregateMetricsJob
+  ClassifySnippetJob
+}
+
+pub type Queue {
+  DefaultQueue
+  SpamClassifierQueue
+}
+
+pub fn queue_to_string(queue: Queue) -> String {
+  case queue {
+    DefaultQueue -> "default"
+    SpamClassifierQueue -> "spam_classifier"
+  }
+}
+
+pub fn queue_from_string(value: String) -> Result(Queue, String) {
+  case value {
+    "default" -> Ok(DefaultQueue)
+    "spam_classifier" -> Ok(SpamClassifierQueue)
+    _ -> Error("Invalid job queue: " <> value)
+  }
 }
 
 pub fn job_type_to_string(job_type: JobType) -> String {
@@ -38,6 +59,7 @@ pub fn job_type_to_string(job_type: JobType) -> String {
     CleanVerificationTokensJob -> "clean_login_tokens"
     CleanUserActionsJob -> "clean_user_actions"
     AggregateMetricsJob -> "aggregate_metrics"
+    ClassifySnippetJob -> "classify_snippet"
   }
 }
 
@@ -57,6 +79,7 @@ pub fn job_type_from_string(
     "clean_login_tokens" -> Ok(CleanVerificationTokensJob)
     "clean_user_actions" -> Ok(CleanUserActionsJob)
     "aggregate_metrics" -> Ok(AggregateMetricsJob)
+    "classify_snippet" -> Ok(ClassifySnippetJob)
     _ -> Error(validation_error.InvalidJobType(value))
   }
 }
@@ -71,6 +94,7 @@ pub type Status {
 pub type JobTypePolicy {
   JobTypePolicy(
     job_type: JobType,
+    queue: Queue,
     max_attempts: Int,
     timeout_seconds: Int,
     base_backoff_seconds: Int,
@@ -153,6 +177,8 @@ pub type Job {
     request_id: Option(Uuid),
     periodic_job_id: Option(Uuid),
     job_type: JobType,
+    queue: Queue,
+    dedupe_key: Option(String),
     payload: Option(String),
     status: Status,
     attempts: Int,
@@ -192,6 +218,8 @@ fn new(
     request_id: request_id,
     periodic_job_id: periodic_job_id,
     job_type: job_type,
+    queue: policy.queue,
+    dedupe_key: option.None,
     payload: payload,
     status: Pending,
     attempts: 0,
@@ -286,14 +314,17 @@ pub fn periodic_job_execution(
   payload: Option(String),
   policy: JobTypePolicy,
 ) -> Job {
-  new(
-    id,
-    option.None,
-    option.Some(periodic_job_id),
-    job_type,
-    now,
-    payload,
-    policy,
+  Job(
+    ..new(
+      id,
+      option.None,
+      option.Some(periodic_job_id),
+      job_type,
+      now,
+      payload,
+      policy,
+    ),
+    dedupe_key: option.Some("periodic:" <> uuid.to_string(periodic_job_id)),
   )
 }
 
@@ -304,6 +335,23 @@ pub fn done(job: Job, now: Timestamp) -> Job {
     lease_expires_at: option.None,
     completed_at: option.Some(now),
     last_error: option.None,
+    updated_at: now,
+  )
+}
+
+pub fn immediate_successor(id: Uuid, job: Job, now: Timestamp) -> Job {
+  Job(
+    ..job,
+    id: id,
+    status: Pending,
+    attempts: 0,
+    run_at: now,
+    started_at: option.None,
+    lease_expires_at: option.None,
+    completed_at: option.None,
+    timed_out_at: option.None,
+    last_error: option.None,
+    created_at: now,
     updated_at: now,
   )
 }
@@ -333,6 +381,24 @@ pub fn reschedule(
   Job(
     ..job,
     status: status,
+    run_at: run_at,
+    started_at: option.None,
+    lease_expires_at: option.None,
+    completed_at: option.None,
+    last_error: last_error,
+    updated_at: updated_at,
+  )
+}
+
+pub fn reschedule_indefinitely(
+  job: Job,
+  run_at: Timestamp,
+  last_error: Option(String),
+  updated_at: Timestamp,
+) -> Job {
+  Job(
+    ..job,
+    status: Pending,
     run_at: run_at,
     started_at: option.None,
     lease_expires_at: option.None,
@@ -374,6 +440,20 @@ pub fn timed_out(job: Job, run_at: Timestamp, updated_at: Timestamp) -> Job {
     timed_out_at: option.Some(updated_at),
     last_error: option.Some("timeout_exceeded"),
     updated_at: updated_at,
+  )
+}
+
+pub fn interrupted_for_shutdown(job: Job, now: Timestamp) -> Job {
+  Job(
+    ..job,
+    status: Pending,
+    run_at: now,
+    started_at: option.None,
+    lease_expires_at: option.None,
+    completed_at: option.None,
+    timed_out_at: option.None,
+    last_error: option.Some("interrupted_by_shutdown"),
+    updated_at: now,
   )
 }
 

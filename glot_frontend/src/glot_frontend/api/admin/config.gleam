@@ -12,6 +12,7 @@ import glot_core/admin/language_version_cache_worker_config_dto
 import glot_core/admin/log_worker_config_dto
 import glot_core/admin/passkey_config_dto
 import glot_core/admin/rate_limit_config_dto
+import glot_core/admin/spam_classifier_config_dto
 import glot_core/admin_action
 import glot_frontend/api/request
 import glot_frontend/api/response
@@ -358,6 +359,40 @@ pub fn upsert_admin_docker_run_config(
     req,
     docker_run_config_dto.encode_request,
     docker_run_config_dto.response_decoder(),
+    to_msg,
+  )
+}
+
+pub fn get_admin_spam_classifier_config(
+  to_msg: fn(
+    response.Response(spam_classifier_config_dto.SpamClassifierConfigResponse),
+  ) -> msg,
+) -> effect.Effect(msg) {
+  let req =
+    request.AdminRequest(admin_action.GetAdminSpamClassifierConfigAction, Nil)
+  request.send_admin(
+    req,
+    fn(_) { json.null() },
+    spam_classifier_config_dto.response_decoder(),
+    to_msg,
+  )
+}
+
+pub fn upsert_admin_spam_classifier_config(
+  value: spam_classifier_config_dto.UpsertSpamClassifierConfigRequest,
+  to_msg: fn(
+    response.Response(spam_classifier_config_dto.SpamClassifierConfigResponse),
+  ) -> msg,
+) -> effect.Effect(msg) {
+  let req =
+    request.AdminRequest(
+      admin_action.UpsertAdminSpamClassifierConfigAction,
+      value,
+    )
+  request.send_admin(
+    req,
+    spam_classifier_config_dto.encode_request,
+    spam_classifier_config_dto.response_decoder(),
     to_msg,
   )
 }

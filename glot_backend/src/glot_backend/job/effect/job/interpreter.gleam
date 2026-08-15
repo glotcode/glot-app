@@ -34,9 +34,9 @@ pub fn run(
         state: state,
         continue: continue,
       )
-    job_algebra.GetNextJob(now:, pending_status:, next:) ->
+    job_algebra.GetNextJob(queue:, now:, pending_status:, next:) ->
       measured_interpreter.run_or_fail(
-        fn() { store.get_next_job(now, pending_status) },
+        fn() { store.get_next_job(queue, now, pending_status) },
         next,
         map_error: error.database_query_error,
         name: trace_name(job_algebra.GetNextJobEffectName),
@@ -44,9 +44,9 @@ pub fn run(
         state: state,
         continue: continue,
       )
-    job_algebra.GetExpiredRunningJob(now:, running_status:, next:) ->
+    job_algebra.GetExpiredRunningJob(queue:, now:, running_status:, next:) ->
       measured_interpreter.run_or_fail(
-        fn() { store.get_expired_running_job(now, running_status) },
+        fn() { store.get_expired_running_job(queue, now, running_status) },
         next,
         map_error: error.database_query_error,
         name: trace_name(job_algebra.GetExpiredRunningJobEffectName),
@@ -78,6 +78,25 @@ pub fn run(
         fn() { store.update_job(job) },
         next,
         name: trace_name(job_algebra.UpdateJobEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
+    job_algebra.ClaimQueueSlot(queue:, job_id:, lease_expires_at:, next:) ->
+      measured_interpreter.run_or_fail(
+        fn() { store.claim_queue_slot(queue, job_id, lease_expires_at) },
+        next,
+        map_error: error.database_query_error,
+        name: trace_name(job_algebra.ClaimQueueSlotEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
+    job_algebra.ReleaseQueueSlot(job_id:, lease_expires_at:, next:) ->
+      measured_interpreter.run(
+        fn() { store.release_queue_slot(job_id, lease_expires_at) },
+        next,
+        name: trace_name(job_algebra.ReleaseQueueSlotEffectName),
         kind: effect_trace.DatabaseWriteEffect,
         state: state,
         continue: continue,

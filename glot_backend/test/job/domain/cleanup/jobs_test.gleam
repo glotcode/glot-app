@@ -16,6 +16,8 @@ pub fn clean_jobs_deletes_only_done_jobs_before_cutoff_test() {
       request_id: option.None,
       periodic_job_id: option.None,
       job_type: job_model.CleanApiLogJob,
+      queue: job_model.DefaultQueue,
+      dedupe_key: option.None,
       payload: option.None,
       status: job_model.Done,
       attempts: 1,

@@ -194,7 +194,10 @@ fn job_row(job: job_dto.JobResponse, now: Timestamp) -> Element(Msg) {
     admin_table.cell(job_column(), [
       admin_table.stack([
         html.span([attribute.class("admin-table__value--primary")], [
-          html.text(job.job_type),
+          html.text(admin_job_ui.job_type_label(job.job_type)),
+        ]),
+        html.span([attribute.class("admin-table__value--secondary")], [
+          html.text(job.queue_name),
         ]),
       ]),
     ]),
@@ -343,7 +346,11 @@ fn job_type_options(selected_value: String) -> List(Element(Msg)) {
   [job_type_option("all", "All jobs", selected_value)]
   |> list.append(
     list.map(job_type_values(), fn(job_type) {
-      job_type_option(job_type, job_type, selected_value)
+      job_type_option(
+        job_type,
+        admin_job_ui.job_type_label(job_type),
+        selected_value,
+      )
     }),
   )
 }

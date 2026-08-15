@@ -29,6 +29,7 @@ import glot_backend/system/lifecycle/server_mode/worker as server_mode_worker
 import glot_backend/system/lifecycle/startup/adapter/postgres/runner as startup_postgres_runner
 import glot_backend/system/lifecycle/startup/worker as startup_worker
 import glot_backend/system/request/context
+import glot_core/job/job_model
 import mist
 import pog
 
@@ -63,6 +64,8 @@ pub type WorkerNames {
     language_version_cache_worker_name: process.Name(
       language_version_cache_worker.Message,
     ),
+    default_job_executor_name: process.Name(job_worker.Message),
+    spam_classifier_job_executor_name: process.Name(job_worker.Message),
   )
 }
 
@@ -79,10 +82,18 @@ pub fn start(config: Config) {
   let startup = config.startup
   let dependencies = config.dependencies
   let worker_names = config.worker_names
-  let job_executor_deps =
+  let job_log_store = job_postgres_log_store.new(db_helpers.new(startup.db))
+  let default_job_executor_deps =
     job_executor_adapter.new(
       dependencies.effect_runtime,
-      job_postgres_log_store.new(db_helpers.new(startup.db)),
+      job_log_store,
+      job_model.DefaultQueue,
+    )
+  let spam_classifier_job_executor_deps =
+    job_executor_adapter.new(
+      dependencies.effect_runtime,
+      job_log_store,
+      job_model.SpamClassifierQueue,
     )
   let logging_deps =
     logging_batcher_adapter.new(
@@ -130,12 +141,21 @@ pub fn start(config: Config) {
   |> static_supervisor.add(job_tracker_worker.supervised(
     worker_names.job_tracker_name,
   ))
-  |> static_supervisor.add(job_worker.supervised(
+  |> static_supervisor.add(job_worker.supervised_named(
+    worker_names.default_job_executor_name,
     startup.app,
     startup.regexes,
     dependencies.server_mode,
     dependencies.job_tracker,
-    job_executor_deps,
+    default_job_executor_deps,
+  ))
+  |> static_supervisor.add(job_worker.supervised_named(
+    worker_names.spam_classifier_job_executor_name,
+    startup.app,
+    startup.regexes,
+    dependencies.server_mode,
+    dependencies.job_tracker,
+    spam_classifier_job_executor_deps,
   ))
   |> static_supervisor.add(mist.supervised(config.mist_builder))
   |> static_supervisor.start

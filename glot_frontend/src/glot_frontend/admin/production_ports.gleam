@@ -171,6 +171,10 @@ fn run_config(command: config.Command(msg)) -> Effect(msg) {
     config.GetDockerRun(done) -> config_api.get_admin_docker_run_config(done)
     config.UpsertDockerRun(request, done) ->
       config_api.upsert_admin_docker_run_config(request, done)
+    config.GetSpamClassifier(done) ->
+      config_api.get_admin_spam_classifier_config(done)
+    config.UpsertSpamClassifier(request, done) ->
+      config_api.upsert_admin_spam_classifier_config(request, done)
     config.GetCloudflare(done) -> config_api.get_admin_cloudflare_config(done)
     config.UpsertCloudflare(request, done) ->
       config_api.upsert_admin_cloudflare_config(request, done)

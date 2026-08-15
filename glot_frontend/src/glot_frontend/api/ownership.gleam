@@ -66,6 +66,7 @@ pub fn admin(action: AdminAction) -> transport.Ownership {
     | admin_action.GetAdminRateLimitPoliciesAction
     | admin_action.GetAdminJobTypePoliciesAction
     | admin_action.GetAdminDockerRunConfigAction
+    | admin_action.GetAdminSpamClassifierConfigAction
     | admin_action.GetAdminCloudflareConfigAction
     | admin_action.GetAdminEmailConfigAction -> transport.Navigation
     admin_action.UpsertAdminDebugConfigAction
@@ -86,6 +87,7 @@ pub fn admin(action: AdminAction) -> transport.Ownership {
     | admin_action.UpsertAdminJobTypePolicyAction
     | admin_action.UpsertAdminDockerRunConfigAction
     | admin_action.UpsertAdminCloudflareConfigAction
-    | admin_action.UpsertAdminEmailConfigAction -> transport.Persistent
+    | admin_action.UpsertAdminEmailConfigAction
+    | admin_action.UpsertAdminSpamClassifierConfigAction -> transport.Persistent
   }
 }

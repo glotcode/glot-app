@@ -12,17 +12,25 @@ import glot_core/pagination_model.{type CursorPagination}
 import youid/uuid.{type Uuid}
 
 pub fn get_next_job(
+  queue: job_model.Queue,
   now: Timestamp,
   pending_status: job_model.Status,
 ) -> program_types.Program(option.Option(job_model.Job)) {
-  program.perform_db(get_next_job_effect(now, pending_status, program.succeed))
+  program.perform_db(get_next_job_effect(
+    queue,
+    now,
+    pending_status,
+    program.succeed,
+  ))
 }
 
 pub fn get_expired_running_job(
+  queue: job_model.Queue,
   now: Timestamp,
   running_status: job_model.Status,
 ) -> program_types.Program(option.Option(job_model.Job)) {
   program.perform_db(get_expired_running_job_effect(
+    queue,
     now,
     running_status,
     program.succeed,
@@ -89,10 +97,12 @@ pub fn delete_before(
 }
 
 pub fn get_next_job_tx(
+  queue: job_model.Queue,
   now: Timestamp,
   pending_status: job_model.Status,
 ) -> program_types.TransactionProgram(option.Option(job_model.Job)) {
   transaction_program.perform(get_next_job_effect(
+    queue,
     now,
     pending_status,
     transaction_program.succeed,
@@ -100,10 +110,12 @@ pub fn get_next_job_tx(
 }
 
 pub fn get_expired_running_job_tx(
+  queue: job_model.Queue,
   now: Timestamp,
   running_status: job_model.Status,
 ) -> program_types.TransactionProgram(option.Option(job_model.Job)) {
   transaction_program.perform(get_expired_running_job_effect(
+    queue,
     now,
     running_status,
     transaction_program.succeed,
@@ -141,6 +153,39 @@ pub fn update_job_tx(
   )
 }
 
+pub fn claim_queue_slot_tx(
+  queue: job_model.Queue,
+  job_id: Uuid,
+  lease_expires_at: Timestamp,
+) -> program_types.TransactionProgram(Bool) {
+  transaction_program.perform(
+    job_effect.job(job_algebra.ClaimQueueSlot(
+      queue: queue,
+      job_id: job_id,
+      lease_expires_at: lease_expires_at,
+      next: transaction_program.succeed,
+    )),
+  )
+}
+
+pub fn release_queue_slot_tx(
+  job_id: Uuid,
+  lease_expires_at: Timestamp,
+) -> program_types.TransactionProgram(Nil) {
+  transaction_program.perform(
+    job_effect.job(
+      job_algebra.ReleaseQueueSlot(
+        job_id: job_id,
+        lease_expires_at: lease_expires_at,
+        next: transaction_program.from_mapped_result(
+          _,
+          map_error: error.database_command_error,
+        ),
+      ),
+    ),
+  )
+}
+
 pub fn delete_job_tx(id id: Uuid) -> program_types.TransactionProgram(Nil) {
   transaction_program.perform(
     delete_job_effect(id, transaction_program.from_mapped_result(
@@ -167,19 +212,27 @@ pub fn delete_before_tx(
 }
 
 fn get_next_job_effect(
+  queue: job_model.Queue,
   now: Timestamp,
   pending_status: job_model.Status,
   next: fn(option.Option(job_model.Job)) -> next,
 ) -> program_types.DbEffect(next) {
-  job_effect.job(job_algebra.GetNextJob(now:, pending_status:, next: next))
+  job_effect.job(job_algebra.GetNextJob(
+    queue:,
+    now:,
+    pending_status:,
+    next: next,
+  ))
 }
 
 fn get_expired_running_job_effect(
+  queue: job_model.Queue,
   now: Timestamp,
   running_status: job_model.Status,
   next: fn(option.Option(job_model.Job)) -> next,
 ) -> program_types.DbEffect(next) {
   job_effect.job(job_algebra.GetExpiredRunningJob(
+    queue: queue,
     now: now,
     running_status: running_status,
     next: next,

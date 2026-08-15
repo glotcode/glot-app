@@ -3,6 +3,7 @@ import glot_backend/app_config/effect/interpreter as app_config_interpreter
 import glot_backend/auth/passkey/effect/interpreter as webauthn_interpreter
 import glot_backend/email/effect/delivery/interpreter as email_interpreter
 import glot_backend/run_code/effect/interpreter as run_code_interpreter
+import glot_backend/spam_classifier/effect/interpreter as spam_classifier_interpreter
 import glot_backend/system/effect/basic/basic_interpreter
 import glot_backend/system/effect/database_ports
 import glot_backend/system/effect/db_interpreter
@@ -97,6 +98,14 @@ fn run_effect(
         effect,
         effect_runtime.services.caches.language_version_cache,
         effect_runtime.services.system.run_code,
+        ctx,
+        state,
+        continue,
+      )
+    program_types.SpamClassifierEffect(effect) ->
+      spam_classifier_interpreter.run(
+        effect,
+        effect_runtime.services.system.spam_classifier,
         ctx,
         state,
         continue,

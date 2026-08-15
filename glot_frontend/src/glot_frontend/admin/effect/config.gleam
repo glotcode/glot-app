@@ -11,6 +11,7 @@ import glot_core/admin/language_version_cache_worker_config_dto as language_cach
 import glot_core/admin/log_worker_config_dto
 import glot_core/admin/passkey_config_dto
 import glot_core/admin/rate_limit_config_dto
+import glot_core/admin/spam_classifier_config_dto
 import glot_frontend/api/response
 
 pub type Command(msg) {
@@ -99,6 +100,17 @@ pub type Command(msg) {
     docker_run_config_dto.UpsertDockerRunConfigRequest,
     fn(response.Response(docker_run_config_dto.DockerRunConfigResponse)) -> msg,
   )
+  GetSpamClassifier(
+    fn(
+      response.Response(spam_classifier_config_dto.SpamClassifierConfigResponse),
+    ) -> msg,
+  )
+  UpsertSpamClassifier(
+    spam_classifier_config_dto.UpsertSpamClassifierConfigRequest,
+    fn(
+      response.Response(spam_classifier_config_dto.SpamClassifierConfigResponse),
+    ) -> msg,
+  )
   GetCloudflare(
     fn(response.Response(cloudflare_config_dto.CloudflareConfigResponse)) -> msg,
   )
@@ -146,6 +158,9 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
     GetDockerRun(done) -> GetDockerRun(mapped(done, transform))
     UpsertDockerRun(request, done) ->
       UpsertDockerRun(request, mapped(done, transform))
+    GetSpamClassifier(done) -> GetSpamClassifier(mapped(done, transform))
+    UpsertSpamClassifier(request, done) ->
+      UpsertSpamClassifier(request, mapped(done, transform))
     GetCloudflare(done) -> GetCloudflare(mapped(done, transform))
     UpsertCloudflare(request, done) ->
       UpsertCloudflare(request, mapped(done, transform))

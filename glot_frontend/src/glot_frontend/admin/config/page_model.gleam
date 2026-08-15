@@ -10,6 +10,7 @@ import glot_frontend/admin/config/language_version_cache_worker
 import glot_frontend/admin/config/log_worker
 import glot_frontend/admin/config/passkey
 import glot_frontend/admin/config/section
+import glot_frontend/admin/config/spam_classifier
 
 pub type Model {
   Model(
@@ -22,6 +23,7 @@ pub type Model {
     http_pool: http_pool.Model,
     language_version_cache_worker: language_version_cache_worker.Model,
     docker_run: docker_run.Model,
+    spam_classifier: spam_classifier.Model,
     cloudflare: cloudflare.Model,
     email: email.Model,
   )
@@ -37,6 +39,7 @@ pub fn is_presentable(model: Model) -> Bool {
   && section.is_presentable(model.http_pool)
   && section.is_presentable(model.language_version_cache_worker)
   && section.is_presentable(model.docker_run)
+  && section.is_presentable(model.spam_classifier)
   && section.is_presentable(model.cloudflare)
   && section.is_presentable(model.email)
 }

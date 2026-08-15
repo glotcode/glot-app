@@ -11,6 +11,7 @@ import glot_backend/job/effect/algebra as job_algebra
 import glot_backend/logging/effect/algebra as logging_algebra
 import glot_backend/run_code/effect/algebra as run_code_algebra
 import glot_backend/snippet/effect/algebra as snippet_algebra
+import glot_backend/spam_classifier/effect/algebra as spam_classifier_algebra
 import glot_backend/system/cache/cache_outcome.{type CacheOutcome}
 import glot_backend/system/effect/basic/basic_algebra
 import glot_backend/system/effect/transaction/transaction_algebra
@@ -28,6 +29,7 @@ pub type EffectName {
   AuthEffectName(auth_algebra.EffectName)
   SnippetEffectName(snippet_algebra.EffectName)
   RunCodeEffectName(run_code_algebra.EffectName)
+  SpamClassifierEffectName(spam_classifier_algebra.EffectName)
   UserActionEffectName(user_action_algebra.EffectName)
   TransactionEffectName(
     transaction_algebra.EffectName,
@@ -50,6 +52,8 @@ pub fn effect_name_to_string(effect_name: EffectName) -> String {
     AuthEffectName(name) -> auth_algebra.effect_name_to_string(name)
     SnippetEffectName(name) -> snippet_algebra.effect_name_to_string(name)
     RunCodeEffectName(name) -> run_code_algebra.effect_name_to_string(name)
+    SpamClassifierEffectName(name) ->
+      spam_classifier_algebra.effect_name_to_string(name)
     UserActionEffectName(name) ->
       user_action_algebra.effect_name_to_string(name)
     TransactionEffectName(name, _, _) ->
@@ -70,6 +74,7 @@ pub fn effect_name_to_family(effect_name: EffectName) -> String {
     AuthEffectName(_) -> "auth"
     SnippetEffectName(_) -> "snippet"
     RunCodeEffectName(_) -> "run_code"
+    SpamClassifierEffectName(_) -> "spam_classifier"
     UserActionEffectName(_) -> "user_action"
     TransactionEffectName(_, _, _) -> "transaction"
   }
@@ -80,6 +85,7 @@ pub type EffectKind {
   LogEffect
   DockerCallEffect
   EmailCallEffect
+  SpamClassifierCallEffect
   CacheReadEffect(CacheOutcome)
   DatabaseReadEffect
   DatabaseWriteEffect
@@ -98,6 +104,7 @@ pub type EffectSource {
   CacheEffectSource(CacheOutcome)
   DockerEffectSource
   EmailEffectSource
+  SpamClassifierEffectSource
 }
 
 pub fn effect_kind_details(
@@ -108,6 +115,10 @@ pub fn effect_kind_details(
     LogEffect -> #(LogCategory, option.None)
     DockerCallEffect -> #(ExternalCategory, option.Some(DockerEffectSource))
     EmailCallEffect -> #(ExternalCategory, option.Some(EmailEffectSource))
+    SpamClassifierCallEffect -> #(
+      ExternalCategory,
+      option.Some(SpamClassifierEffectSource),
+    )
     CacheReadEffect(outcome) -> #(
       ReadCategory,
       option.Some(CacheEffectSource(outcome)),
@@ -133,6 +144,7 @@ pub fn effect_source_to_string(source: EffectSource) -> String {
     CacheEffectSource(_) -> "cache"
     DockerEffectSource -> "docker"
     EmailEffectSource -> "email"
+    SpamClassifierEffectSource -> "spam_classifier"
   }
 }
 

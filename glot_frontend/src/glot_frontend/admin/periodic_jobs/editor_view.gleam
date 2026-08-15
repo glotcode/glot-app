@@ -1,5 +1,6 @@
 import gleam/time/timestamp
 import glot_core/helpers/timestamp_helpers
+import glot_frontend/admin/jobs/ui as admin_job_ui
 import glot_frontend/admin/periodic_jobs/message.{
   type Msg, EnabledToggled, IntervalSecondsChanged, NextRunDateChanged,
   NextRunTimeChanged, PayloadChanged, ResetClicked, SaveClicked,
@@ -92,7 +93,7 @@ pub fn view(
         html.div([attribute.class("admin-page__policy-header")], [
           html.div([], [
             html.h3([attribute.class("admin-page__policy-title")], [
-              html.text(job_type_label(editor.job_type)),
+              html.text(admin_job_ui.job_type_label(editor.job_type)),
             ]),
             html.p([attribute.class("admin-page__policy-subtitle")], [
               html.text("Job type is fixed; the fields below are editable."),
@@ -289,22 +290,5 @@ fn toggle_button_class(enabled: Bool) -> String {
   case enabled {
     True -> admin_layout.primary_button_class()
     False -> admin_layout.secondary_button_class()
-  }
-}
-
-fn job_type_label(job_type: String) -> String {
-  case job_type {
-    "clean_api_log" -> "Clean API log"
-    "clean_page_log" -> "Clean page log"
-    "clean_pageview_log" -> "Clean pageview log"
-    "clean_run_log" -> "Clean run log"
-    "clean_job_log" -> "Clean job log"
-    "clean_jobs" -> "Clean jobs"
-    "clean_login_tokens" -> "Clean verification tokens"
-    "clean_user_actions" -> "Clean user actions"
-    "aggregate_metrics" -> "Aggregate metrics"
-    "delete_account" -> "Delete account"
-    "send_email" -> "Send email"
-    _ -> job_type
   }
 }

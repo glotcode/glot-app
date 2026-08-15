@@ -18,6 +18,7 @@ type ControlMessage {
   RecordJobStarted
   RecordJobFinished
   RecordTimeoutJob
+  RecordInterruptJob
   RecordInsertJobLog
   RecordKillAttempt
   RecordTimeoutScheduled
@@ -32,6 +33,7 @@ type ControlSnapshot {
     started_count: Int,
     finished_count: Int,
     timeout_job_count: Int,
+    interrupt_job_count: Int,
     insert_log_count: Int,
     kill_count: Int,
     timeout_scheduled_count: Int,
@@ -45,6 +47,7 @@ type ControlState {
     started_count: Int,
     finished_count: Int,
     timeout_job_count: Int,
+    interrupt_job_count: Int,
     insert_log_count: Int,
     kill_count: Int,
     timeout_scheduled_count: Int,
@@ -152,6 +155,43 @@ pub fn timed_out_attempt_finishes_and_retries_tick_test() {
   assert state.timeout_scheduled_count >= 1
 }
 
+pub fn shutdown_interrupts_and_finishes_active_attempt_test() {
+  let control_name = process.new_name("job_worker_shutdown_control")
+  let worker_name = process.new_name("job_worker_shutdown_test")
+  let control_subject = start_control(control_name, [test_job()])
+  let server_mode_name = process.new_name("job_worker_shutdown_server_mode")
+  let assert Ok(_) =
+    server_mode_worker.start_in(server_mode_name, server_mode.Running)
+  let server_mode_subject = process.named_subject(server_mode_name)
+
+  let _ =
+    job_worker.start_named_with_deps(
+      worker_name,
+      test_config(),
+      test_regexes(),
+      server_mode_adapter.new(server_mode_subject),
+      test_tracker(control_subject),
+      test_deps(control_subject, False),
+    )
+
+  let _ =
+    wait_for_snapshot(control_subject, fn(state) { state.started_count == 1 })
+  let assert Ok(Nil) =
+    job_worker.interrupt_for_shutdown(process.named_subject(worker_name))
+
+  let state =
+    wait_for_snapshot(control_subject, fn(state) {
+      state.interrupt_job_count == 1
+      && state.finished_count == 1
+      && state.insert_log_count == 1
+      && state.kill_count >= 1
+    })
+
+  assert state.timeout_job_count == 0
+  assert state.interrupt_job_count == 1
+  assert state.finished_count == 1
+}
+
 fn test_deps(
   control_subject: process.Subject(ControlMessage),
   auto_fire_timeout: Bool,
@@ -169,6 +209,10 @@ fn test_deps(
     },
     timeout_job: fn(_, _) {
       process.send(control_subject, RecordTimeoutJob)
+      Ok(Nil)
+    },
+    interrupt_job_for_shutdown: fn(_, _) {
+      process.send(control_subject, RecordInterruptJob)
       Ok(Nil)
     },
     insert_job_log: fn(_) {
@@ -230,6 +274,7 @@ fn start_control(
           started_count: 0,
           finished_count: 0,
           timeout_job_count: 0,
+          interrupt_job_count: 0,
           insert_log_count: 0,
           kill_count: 0,
           timeout_scheduled_count: 0,
@@ -266,6 +311,14 @@ fn control_loop(
       control_loop(
         subject,
         ControlState(..state, timeout_job_count: state.timeout_job_count + 1),
+      )
+    RecordInterruptJob ->
+      control_loop(
+        subject,
+        ControlState(
+          ..state,
+          interrupt_job_count: state.interrupt_job_count + 1,
+        ),
       )
     RecordInsertJobLog ->
       control_loop(
@@ -309,6 +362,7 @@ fn control_loop(
           started_count: state.started_count,
           finished_count: state.finished_count,
           timeout_job_count: state.timeout_job_count,
+          interrupt_job_count: state.interrupt_job_count,
           insert_log_count: state.insert_log_count,
           kill_count: state.kill_count,
           timeout_scheduled_count: state.timeout_scheduled_count,
@@ -368,6 +422,8 @@ fn test_job() -> job_model.Job {
     request_id: option.Some(request_id),
     periodic_job_id: option.None,
     job_type: job_model.CleanJobsJob,
+    queue: job_model.DefaultQueue,
+    dedupe_key: option.None,
     payload: option.None,
     status: job_model.Pending,
     attempts: 1,

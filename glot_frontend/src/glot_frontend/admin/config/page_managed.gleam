@@ -10,11 +10,12 @@ import glot_frontend/admin/config/http_pool
 import glot_frontend/admin/config/language_version_cache_worker
 import glot_frontend/admin/config/log_worker
 import glot_frontend/admin/config/passkey
+import glot_frontend/admin/config/spam_classifier
 
 import glot_frontend/admin/config/page_message.{
   type Msg, AuthMsg, AvailabilityMsg, CleanupMsg, CloudflareMsg, DebugMsg,
   DockerRunMsg, EmailMsg, HttpPoolMsg, LanguageVersionCacheWorkerMsg,
-  LogWorkerMsg, PasskeyMsg,
+  LogWorkerMsg, PasskeyMsg, SpamClassifierMsg,
 }
 import glot_frontend/admin/config/page_model.{type Model, Model}
 
@@ -30,6 +31,7 @@ pub fn init() -> #(Model, admin_effect.Command(Msg)) {
       http_pool: http_pool.init(),
       language_version_cache_worker: language_version_cache_worker.init(),
       docker_run: docker_run.init(),
+      spam_classifier: spam_classifier.init(),
       cloudflare: cloudflare.init(),
       email: email.init(),
     ),
@@ -53,6 +55,8 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
     )
   let #(docker_run, docker_run_effect) =
     docker_run.ensure_loaded(model.docker_run)
+  let #(spam_classifier, spam_classifier_effect) =
+    spam_classifier.ensure_loaded(model.spam_classifier)
   let #(cloudflare, cloudflare_effect) =
     cloudflare.ensure_loaded(model.cloudflare)
   let #(email, email_effect) = email.ensure_loaded(model.email)
@@ -68,6 +72,7 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
       http_pool:,
       language_version_cache_worker:,
       docker_run:,
+      spam_classifier:,
       cloudflare:,
       email:,
     ),
@@ -84,6 +89,7 @@ pub fn ensure_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
         LanguageVersionCacheWorkerMsg,
       ),
       admin_effect.map(docker_run_effect, DockerRunMsg),
+      admin_effect.map(spam_classifier_effect, SpamClassifierMsg),
       admin_effect.map(cloudflare_effect, CloudflareMsg),
       admin_effect.map(email_effect, EmailMsg),
     ]),
@@ -154,6 +160,14 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
       #(
         Model(..model, docker_run: child),
         admin_effect.map(child_effect, DockerRunMsg),
+      )
+    }
+    SpamClassifierMsg(child_msg) -> {
+      let #(child, child_effect) =
+        spam_classifier.update(model.spam_classifier, child_msg)
+      #(
+        Model(..model, spam_classifier: child),
+        admin_effect.map(child_effect, SpamClassifierMsg),
       )
     }
     CloudflareMsg(child_msg) -> {

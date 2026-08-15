@@ -9,6 +9,7 @@ import support/integration/fixture
 import support/integration/model
 import support/integration/profile/job as runner
 import support/integration/store/common
+import youid/uuid
 
 pub fn enqueue_next_due_periodic_job_creates_job_and_advances_schedule_test() {
   let periodic_job_id =
@@ -68,6 +69,9 @@ pub fn enqueue_next_due_periodic_job_creates_job_and_advances_schedule_test() {
 
   assert enqueued_job.periodic_job_id == option.Some(periodic_job_id)
   assert enqueued_job.job_type == job_model.CleanApiLogJob
+  assert enqueued_job.queue == clean_api_log_policy.queue
+  assert enqueued_job.dedupe_key
+    == option.Some("periodic:" <> uuid.to_string(periodic_job_id))
   assert enqueued_job.status == job_model.Pending
   assert enqueued_job.max_attempts == 2
   assert enqueued_job.timeout_seconds == 1800

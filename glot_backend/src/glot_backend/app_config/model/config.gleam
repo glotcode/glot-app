@@ -7,6 +7,7 @@ import glot_backend/email/model/config as email_config_model
 import glot_backend/logging/ingestion/model/config as logging_config_model
 import glot_backend/request_policy/model/config as request_policy_config
 import glot_backend/run_code/model/config as run_code_config_model
+import glot_backend/spam_classifier/model/config as spam_classifier_config
 import glot_core/public_action.{type PublicAction}
 
 pub type DynamicConfig {
@@ -20,6 +21,7 @@ pub type DynamicConfig {
     log_worker: logging_config_model.Config,
     language_version_cache_worker: run_code_config_model.LanguageVersionCacheWorkerConfig,
     docker_run: option.Option(run_code_config_model.DockerRunConfig),
+    spam_classifier: option.Option(spam_classifier_config.Config),
     cloudflare: option.Option(email_config_model.CloudflareConfig),
     email: option.Option(email_config_model.EmailConfig),
     rate_limit_policies: dict.Dict(
@@ -40,6 +42,7 @@ pub fn empty() -> DynamicConfig {
     log_worker: defaults.log_worker(),
     language_version_cache_worker: defaults.language_version_cache_worker(),
     docker_run: option.None,
+    spam_classifier: option.None,
     cloudflare: option.None,
     email: option.None,
     rate_limit_policies: dict.new(),
@@ -58,6 +61,12 @@ pub fn docker_run_config(
   config: DynamicConfig,
 ) -> option.Option(run_code_config_model.DockerRunConfig) {
   config.docker_run
+}
+
+pub fn spam_classifier_config(
+  config: DynamicConfig,
+) -> option.Option(spam_classifier_config.Config) {
+  config.spam_classifier
 }
 
 pub fn cloudflare_config(

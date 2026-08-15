@@ -47,4 +47,6 @@ format_error(Reason) ->
 profile({pool, docker_run}) ->
     glot_docker_run_http;
 profile({pool, cloudflare_email}) ->
-    glot_cloudflare_email_http.
+    glot_cloudflare_email_http;
+profile({pool, spam_classifier}) ->
+    glot_spam_classifier_http.

@@ -103,6 +103,57 @@ pub fn run(
         state: state,
         continue: continue,
       )
+    snippet_algebra.GetNewestUnclassifiedSnippet(next:) ->
+      measured_interpreter.run(
+        fn() { store.get_newest_unclassified_snippet() },
+        next,
+        name: trace_name(snippet_algebra.GetNewestUnclassifiedSnippetEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
+      )
+    snippet_algebra.StoreSpamClassification(
+      id:,
+      expected_updated_at:,
+      classification:,
+      next:,
+    ) ->
+      measured_interpreter.run(
+        fn() {
+          store.store_spam_classification(
+            id,
+            expected_updated_at,
+            classification,
+          )
+        },
+        next,
+        name: trace_name(snippet_algebra.StoreSpamClassificationEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
+    snippet_algebra.StoreSpamClassificationFailure(
+      id:,
+      expected_updated_at:,
+      failure:,
+      next:,
+    ) ->
+      measured_interpreter.run(
+        fn() {
+          store.store_spam_classification_failure(
+            id,
+            expected_updated_at,
+            failure,
+          )
+        },
+        next,
+        name: trace_name(
+          snippet_algebra.StoreSpamClassificationFailureEffectName,
+        ),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
   }
 }
 

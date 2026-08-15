@@ -15,6 +15,8 @@ pub fn from_next(
     request_id: row.request_id,
     periodic_job_id: row.periodic_job_id,
     job_type_name: row.job_type,
+    queue_name: row.queue_name,
+    dedupe_key: row.dedupe_key,
     payload: row.payload,
     status_name: row.status,
     attempts: row.attempts,
@@ -41,6 +43,8 @@ pub fn from_expired_running(
     request_id: row.request_id,
     periodic_job_id: row.periodic_job_id,
     job_type_name: row.job_type,
+    queue_name: row.queue_name,
+    dedupe_key: row.dedupe_key,
     payload: row.payload,
     status_name: row.status,
     attempts: row.attempts,
@@ -67,6 +71,8 @@ pub fn from_list_after(
     request_id: row.request_id,
     periodic_job_id: row.periodic_job_id,
     job_type_name: row.job_type,
+    queue_name: row.queue_name,
+    dedupe_key: row.dedupe_key,
     payload: row.payload,
     status_name: row.status,
     attempts: row.attempts,
@@ -93,6 +99,8 @@ pub fn from_list_before(
     request_id: row.request_id,
     periodic_job_id: row.periodic_job_id,
     job_type_name: row.job_type,
+    queue_name: row.queue_name,
+    dedupe_key: row.dedupe_key,
     payload: row.payload,
     status_name: row.status,
     attempts: row.attempts,
@@ -119,6 +127,8 @@ pub fn from_id(
     request_id: row.request_id,
     periodic_job_id: row.periodic_job_id,
     job_type_name: row.job_type,
+    queue_name: row.queue_name,
+    dedupe_key: row.dedupe_key,
     payload: row.payload,
     status_name: row.status,
     attempts: row.attempts,
@@ -142,6 +152,8 @@ fn from_fields(
   request_id request_id: option.Option(BitArray),
   periodic_job_id periodic_job_id: option.Option(BitArray),
   job_type_name job_type_name: String,
+  queue_name queue_name: String,
+  dedupe_key dedupe_key: option.Option(String),
   payload payload: option.Option(String),
   status_name status_name: String,
   attempts attempts: Int,
@@ -167,12 +179,18 @@ fn from_fields(
     |> result.map_error(validation_error.to_string)
     |> result.map_error(db_error.DbQueryError),
   )
+  use queue <- result.try(
+    job_model.queue_from_string(queue_name)
+    |> result.map_error(db_error.DbQueryError),
+  )
 
   Ok(job_model.Job(
     id: uuid_helpers.from_bit_array(id),
     request_id: request_id |> option.map(uuid_helpers.from_bit_array),
     periodic_job_id: periodic_job_id |> option.map(uuid_helpers.from_bit_array),
     job_type: job_type,
+    queue: queue,
+    dedupe_key: dedupe_key,
     payload: payload,
     status: status,
     attempts: attempts,

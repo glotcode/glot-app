@@ -29,6 +29,7 @@ pub type SaveStream {
 
 pub type PolicyFields {
   PolicyFields(
+    queue_name: String,
     max_attempts: String,
     timeout_seconds: String,
     base_backoff_seconds: String,
@@ -37,6 +38,7 @@ pub type PolicyFields {
 }
 
 pub type Field {
+  QueueNameField
   MaxAttemptsField
   TimeoutSecondsField
   BaseBackoffSecondsField

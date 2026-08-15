@@ -10,25 +10,35 @@ import glot_backend/system/effect/error/db_error
 import glot_backend/system/effect/interpreter
 import glot_backend/system/effect/runtime.{type Runtime}
 import glot_backend/system/runtime/erlang
+import glot_core/job/job_model.{type Queue}
 import wisp
 
-pub fn new(effect_runtime: Runtime, log_store: LogStore) -> worker.Deps {
+pub fn new(
+  effect_runtime: Runtime,
+  log_store: LogStore,
+  queue: Queue,
+) -> worker.Deps {
   worker.Deps(
     enqueue_next_due_periodic_job: fn(ctx) {
-      let #(outcome, _) =
-        periodic_job_manager_domain.enqueue_next_due_periodic_job(ctx)
-        |> interpreter.run(effect_runtime, ctx)
-      outcome |> result.map_error(string.inspect)
+      case queue {
+        job_model.DefaultQueue -> {
+          let #(outcome, _) =
+            periodic_job_manager_domain.enqueue_next_due_periodic_job(ctx)
+            |> interpreter.run(effect_runtime, ctx)
+          outcome |> result.map_error(string.inspect)
+        }
+        job_model.SpamClassifierQueue -> Ok(False)
+      }
     },
     recover_next_expired_job: fn(ctx) {
       let #(outcome, _) =
-        job_manager_domain.recover_next_expired_job(ctx)
+        job_manager_domain.recover_next_expired_job(ctx, queue)
         |> interpreter.run(effect_runtime, ctx)
       outcome |> result.map_error(string.inspect)
     },
     claim_next_job: fn(ctx) {
       let #(outcome, _) =
-        job_manager_domain.claim_next_job(ctx)
+        job_manager_domain.claim_next_job(ctx, queue)
         |> interpreter.run(effect_runtime, ctx)
       outcome |> result.map_error(string.inspect)
     },
@@ -39,6 +49,12 @@ pub fn new(effect_runtime: Runtime, log_store: LogStore) -> worker.Deps {
     timeout_job: fn(ctx, job) {
       let #(outcome, _) =
         job_manager_domain.timeout_job(ctx, job)
+        |> interpreter.run(effect_runtime, ctx)
+      outcome |> result.map_error(string.inspect)
+    },
+    interrupt_job_for_shutdown: fn(ctx, job) {
+      let #(outcome, _) =
+        job_manager_domain.interrupt_job_for_shutdown(ctx, job)
         |> interpreter.run(effect_runtime, ctx)
       outcome |> result.map_error(string.inspect)
     },

@@ -7,6 +7,7 @@ import glot_backend/email/model/config as email_feature_config
 import glot_backend/logging/ingestion/model/config as logging_config
 import glot_backend/request_policy/model/config as request_policy_config
 import glot_backend/run_code/model/config as run_code_config
+import glot_backend/spam_classifier/model/config as spam_classifier_config
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
 import glot_backend/system/effect/program
@@ -163,6 +164,19 @@ pub fn upsert_docker_run_config(
 ) -> program_types.Program(dynamic_config.DynamicConfig) {
   program.perform(
     program_types.AppConfigEffect(app_config_algebra.UpsertDockerRunConfig(
+      config: config,
+      updated_at: updated_at,
+      next: program.from_result,
+    )),
+  )
+}
+
+pub fn upsert_spam_classifier_config(
+  config: spam_classifier_config.Config,
+  updated_at: Timestamp,
+) -> program_types.Program(dynamic_config.DynamicConfig) {
+  program.perform(
+    program_types.AppConfigEffect(app_config_algebra.UpsertSpamClassifierConfig(
       config: config,
       updated_at: updated_at,
       next: program.from_result,

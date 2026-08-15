@@ -95,7 +95,7 @@ fn recent_job_row(
   admin_table.row([
     admin_table.cell(job_column(), [
       html.span([attribute.class("admin-table__value--primary")], [
-        html.text(job.job_type),
+        html.text(admin_job_ui.job_type_label(job.job_type)),
       ]),
     ]),
     admin_table.cell(status_column(), [

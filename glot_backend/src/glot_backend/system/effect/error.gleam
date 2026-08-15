@@ -30,12 +30,24 @@ pub fn to_string(err: Error) -> String {
 }
 
 pub fn retryable(err: Error) -> Bool {
+  case failure_disposition(err) {
+    infra_error.PermanentFailure -> False
+    infra_error.RetryWithBackoff
+    | infra_error.RetryAfter(_)
+    | infra_error.RetryIndefinitelyWithBackoff
+    | infra_error.RetryIndefinitelyAfter(_) -> True
+  }
+}
+
+pub fn failure_disposition(err: Error) -> infra_error.FailureDisposition {
   case err {
-    RequestError(_) -> False
-    ResourceError(_) -> False
-    AuthError(_) -> False
-    PolicyError(_) -> False
-    InfraError(infra_error) -> infra_error.retryable(infra_error)
+    RequestError(_) -> infra_error.PermanentFailure
+    ResourceError(resource_error.SpamClassifierConfigNotFound) ->
+      infra_error.RetryIndefinitelyAfter(60)
+    ResourceError(_) -> infra_error.PermanentFailure
+    AuthError(_) -> infra_error.PermanentFailure
+    PolicyError(_) -> infra_error.PermanentFailure
+    InfraError(err) -> infra_error.failure_disposition(err)
   }
 }
 

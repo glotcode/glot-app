@@ -117,6 +117,8 @@ pub type JobResponse {
     request_id: option.Option(uuid.Uuid),
     periodic_job_id: option.Option(uuid.Uuid),
     job_type: String,
+    queue_name: String,
+    dedupe_key: option.Option(String),
     status: String,
     attempts: Int,
     max_attempts: Int,
@@ -157,6 +159,8 @@ pub type JobDetailResponse {
     request_id: option.Option(uuid.Uuid),
     periodic_job_id: option.Option(uuid.Uuid),
     job_type: String,
+    queue_name: String,
+    dedupe_key: option.Option(String),
     payload: option.Option(String),
     status: String,
     attempts: Int,
@@ -241,6 +245,8 @@ pub fn from_job_detail(
     request_id: job.request_id,
     periodic_job_id: job.periodic_job_id,
     job_type: job_model.job_type_to_string(job.job_type),
+    queue_name: job_model.queue_to_string(job.queue),
+    dedupe_key: job.dedupe_key,
     payload: job.payload,
     status: job_model.status_to_string(job.status),
     attempts: job.attempts,
@@ -264,6 +270,8 @@ pub fn from_job(job: job_model.Job, now: timestamp.Timestamp) -> JobResponse {
     request_id: job.request_id,
     periodic_job_id: job.periodic_job_id,
     job_type: job_model.job_type_to_string(job.job_type),
+    queue_name: job_model.queue_to_string(job.queue),
+    dedupe_key: job.dedupe_key,
     status: job_model.status_to_string(job.status),
     attempts: job.attempts,
     max_attempts: job.max_attempts,
@@ -312,6 +320,8 @@ fn job_decoder() -> decode.Decoder(JobResponse) {
     decode.optional(uuid_helpers.decoder()),
   )
   use job_type <- decode.field("jobType", decode.string)
+  use queue_name <- decode.field("queueName", decode.string)
+  use dedupe_key <- decode.field("dedupeKey", decode.optional(decode.string))
   use status <- decode.field("status", decode.string)
   use attempts <- decode.field("attempts", decode.int)
   use max_attempts <- decode.field("maxAttempts", decode.int)
@@ -343,6 +353,8 @@ fn job_decoder() -> decode.Decoder(JobResponse) {
     request_id: request_id,
     periodic_job_id: periodic_job_id,
     job_type: job_type,
+    queue_name: queue_name,
+    dedupe_key: dedupe_key,
     status: status,
     attempts: attempts,
     max_attempts: max_attempts,
@@ -370,6 +382,8 @@ fn job_detail_decoder() -> decode.Decoder(JobDetailResponse) {
     decode.optional(uuid_helpers.decoder()),
   )
   use job_type <- decode.field("jobType", decode.string)
+  use queue_name <- decode.field("queueName", decode.string)
+  use dedupe_key <- decode.field("dedupeKey", decode.optional(decode.string))
   use payload <- decode.field("payload", decode.optional(decode.string))
   use status <- decode.field("status", decode.string)
   use attempts <- decode.field("attempts", decode.int)
@@ -402,6 +416,8 @@ fn job_detail_decoder() -> decode.Decoder(JobDetailResponse) {
     request_id: request_id,
     periodic_job_id: periodic_job_id,
     job_type: job_type,
+    queue_name: queue_name,
+    dedupe_key: dedupe_key,
     payload: payload,
     status: status,
     attempts: attempts,
@@ -425,6 +441,8 @@ fn encode_job(job: JobResponse) -> json.Json {
     #("requestId", json.nullable(job.request_id, encode_uuid)),
     #("periodicJobId", json.nullable(job.periodic_job_id, encode_uuid)),
     #("jobType", json.string(job.job_type)),
+    #("queueName", json.string(job.queue_name)),
+    #("dedupeKey", json.nullable(job.dedupe_key, json.string)),
     #("status", json.string(job.status)),
     #("attempts", json.int(job.attempts)),
     #("maxAttempts", json.int(job.max_attempts)),
@@ -450,6 +468,8 @@ fn encode_job_detail(job: JobDetailResponse) -> json.Json {
     #("requestId", json.nullable(job.request_id, encode_uuid)),
     #("periodicJobId", json.nullable(job.periodic_job_id, encode_uuid)),
     #("jobType", json.string(job.job_type)),
+    #("queueName", json.string(job.queue_name)),
+    #("dedupeKey", json.nullable(job.dedupe_key, json.string)),
     #("payload", json.nullable(job.payload, json.string)),
     #("status", json.string(job.status)),
     #("attempts", json.int(job.attempts)),

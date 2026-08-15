@@ -290,6 +290,7 @@ pub fn default_job_type_policies() -> Dict(String, job_model.JobTypePolicy) {
     let policy =
       job_model.JobTypePolicy(
         job_type: job_type,
+        queue: job_model.DefaultQueue,
         max_attempts: 5,
         timeout_seconds: 120,
         base_backoff_seconds: 5,
@@ -331,6 +332,7 @@ pub fn test_dynamic_config() -> dynamic_config.DynamicConfig {
     log_worker: test_log_worker_config(),
     language_version_cache_worker: test_language_version_cache_worker_config(),
     docker_run: option.None,
+    spam_classifier: option.None,
     cloudflare: option.Some(test_cloudflare_config()),
     email: option.Some(test_email_config()),
     rate_limit_policies: dict.new(),

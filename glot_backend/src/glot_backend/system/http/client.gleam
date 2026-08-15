@@ -19,6 +19,10 @@ pub type HttpError {
   BadBody(String)
 }
 
+pub type RawResponse {
+  RawResponse(status: Int, headers: List(#(String, String)), body: String)
+}
+
 fn map_http_error(error: httpc.HttpError) -> HttpError {
   case error {
     httpc.InvalidUtf8Response -> BadBody("Response body was not valid UTF-8")
@@ -64,6 +68,28 @@ pub fn post_json(
 
   json.parse(res.body, decoder)
   |> result.map_error(fn(err) { BadBody(string.inspect(err)) })
+}
+
+pub fn post_json_raw(
+  using pool: Pool,
+  url url: String,
+  headers headers: dict.Dict(String, String),
+  body body: json.Json,
+  timeout_ms timeout_ms: Int,
+) -> Result(RawResponse, HttpError) {
+  use initial_req <- result.try(url_to_request(url))
+  let req =
+    initial_req
+    |> request.set_method(http.Post)
+    |> request.set_header("content-type", "application/json")
+    |> request.set_header("accept", "application/json")
+    |> request.set_body(json.to_string(body))
+    |> dict.fold(headers, _, fn(acc, key, value) {
+      request.set_header(acc, key, value)
+    })
+  profile_httpc.dispatch(pool, timeout_ms, req)
+  |> result.map_error(map_http_error)
+  |> result.map(fn(res) { RawResponse(res.status, res.headers, res.body) })
 }
 
 fn url_to_request(url: String) -> Result(request.Request(String), HttpError) {

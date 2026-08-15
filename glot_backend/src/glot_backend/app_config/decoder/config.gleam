@@ -7,6 +7,7 @@ import glot_backend/app_config/decoder/email as email_decoder
 import glot_backend/app_config/decoder/logging as logging_decoder
 import glot_backend/app_config/decoder/request_policy as request_policy_decoder
 import glot_backend/app_config/decoder/run_code as run_code_decoder
+import glot_backend/app_config/decoder/spam_classifier as spam_classifier_decoder
 import glot_backend/app_config/decoder/system as system_decoder
 import glot_backend/app_config/model/config.{type DynamicConfig}
 import glot_backend/app_config/model/defaults
@@ -32,6 +33,7 @@ fn empty() -> DynamicConfig {
     log_worker: defaults.log_worker(),
     language_version_cache_worker: defaults.language_version_cache_worker(),
     docker_run: option.None,
+    spam_classifier: option.None,
     cloudflare: option.None,
     email: option.None,
     rate_limit_policies: dict.new(),
@@ -101,6 +103,13 @@ fn apply_entry(
         entry,
       ))
       Ok(config.DynamicConfig(..config, docker_run: docker_run))
+    }
+    "spam_classifier" -> {
+      use spam_classifier <- result.try(spam_classifier_decoder.spam_classifier(
+        config.spam_classifier,
+        entry,
+      ))
+      Ok(config.DynamicConfig(..config, spam_classifier: spam_classifier))
     }
     "cloudflare" -> {
       use cloudflare <- result.try(email_decoder.cloudflare(

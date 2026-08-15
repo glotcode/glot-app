@@ -1,6 +1,8 @@
+import gleam/json
 import gleam/list
 import gleam/option
 import gleam/regexp
+import gleam/result
 import gleam/time/timestamp
 import gleeunit
 import glot_core/admin_action
@@ -11,13 +13,16 @@ import glot_core/contact_dto
 import glot_core/effect_trace_dto
 import glot_core/email/email_address_model
 import glot_core/helpers/timestamp_helpers
+import glot_core/job/job_model
 import glot_core/language
 import glot_core/pagination_model
 import glot_core/public_action
 import glot_core/run
 import glot_core/server_timing_policy
 import glot_core/snippet/snippet_model
+import glot_core/snippet/spam_classification
 import glot_core/validation_error
+import youid/uuid
 
 pub fn main() -> Nil {
   gleeunit.main()
@@ -28,6 +33,165 @@ pub fn new_slug_test() {
     timestamp.from_unix_seconds_and_nanoseconds(1_775_312_436, 567_890_000)
 
   assert snippet_model.new_slug(ts) == "hhan9vius2"
+}
+
+pub fn spam_classifier_request_matches_contract_test() {
+  let now = timestamp.from_unix_seconds(0)
+  let snippet =
+    snippet_model.Snippet(
+      id: uuid.nil,
+      slug: "example",
+      user_id: uuid.nil,
+      title: "Example",
+      language: language.Python,
+      visibility: snippet_model.Public,
+      stdin: "",
+      run_instructions: option.Some(language.RunInstructions(
+        build_commands: [],
+        run_command: "python main.py",
+      )),
+      files: [snippet_model.File("main.py", "print('hello')")],
+      created_at: now,
+      updated_at: now,
+    )
+  assert spam_classification.encode_request(snippet)
+    |> json.to_string
+    == "{\"snippet\":{\"title\":\"Example\",\"language\":\"python\",\"stdin\":\"\",\"runInstructions\":{\"buildCommands\":[],\"runCommand\":\"python main.py\"},\"files\":[{\"name\":\"main.py\",\"content\":\"print('hello')\"}]}}"
+}
+
+pub fn spam_classifier_response_decodes_all_fields_test() {
+  let assert Ok(response) =
+    json.parse(
+      "{\"decision\":\"block\",\"confidence\":91,\"reason_code\":\"link_spam\"}",
+      spam_classification.service_response_decoder(),
+    )
+  assert response
+    == spam_classification.ServiceResponse(
+      decision: spam_classification.Block,
+      confidence: 91,
+      reason_code: spam_classification.LinkSpam,
+    )
+}
+
+pub fn spam_classifier_response_rejects_out_of_range_confidence_test() {
+  assert json.parse(
+      "{\"decision\":\"allow\",\"confidence\":101,\"reason_code\":\"none\"}",
+      spam_classification.service_response_decoder(),
+    )
+    |> result.is_error
+}
+
+pub fn successor_job_resets_attempt_state_and_runs_immediately_test() {
+  let created_at = timestamp.from_unix_seconds(100)
+  let started_at = timestamp.from_unix_seconds(110)
+  let continued_at = timestamp.from_unix_seconds(120)
+  let policy =
+    job_model.JobTypePolicy(
+      job_type: job_model.ClassifySnippetJob,
+      queue: job_model.SpamClassifierQueue,
+      max_attempts: 10,
+      timeout_seconds: 3600,
+      base_backoff_seconds: 30,
+      max_backoff_seconds: 900,
+      created_at: created_at,
+      updated_at: created_at,
+    )
+  let running_job =
+    job_model.periodic_job_execution(
+      uuid.nil,
+      created_at,
+      uuid.nil,
+      job_model.ClassifySnippetJob,
+      option.None,
+      policy,
+    )
+    |> job_model.start(started_at)
+  let successor_id =
+    uuid.from_string("00000000-0000-4000-8000-000000000001")
+    |> result.unwrap(uuid.nil)
+  let continued_job =
+    job_model.immediate_successor(successor_id, running_job, continued_at)
+
+  assert continued_job.id == successor_id
+  assert continued_job.status == job_model.Pending
+  assert continued_job.attempts == 0
+  assert continued_job.run_at == continued_at
+  assert continued_job.started_at == option.None
+  assert continued_job.lease_expires_at == option.None
+  assert continued_job.dedupe_key == running_job.dedupe_key
+}
+
+pub fn shutdown_interruption_requeues_running_job_immediately_test() {
+  let created_at = timestamp.from_unix_seconds(100)
+  let started_at = timestamp.from_unix_seconds(110)
+  let interrupted_at = timestamp.from_unix_seconds(120)
+  let policy =
+    job_model.JobTypePolicy(
+      job_type: job_model.ClassifySnippetJob,
+      queue: job_model.SpamClassifierQueue,
+      max_attempts: 10,
+      timeout_seconds: 3600,
+      base_backoff_seconds: 30,
+      max_backoff_seconds: 900,
+      created_at: created_at,
+      updated_at: created_at,
+    )
+  let running_job =
+    job_model.periodic_job_execution(
+      uuid.nil,
+      created_at,
+      uuid.nil,
+      job_model.ClassifySnippetJob,
+      option.None,
+      policy,
+    )
+    |> job_model.start(started_at)
+  let interrupted_job =
+    job_model.interrupted_for_shutdown(running_job, interrupted_at)
+
+  assert interrupted_job.status == job_model.Pending
+  assert interrupted_job.attempts == running_job.attempts
+  assert interrupted_job.run_at == interrupted_at
+  assert interrupted_job.started_at == option.None
+  assert interrupted_job.lease_expires_at == option.None
+  assert interrupted_job.last_error == option.Some("interrupted_by_shutdown")
+}
+
+pub fn indefinite_reschedule_does_not_exhaust_job_test() {
+  let created_at = timestamp.from_unix_seconds(100)
+  let retry_at = timestamp.from_unix_seconds(200)
+  let policy =
+    job_model.JobTypePolicy(
+      job_type: job_model.ClassifySnippetJob,
+      queue: job_model.SpamClassifierQueue,
+      max_attempts: 1,
+      timeout_seconds: 3600,
+      base_backoff_seconds: 30,
+      max_backoff_seconds: 900,
+      created_at: created_at,
+      updated_at: created_at,
+    )
+  let running_job =
+    job_model.periodic_job_execution(
+      uuid.nil,
+      created_at,
+      uuid.nil,
+      job_model.ClassifySnippetJob,
+      option.None,
+      policy,
+    )
+    |> job_model.start(created_at)
+  let retried_job =
+    job_model.reschedule_indefinitely(
+      running_job,
+      retry_at,
+      option.Some("service_unavailable"),
+      retry_at,
+    )
+
+  assert retried_job.status == job_model.Pending
+  assert retried_job.attempts == 1
+  assert retried_job.run_at == retry_at
 }
 
 pub fn secret_snippet_visibility_round_trips_test() {

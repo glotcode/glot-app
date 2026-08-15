@@ -1,6 +1,7 @@
 import glot_backend/auth/passkey/ports/ceremony as passkey_port
 import glot_backend/email/ports/sender as email_sender
 import glot_backend/run_code/ports/runner
+import glot_backend/spam_classifier/ports/client as spam_classifier_client
 import glot_backend/system/effect/basic/basic_handlers
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/infra_error
@@ -46,6 +47,19 @@ pub fn defaults(test_state: state.State) -> system_ports.SystemPorts {
       Error(run_request_error.ClientRunRequestError(
         "unexpected test port call: run_code.run",
       ))
+    }),
+    spam_classifier: spam_classifier_client.Client(classify: fn(_, _, _) {
+      Error(
+        error.infra(
+          infra_error.SpamClassifierError(
+            infra_error.SpamClassifierRequestFailed(
+              "unexpected test port call: spam_classifier.classify",
+              infra_error.PermanentFailure,
+              infra_error.ServiceFailure,
+            ),
+          ),
+        ),
+      )
     }),
   )
 }

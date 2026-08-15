@@ -13,6 +13,7 @@ import glot_backend/request_policy/model/config.{
 import glot_backend/run_code/model/config.{
   type DockerRunConfig, type LanguageVersionCacheWorkerConfig,
 } as _
+import glot_backend/spam_classifier/model/config as spam_classifier_config
 import glot_core/availability_mode
 import glot_core/public_action.{type PublicAction}
 
@@ -198,6 +199,15 @@ pub fn docker_run(value: DockerRunConfig) -> List(AppConfigEntry) {
       "default_timeout_ms",
       json.int(value.default_timeout_ms),
     ),
+  ]
+}
+
+pub fn spam_classifier(
+  value: spam_classifier_config.Config,
+) -> List(AppConfigEntry) {
+  [
+    entry("spam_classifier", "base_url", json.string(value.base_url)),
+    entry("spam_classifier", "auth_token", json.string(value.auth_token)),
   ]
 }
 

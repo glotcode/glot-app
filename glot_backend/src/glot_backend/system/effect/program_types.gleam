@@ -8,6 +8,7 @@ import glot_backend/job/effect/algebra as job_algebra
 import glot_backend/logging/effect/algebra as logging_algebra
 import glot_backend/run_code/effect/algebra as run_code_algebra
 import glot_backend/snippet/effect/algebra as snippet_algebra
+import glot_backend/spam_classifier/effect/algebra as spam_classifier_algebra
 import glot_backend/system/effect/basic/basic_algebra
 import glot_backend/system/effect/error
 import glot_backend/user_action/effect/algebra as user_action_algebra
@@ -31,6 +32,7 @@ pub type Effect(next) {
   EmailEffect(email_algebra.EmailEffect(next))
   WebauthnEffect(webauthn_algebra.WebauthnEffect(next))
   RunCodeEffect(run_code_algebra.RunCodeEffect(next))
+  SpamClassifierEffect(spam_classifier_algebra.Effect(next))
   DbEffect(DbEffect(next))
   TransactionEffect(TransactionEffect(next))
 }

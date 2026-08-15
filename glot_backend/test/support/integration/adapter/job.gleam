@@ -14,13 +14,15 @@ pub fn defaults() -> ports.Ports {
     jobs: job_store.JobStore(
       list_jobs: fn(_, _) { unexpected.query("job.list") },
       summarize_jobs: fn(_, _) { unexpected.query("job.summarize") },
-      get_next_job: fn(_, _) { unexpected.query("job.get_next") },
-      get_expired_running_job: fn(_, _) {
+      get_next_job: fn(_, _, _) { unexpected.query("job.get_next") },
+      get_expired_running_job: fn(_, _, _) {
         unexpected.query("job.get_expired_running")
       },
       get_job_by_id: fn(_) { unexpected.query("job.get_by_id") },
       create_job: fn(_) { unexpected.command("job.create") },
       update_job: fn(_) { unexpected.command("job.update") },
+      claim_queue_slot: fn(_, _, _) { unexpected.query("job.claim_slot") },
+      release_queue_slot: fn(_, _) { unexpected.command("job.release_slot") },
       delete_job: fn(_) { unexpected.command("job.delete") },
       delete_before: fn(_, _) { unexpected.command("job.delete_before") },
     ),
@@ -65,8 +67,8 @@ pub fn new(test_state: state.State) -> ports.Ports {
           overdue_count: 0,
         ))
       },
-      get_next_job: fn(_, _) { Ok(option.None) },
-      get_expired_running_job: fn(now, status) {
+      get_next_job: fn(_, _, _) { Ok(option.None) },
+      get_expired_running_job: fn(_, now, status) {
         Ok(job.find_expired_job(state.get(test_state), now, status))
       },
       get_job_by_id: fn(id) { Ok(job.find_job(state.get(test_state), id)) },
@@ -78,6 +80,8 @@ pub fn new(test_state: state.State) -> ports.Ports {
         state.update(test_state, fn(db) { job.put_job(db, value) })
         Ok(Nil)
       },
+      claim_queue_slot: fn(_, _, _) { Ok(True) },
+      release_queue_slot: fn(_, _) { Ok(Nil) },
       delete_job: fn(id) {
         state.update(test_state, fn(db) { job.delete_job_by_id(db, id) })
         Ok(Nil)

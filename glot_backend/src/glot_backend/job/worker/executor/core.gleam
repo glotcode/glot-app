@@ -106,3 +106,17 @@ pub fn on_attempt_timed_out(
     _ -> #(state, [])
   }
 }
+
+pub fn on_attempt_interrupted_for_shutdown(
+  state: State,
+  pid: process.Pid,
+  log_entry: log_entry.LogEntry,
+) -> #(State, List(Command)) {
+  case state.active_attempt {
+    option.Some(active) if active.pid == pid -> #(
+      State(active_attempt: option.None),
+      [JobFinished, InsertJobLog(log_entry)],
+    )
+    _ -> #(state, [])
+  }
+}

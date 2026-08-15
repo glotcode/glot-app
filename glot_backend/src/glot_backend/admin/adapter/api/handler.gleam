@@ -30,6 +30,8 @@ import glot_backend/admin/domain/config/passkey/get as get_passkey_config_domain
 import glot_backend/admin/domain/config/passkey/upsert as upsert_passkey_config_domain
 import glot_backend/admin/domain/config/rate_limit/list as get_rate_limit_policies_domain
 import glot_backend/admin/domain/config/rate_limit/upsert as upsert_rate_limit_policy_domain
+import glot_backend/admin/domain/config/spam_classifier/get as get_spam_classifier_config_domain
+import glot_backend/admin/domain/config/spam_classifier/upsert as upsert_spam_classifier_config_domain
 import glot_backend/admin/domain/email_template/get as get_email_template_domain
 import glot_backend/admin/domain/email_template/list as get_email_templates_domain
 import glot_backend/admin/domain/email_template/update as update_email_template_domain
@@ -338,6 +340,19 @@ pub fn dispatch(
         request,
       )
       |> program.map(api_result.DockerRunConfigResponse)
+    }
+    admin_action.GetAdminSpamClassifierConfigAction ->
+      get_spam_classifier_config_domain.get_spam_classifier_config(request_ctx)
+      |> program.map(api_result.SpamClassifierConfigResponse)
+    admin_action.UpsertAdminSpamClassifierConfigAction -> {
+      use request <- program.and_then(
+        upsert_spam_classifier_config_domain.request_from_dynamic(data),
+      )
+      upsert_spam_classifier_config_domain.upsert_spam_classifier_config(
+        request_ctx,
+        request,
+      )
+      |> program.map(api_result.SpamClassifierConfigResponse)
     }
     admin_action.GetAdminCloudflareConfigAction ->
       get_cloudflare_config_domain.get_cloudflare_config(request_ctx)

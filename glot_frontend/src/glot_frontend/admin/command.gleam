@@ -22,6 +22,7 @@ import glot_core/admin/periodic_job_dto
 import glot_core/admin/rate_limit_config_dto
 import glot_core/admin/run_log_dto
 import glot_core/admin/snippet_dto as admin_snippet_dto
+import glot_core/admin/spam_classifier_config_dto
 import glot_core/admin/user_dto
 import glot_core/route
 import glot_core/snippet/snippet_dto
@@ -406,6 +407,23 @@ pub fn upsert_admin_docker_run_config(
     msg,
 ) -> Command(msg) {
   Config(config.UpsertDockerRun(request, done))
+}
+
+pub fn get_admin_spam_classifier_config(
+  done: fn(
+    response.Response(spam_classifier_config_dto.SpamClassifierConfigResponse),
+  ) -> msg,
+) -> Command(msg) {
+  Config(config.GetSpamClassifier(done))
+}
+
+pub fn upsert_admin_spam_classifier_config(
+  request: spam_classifier_config_dto.UpsertSpamClassifierConfigRequest,
+  done: fn(
+    response.Response(spam_classifier_config_dto.SpamClassifierConfigResponse),
+  ) -> msg,
+) -> Command(msg) {
+  Config(config.UpsertSpamClassifier(request, done))
 }
 
 pub fn get_admin_cloudflare_config(

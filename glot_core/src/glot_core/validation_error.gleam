@@ -16,6 +16,7 @@ pub type ValidationError {
   InvalidLimit
   LimitTooLarge(max: Int)
   InvalidJobType(value: String)
+  InvalidJobQueue(value: String)
   UnknownEmailTemplate(name: String)
   UnsupportedEmailTemplateTokens(template_name: String, supported: List(String))
   UnclosedEmailTemplateToken
@@ -42,6 +43,7 @@ pub fn code(err: ValidationError) -> String {
     InvalidLimit -> "validation_limit_invalid"
     LimitTooLarge(_) -> "validation_limit_too_large"
     InvalidJobType(_) -> "validation_job_type_invalid"
+    InvalidJobQueue(_) -> "validation_job_queue_invalid"
     UnknownEmailTemplate(_) -> "validation_email_template_unknown"
     UnsupportedEmailTemplateTokens(_, _) ->
       "validation_email_template_tokens_unsupported"
@@ -76,6 +78,7 @@ pub fn message(err: ValidationError) -> String {
     LimitTooLarge(max) ->
       "limit must be less than or equal to " <> int.to_string(max)
     InvalidJobType(value) -> "Invalid job type: " <> value
+    InvalidJobQueue(value) -> "Invalid job queue: " <> value
     UnknownEmailTemplate(name) -> "Unknown email template: " <> name
     UnsupportedEmailTemplateTokens(template_name, supported) ->
       "Email template contains unsupported tokens for "

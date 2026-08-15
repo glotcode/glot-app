@@ -10,6 +10,7 @@ import gleam/time/timestamp
 import glot_backend/app_config/adapter/cache/worker as app_config_cache_adapter
 import glot_backend/app_config/adapter/http_pool/listener as http_pool_listener
 import glot_backend/app_config/model/config as dynamic_config
+import glot_backend/job/adapter/executor_control as job_executor_control_adapter
 import glot_backend/job/adapter/tracker/worker as job_tracker_adapter
 import glot_backend/logging/ingestion/adapter/worker/sink as logging_worker_sink
 import glot_backend/run_code/adapter/cache/worker as language_version_cache_adapter
@@ -76,6 +77,15 @@ pub fn start() {
   let job_tracker_name = process.new_name("job_tracker")
   let job_tracker_subject = process.named_subject(job_tracker_name)
   let job_tracker = job_tracker_adapter.new(job_tracker_subject)
+  let default_job_executor_name = process.new_name("default_job_executor")
+  let default_job_executor =
+    process.named_subject(default_job_executor_name)
+    |> job_executor_control_adapter.new
+  let spam_classifier_job_executor_name =
+    process.new_name("spam_classifier_job_executor")
+  let spam_classifier_job_executor =
+    process.named_subject(spam_classifier_job_executor_name)
+    |> job_executor_control_adapter.new
   let request_tracker_name = process.new_name("request_tracker")
   let request_tracker_subject = process.named_subject(request_tracker_name)
   let request_tracker = request_tracker_adapter.new(request_tracker_subject)
@@ -155,6 +165,8 @@ pub fn start() {
         server_mode_name: server_mode_name,
         app_config_cache_worker_name: app_config_cache_worker_name,
         language_version_cache_worker_name: language_version_cache_worker_name,
+        default_job_executor_name: default_job_executor_name,
+        spam_classifier_job_executor_name: spam_classifier_job_executor_name,
       ),
       mist_builder: mist_builder,
     ))
@@ -165,6 +177,7 @@ pub fn start() {
     server_mode,
     request_tracker,
     job_tracker,
+    [default_job_executor, spam_classifier_job_executor],
   )
 }
 

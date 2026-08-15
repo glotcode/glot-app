@@ -96,6 +96,11 @@ fn detail_view(model: Model, now: Timestamp) -> Element(Msg) {
               ),
               periodic_job_detail_item(job.periodic_job_id),
               admin_layout.detail_item("Job type", job.job_type),
+              admin_layout.detail_item("Queue", job.queue_name),
+              admin_layout.detail_item(
+                "Dedupe key",
+                option.unwrap(job.dedupe_key, "—"),
+              ),
               admin_layout.detail_item(
                 "Status",
                 admin_job_ui.status_text(job.status, job.overdue),

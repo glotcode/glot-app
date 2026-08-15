@@ -96,6 +96,8 @@ fn new_job(
     request_id: option.Some(request_id),
     periodic_job_id: request.periodic_job_id,
     job_type: job_type,
+    queue: job_type_policy.queue,
+    dedupe_key: option.None,
     payload: request.payload,
     status: job_model.Pending,
     attempts: 0,

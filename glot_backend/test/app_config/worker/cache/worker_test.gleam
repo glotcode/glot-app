@@ -369,6 +369,7 @@ fn test_dynamic_config() -> dynamic_config.DynamicConfig {
       access_token: "test-token",
       default_timeout_ms: 60_000,
     )),
+    spam_classifier: option.None,
     cloudflare: option.None,
     email: option.Some(email_feature_config.EmailConfig(
       from_address: "sender@example.com",
@@ -451,6 +452,7 @@ fn updated_dynamic_config() -> dynamic_config.DynamicConfig {
       access_token: "updated-token",
       default_timeout_ms: 45_000,
     )),
+    spam_classifier: option.None,
     cloudflare: option.None,
     email: option.Some(email_feature_config.EmailConfig(
       from_address: "updated-sender@example.com",

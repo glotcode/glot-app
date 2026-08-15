@@ -4,10 +4,31 @@ import glot_core/admin/cloudflare_config_dto
 import glot_core/admin/docker_run_config_dto
 import glot_core/admin/email_config_dto
 import glot_core/admin/passkey_config_dto
+import glot_core/admin/spam_classifier_config_dto
 import glot_frontend/admin/config/cloudflare_policy
 import glot_frontend/admin/config/docker_run_policy
 import glot_frontend/admin/config/email_policy
 import glot_frontend/admin/config/passkey_policy
+import glot_frontend/admin/config/spam_classifier_policy
+
+pub fn spam_classifier_policy_requires_both_values_test() {
+  let fields = spam_classifier_policy.Fields("http://classifier:8081", "secret")
+  assert spam_classifier_policy.request(fields)
+    == Ok(spam_classifier_config_dto.UpsertSpamClassifierConfigRequest(
+      "http://classifier:8081",
+      "secret",
+    ))
+  assert spam_classifier_policy.request(spam_classifier_policy.Fields(
+      "",
+      "secret",
+    ))
+    == Error("Base URL must not be empty.")
+  assert spam_classifier_policy.request(spam_classifier_policy.Fields(
+      "http://classifier:8081",
+      "",
+    ))
+    == Error("Auth token must not be empty.")
+}
 
 pub fn main() -> Nil {
   gleeunit.main()

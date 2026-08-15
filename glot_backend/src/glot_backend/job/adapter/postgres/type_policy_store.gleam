@@ -67,6 +67,7 @@ pub fn upsert_job_type_policy(
     db,
     sql.upsert_job_type_policy(
       job_type: job_model.job_type_to_string(policy.job_type),
+      queue_name: job_model.queue_to_string(policy.queue),
       max_attempts: policy.max_attempts,
       timeout_seconds: policy.timeout_seconds,
       base_backoff_seconds: policy.base_backoff_seconds,
@@ -80,6 +81,7 @@ pub fn upsert_job_type_policy(
 
 fn job_type_policy_from_row(
   job_type: String,
+  queue_name: String,
   max_attempts: Int,
   timeout_seconds: Int,
   base_backoff_seconds: Int,
@@ -92,9 +94,14 @@ fn job_type_policy_from_row(
     |> result.map_error(validation_error.to_string)
     |> result.map_error(db_error.DbQueryError),
   )
+  use queue <- result.try(
+    job_model.queue_from_string(queue_name)
+    |> result.map_error(db_error.DbQueryError),
+  )
 
   Ok(job_model.JobTypePolicy(
     job_type: job_type,
+    queue: queue,
     max_attempts: max_attempts,
     timeout_seconds: timeout_seconds,
     base_backoff_seconds: base_backoff_seconds,
@@ -109,6 +116,7 @@ fn job_type_policy_from_list_row(
 ) -> Result(job_model.JobTypePolicy, db_error.DbQueryError) {
   job_type_policy_from_row(
     row.job_type,
+    row.queue_name,
     row.max_attempts,
     row.timeout_seconds,
     row.base_backoff_seconds,
@@ -123,6 +131,7 @@ fn job_type_policy_from_get_row(
 ) -> Result(job_model.JobTypePolicy, db_error.DbQueryError) {
   job_type_policy_from_row(
     row.job_type,
+    row.queue_name,
     row.max_attempts,
     row.timeout_seconds,
     row.base_backoff_seconds,

@@ -285,7 +285,38 @@ LIMIT sqlc.arg(page_limit);
 INSERT INTO snippets (id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
 
 -- name: UpdateSnippet :exec
-UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10 WHERE id = $11;
+UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10, spam_decision = NULL, spam_confidence = NULL, spam_reason_code = NULL, spam_classified_at = NULL, spam_classification_attempts = 0, spam_classification_last_error = NULL, spam_classification_failed_at = NULL WHERE id = $11;
+
+-- name: GetNewestUnclassifiedSnippet :one
+SELECT id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at
+FROM snippets
+WHERE spam_decision IS NULL
+  AND spam_classification_failed_at IS NULL
+ORDER BY updated_at DESC, id DESC
+LIMIT 1;
+
+-- name: StoreSpamClassification :exec
+UPDATE snippets
+SET spam_decision = $1,
+    spam_confidence = $2,
+    spam_reason_code = $3,
+    spam_classified_at = $4,
+    spam_classification_last_error = NULL,
+    spam_classification_failed_at = NULL
+WHERE id = $5
+  AND updated_at = $6
+  AND spam_decision IS NULL
+  AND spam_classification_failed_at IS NULL;
+
+-- name: StoreSpamClassificationFailure :exec
+UPDATE snippets
+SET spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1,
+    spam_classification_last_error = $1,
+    spam_classification_failed_at = $2
+WHERE id = $3
+  AND updated_at = $4
+  AND spam_decision IS NULL
+  AND spam_classification_failed_at IS NULL;
 
 -- name: DeleteSnippet :exec
 DELETE FROM snippets WHERE id = $1;

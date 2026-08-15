@@ -6,6 +6,7 @@ import glot_backend/email/model/config as email_feature_config
 import glot_backend/logging/ingestion/model/config as logging_config
 import glot_backend/request_policy/model/config as request_policy_config
 import glot_backend/run_code/model/config as run_code_config
+import glot_backend/spam_classifier/model/config as spam_classifier_config
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
 import glot_core/public_action.{type PublicAction}
@@ -63,6 +64,11 @@ pub type AppConfigEffect(next) {
   )
   UpsertDockerRunConfig(
     config: run_code_config.DockerRunConfig,
+    updated_at: Timestamp,
+    next: fn(Result(dynamic_config.DynamicConfig, error.Error)) -> next,
+  )
+  UpsertSpamClassifierConfig(
+    config: spam_classifier_config.Config,
     updated_at: Timestamp,
     next: fn(Result(dynamic_config.DynamicConfig, error.Error)) -> next,
   )
@@ -139,6 +145,12 @@ pub fn map(effect: AppConfigEffect(a), f: fn(a) -> b) -> AppConfigEffect(b) {
         updated_at: updated_at,
         next: fn(value) { f(next(value)) },
       )
+    UpsertSpamClassifierConfig(config:, updated_at:, next:) ->
+      UpsertSpamClassifierConfig(
+        config: config,
+        updated_at: updated_at,
+        next: fn(value) { f(next(value)) },
+      )
     UpsertCloudflareConfig(config:, updated_at:, next:) ->
       UpsertCloudflareConfig(
         config: config,
@@ -164,6 +176,7 @@ pub type EffectName {
   UpsertLanguageVersionCacheWorkerConfigEffectName
   UpsertRateLimitPolicyEffectName
   UpsertDockerRunConfigEffectName
+  UpsertSpamClassifierConfigEffectName
   UpsertCloudflareConfigEffectName
   UpsertEmailConfigEffectName
 }
@@ -182,6 +195,7 @@ pub fn effect_name_to_string(name: EffectName) -> String {
       "upsert_language_version_cache_worker_config"
     UpsertRateLimitPolicyEffectName -> "upsert_rate_limit_policy"
     UpsertDockerRunConfigEffectName -> "upsert_docker_run_config"
+    UpsertSpamClassifierConfigEffectName -> "upsert_spam_classifier_config"
     UpsertCloudflareConfigEffectName -> "upsert_cloudflare_config"
     UpsertEmailConfigEffectName -> "upsert_email_config"
   }

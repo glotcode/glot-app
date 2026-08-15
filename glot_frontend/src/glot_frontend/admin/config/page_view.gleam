@@ -9,6 +9,7 @@ import glot_frontend/admin/config/http_pool_view as http_pool
 import glot_frontend/admin/config/language_version_cache_worker_view as language_version_cache_worker
 import glot_frontend/admin/config/log_worker_view as log_worker
 import glot_frontend/admin/config/passkey_view as passkey
+import glot_frontend/admin/config/spam_classifier_view as spam_classifier
 import glot_frontend/admin/ui/layout as admin_layout
 import lustre/attribute
 import lustre/element.{type Element}
@@ -17,7 +18,7 @@ import lustre/element/html
 import glot_frontend/admin/config/page_message.{
   type Msg, AuthMsg, AvailabilityMsg, CleanupMsg, CloudflareMsg, DebugMsg,
   DockerRunMsg, EmailMsg, HttpPoolMsg, LanguageVersionCacheWorkerMsg,
-  LogWorkerMsg, PasskeyMsg,
+  LogWorkerMsg, PasskeyMsg, SpamClassifierMsg,
 }
 import glot_frontend/admin/config/page_model.{type Model}
 
@@ -35,6 +36,8 @@ pub fn view(model: Model) -> Element(Msg) {
         language_version_cache_worker.view(model.language_version_cache_worker)
           |> element.map(LanguageVersionCacheWorkerMsg),
         docker_run.view(model.docker_run) |> element.map(DockerRunMsg),
+        spam_classifier.view(model.spam_classifier)
+          |> element.map(SpamClassifierMsg),
         cloudflare.view(model.cloudflare) |> element.map(CloudflareMsg),
         email.view(model.email) |> element.map(EmailMsg),
       ]),

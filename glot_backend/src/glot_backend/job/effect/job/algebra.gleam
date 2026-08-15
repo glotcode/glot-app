@@ -17,11 +17,13 @@ pub type JobEffect(next) {
     next: fn(job_model.Summary) -> next,
   )
   GetNextJob(
+    queue: job_model.Queue,
     now: Timestamp,
     pending_status: job_model.Status,
     next: fn(Option(job_model.Job)) -> next,
   )
   GetExpiredRunningJob(
+    queue: job_model.Queue,
     now: Timestamp,
     running_status: job_model.Status,
     next: fn(Option(job_model.Job)) -> next,
@@ -33,6 +35,17 @@ pub type JobEffect(next) {
   )
   UpdateJob(
     job_model.Job,
+    next: fn(Result(Nil, db_error.DbCommandError)) -> next,
+  )
+  ClaimQueueSlot(
+    queue: job_model.Queue,
+    job_id: Uuid,
+    lease_expires_at: Timestamp,
+    next: fn(Bool) -> next,
+  )
+  ReleaseQueueSlot(
+    job_id: Uuid,
+    lease_expires_at: Timestamp,
     next: fn(Result(Nil, db_error.DbCommandError)) -> next,
   )
   DeleteJob(id: Uuid, next: fn(Result(Nil, db_error.DbCommandError)) -> next)
@@ -51,12 +64,16 @@ pub fn map(effect: JobEffect(a), f: fn(a) -> b) -> JobEffect(b) {
       })
     SummarizeJobs(filter:, now:, next:) ->
       SummarizeJobs(filter: filter, now: now, next: fn(value) { f(next(value)) })
-    GetNextJob(now:, pending_status:, next:) ->
-      GetNextJob(now: now, pending_status: pending_status, next: fn(value) {
-        f(next(value))
-      })
-    GetExpiredRunningJob(now:, running_status:, next:) ->
+    GetNextJob(queue:, now:, pending_status:, next:) ->
+      GetNextJob(
+        queue: queue,
+        now: now,
+        pending_status: pending_status,
+        next: fn(value) { f(next(value)) },
+      )
+    GetExpiredRunningJob(queue:, now:, running_status:, next:) ->
       GetExpiredRunningJob(
+        queue: queue,
         now: now,
         running_status: running_status,
         next: fn(value) { f(next(value)) },
@@ -65,6 +82,19 @@ pub fn map(effect: JobEffect(a), f: fn(a) -> b) -> JobEffect(b) {
       GetJobById(id: id, next: fn(value) { f(next(value)) })
     CreateJob(job, next) -> CreateJob(job, next: fn(value) { f(next(value)) })
     UpdateJob(job, next) -> UpdateJob(job, next: fn(value) { f(next(value)) })
+    ClaimQueueSlot(queue:, job_id:, lease_expires_at:, next:) ->
+      ClaimQueueSlot(
+        queue: queue,
+        job_id: job_id,
+        lease_expires_at: lease_expires_at,
+        next: fn(value) { f(next(value)) },
+      )
+    ReleaseQueueSlot(job_id:, lease_expires_at:, next:) ->
+      ReleaseQueueSlot(
+        job_id: job_id,
+        lease_expires_at: lease_expires_at,
+        next: fn(value) { f(next(value)) },
+      )
     DeleteJob(id, next) -> DeleteJob(id, next: fn(value) { f(next(value)) })
     DeleteBefore(before:, statuses:, next:) ->
       DeleteBefore(before: before, statuses: statuses, next: fn(value) {
@@ -81,6 +111,8 @@ pub type EffectName {
   GetJobByIdEffectName
   CreateJobEffectName
   UpdateJobEffectName
+  ClaimQueueSlotEffectName
+  ReleaseQueueSlotEffectName
   DeleteJobEffectName
   DeleteBeforeEffectName
 }
@@ -94,6 +126,8 @@ pub fn effect_name_to_string(name: EffectName) -> String {
     GetJobByIdEffectName -> "get_job_by_id"
     CreateJobEffectName -> "create_job"
     UpdateJobEffectName -> "update_job"
+    ClaimQueueSlotEffectName -> "claim_queue_slot"
+    ReleaseQueueSlotEffectName -> "release_queue_slot"
     DeleteJobEffectName -> "delete_job"
     DeleteBeforeEffectName -> "delete_before"
   }

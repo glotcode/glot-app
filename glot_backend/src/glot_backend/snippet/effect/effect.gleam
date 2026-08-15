@@ -1,4 +1,5 @@
 import gleam/option
+import gleam/time/timestamp.{type Timestamp}
 import glot_backend/snippet/effect/algebra as snippet_algebra
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/db_error
@@ -9,6 +10,7 @@ import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
 }
+import glot_core/snippet/spam_classification
 import youid/uuid
 
 pub fn get_by_id(
@@ -101,6 +103,61 @@ pub fn update(snippet snippet: Snippet) -> program_types.Program(Nil) {
       _,
       map_error: error.database_command_error,
     )),
+  )
+}
+
+pub fn get_newest_unclassified() -> program_types.Program(
+  option.Option(spam_classification.Candidate),
+) {
+  program.perform_db(
+    program_types.SnippetEffect(
+      snippet_algebra.GetNewestUnclassifiedSnippet(
+        next: program.from_mapped_result(
+          _,
+          map_error: error.database_query_error,
+        ),
+      ),
+    ),
+  )
+}
+
+pub fn store_spam_classification(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+  classification: spam_classification.ClassificationResult,
+) -> program_types.Program(Nil) {
+  program.perform_db(
+    program_types.SnippetEffect(
+      snippet_algebra.StoreSpamClassification(
+        id:,
+        expected_updated_at:,
+        classification:,
+        next: program.from_mapped_result(
+          _,
+          map_error: error.database_command_error,
+        ),
+      ),
+    ),
+  )
+}
+
+pub fn store_spam_classification_failure(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+  failure: spam_classification.ClassificationFailure,
+) -> program_types.Program(Nil) {
+  program.perform_db(
+    program_types.SnippetEffect(
+      snippet_algebra.StoreSpamClassificationFailure(
+        id:,
+        expected_updated_at:,
+        failure:,
+        next: program.from_mapped_result(
+          _,
+          map_error: error.database_command_error,
+        ),
+      ),
+    ),
   )
 }
 

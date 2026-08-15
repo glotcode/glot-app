@@ -24,6 +24,7 @@ import glot_core/admin/periodic_job_dto
 import glot_core/admin/rate_limit_config_dto
 import glot_core/admin/run_log_dto
 import glot_core/admin/snippet_dto as admin_snippet_dto
+import glot_core/admin/spam_classifier_config_dto
 import glot_core/admin/user_dto
 import glot_core/auth/account_dto
 import glot_core/auth/account_session_dto
@@ -78,6 +79,9 @@ pub type ApiResult {
   JobTypePoliciesResponse(job_type_policy_dto.ListJobTypePoliciesResponse)
   JobTypePolicyResponse(job_type_policy_dto.JobTypePolicyResponse)
   DockerRunConfigResponse(docker_run_config_dto.DockerRunConfigResponse)
+  SpamClassifierConfigResponse(
+    spam_classifier_config_dto.SpamClassifierConfigResponse,
+  )
   CloudflareConfigResponse(cloudflare_config_dto.CloudflareConfigResponse)
   EmailConfigResponse(email_config_dto.EmailConfigResponse)
   LoginResponse(login_domain.LoginResult)

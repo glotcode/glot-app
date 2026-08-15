@@ -12,10 +12,31 @@ pub type Retryability {
   NonRetryable
 }
 
+pub type FailureDisposition {
+  PermanentFailure
+  RetryWithBackoff
+  RetryAfter(seconds: Int)
+  RetryIndefinitelyWithBackoff
+  RetryIndefinitelyAfter(seconds: Int)
+}
+
+pub type SpamClassifierFailureScope {
+  SnippetFailure
+  ServiceFailure
+}
+
 pub type EmailError {
   EmailTemplateMissing(name: String)
   EmailTemplateRenderFailed(message: String)
   EmailDeliveryFailed(detail: String, retryability: Retryability)
+}
+
+pub type SpamClassifierError {
+  SpamClassifierRequestFailed(
+    detail: String,
+    disposition: FailureDisposition,
+    scope: SpamClassifierFailureScope,
+  )
 }
 
 pub type InfraError {
@@ -24,7 +45,9 @@ pub type InfraError {
   RunRequestServerError
   EmailError(EmailError)
   JobTimeoutExceeded
+  JobInterruptedForShutdown
   JobPayloadMissing(job_type: job_model.JobType)
+  SpamClassifierError(SpamClassifierError)
 }
 
 pub fn status(err: InfraError) -> Int {
@@ -46,7 +69,9 @@ pub fn code(err: InfraError) -> String {
     RunRequestServerError -> "run_request_server_error"
     EmailError(_) -> "send_email_error"
     JobTimeoutExceeded -> "job_timeout_exceeded"
+    JobInterruptedForShutdown -> "job_interrupted_for_shutdown"
     JobPayloadMissing(_) -> "job_payload_missing"
+    SpamClassifierError(_) -> "spam_classifier_error"
   }
 }
 
@@ -62,7 +87,9 @@ pub fn message(err: InfraError) -> String {
     RunRequestServerError -> "Failed to run code"
     EmailError(_) -> "Failed to send email"
     JobTimeoutExceeded -> "Job timed out"
+    JobInterruptedForShutdown -> "Job interrupted for shutdown"
     JobPayloadMissing(_) -> "Job payload missing"
+    SpamClassifierError(_) -> "Spam classification failed"
   }
 }
 
@@ -85,8 +112,11 @@ pub fn to_string(err: InfraError) -> String {
           "send_email_delivery_failed:" <> detail
       }
     JobTimeoutExceeded -> "job_timeout_exceeded"
+    JobInterruptedForShutdown -> "job_interrupted_for_shutdown"
     JobPayloadMissing(job_type) ->
       "job_payload_missing:" <> job_model.job_type_to_string(job_type)
+    SpamClassifierError(SpamClassifierRequestFailed(detail, _, _)) ->
+      "spam_classifier_request_failed:" <> detail
   }
 }
 
@@ -106,13 +136,30 @@ pub fn from_transaction_error(err: db_error.DbTransactionError) -> InfraError {
 }
 
 pub fn retryable(err: InfraError) -> Bool {
+  case failure_disposition(err) {
+    PermanentFailure -> False
+    RetryWithBackoff
+    | RetryAfter(_)
+    | RetryIndefinitelyWithBackoff
+    | RetryIndefinitelyAfter(_) -> True
+  }
+}
+
+pub fn failure_disposition(err: InfraError) -> FailureDisposition {
   case err {
-    DatabaseError(_, _) -> True
-    RunRequestClientError(_) -> False
-    RunRequestServerError -> True
-    EmailError(email_error) -> email_error_retryable(email_error)
-    JobTimeoutExceeded -> True
-    JobPayloadMissing(_) -> False
+    DatabaseError(_, _) -> RetryWithBackoff
+    RunRequestClientError(_) -> PermanentFailure
+    RunRequestServerError -> RetryWithBackoff
+    EmailError(email_error) ->
+      case email_error_retryable(email_error) {
+        True -> RetryWithBackoff
+        False -> PermanentFailure
+      }
+    JobTimeoutExceeded -> RetryWithBackoff
+    JobInterruptedForShutdown -> RetryWithBackoff
+    JobPayloadMissing(_) -> PermanentFailure
+    SpamClassifierError(SpamClassifierRequestFailed(_, disposition, _)) ->
+      disposition
   }
 }
 

@@ -7,6 +7,7 @@ import glot_backend/app_config/effect/algebra as app_config_algebra
 import glot_backend/auth/passkey/effect/algebra as webauthn_algebra
 import glot_backend/email/effect/delivery/algebra as email_algebra
 import glot_backend/run_code/effect/algebra as run_code_algebra
+import glot_backend/spam_classifier/effect/algebra as spam_classifier_algebra
 import glot_backend/system/effect/basic/basic_algebra
 import glot_backend/system/effect/db_effect
 import glot_backend/system/effect/error
@@ -141,6 +142,8 @@ fn map_effect(
       program_types.WebauthnEffect(webauthn_algebra.map(effect, f))
     program_types.RunCodeEffect(effect) ->
       program_types.RunCodeEffect(run_code_algebra.map(effect, f))
+    program_types.SpamClassifierEffect(effect) ->
+      program_types.SpamClassifierEffect(spam_classifier_algebra.map(effect, f))
     program_types.DbEffect(effect) ->
       program_types.DbEffect(db_effect.map(effect, f))
     program_types.TransactionEffect(effect) ->

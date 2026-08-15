@@ -21,5 +21,22 @@ pub fn new(db: db_helpers.Db) -> snippet_store.Store {
     },
     create_snippet: fn(snippet) { write.create(db, snippet) },
     update_snippet: fn(snippet) { write.update(db, snippet) },
+    get_newest_unclassified_snippet: fn() { read.get_newest_unclassified(db) },
+    store_spam_classification: fn(id, expected_updated_at, classification) {
+      write.store_spam_classification(
+        db,
+        id,
+        expected_updated_at,
+        classification,
+      )
+    },
+    store_spam_classification_failure: fn(id, expected_updated_at, failure) {
+      write.store_spam_classification_failure(
+        db,
+        id,
+        expected_updated_at,
+        failure,
+      )
+    },
   )
 }

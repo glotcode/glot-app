@@ -26,6 +26,7 @@ import glot_backend/logging/ports as logging_ports
 import glot_backend/logging/run_log/ports/store as run_log_store
 import glot_backend/run_code/ports/runner
 import glot_backend/snippet/ports/store as snippet_store
+import glot_backend/spam_classifier/ports/client as spam_classifier_client
 import glot_backend/system/crypto/token
 import glot_backend/system/effect/basic/basic_algebra
 import glot_backend/system/effect/basic/basic_effect
@@ -276,10 +277,11 @@ fn test_service_ports() -> service_ports.ServicePorts {
               overdue_count: 0,
             ))
           },
-          get_next_job: fn(_: timestamp.Timestamp, _: job_model.Status) {
+          get_next_job: fn(_, _: timestamp.Timestamp, _: job_model.Status) {
             Ok(option.None)
           },
           get_expired_running_job: fn(
+            _,
             _: timestamp.Timestamp,
             _: job_model.Status,
           ) {
@@ -288,6 +290,8 @@ fn test_service_ports() -> service_ports.ServicePorts {
           get_job_by_id: fn(_) { Ok(option.None) },
           create_job: fn(_) { Ok(Nil) },
           update_job: fn(_) { Ok(Nil) },
+          claim_queue_slot: fn(_, _, _) { Ok(True) },
+          release_queue_slot: fn(_, _) { Ok(Nil) },
           delete_job: fn(_) { Ok(Nil) },
           delete_before: fn(_, _) { Ok(Nil) },
         ),
@@ -336,6 +340,9 @@ fn test_service_ports() -> service_ports.ServicePorts {
         delete_snippets_by_account_id: fn(_) { Ok(Nil) },
         create_snippet: fn(_) { Ok(Nil) },
         update_snippet: fn(_) { Ok(Nil) },
+        get_newest_unclassified_snippet: fn() { Ok(option.None) },
+        store_spam_classification: fn(_, _, _) { Ok(Nil) },
+        store_spam_classification_failure: fn(_, _, _) { Ok(Nil) },
       ),
       user_action: user_action_store.Store(
         count: fn(_) { Ok([]) },
@@ -373,6 +380,19 @@ fn test_service_ports() -> service_ports.ServicePorts {
       ),
       run_code: runner.Runner(run: fn(_, _, _) {
         Error(run_request_error.ServerRunRequestError)
+      }),
+      spam_classifier: spam_classifier_client.Client(classify: fn(_, _, _) {
+        Error(
+          error.infra(
+            infra_error.SpamClassifierError(
+              infra_error.SpamClassifierRequestFailed(
+                "not implemented",
+                infra_error.PermanentFailure,
+                infra_error.ServiceFailure,
+              ),
+            ),
+          ),
+        )
       }),
     ),
     caches: cache_ports.without_caches(),

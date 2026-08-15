@@ -6,6 +6,28 @@ import glot_backend/app_config/model/system_config
 import glot_backend/auth/model/config as auth_feature_config
 import glot_backend/email/model/config as email_feature_config
 import glot_backend/run_code/model/config as run_code_config
+import glot_backend/spam_classifier/model/config as spam_classifier_config
+
+pub fn app_config_decodes_spam_classifier_config_test() {
+  let assert Ok(config) =
+    config_decoder.from_entries([
+      app_config.AppConfigEntry(
+        namespace: "spam_classifier",
+        key: "base_url",
+        value: "\"http://classifier:8081\"",
+      ),
+      app_config.AppConfigEntry(
+        namespace: "spam_classifier",
+        key: "auth_token",
+        value: "\"secret\"",
+      ),
+    ])
+  assert dynamic_config.spam_classifier_config(config)
+    == option.Some(spam_classifier_config.Config(
+      base_url: "http://classifier:8081",
+      auth_token: "secret",
+    ))
+}
 
 pub fn app_config_decodes_docker_run_config_test() {
   let assert Ok(config) =

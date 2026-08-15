@@ -12,6 +12,7 @@ pub type ListJobTypePoliciesResponse {
 pub type JobTypePolicyResponse {
   JobTypePolicyResponse(
     job_type: String,
+    queue_name: String,
     max_attempts: Int,
     timeout_seconds: Int,
     base_backoff_seconds: Int,
@@ -24,6 +25,7 @@ pub type JobTypePolicyResponse {
 pub type UpsertJobTypePolicyRequest {
   UpsertJobTypePolicyRequest(
     job_type: String,
+    queue_name: String,
     max_attempts: Int,
     timeout_seconds: Int,
     base_backoff_seconds: Int,
@@ -49,6 +51,7 @@ pub fn encode_list_response(
 
 pub fn policy_response_decoder() -> decode.Decoder(JobTypePolicyResponse) {
   use job_type <- decode.field("jobType", decode.string)
+  use queue_name <- decode.field("queueName", decode.string)
   use max_attempts <- decode.field("maxAttempts", decode.int)
   use timeout_seconds <- decode.field("timeoutSeconds", decode.int)
   use base_backoff_seconds <- decode.field("baseBackoffSeconds", decode.int)
@@ -57,6 +60,7 @@ pub fn policy_response_decoder() -> decode.Decoder(JobTypePolicyResponse) {
   use updated_at <- decode.field("updatedAt", timestamp_helpers.decoder())
   decode.success(JobTypePolicyResponse(
     job_type: job_type,
+    queue_name: queue_name,
     max_attempts: max_attempts,
     timeout_seconds: timeout_seconds,
     base_backoff_seconds: base_backoff_seconds,
@@ -69,6 +73,7 @@ pub fn policy_response_decoder() -> decode.Decoder(JobTypePolicyResponse) {
 pub fn encode_policy_response(response: JobTypePolicyResponse) -> json.Json {
   json.object([
     #("jobType", json.string(response.job_type)),
+    #("queueName", json.string(response.queue_name)),
     #("maxAttempts", json.int(response.max_attempts)),
     #("timeoutSeconds", json.int(response.timeout_seconds)),
     #("baseBackoffSeconds", json.int(response.base_backoff_seconds)),
@@ -80,12 +85,14 @@ pub fn encode_policy_response(response: JobTypePolicyResponse) -> json.Json {
 
 pub fn request_decoder() -> decode.Decoder(UpsertJobTypePolicyRequest) {
   use job_type <- decode.field("jobType", decode.string)
+  use queue_name <- decode.field("queueName", decode.string)
   use max_attempts <- decode.field("maxAttempts", decode.int)
   use timeout_seconds <- decode.field("timeoutSeconds", decode.int)
   use base_backoff_seconds <- decode.field("baseBackoffSeconds", decode.int)
   use max_backoff_seconds <- decode.field("maxBackoffSeconds", decode.int)
   decode.success(UpsertJobTypePolicyRequest(
     job_type: job_type,
+    queue_name: queue_name,
     max_attempts: max_attempts,
     timeout_seconds: timeout_seconds,
     base_backoff_seconds: base_backoff_seconds,
@@ -96,6 +103,7 @@ pub fn request_decoder() -> decode.Decoder(UpsertJobTypePolicyRequest) {
 pub fn encode_request(request: UpsertJobTypePolicyRequest) -> json.Json {
   json.object([
     #("jobType", json.string(request.job_type)),
+    #("queueName", json.string(request.queue_name)),
     #("maxAttempts", json.int(request.max_attempts)),
     #("timeoutSeconds", json.int(request.timeout_seconds)),
     #("baseBackoffSeconds", json.int(request.base_backoff_seconds)),
@@ -114,6 +122,7 @@ pub fn from_job_type_policy(
 ) -> JobTypePolicyResponse {
   JobTypePolicyResponse(
     job_type: job_model.job_type_to_string(policy.job_type),
+    queue_name: job_model.queue_to_string(policy.queue),
     max_attempts: policy.max_attempts,
     timeout_seconds: policy.timeout_seconds,
     base_backoff_seconds: policy.base_backoff_seconds,

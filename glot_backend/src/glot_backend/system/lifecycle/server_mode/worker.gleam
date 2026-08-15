@@ -5,6 +5,7 @@ import glot_backend/system/lifecycle/server_mode/model.{type Mode}
 
 pub type Message {
   SetMode(mode: Mode)
+  SetModeAndWait(mode: Mode, reply: process.Subject(Nil))
   GetMode(reply: process.Subject(Mode))
 }
 
@@ -46,7 +47,9 @@ pub fn enter_running(subject: process.Subject(Message)) -> Nil {
 }
 
 pub fn enter_shutting_down(subject: process.Subject(Message)) -> Nil {
-  process.send(subject, SetMode(model.ShuttingDown))
+  process.call(subject, call_timeout_ms, fn(reply) {
+    SetModeAndWait(model.ShuttingDown, reply)
+  })
 }
 
 fn handle_message(
@@ -55,6 +58,10 @@ fn handle_message(
 ) -> actor.Next(State, Message) {
   case message {
     SetMode(mode) -> actor.continue(State(mode: mode))
+    SetModeAndWait(mode, reply) -> {
+      process.send(reply, Nil)
+      actor.continue(State(mode: mode))
+    }
     GetMode(reply) -> {
       process.send(reply, state.mode)
       actor.continue(state)

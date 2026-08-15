@@ -2,11 +2,13 @@ import gleam/json
 import gleam/option
 import gleam/result
 import gleam/string
+import gleam/time/timestamp.{type Timestamp}
 import glot_backend/sql
 import glot_backend/system/database as db_helpers
 import glot_backend/system/effect/error/db_error
 import glot_core/language
 import glot_core/snippet/snippet_model.{type Snippet}
+import glot_core/snippet/spam_classification
 import youid/uuid.{type Uuid}
 
 pub fn create(
@@ -64,6 +66,50 @@ pub fn delete(
   db_helpers.execute(
     db,
     sql.delete_snippet(uuid.to_bit_array(id)),
+    command_error,
+  )
+  |> result.map(fn(_) { Nil })
+}
+
+pub fn store_spam_classification(
+  db: db_helpers.Db,
+  id: Uuid,
+  expected_updated_at: Timestamp,
+  classification: spam_classification.ClassificationResult,
+) -> Result(Nil, db_error.DbCommandError) {
+  db_helpers.execute(
+    db,
+    sql.store_spam_classification(
+      option.Some(spam_classification.decision_to_string(
+        classification.decision,
+      )),
+      option.Some(classification.confidence),
+      option.Some(spam_classification.reason_code_to_string(
+        classification.reason_code,
+      )),
+      option.Some(classification.classified_at),
+      uuid.to_bit_array(id),
+      expected_updated_at,
+    ),
+    command_error,
+  )
+  |> result.map(fn(_) { Nil })
+}
+
+pub fn store_spam_classification_failure(
+  db: db_helpers.Db,
+  id: Uuid,
+  expected_updated_at: Timestamp,
+  failure: spam_classification.ClassificationFailure,
+) -> Result(Nil, db_error.DbCommandError) {
+  db_helpers.execute(
+    db,
+    sql.store_spam_classification_failure(
+      option.Some(failure.error_code),
+      option.Some(failure.failed_at),
+      uuid.to_bit_array(id),
+      expected_updated_at,
+    ),
     command_error,
   )
   |> result.map(fn(_) { Nil })

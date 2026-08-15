@@ -4,6 +4,8 @@ SELECT
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -28,6 +30,8 @@ SELECT
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -45,6 +49,7 @@ SELECT
   updated_at
 FROM jobs
 WHERE jobs.status = @pending_status
+  AND queue_name = @queue_name
   AND run_at <= @now
   AND started_at IS NULL
 ORDER BY run_at ASC, created_at ASC
@@ -57,6 +62,8 @@ SELECT
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -74,6 +81,7 @@ SELECT
   updated_at
 FROM jobs
 WHERE jobs.status = @running_status
+  AND queue_name = @queue_name
   AND lease_expires_at IS NOT NULL
   AND lease_expires_at <= @now
 ORDER BY lease_expires_at ASC, created_at ASC
@@ -86,6 +94,8 @@ SELECT
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -127,6 +137,8 @@ SELECT
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -242,6 +254,8 @@ INSERT INTO jobs (
   request_id,
   periodic_job_id,
   job_type,
+  queue_name,
+  dedupe_key,
   payload,
   status,
   attempts,
@@ -257,7 +271,10 @@ INSERT INTO jobs (
   last_error,
   created_at,
   updated_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+ON CONFLICT (dedupe_key)
+  WHERE dedupe_key IS NOT NULL AND status IN ('pending', 'running')
+DO NOTHING;
 
 -- name: InsertPeriodicJob :exec
 INSERT INTO periodic_jobs (
@@ -282,22 +299,59 @@ UPDATE jobs
 SET request_id = $2,
     periodic_job_id = $3,
     job_type = $4,
-    payload = $5,
-    status = $6,
-    attempts = $7,
-    max_attempts = $8,
-    timeout_seconds = $9,
-    base_backoff_seconds = $10,
-    max_backoff_seconds = $11,
-    run_at = $12,
-    started_at = $13,
-    lease_expires_at = $14,
-    completed_at = $15,
-    timed_out_at = $16,
-    last_error = $17,
-    created_at = $18,
-    updated_at = $19
-WHERE id = $1;
+    queue_name = $5,
+    dedupe_key = $6,
+    payload = $7,
+    status = $8,
+    attempts = $9,
+    max_attempts = $10,
+    timeout_seconds = $11,
+    base_backoff_seconds = $12,
+    max_backoff_seconds = $13,
+    run_at = $14,
+    started_at = $15,
+    lease_expires_at = $16,
+    completed_at = $17,
+    timed_out_at = $18,
+    last_error = $19,
+    created_at = $20,
+    updated_at = $21
+WHERE id = $1
+  -- Reject a late completion from an older attempt after recovery/reclaim.
+  AND (
+    (
+      $8 = 'running'
+      AND jobs.status = 'pending'
+      AND jobs.attempts + 1 = $9
+    )
+    OR (
+      $8 <> 'running'
+      AND jobs.status = 'running'
+      AND jobs.attempts = $9
+    )
+  );
+
+-- name: ClaimJobQueueSlot :one
+UPDATE job_queue_slots AS slots
+SET job_id = @job_id,
+    lease_expires_at = @lease_expires_at
+WHERE (slots.queue_name, slots.slot_number) = (
+  SELECT candidate.queue_name, candidate.slot_number
+  FROM job_queue_slots AS candidate
+  WHERE candidate.queue_name = @queue_name
+    AND candidate.job_id IS NULL
+  ORDER BY candidate.slot_number
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED
+)
+RETURNING queue_name;
+
+-- name: ReleaseJobQueueSlot :exec
+UPDATE job_queue_slots
+SET job_id = NULL,
+    lease_expires_at = NULL
+WHERE job_id = @job_id
+  AND lease_expires_at = @lease_expires_at;
 
 -- name: UpdatePeriodicJob :exec
 UPDATE periodic_jobs

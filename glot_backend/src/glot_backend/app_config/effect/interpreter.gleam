@@ -136,6 +136,17 @@ pub fn run(
         state,
         continue,
       )
+    algebra.UpsertSpamClassifierConfig(config:, updated_at:, next:) ->
+      upsert(
+        store,
+        cache,
+        updates.spam_classifier(config),
+        updated_at,
+        algebra.UpsertSpamClassifierConfigEffectName,
+        next,
+        state,
+        continue,
+      )
     algebra.UpsertCloudflareConfig(config:, updated_at:, next:) ->
       upsert(
         store,

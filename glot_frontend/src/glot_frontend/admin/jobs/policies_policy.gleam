@@ -7,7 +7,7 @@ import glot_core/loadable
 import glot_frontend/admin/jobs/policies_model.{
   type Field, type Model, type PolicyEditor, type PolicyFields,
   BaseBackoffSecondsField, MaxAttemptsField, MaxBackoffSecondsField,
-  PolicyEditor, PolicyFields, TimeoutSecondsField,
+  PolicyEditor, PolicyFields, QueueNameField, TimeoutSecondsField,
 }
 import glot_frontend/admin/ui/format as admin_format
 import glot_frontend/request_generation
@@ -31,6 +31,7 @@ fn fields_from_response(
   response: job_type_policy_dto.JobTypePolicyResponse,
 ) -> PolicyFields {
   PolicyFields(
+    queue_name: response.queue_name,
     max_attempts: int.to_string(response.max_attempts),
     timeout_seconds: int.to_string(response.timeout_seconds),
     base_backoff_seconds: int.to_string(response.base_backoff_seconds),
@@ -45,6 +46,7 @@ pub fn request_from_editor(
     editor.draft.max_attempts,
     "Max attempts",
   ))
+  use _ <- result.try(validate_queue(editor.draft.queue_name))
   use timeout_seconds <- result.try(admin_format.parse_positive_int(
     editor.draft.timeout_seconds,
     "Timeout seconds",
@@ -63,6 +65,7 @@ pub fn request_from_editor(
     False ->
       Ok(job_type_policy_dto.UpsertJobTypePolicyRequest(
         job_type: editor.job_type,
+        queue_name: editor.draft.queue_name,
         max_attempts: max_attempts,
         timeout_seconds: timeout_seconds,
         base_backoff_seconds: base_backoff_seconds,
@@ -100,11 +103,19 @@ pub fn update_field(
   value: String,
 ) -> PolicyFields {
   case field {
+    QueueNameField -> PolicyFields(..fields, queue_name: value)
     MaxAttemptsField -> PolicyFields(..fields, max_attempts: value)
     TimeoutSecondsField -> PolicyFields(..fields, timeout_seconds: value)
     BaseBackoffSecondsField ->
       PolicyFields(..fields, base_backoff_seconds: value)
     MaxBackoffSecondsField -> PolicyFields(..fields, max_backoff_seconds: value)
+  }
+}
+
+fn validate_queue(queue: String) -> Result(Nil, String) {
+  case queue {
+    "default" | "spam_classifier" -> Ok(Nil)
+    _ -> Error("Queue must be default or spam_classifier.")
   }
 }
 
