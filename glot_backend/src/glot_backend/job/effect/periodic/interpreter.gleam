@@ -44,6 +44,18 @@ pub fn run(
         state: state,
         continue: continue,
       )
+    periodic_job_algebra.GetPeriodicJobByIdForUpdate(id:, next:) ->
+      measured_interpreter.run_or_fail(
+        fn() { store.get_periodic_job_by_id_for_update(id) },
+        next,
+        map_error: error.database_query_error,
+        name: trace_name(
+          periodic_job_algebra.GetPeriodicJobByIdForUpdateEffectName,
+        ),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
+      )
     periodic_job_algebra.CreatePeriodicJob(periodic_job, next) ->
       measured_interpreter.run(
         fn() { store.create_periodic_job(periodic_job) },

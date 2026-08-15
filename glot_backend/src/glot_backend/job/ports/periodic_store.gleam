@@ -18,6 +18,11 @@ pub type PeriodicStore {
         option.Option(periodic_job_model.PeriodicJob),
         db_error.DbQueryError,
       ),
+    get_periodic_job_by_id_for_update: fn(Uuid) ->
+      Result(
+        option.Option(periodic_job_model.PeriodicJob),
+        db_error.DbQueryError,
+      ),
     create_periodic_job: fn(periodic_job_model.PeriodicJob) ->
       Result(Nil, db_error.DbCommandError),
     update_periodic_job: fn(periodic_job_model.PeriodicJob) ->

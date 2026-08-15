@@ -16,6 +16,7 @@ import glot_backend/system/effect/service_ports
 import glot_backend/system/effect/system_ports
 import glot_backend/system/request/context
 import glot_core/job/job_model
+import glot_core/periodic_job/periodic_job_model
 import glot_core/snippet/snippet_model.{type Snippet}
 import glot_core/snippet/spam_classification
 import support/integration/adapter/service_ports as test_service_ports
@@ -37,7 +38,7 @@ pub fn classifier_result_and_job_completion_commit_together_test() {
       jobs: [running_job],
       account_delete_job_id: option.None,
     )
-  let initial_state = with_classifier_config(test_fixture.state)
+  let initial_state = with_classifier_config(test_fixture.state, True)
 
   let #(run_result, db) =
     integration_runner.run_test_program_with(
@@ -48,6 +49,7 @@ pub fn classifier_result_and_job_completion_commit_together_test() {
         _,
         test_fixture.snippet,
         spam_classification.Stored,
+        False,
         False,
       ),
     )
@@ -71,7 +73,7 @@ pub fn classifier_result_rolls_back_when_job_completion_fails_test() {
       jobs: [running_job],
       account_delete_job_id: option.None,
     )
-  let initial_state = with_classifier_config(test_fixture.state)
+  let initial_state = with_classifier_config(test_fixture.state, True)
 
   let #(run_result, db) =
     integration_runner.run_test_program_with(
@@ -83,6 +85,7 @@ pub fn classifier_result_rolls_back_when_job_completion_fails_test() {
         test_fixture.snippet,
         spam_classification.Stored,
         True,
+        False,
       ),
     )
 
@@ -106,7 +109,7 @@ pub fn stale_classifier_result_is_logged_and_processing_continues_test() {
       jobs: [running_job],
       account_delete_job_id: option.None,
     )
-  let initial_state = with_classifier_config(test_fixture.state)
+  let initial_state = with_classifier_config(test_fixture.state, True)
 
   let #(run_result, db, effect_state) =
     integration_runner.run_test_program_with_effect_state(
@@ -117,6 +120,7 @@ pub fn stale_classifier_result_is_logged_and_processing_continues_test() {
         _,
         test_fixture.snippet,
         spam_classification.Stale,
+        False,
         False,
       ),
     )
@@ -130,6 +134,74 @@ pub fn stale_classifier_result_is_logged_and_processing_continues_test() {
   assert completed_job.status == job_model.Done
   assert successor_job.status == job_model.Pending
   assert dict.has_key(effect_state.warning_fields, "spam_classification_stale")
+}
+
+pub fn disabled_periodic_job_skips_queued_execution_test() {
+  let unused_successor_id =
+    fixture.must_uuid("00000000-0000-0000-0000-000000000424")
+  let running_job = classifier_job()
+  let test_fixture =
+    fixture.integration_fixture(
+      next_uuids: [unused_successor_id],
+      jobs: [running_job],
+      account_delete_job_id: option.None,
+    )
+  let initial_state = with_classifier_config(test_fixture.state, False)
+
+  let #(run_result, db) =
+    integration_runner.run_test_program_with(
+      job_manager_domain.process_job(test_fixture.ctx, running_job),
+      test_fixture.ctx,
+      initial_state,
+      classifier_services(
+        _,
+        test_fixture.snippet,
+        spam_classification.Stored,
+        False,
+        False,
+      ),
+    )
+
+  assert run_result == Ok(Nil)
+  assert db.write_steps == []
+  let assert Ok(completed_job) =
+    dict.get(db.jobs, common.uuid_key(running_job.id))
+  assert completed_job.status == job_model.Done
+  assert dict.has_key(db.jobs, common.uuid_key(unused_successor_id)) == False
+}
+
+pub fn disabling_periodic_job_during_run_stops_successor_chain_test() {
+  let unused_successor_id =
+    fixture.must_uuid("00000000-0000-0000-0000-000000000425")
+  let running_job = classifier_job()
+  let test_fixture =
+    fixture.integration_fixture(
+      next_uuids: [unused_successor_id],
+      jobs: [running_job],
+      account_delete_job_id: option.None,
+    )
+  let initial_state = with_classifier_config(test_fixture.state, True)
+
+  let #(run_result, db) =
+    integration_runner.run_test_program_with(
+      job_manager_domain.process_job(test_fixture.ctx, running_job),
+      test_fixture.ctx,
+      initial_state,
+      classifier_services(
+        _,
+        test_fixture.snippet,
+        spam_classification.Stored,
+        False,
+        True,
+      ),
+    )
+
+  assert run_result == Ok(Nil)
+  assert db.write_steps == ["store_spam_classification"]
+  let assert Ok(completed_job) =
+    dict.get(db.jobs, common.uuid_key(running_job.id))
+  assert completed_job.status == job_model.Done
+  assert dict.has_key(db.jobs, common.uuid_key(unused_successor_id)) == False
 }
 
 pub fn classifier_retry_after_keeps_circuit_job_active_test() {
@@ -266,7 +338,10 @@ fn classifier_job() -> job_model.Job {
   |> job_model.start(now)
 }
 
-fn with_classifier_config(db: test_model.TestState) -> test_model.TestState {
+fn with_classifier_config(
+  db: test_model.TestState,
+  enabled: Bool,
+) -> test_model.TestState {
   let config =
     dynamic_config.DynamicConfig(
       ..db.dynamic_config,
@@ -275,7 +350,28 @@ fn with_classifier_config(db: test_model.TestState) -> test_model.TestState {
         auth_token: "secret",
       )),
     )
-  test_model.TestState(..db, dynamic_config: config)
+  let periodic_job =
+    periodic_job_model.PeriodicJob(
+      id: fixture.must_uuid("00000000-0000-0000-0000-000000000419"),
+      job_type: job_model.ClassifySnippetJob,
+      payload: option.None,
+      interval_seconds: 60,
+      enabled: enabled,
+      next_run_at: fixture.test_timestamp(),
+      last_enqueued_at: option.None,
+      last_enqueue_error: option.None,
+      created_at: fixture.test_timestamp(),
+      updated_at: fixture.test_timestamp(),
+    )
+  test_model.TestState(
+    ..db,
+    dynamic_config: config,
+    periodic_jobs: dict.insert(
+      db.periodic_jobs,
+      common.uuid_key(periodic_job.id),
+      periodic_job,
+    ),
+  )
 }
 
 fn classifier_services(
@@ -283,6 +379,7 @@ fn classifier_services(
   snippet: Snippet,
   store_result: spam_classification.StoreResult,
   fail_successor_creation: Bool,
+  disable_periodic_during_classification: Bool,
 ) -> service_ports.ServicePorts {
   let services =
     test_service_ports.defaults(test_state)
@@ -324,6 +421,24 @@ fn classifier_services(
     system_ports.SystemPorts(
       ..services.system,
       spam_classifier: classifier_client.Client(classify: fn(_, _, _) {
+        case disable_periodic_during_classification {
+          True ->
+            state.update(test_state, fn(db) {
+              let periodic_job_id =
+                fixture.must_uuid("00000000-0000-0000-0000-000000000419")
+              let assert Ok(periodic_job) =
+                dict.get(db.periodic_jobs, common.uuid_key(periodic_job_id))
+              test_model.TestState(
+                ..db,
+                periodic_jobs: dict.insert(
+                  db.periodic_jobs,
+                  common.uuid_key(periodic_job_id),
+                  periodic_job_model.PeriodicJob(..periodic_job, enabled: False),
+                ),
+              )
+            })
+          False -> Nil
+        }
         Ok(#(
           spam_classification.ServiceResponse(
             decision: spam_classification.Allow,

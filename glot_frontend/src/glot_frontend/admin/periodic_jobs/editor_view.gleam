@@ -196,7 +196,7 @@ fn toggle_field(editor: PeriodicJobEditor) -> Element(Msg) {
     ),
     html.span([attribute.class("admin-page__field-help")], [
       html.text(
-        "Disabled definitions remain in storage but the scheduler will skip them.",
+        "Disabled definitions are paused. Queued executions do no work, and running chains stop after the current execution.",
       ),
     ]),
   ])

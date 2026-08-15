@@ -38,6 +38,9 @@ pub fn defaults() -> ports.Ports {
       get_periodic_job_by_id: fn(_) {
         unexpected.query("job.periodic.get_by_id")
       },
+      get_periodic_job_by_id_for_update: fn(_) {
+        unexpected.query("job.periodic.get_by_id_for_update")
+      },
       create_periodic_job: fn(_) { unexpected.command("job.periodic.create") },
       update_periodic_job: fn(_) { unexpected.command("job.periodic.update") },
     ),
@@ -107,6 +110,9 @@ pub fn new(test_state: state.State) -> ports.Ports {
         Ok(job.find_next_periodic_job(state.get(test_state), now))
       },
       get_periodic_job_by_id: fn(id) {
+        Ok(job.find_periodic_job_by_id(state.get(test_state), id))
+      },
+      get_periodic_job_by_id_for_update: fn(id) {
         Ok(job.find_periodic_job_by_id(state.get(test_state), id))
       },
       create_periodic_job: fn(value) {

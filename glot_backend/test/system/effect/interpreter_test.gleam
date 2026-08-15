@@ -311,6 +311,7 @@ fn test_service_ports() -> service_ports.ServicePorts {
           list_periodic_jobs: fn() { Ok([]) },
           get_next_periodic_job: fn(_) { Ok(option.None) },
           get_periodic_job_by_id: fn(_) { Ok(option.None) },
+          get_periodic_job_by_id_for_update: fn(_) { Ok(option.None) },
           create_periodic_job: fn(_) { Ok(Nil) },
           update_periodic_job: fn(_) { Ok(Nil) },
         ),

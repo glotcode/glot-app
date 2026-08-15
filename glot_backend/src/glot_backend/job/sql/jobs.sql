@@ -248,6 +248,22 @@ SELECT
 FROM periodic_jobs
 WHERE id = $1;
 
+-- name: GetPeriodicJobByIdForUpdate :one
+SELECT
+  id,
+  job_type,
+  payload,
+  interval_seconds,
+  enabled,
+  next_run_at,
+  last_enqueued_at,
+  last_enqueue_error,
+  created_at,
+  updated_at
+FROM periodic_jobs
+WHERE id = $1
+FOR UPDATE;
+
 -- name: InsertJob :exec
 INSERT INTO jobs (
   id,

@@ -9,6 +9,7 @@ import glot_backend/job/domain/cleanup/jobs as clean_jobs_domain
 import glot_backend/job/domain/cleanup/logs as clean_job_log_domain
 import glot_backend/job/domain/finalization.{type Finalization}
 import glot_backend/job/effect/job/effect as job_effect
+import glot_backend/job/effect/periodic/effect as periodic_job_effect
 import glot_backend/logging/api_log/domain/cleanup as clean_api_log_domain
 import glot_backend/logging/page_log/domain/cleanup as clean_page_log_domain
 import glot_backend/logging/pageview/domain/cleanup as clean_pageview_log_domain
@@ -17,6 +18,7 @@ import glot_backend/spam_classifier/domain/classify_next as classify_snippet_dom
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error.{type Error}
 import glot_backend/system/effect/error/infra_error
+import glot_backend/system/effect/log
 import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types.{
   type Program, type TransactionProgram,
@@ -68,6 +70,14 @@ pub fn recover_next_expired_job(
 }
 
 pub fn process_job(ctx: Context, job: Job) -> Program(Nil) {
+  use active <- program.and_then(periodic_job_is_active(job))
+  case active {
+    False -> stop_inactive_periodic_job(job)
+    True -> process_active_job(ctx, job)
+  }
+}
+
+fn process_active_job(ctx: Context, job: Job) -> Program(Nil) {
   use outcome <- program.and_then(
     delegate_job(ctx, job)
     |> program.attempt(fn(err) {
@@ -79,6 +89,30 @@ pub fn process_job(ctx: Context, job: Job) -> Program(Nil) {
     CompleteJob(finalize) -> complete_job(job, finalize)
     ContinueImmediately(finalize) -> continue_job(job, finalize)
   }
+}
+
+fn periodic_job_is_active(job: Job) -> Program(Bool) {
+  case job.periodic_job_id {
+    option.None -> program.succeed(True)
+    option.Some(periodic_job_id) -> {
+      use periodic_job <- program.and_then(
+        periodic_job_effect.get_periodic_job_by_id(periodic_job_id),
+      )
+      case periodic_job {
+        option.Some(periodic_job) -> program.succeed(periodic_job.enabled)
+        option.None -> program.succeed(False)
+      }
+    }
+  }
+}
+
+fn stop_inactive_periodic_job(job: Job) -> Program(Nil) {
+  let warning =
+    log.from_list([
+      log.uuid("job_id", job.id),
+      log.bool("periodic_job_inactive", True),
+    ])
+  complete_job(job, transaction_program.succeed(finalization.Skipped(warning)))
 }
 
 pub fn timeout_job(_ctx: Context, job: Job) -> Program(Nil) {
@@ -216,8 +250,29 @@ fn continue_job(
   finalization.commit(finalize, [
     job_effect.update_job_tx(completed_job),
     release_queue_slot(job),
-    job_effect.create_job_tx(successor_job),
+    create_successor_if_enabled(job, successor_job),
   ])
+}
+
+fn create_successor_if_enabled(
+  completed_job: Job,
+  successor_job: Job,
+) -> TransactionProgram(Nil) {
+  case completed_job.periodic_job_id {
+    option.None -> job_effect.create_job_tx(successor_job)
+    option.Some(periodic_job_id) -> {
+      use periodic_job <- transaction_program.and_then(
+        periodic_job_effect.get_periodic_job_by_id_for_update_tx(
+          periodic_job_id,
+        ),
+      )
+      case periodic_job {
+        option.Some(periodic_job) if periodic_job.enabled ->
+          job_effect.create_job_tx(successor_job)
+        option.Some(_) | option.None -> transaction_program.succeed(Nil)
+      }
+    }
+  }
 }
 
 fn reschedule_job(job: Job, err: Error) -> Program(Nil) {

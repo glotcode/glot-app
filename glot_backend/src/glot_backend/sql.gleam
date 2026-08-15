@@ -4300,6 +4300,70 @@ pub fn get_periodic_job_by_id_decoder() -> decode.Decoder(GetPeriodicJobById) {
   ))
 }
 
+pub type GetPeriodicJobByIdForUpdate {
+  GetPeriodicJobByIdForUpdate(
+    id: BitArray,
+    job_type: String,
+    payload: Option(String),
+    interval_seconds: Int,
+    enabled: Bool,
+    next_run_at: Timestamp,
+    last_enqueued_at: Option(Timestamp),
+    last_enqueue_error: Option(String),
+    created_at: Timestamp,
+    updated_at: Timestamp,
+  )
+}
+
+pub fn get_periodic_job_by_id_for_update(id id: BitArray) {
+  let sql =
+    "SELECT
+  id,
+  job_type,
+  payload,
+  interval_seconds,
+  enabled,
+  next_run_at,
+  last_enqueued_at,
+  last_enqueue_error,
+  created_at,
+  updated_at
+FROM periodic_jobs
+WHERE id = $1
+FOR UPDATE"
+  #(sql, [dev.ParamBitArray(id)], get_periodic_job_by_id_for_update_decoder())
+}
+
+pub fn get_periodic_job_by_id_for_update_decoder() -> decode.Decoder(
+  GetPeriodicJobByIdForUpdate,
+) {
+  use id <- decode.field(0, decode.bit_array)
+  use job_type <- decode.field(1, decode.string)
+  use payload <- decode.field(2, decode.optional(decode.string))
+  use interval_seconds <- decode.field(3, decode.int)
+  use enabled <- decode.field(4, dev.bool_decoder())
+  use next_run_at <- decode.field(5, dev.datetime_decoder())
+  use last_enqueued_at <- decode.field(
+    6,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use last_enqueue_error <- decode.field(7, decode.optional(decode.string))
+  use created_at <- decode.field(8, dev.datetime_decoder())
+  use updated_at <- decode.field(9, dev.datetime_decoder())
+  decode.success(GetPeriodicJobByIdForUpdate(
+    id:,
+    job_type:,
+    payload:,
+    interval_seconds:,
+    enabled:,
+    next_run_at:,
+    last_enqueued_at:,
+    last_enqueue_error:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
 pub fn insert_job(
   id id: BitArray,
   request_id request_id: Option(BitArray),

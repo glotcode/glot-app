@@ -121,3 +121,37 @@ pub fn enqueue_next_due_periodic_job_returns_false_when_no_jobs_are_due_test() {
   assert dict.get(updated_db.periodic_jobs, common.uuid_key(periodic_job.id))
     == Ok(periodic_job)
 }
+
+pub fn enqueue_next_due_periodic_job_skips_disabled_definition_test() {
+  let periodic_job =
+    periodic_job_model.PeriodicJob(
+      id: fixture.must_uuid("00000000-0000-0000-0000-000000000902"),
+      job_type: job_model.CleanApiLogJob,
+      payload: option.None,
+      interval_seconds: 86_400,
+      enabled: False,
+      next_run_at: fixture.test_timestamp(),
+      last_enqueued_at: option.None,
+      last_enqueue_error: option.None,
+      created_at: fixture.test_timestamp(),
+      updated_at: fixture.test_timestamp(),
+    )
+  let ctx = fixture.test_context()
+  let db =
+    model.TestState(
+      ..fixture.empty_test_state(),
+      periodic_jobs: dict.from_list([
+        #(common.uuid_key(periodic_job.id), periodic_job),
+      ]),
+    )
+
+  let #(run_result, updated_db) =
+    runner.run_test_program(
+      periodic_job_manager_domain.enqueue_next_due_periodic_job(ctx),
+      ctx,
+      db,
+    )
+
+  assert run_result == Ok(False)
+  assert dict.to_list(updated_db.jobs) == []
+}

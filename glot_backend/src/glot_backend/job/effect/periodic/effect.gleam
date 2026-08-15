@@ -61,6 +61,17 @@ pub fn get_next_periodic_job_tx(
   ))
 }
 
+pub fn get_periodic_job_by_id_for_update_tx(
+  id: uuid.Uuid,
+) -> program_types.TransactionProgram(
+  option.Option(periodic_job_model.PeriodicJob),
+) {
+  transaction_program.perform(get_periodic_job_by_id_for_update_effect(
+    id,
+    transaction_program.succeed,
+  ))
+}
+
 pub fn create_periodic_job_tx(
   periodic_job periodic_job: periodic_job_model.PeriodicJob,
 ) -> program_types.TransactionProgram(Nil) {
@@ -110,6 +121,16 @@ fn get_periodic_job_by_id_effect(
   next: fn(option.Option(periodic_job_model.PeriodicJob)) -> next,
 ) -> program_types.DbEffect(next) {
   job_effect.periodic(periodic_job_algebra.GetPeriodicJobById(
+    id: id,
+    next: next,
+  ))
+}
+
+fn get_periodic_job_by_id_for_update_effect(
+  id: uuid.Uuid,
+  next: fn(option.Option(periodic_job_model.PeriodicJob)) -> next,
+) -> program_types.DbEffect(next) {
+  job_effect.periodic(periodic_job_algebra.GetPeriodicJobByIdForUpdate(
     id: id,
     next: next,
   ))
