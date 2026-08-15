@@ -12,6 +12,7 @@ import glot_frontend/admin/snippets/list_message.{
   PreviousPageClicked, UsernameFilterChanged,
 }
 import glot_frontend/admin/snippets/list_model.{type Model}
+import glot_frontend/admin/snippets/route as snippets_route
 import glot_frontend/admin/ui/cursor_page as admin_cursor_page
 import glot_frontend/admin/ui/filter as admin_filter
 import glot_frontend/admin/ui/form as admin_form
@@ -139,13 +140,15 @@ fn snippet_row(
         )),
       ],
     ),
-    admin_table.value_cell(
-      owner_column(),
-      string_helpers.truncate_stem_middle(
-        snippet.user.username,
-        owner_max_length,
+    admin_table.cell(owner_column(), [
+      admin_table.primary_link(
+        [web_route.href(snippets_route.for_owner(snippet.user.username))],
+        string_helpers.truncate_stem_middle(
+          snippet.user.username,
+          owner_max_length,
+        ),
       ),
-    ),
+    ]),
     admin_table.primary_meta_cell(
       updated_column(),
       timestamp_helpers.relative_label(snippet.updated_at, now),

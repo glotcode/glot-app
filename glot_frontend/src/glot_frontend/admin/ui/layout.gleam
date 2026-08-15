@@ -137,6 +137,21 @@ pub fn summary_card(title title: String, value value: String) -> Element(msg) {
   summary_card_with_class("admin-page__policy", title, value)
 }
 
+pub fn summary_link_card(
+  title title: String,
+  value value: String,
+  attributes extra_attributes: List(attribute.Attribute(msg)),
+) -> Element(msg) {
+  html.dl([attribute.class("admin-page__policy admin-info-card")], [
+    html.dt([attribute.class("admin-info-label")], [html.text(title)]),
+    html.dd([attribute.class("admin-info-value admin-info-value--summary")], [
+      html.a([attribute.class("admin-info-value"), ..extra_attributes], [
+        html.text(value),
+      ]),
+    ]),
+  ])
+}
+
 pub fn summary_card_with_class(
   class_name: String,
   title: String,

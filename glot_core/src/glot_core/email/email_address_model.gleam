@@ -4,7 +4,7 @@ import gleam/option
 import gleam/regexp
 import gleam/string
 
-pub const pattern = "^([\\w\\d]+)(\\.[\\w\\d]+)*(\\+[\\w\\d]+)?@[\\w\\d\\.-]+$"
+pub const pattern = "^([\\w\\d-]+)(\\.[\\w\\d-]+)*(\\+[\\w\\d-]+)?@[\\w\\d\\.-]+$"
 
 pub type EmailAddress {
   EmailAddress(String)

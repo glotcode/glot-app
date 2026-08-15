@@ -442,6 +442,18 @@ pub fn email_address_accepts_hyphenated_domains_test() {
     ))
 }
 
+pub fn email_address_accepts_hyphenated_local_parts_test() {
+  let assert Ok(is_email) = regexp.from_string(email_address_model.pattern)
+
+  assert email_address_model.from_string(
+      is_email,
+      "snippet-user-10@example.test",
+    )
+    == option.Some(email_address_model.EmailAddress(
+      "snippet-user-10@example.test",
+    ))
+}
+
 pub fn validate_snippet_fields_rejects_empty_files_test() {
   assert snippet_model.validate_fields("Snippet", "", option.None, [])
     == Error(validation_error.FilesMissing)

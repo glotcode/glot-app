@@ -79,7 +79,9 @@ fn detail_view(model: Model) -> Element(Msg) {
       html.div([attribute.class("admin-job-page__content")], [
         html.div([attribute.class(admin_layout.summary_grid_class())], [
           admin_layout.summary_card("Title", snippet.title),
-          admin_layout.summary_card("Owner", snippet.user.username),
+          admin_layout.summary_link_card("Owner", snippet.user.username, [
+            web_route.href(owner_route(snippet.user.id)),
+          ]),
           admin_layout.summary_card("Language", language.name(snippet.language)),
           admin_layout.summary_card(
             "Visibility",
@@ -105,10 +107,13 @@ fn detail_view(model: Model) -> Element(Msg) {
           html.div([attribute.class(admin_layout.detail_grid_class())], [
             admin_layout.detail_item("Snippet ID", uuid.to_string(snippet.id)),
             admin_layout.detail_item("Slug", snippet.slug),
-            admin_layout.detail_item("Owner", snippet.user.username),
-            admin_layout.detail_item(
+            admin_layout.detail_link_item("Owner", snippet.user.username, [
+              web_route.href(owner_route(snippet.user.id)),
+            ]),
+            admin_layout.detail_link_item(
               "Owner ID",
               uuid.to_string(snippet.user.id),
+              [web_route.href(owner_route(snippet.user.id))],
             ),
             admin_layout.detail_item(
               "Language",
@@ -227,6 +232,10 @@ fn detail_view(model: Model) -> Element(Msg) {
     },
     fn(_) { admin_status.empty_state("This snippet could not be loaded.") },
   )
+}
+
+fn owner_route(id: uuid.Uuid) -> route.Route {
+  route.Admin(route.AdminUser(id))
 }
 
 fn file_view(file: snippet_model.File) -> Element(Msg) {

@@ -2,6 +2,7 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_core/email/email_address_model
 import glot_core/helpers/timestamp_helpers
 import glot_core/loadable
+import glot_frontend/admin/snippets/route as snippets_route
 import glot_frontend/admin/ui/format as admin_format
 import glot_frontend/admin/ui/layout as admin_layout
 import glot_frontend/admin/ui/status as admin_status
@@ -9,6 +10,7 @@ import glot_frontend/admin/users/message.{type Msg, DeleteClicked}
 import glot_frontend/admin/users/model.{
   type DeleteState, type Model, type UserEditor, DeleteIdle, Deleting,
 }
+import glot_web/route as web_route
 import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
@@ -23,26 +25,40 @@ pub fn view(model: Model, now: Timestamp) -> Element(Msg) {
       panel_class: "admin-job-page",
       title: "User detail",
       intro: "Review account access and edit persisted user and account settings.",
-      actions: [
-        html.button(
-          [
-            attribute.type_("button"),
-            attribute.class("admin-page__button admin-page__button--danger"),
-            attribute.disabled(model.delete_state == Deleting),
-            event.on_click(DeleteClicked),
-          ],
-          [
-            html.text(case model.delete_state {
-              Deleting -> "Deleting..."
-              DeleteIdle -> "Delete account"
-            }),
-          ],
-        ),
-      ],
+      actions: user_actions(model),
       content: [user_status(model), detail_view(model, now)],
     ),
     editor_view.delete_dialog(model),
   ])
+}
+
+fn user_actions(model: Model) -> List(Element(Msg)) {
+  let delete_button =
+    html.button(
+      [
+        attribute.type_("button"),
+        attribute.class("admin-page__button admin-page__button--danger"),
+        attribute.disabled(model.delete_state == Deleting),
+        event.on_click(DeleteClicked),
+      ],
+      [
+        html.text(case model.delete_state {
+          Deleting -> "Deleting..."
+          DeleteIdle -> "Delete account"
+        }),
+      ],
+    )
+
+  case model.user {
+    loadable.Loaded(editor) -> [
+      admin_layout.secondary_link(
+        [web_route.href(snippets_route.for_owner(editor.saved.username))],
+        "Snippets",
+      ),
+      delete_button,
+    ]
+    _ -> [delete_button]
+  }
 }
 
 fn user_status(model: Model) -> Element(Msg) {

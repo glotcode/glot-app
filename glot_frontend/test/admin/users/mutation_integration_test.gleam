@@ -1,4 +1,5 @@
 import gleam/option
+import gleam/string
 import gleam/time/timestamp
 import glot_core/admin/user_dto
 import glot_core/auth/account_model
@@ -11,8 +12,10 @@ import glot_frontend/admin/users/editor_policy as user_policy
 import glot_frontend/admin/users/managed as user_managed
 import glot_frontend/admin/users/message as user_message
 import glot_frontend/admin/users/model as user_detail_model
+import glot_frontend/admin/users/view as user_view
 import glot_frontend/api/response
 import glot_frontend/ui/mutation
+import lustre/element
 import youid/uuid
 
 pub fn user_mutation_covers_reset_failure_retry_and_success_test() {
@@ -54,6 +57,25 @@ pub fn user_mutation_covers_reset_failure_retry_and_success_test() {
   assert saved_editor.state == mutation.Idle
   assert saved_editor.draft == saved_editor.saved
   assert saved_editor.saved.username == "changed-user"
+}
+
+pub fn user_detail_links_to_snippets_filtered_by_persisted_username_test() {
+  let fixture = user_fixture("fixture-user")
+  let #(base, _) = user_managed.init(fixture.id)
+  let model =
+    user_detail_model.Model(
+      ..base,
+      user: loadable.Loaded(user_policy.from_response(fixture)),
+    )
+
+  let rendered =
+    user_view.view(model, timestamp.from_unix_seconds(0))
+    |> element.to_document_string
+
+  assert string.contains(
+    rendered,
+    "href=\"/admin/snippets?username=fixture-user\">Snippets</a>",
+  )
 }
 
 fn user_fixture(username: String) -> user_dto.UserDetailResponse {
