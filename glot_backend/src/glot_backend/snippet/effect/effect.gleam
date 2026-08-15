@@ -7,6 +7,7 @@ import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types
 import glot_backend/system/effect/transaction/transaction_program
 import glot_core/pagination_model.{type CursorPagination}
+import glot_core/snippet/admin_snippet.{type AdminSnippet}
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
 }
@@ -37,7 +38,7 @@ pub fn get_by_slug(
 
 pub fn get_admin_by_slug(
   slug: String,
-) -> program_types.Program(option.Option(HydratedSnippet)) {
+) -> program_types.Program(option.Option(AdminSnippet)) {
   program.perform_db(
     get_admin_by_slug_effect(slug, program.from_mapped_result(
       _,
@@ -253,8 +254,7 @@ fn get_by_slug_for_update_effect(
 
 fn get_admin_by_slug_effect(
   slug: String,
-  next: fn(Result(option.Option(HydratedSnippet), db_error.DbQueryError)) ->
-    next,
+  next: fn(Result(option.Option(AdminSnippet), db_error.DbQueryError)) -> next,
 ) -> program_types.DbEffect(next) {
   program_types.SnippetEffect(snippet_algebra.GetAdminSnippetBySlug(
     slug:,

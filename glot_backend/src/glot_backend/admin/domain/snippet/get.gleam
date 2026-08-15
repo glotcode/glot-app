@@ -31,7 +31,7 @@ pub fn get_snippet(
   )
   use _ <- program.and_then(user_action_effect.create_user_action(user_action))
 
-  program.succeed(snippet_dto.from_snippet(snippet))
+  program.succeed(snippet_dto.from_admin_snippet(snippet))
 }
 
 pub fn request_from_dynamic(data: Dynamic) -> Program(GetSnippetRequest) {

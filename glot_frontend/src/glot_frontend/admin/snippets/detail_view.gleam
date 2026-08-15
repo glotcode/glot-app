@@ -8,6 +8,9 @@ import glot_core/language
 import glot_core/loadable
 import glot_core/route
 import glot_core/snippet/snippet_model
+import glot_core/snippet/spam_classification.{
+  type ClassificationMetadata, type Decision, type ReasonCode,
+}
 import glot_frontend/admin/snippets/detail_constants as constants
 import glot_frontend/admin/snippets/detail_message.{
   type Msg, DeleteCancelled, DeleteClicked, DeleteConfirmed, DeleteDialogClosed,
@@ -122,6 +125,56 @@ fn detail_view(model: Model) -> Element(Msg) {
             admin_layout.detail_item(
               "Updated at",
               admin_format.format_timestamp(snippet.updated_at),
+            ),
+          ]),
+        ]),
+        html.div([attribute.class("admin-page__group")], [
+          html.div([attribute.class("admin-page__group-header")], [
+            html.h3([attribute.class("admin-page__group-title")], [
+              html.text("Spam classification"),
+            ]),
+            html.p([attribute.class("admin-page__group-copy")], [
+              html.text(
+                "The latest stored classifier result and terminal failure state. Classification does not change snippet visibility.",
+              ),
+            ]),
+          ]),
+          html.div([attribute.class(admin_layout.detail_grid_class())], [
+            admin_layout.detail_item(
+              "Status",
+              classification_status(snippet.spam_classification),
+            ),
+            admin_layout.detail_item(
+              "Decision",
+              optional_decision(snippet.spam_classification.decision),
+            ),
+            admin_layout.detail_item(
+              "Confidence",
+              optional_confidence(snippet.spam_classification.confidence),
+            ),
+            admin_layout.detail_item(
+              "Reason code",
+              optional_reason_code(snippet.spam_classification.reason_code),
+            ),
+            admin_layout.detail_item(
+              "Attempts",
+              int.to_string(snippet.spam_classification.attempts),
+            ),
+            admin_layout.detail_item(
+              "Classified at",
+              admin_format.optional_timestamp(
+                snippet.spam_classification.classified_at,
+              ),
+            ),
+            admin_layout.detail_item(
+              "Failed at",
+              admin_format.optional_timestamp(
+                snippet.spam_classification.failed_at,
+              ),
+            ),
+            admin_layout.detail_item(
+              "Last error",
+              admin_format.optional_text(snippet.spam_classification.last_error),
             ),
           ]),
         ]),
@@ -265,6 +318,37 @@ fn visibility_text(visibility: snippet_model.Visibility) -> String {
     snippet_model.Public -> "Public"
     snippet_model.Unlisted -> "Unlisted"
     snippet_model.Secret -> "Secret"
+  }
+}
+
+fn classification_status(classification: ClassificationMetadata) -> String {
+  case classification.decision, classification.failed_at {
+    option.Some(_), _ -> "Classified"
+    option.None, option.Some(_) -> "Failed"
+    option.None, option.None -> "Unclassified"
+  }
+}
+
+fn optional_decision(decision: option.Option(Decision)) -> String {
+  case decision {
+    option.Some(spam_classification.Allow) -> "Allow"
+    option.Some(spam_classification.Review) -> "Review"
+    option.Some(spam_classification.Block) -> "Block"
+    option.None -> "None"
+  }
+}
+
+fn optional_confidence(confidence: option.Option(Int)) -> String {
+  case confidence {
+    option.Some(value) -> int.to_string(value) <> "%"
+    option.None -> "None"
+  }
+}
+
+fn optional_reason_code(reason_code: option.Option(ReasonCode)) -> String {
+  case reason_code {
+    option.Some(value) -> spam_classification.reason_code_to_string(value)
+    option.None -> "None"
   }
 }
 

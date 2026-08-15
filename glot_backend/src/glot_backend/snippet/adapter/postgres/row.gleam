@@ -9,7 +9,9 @@ import glot_core/auth/user_model
 import glot_core/email/email_address_model
 import glot_core/helpers/uuid_helpers
 import glot_core/language
+import glot_core/snippet/admin_snippet.{type AdminSnippet}
 import glot_core/snippet/snippet_model.{type HydratedSnippet}
+import glot_core/snippet/spam_classification
 
 pub fn from_get_by_id(
   row: sql.GetSnippetById,
@@ -138,8 +140,8 @@ pub fn from_list_before(
 
 pub fn from_admin_get_by_slug(
   row: sql.GetAdminSnippetBySlug,
-) -> Result(HydratedSnippet, db_error.DbQueryError) {
-  from_fields(
+) -> Result(AdminSnippet, db_error.DbQueryError) {
+  use snippet <- result.try(from_fields(
     id: row.id,
     slug: row.slug,
     user_id: row.user_id,
@@ -158,7 +160,58 @@ pub fn from_admin_get_by_slug(
     files: row.files,
     created_at: row.created_at,
     updated_at: row.updated_at,
+  ))
+  use decision <- result.try(decode_optional_enum(
+    row.spam_decision,
+    spam_classification.decision_from_string,
+  ))
+  use reason_code <- result.try(decode_optional_enum(
+    row.spam_reason_code,
+    spam_classification.reason_code_from_string,
+  ))
+  use confidence <- result.try(decode_optional_value(
+    row.spam_confidence,
+    spam_classification.confidence_from_int,
+  ))
+  use attempts <- result.try(
+    row.spam_classification_attempts
+    |> option.unwrap(0)
+    |> spam_classification.attempts_from_int
+    |> result.map_error(db_error.DbQueryError),
   )
+
+  Ok(admin_snippet.AdminSnippet(
+    snippet: snippet,
+    spam_classification: spam_classification.ClassificationMetadata(
+      decision: decision,
+      confidence: confidence,
+      reason_code: reason_code,
+      classified_at: row.spam_classified_at,
+      attempts: attempts,
+      last_error: row.spam_classification_last_error,
+      failed_at: row.spam_classification_failed_at,
+    ),
+  ))
+}
+
+fn decode_optional_enum(
+  value: option.Option(String),
+  decode_value: fn(String) -> Result(a, String),
+) -> Result(option.Option(a), db_error.DbQueryError) {
+  decode_optional_value(value, decode_value)
+}
+
+fn decode_optional_value(
+  value: option.Option(input),
+  decode_value: fn(input) -> Result(output, String),
+) -> Result(option.Option(output), db_error.DbQueryError) {
+  case value {
+    option.None -> Ok(option.None)
+    option.Some(value) ->
+      decode_value(value)
+      |> result.map(option.Some)
+      |> result.map_error(db_error.DbQueryError)
+  }
 }
 
 pub fn from_admin_list_after(

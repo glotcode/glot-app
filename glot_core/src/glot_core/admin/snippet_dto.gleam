@@ -8,7 +8,9 @@ import glot_core/helpers/timestamp_helpers
 import glot_core/helpers/uuid_helpers
 import glot_core/language
 import glot_core/pagination_model
+import glot_core/snippet/admin_snippet.{type AdminSnippet}
 import glot_core/snippet/snippet_model
+import glot_core/snippet/spam_classification.{type ClassificationMetadata}
 import youid/uuid
 
 pub type ListSnippetsRequest {
@@ -47,6 +49,7 @@ pub type SnippetDetailResponse {
     stdin: String,
     run_instructions: option.Option(language.RunInstructions),
     files: List(snippet_model.File),
+    spam_classification: ClassificationMetadata,
     created_at: Timestamp,
     updated_at: Timestamp,
   )
@@ -128,10 +131,8 @@ pub fn from_snippets(
   ))
 }
 
-pub fn from_snippet(
-  snippet: snippet_model.HydratedSnippet,
-) -> GetSnippetResponse {
-  GetSnippetResponse(snippet: to_snippet_detail(snippet))
+pub fn from_admin_snippet(snippet: AdminSnippet) -> GetSnippetResponse {
+  GetSnippetResponse(snippet: to_admin_snippet_detail(snippet))
 }
 
 fn from_snippet_summary(
@@ -150,21 +151,21 @@ fn from_snippet_summary(
   )
 }
 
-fn to_snippet_detail(
-  snippet: snippet_model.HydratedSnippet,
-) -> SnippetDetailResponse {
+fn to_admin_snippet_detail(snippet: AdminSnippet) -> SnippetDetailResponse {
+  let hydrated = snippet.snippet
   SnippetDetailResponse(
-    id: snippet.identity.id,
-    slug: snippet.identity.slug,
-    user: user_dto.from_user(snippet.user),
-    title: snippet.identity.title,
-    language: snippet.identity.language,
-    visibility: snippet.identity.visibility,
-    stdin: snippet.identity.stdin,
-    run_instructions: snippet.identity.run_instructions,
-    files: snippet.identity.files,
-    created_at: snippet.identity.created_at,
-    updated_at: snippet.identity.updated_at,
+    id: hydrated.identity.id,
+    slug: hydrated.identity.slug,
+    user: user_dto.from_user(hydrated.user),
+    title: hydrated.identity.title,
+    language: hydrated.identity.language,
+    visibility: hydrated.identity.visibility,
+    stdin: hydrated.identity.stdin,
+    run_instructions: hydrated.identity.run_instructions,
+    files: hydrated.identity.files,
+    spam_classification: snippet.spam_classification,
+    created_at: hydrated.identity.created_at,
+    updated_at: hydrated.identity.updated_at,
   )
 }
 
@@ -224,6 +225,10 @@ fn snippet_detail_decoder() -> decode.Decoder(SnippetDetailResponse) {
     decode.optional(language.run_instructions_decoder()),
   )
   use files <- decode.field("files", decode.list(snippet_model.file_decoder()))
+  use spam_classification <- decode.field(
+    "spamClassification",
+    spam_classification_decoder(),
+  )
   use created_at <- decode.field("createdAt", timestamp_helpers.decoder())
   use updated_at <- decode.field("updatedAt", timestamp_helpers.decoder())
   decode.success(SnippetDetailResponse(
@@ -236,6 +241,7 @@ fn snippet_detail_decoder() -> decode.Decoder(SnippetDetailResponse) {
     stdin: stdin,
     run_instructions: run_instructions,
     files: files,
+    spam_classification: spam_classification,
     created_at: created_at,
     updated_at: updated_at,
   ))
@@ -255,7 +261,83 @@ fn encode_snippet_detail(response: SnippetDetailResponse) -> json.Json {
       json.nullable(response.run_instructions, language.encode_run_instructions),
     ),
     #("files", json.array(response.files, snippet_model.encode_file)),
+    #(
+      "spamClassification",
+      encode_spam_classification(response.spam_classification),
+    ),
     #("createdAt", timestamp_helpers.encode(response.created_at)),
     #("updatedAt", timestamp_helpers.encode(response.updated_at)),
+  ])
+}
+
+fn spam_classification_decoder() -> decode.Decoder(ClassificationMetadata) {
+  use decision <- decode.field(
+    "decision",
+    decode.optional(spam_classification.decision_decoder()),
+  )
+  use confidence <- decode.field(
+    "confidence",
+    decode.optional(spam_classification.confidence_decoder()),
+  )
+  use reason_code <- decode.field(
+    "reasonCode",
+    decode.optional(spam_classification.reason_code_decoder()),
+  )
+  use classified_at <- decode.field(
+    "classifiedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  use attempts <- decode.field(
+    "attempts",
+    decode.then(decode.int, fn(value) {
+      case spam_classification.attempts_from_int(value) {
+        Ok(attempts) -> decode.success(attempts)
+        Error(message) -> decode.failure(value, message)
+      }
+    }),
+  )
+  use last_error <- decode.field("lastError", decode.optional(decode.string))
+  use failed_at <- decode.field(
+    "failedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  decode.success(spam_classification.ClassificationMetadata(
+    decision: decision,
+    confidence: confidence,
+    reason_code: reason_code,
+    classified_at: classified_at,
+    attempts: attempts,
+    last_error: last_error,
+    failed_at: failed_at,
+  ))
+}
+
+fn encode_spam_classification(
+  classification: ClassificationMetadata,
+) -> json.Json {
+  json.object([
+    #(
+      "decision",
+      json.nullable(classification.decision, fn(value) {
+        json.string(spam_classification.decision_to_string(value))
+      }),
+    ),
+    #("confidence", json.nullable(classification.confidence, json.int)),
+    #(
+      "reasonCode",
+      json.nullable(classification.reason_code, fn(value) {
+        json.string(spam_classification.reason_code_to_string(value))
+      }),
+    ),
+    #(
+      "classifiedAt",
+      json.nullable(classification.classified_at, timestamp_helpers.encode),
+    ),
+    #("attempts", json.int(classification.attempts)),
+    #("lastError", json.nullable(classification.last_error, json.string)),
+    #(
+      "failedAt",
+      json.nullable(classification.failed_at, timestamp_helpers.encode),
+    ),
   ])
 }

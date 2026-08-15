@@ -1,5 +1,6 @@
 import gleam/option
 import glot_backend/snippet/ports/store
+import glot_core/snippet/admin_snippet
 import glot_core/snippet/spam_classification
 import support/integration/adapter/state
 import support/integration/adapter/unexpected
@@ -47,7 +48,10 @@ pub fn new(test_state: state.State) -> store.Store {
       Ok(snippet.find_by_slug(state.get(test_state), slug))
     },
     get_admin_snippet_by_slug: fn(slug) {
-      Ok(snippet.find_by_slug(state.get(test_state), slug))
+      Ok(
+        snippet.find_by_slug(state.get(test_state), slug)
+        |> option.map(admin_snippet_without_classification),
+      )
     },
     list_snippets: fn(filter, pagination) {
       Ok(snippet.list_snippets(state.get(test_state), filter, pagination))
@@ -76,5 +80,20 @@ pub fn new(test_state: state.State) -> store.Store {
     store_spam_classification_failure: fn(_, _, _) {
       Ok(spam_classification.Stored)
     },
+  )
+}
+
+fn admin_snippet_without_classification(snippet) {
+  admin_snippet.AdminSnippet(
+    snippet: snippet,
+    spam_classification: spam_classification.ClassificationMetadata(
+      decision: option.None,
+      confidence: option.None,
+      reason_code: option.None,
+      classified_at: option.None,
+      attempts: 0,
+      last_error: option.None,
+      failed_at: option.None,
+    ),
   )
 }

@@ -10,6 +10,7 @@ import glot_backend/system/effect/error/db_error
 import glot_core/auth/account_model
 import glot_core/language
 import glot_core/pagination_model.{type CursorPagination}
+import glot_core/snippet/admin_snippet.{type AdminSnippet}
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter,
 }
@@ -76,7 +77,7 @@ pub fn get_by_slug_for_update(
 pub fn get_admin_by_slug(
   db: db_helpers.Db,
   slug: String,
-) -> Result(option.Option(HydratedSnippet), db_error.DbQueryError) {
+) -> Result(option.Option(AdminSnippet), db_error.DbQueryError) {
   use returned <- result.try(
     db_helpers.query(db, sql.get_admin_snippet_by_slug(slug), fn(err) {
       db_error.DbQueryError(string.inspect(err))
@@ -208,8 +209,8 @@ pub fn list_admin(
 
 fn decode_optional(
   rows: List(row),
-  decoder: fn(row) -> Result(HydratedSnippet, db_error.DbQueryError),
-) -> Result(option.Option(HydratedSnippet), db_error.DbQueryError) {
+  decoder: fn(row) -> Result(value, db_error.DbQueryError),
+) -> Result(option.Option(value), db_error.DbQueryError) {
   case rows {
     [] -> Ok(option.None)
     [row] -> decoder(row) |> result.map(option.Some)

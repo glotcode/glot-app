@@ -5200,6 +5200,13 @@ pub type GetAdminSnippetBySlug {
     files: String,
     created_at: Timestamp,
     updated_at: Timestamp,
+    spam_decision: Option(String),
+    spam_confidence: Option(Int),
+    spam_reason_code: Option(String),
+    spam_classified_at: Option(Timestamp),
+    spam_classification_attempts: Option(Int),
+    spam_classification_last_error: Option(String),
+    spam_classification_failed_at: Option(Timestamp),
     user_id: BitArray,
     user_account_id: BitArray,
     user_email: String,
@@ -5224,6 +5231,13 @@ pub fn get_admin_snippet_by_slug(slug slug: String) {
   snippets.files,
   snippets.created_at,
   snippets.updated_at,
+  snippets.spam_decision,
+  snippets.spam_confidence,
+  snippets.spam_reason_code,
+  snippets.spam_classified_at,
+  snippets.spam_classification_attempts,
+  snippets.spam_classification_last_error,
+  snippets.spam_classification_failed_at,
   users.id AS user_id,
   users.account_id AS user_account_id,
   users.email AS user_email,
@@ -5251,14 +5265,33 @@ pub fn get_admin_snippet_by_slug_decoder() -> decode.Decoder(
   use files <- decode.field(7, decode.string)
   use created_at <- decode.field(8, dev.datetime_decoder())
   use updated_at <- decode.field(9, dev.datetime_decoder())
-  use user_id <- decode.field(10, decode.bit_array)
-  use user_account_id <- decode.field(11, decode.bit_array)
-  use user_email <- decode.field(12, decode.string)
-  use user_username <- decode.field(13, decode.string)
-  use user_role <- decode.field(14, decode.string)
-  use user_last_login_at <- decode.field(15, dev.datetime_decoder())
-  use user_created_at <- decode.field(16, dev.datetime_decoder())
-  use user_updated_at <- decode.field(17, dev.datetime_decoder())
+  use spam_decision <- decode.field(10, decode.optional(decode.string))
+  use spam_confidence <- decode.field(11, decode.optional(decode.int))
+  use spam_reason_code <- decode.field(12, decode.optional(decode.string))
+  use spam_classified_at <- decode.field(
+    13,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use spam_classification_attempts <- decode.field(
+    14,
+    decode.optional(decode.int),
+  )
+  use spam_classification_last_error <- decode.field(
+    15,
+    decode.optional(decode.string),
+  )
+  use spam_classification_failed_at <- decode.field(
+    16,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use user_id <- decode.field(17, decode.bit_array)
+  use user_account_id <- decode.field(18, decode.bit_array)
+  use user_email <- decode.field(19, decode.string)
+  use user_username <- decode.field(20, decode.string)
+  use user_role <- decode.field(21, decode.string)
+  use user_last_login_at <- decode.field(22, dev.datetime_decoder())
+  use user_created_at <- decode.field(23, dev.datetime_decoder())
+  use user_updated_at <- decode.field(24, dev.datetime_decoder())
   decode.success(GetAdminSnippetBySlug(
     id:,
     slug:,
@@ -5270,6 +5303,13 @@ pub fn get_admin_snippet_by_slug_decoder() -> decode.Decoder(
     files:,
     created_at:,
     updated_at:,
+    spam_decision:,
+    spam_confidence:,
+    spam_reason_code:,
+    spam_classified_at:,
+    spam_classification_attempts:,
+    spam_classification_last_error:,
+    spam_classification_failed_at:,
     user_id:,
     user_account_id:,
     user_email:,

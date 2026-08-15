@@ -2,6 +2,7 @@ import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/system/effect/error/db_error
 import glot_core/pagination_model.{type CursorPagination}
+import glot_core/snippet/admin_snippet.{type AdminSnippet}
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
 }
@@ -26,8 +27,7 @@ pub type SnippetEffect(next) {
   )
   GetAdminSnippetBySlug(
     slug: String,
-    next: fn(Result(option.Option(HydratedSnippet), db_error.DbQueryError)) ->
-      next,
+    next: fn(Result(option.Option(AdminSnippet), db_error.DbQueryError)) -> next,
   )
   ListSnippets(
     filter: ListSnippetsFilter,

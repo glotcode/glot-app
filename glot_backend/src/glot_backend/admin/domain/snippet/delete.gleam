@@ -31,7 +31,7 @@ pub fn delete_snippet(
   )
   use _ <- program.and_then(
     transaction_program.sequence([
-      snippet_effect.delete_tx(snippet.identity.id),
+      snippet_effect.delete_tx(snippet.snippet.identity.id),
       user_action_effect.create_user_action_tx(user_action),
     ])
     |> transaction_effect.run(),

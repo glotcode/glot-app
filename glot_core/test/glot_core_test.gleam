@@ -5,6 +5,7 @@ import gleam/regexp
 import gleam/result
 import gleam/time/timestamp
 import gleeunit
+import glot_core/admin/snippet_dto as admin_snippet_dto
 import glot_core/admin_action
 import glot_core/api_action
 import glot_core/auth/account_model
@@ -79,6 +80,20 @@ pub fn spam_classifier_response_rejects_out_of_range_confidence_test() {
       spam_classification.service_response_decoder(),
     )
     |> result.is_error
+}
+
+pub fn admin_snippet_response_decodes_spam_classification_test() {
+  let payload =
+    "{\"snippet\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"slug\":\"example\",\"user\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"username\":\"owner\"},\"title\":\"Example\",\"language\":\"python\",\"visibility\":\"public\",\"stdin\":\"\",\"runInstructions\":null,\"files\":[{\"name\":\"main.py\",\"content\":\"\"}],\"spamClassification\":{\"decision\":\"review\",\"confidence\":82,\"reasonCode\":\"ambiguous\",\"classifiedAt\":{\"seconds\":1776254400,\"nanos\":0},\"attempts\":2,\"lastError\":null,\"failedAt\":null},\"createdAt\":{\"seconds\":1776250800,\"nanos\":0},\"updatedAt\":{\"seconds\":1776252600,\"nanos\":0}}}"
+  let assert Ok(response) =
+    json.parse(payload, admin_snippet_dto.get_response_decoder())
+
+  assert response.snippet.spam_classification.decision
+    == option.Some(spam_classification.Review)
+  assert response.snippet.spam_classification.confidence == option.Some(82)
+  assert response.snippet.spam_classification.reason_code
+    == option.Some(spam_classification.Ambiguous)
+  assert response.snippet.spam_classification.attempts == 2
 }
 
 pub fn successor_job_resets_attempt_state_and_runs_immediately_test() {

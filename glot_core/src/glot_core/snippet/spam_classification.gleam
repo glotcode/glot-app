@@ -1,6 +1,7 @@
 import gleam/dynamic/decode
 import gleam/int
 import gleam/json
+import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
 import glot_core/snippet/snippet_model.{type Snippet}
@@ -34,6 +35,18 @@ pub type ClassificationResult {
 
 pub type ClassificationFailure {
   ClassificationFailure(error_code: String, failed_at: Timestamp)
+}
+
+pub type ClassificationMetadata {
+  ClassificationMetadata(
+    decision: option.Option(Decision),
+    confidence: option.Option(Int),
+    reason_code: option.Option(ReasonCode),
+    classified_at: option.Option(Timestamp),
+    attempts: Int,
+    last_error: option.Option(String),
+    failed_at: option.Option(Timestamp),
+  )
 }
 
 pub type StoreResult {
@@ -95,6 +108,27 @@ pub fn reason_code_from_string(value: String) -> Result(ReasonCode, String) {
   }
 }
 
+pub fn confidence_from_int(value: Int) -> Result(Int, String) {
+  case value >= 0 && value <= 100 {
+    True -> Ok(value)
+    False ->
+      Error(
+        "Confidence must be between 0 and 100, got " <> int.to_string(value),
+      )
+  }
+}
+
+pub fn attempts_from_int(value: Int) -> Result(Int, String) {
+  case value >= 0 {
+    True -> Ok(value)
+    False ->
+      Error(
+        "Classification attempts cannot be negative, got "
+        <> int.to_string(value),
+      )
+  }
+}
+
 pub fn service_response_decoder() -> decode.Decoder(ServiceResponse) {
   use decision <- decode.field("decision", decision_decoder())
   use confidence <- decode.field("confidence", confidence_decoder())
@@ -102,7 +136,7 @@ pub fn service_response_decoder() -> decode.Decoder(ServiceResponse) {
   decode.success(ServiceResponse(decision:, confidence:, reason_code:))
 }
 
-fn decision_decoder() -> decode.Decoder(Decision) {
+pub fn decision_decoder() -> decode.Decoder(Decision) {
   decode.then(decode.string, fn(value) {
     case decision_from_string(value) {
       Ok(decision) -> decode.success(decision)
@@ -111,20 +145,16 @@ fn decision_decoder() -> decode.Decoder(Decision) {
   })
 }
 
-fn confidence_decoder() -> decode.Decoder(Int) {
+pub fn confidence_decoder() -> decode.Decoder(Int) {
   decode.then(decode.int, fn(value) {
-    case value >= 0 && value <= 100 {
-      True -> decode.success(value)
-      False ->
-        decode.failure(
-          value,
-          "Confidence must be between 0 and 100, got " <> int.to_string(value),
-        )
+    case confidence_from_int(value) {
+      Ok(confidence) -> decode.success(confidence)
+      Error(message) -> decode.failure(value, message)
     }
   })
 }
 
-fn reason_code_decoder() -> decode.Decoder(ReasonCode) {
+pub fn reason_code_decoder() -> decode.Decoder(ReasonCode) {
   decode.then(decode.string, fn(value) {
     case reason_code_from_string(value) {
       Ok(reason) -> decode.success(reason)
