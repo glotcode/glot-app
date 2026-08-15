@@ -67,13 +67,15 @@ pub type SnippetEffect(next) {
     id: Uuid,
     expected_updated_at: Timestamp,
     classification: spam_classification.ClassificationResult,
-    next: fn(Result(Nil, db_error.DbCommandError)) -> next,
+    next: fn(Result(spam_classification.StoreResult, db_error.DbCommandError)) ->
+      next,
   )
   StoreSpamClassificationFailure(
     id: Uuid,
     expected_updated_at: Timestamp,
     failure: spam_classification.ClassificationFailure,
-    next: fn(Result(Nil, db_error.DbCommandError)) -> next,
+    next: fn(Result(spam_classification.StoreResult, db_error.DbCommandError)) ->
+      next,
   )
 }
 

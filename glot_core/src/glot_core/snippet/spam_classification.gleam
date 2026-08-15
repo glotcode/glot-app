@@ -36,6 +36,11 @@ pub type ClassificationFailure {
   ClassificationFailure(error_code: String, failed_at: Timestamp)
 }
 
+pub type StoreResult {
+  Stored
+  Stale
+}
+
 pub type Candidate {
   Candidate(snippet: Snippet, expected_updated_at: Timestamp)
 }

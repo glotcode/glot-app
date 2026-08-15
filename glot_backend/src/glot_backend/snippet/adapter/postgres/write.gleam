@@ -76,8 +76,8 @@ pub fn store_spam_classification(
   id: Uuid,
   expected_updated_at: Timestamp,
   classification: spam_classification.ClassificationResult,
-) -> Result(Nil, db_error.DbCommandError) {
-  db_helpers.execute(
+) -> Result(spam_classification.StoreResult, db_error.DbCommandError) {
+  use returned <- result.try(db_helpers.execute(
     db,
     sql.store_spam_classification(
       option.Some(spam_classification.decision_to_string(
@@ -92,8 +92,8 @@ pub fn store_spam_classification(
       expected_updated_at,
     ),
     command_error,
-  )
-  |> result.map(fn(_) { Nil })
+  ))
+  classification_store_result(id, returned.count)
 }
 
 pub fn store_spam_classification_failure(
@@ -101,8 +101,8 @@ pub fn store_spam_classification_failure(
   id: Uuid,
   expected_updated_at: Timestamp,
   failure: spam_classification.ClassificationFailure,
-) -> Result(Nil, db_error.DbCommandError) {
-  db_helpers.execute(
+) -> Result(spam_classification.StoreResult, db_error.DbCommandError) {
+  use returned <- result.try(db_helpers.execute(
     db,
     sql.store_spam_classification_failure(
       option.Some(failure.error_code),
@@ -111,8 +111,25 @@ pub fn store_spam_classification_failure(
       expected_updated_at,
     ),
     command_error,
-  )
-  |> result.map(fn(_) { Nil })
+  ))
+  classification_store_result(id, returned.count)
+}
+
+pub fn classification_store_result(
+  id: Uuid,
+  affected_rows: Int,
+) -> Result(spam_classification.StoreResult, db_error.DbCommandError) {
+  case affected_rows {
+    0 -> Ok(spam_classification.Stale)
+    1 -> Ok(spam_classification.Stored)
+    count ->
+      Error(db_error.DbCommandError(
+        "guarded spam classification update affected "
+        <> string.inspect(count)
+        <> " rows for snippet "
+        <> uuid.to_string(id),
+      ))
+  }
 }
 
 pub fn delete_by_account_id(

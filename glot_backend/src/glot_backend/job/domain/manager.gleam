@@ -7,6 +7,7 @@ import glot_backend/auth/domain/cleanup/verification_tokens as clean_verificatio
 import glot_backend/email/domain/send as send_email_domain
 import glot_backend/job/domain/cleanup/jobs as clean_jobs_domain
 import glot_backend/job/domain/cleanup/logs as clean_job_log_domain
+import glot_backend/job/domain/finalization.{type Finalization}
 import glot_backend/job/effect/job/effect as job_effect
 import glot_backend/logging/api_log/domain/cleanup as clean_api_log_domain
 import glot_backend/logging/page_log/domain/cleanup as clean_page_log_domain
@@ -27,8 +28,8 @@ import glot_backend/user_action/domain/cleanup as clean_user_actions_domain
 import glot_core/job/job_model.{type Job, type Queue}
 
 type HandlerOutcome {
-  CompleteJob
-  ContinueImmediately
+  CompleteJob(finalize: TransactionProgram(Finalization))
+  ContinueImmediately(finalize: TransactionProgram(Finalization))
 }
 
 pub fn claim_next_job(ctx: Context, queue: Queue) -> Program(Option(Job)) {
@@ -75,8 +76,8 @@ pub fn process_job(ctx: Context, job: Job) -> Program(Nil) {
     }),
   )
   case outcome {
-    CompleteJob -> complete_job(job)
-    ContinueImmediately -> continue_job(job)
+    CompleteJob(finalize) -> complete_job(job, finalize)
+    ContinueImmediately(finalize) -> continue_job(job, finalize)
   }
 }
 
@@ -133,17 +134,22 @@ fn delegate_job(ctx: Context, job: Job) -> Program(HandlerOutcome) {
       complete_after(aggregate_metrics_domain.aggregate_metrics(ctx))
     job_model.ClassifySnippetJob ->
       classify_snippet_domain.classify_next(ctx)
-      |> program.map(fn(classified) {
-        case classified {
-          True -> ContinueImmediately
-          False -> CompleteJob
+      |> program.map(fn(outcome) {
+        case outcome {
+          classify_snippet_domain.Processed(finalize) ->
+            ContinueImmediately(finalize)
+          classify_snippet_domain.NoCandidate ->
+            CompleteJob(transaction_program.succeed(finalization.Applied))
         }
       })
   }
 }
 
 fn complete_after(effect: Program(Nil)) -> Program(HandlerOutcome) {
-  effect |> program.map(fn(_) { CompleteJob })
+  effect
+  |> program.map(fn(_) {
+    CompleteJob(transaction_program.succeed(finalization.Applied))
+  })
 }
 
 fn require_payload(job: Job) -> Program(String) {
@@ -187,24 +193,31 @@ fn recover_job(job: Job, now: Timestamp) -> TransactionProgram(Option(Job)) {
   transaction_program.succeed(option.Some(recovered_job))
 }
 
-fn complete_job(job: Job) -> Program(Nil) {
+fn complete_job(
+  job: Job,
+  finalize: TransactionProgram(Finalization),
+) -> Program(Nil) {
   use now <- program.and_then(basic_effect.system_time())
   let completed_job = job_model.done(job, now)
-  persist_and_release(job, completed_job)
+  finalization.commit(finalize, [
+    job_effect.update_job_tx(completed_job),
+    release_queue_slot(job),
+  ])
 }
 
-fn continue_job(job: Job) -> Program(Nil) {
+fn continue_job(
+  job: Job,
+  finalize: TransactionProgram(Finalization),
+) -> Program(Nil) {
   use now <- program.and_then(basic_effect.system_time())
   use successor_id <- program.and_then(basic_effect.uuid_v7())
   let completed_job = job_model.done(job, now)
   let successor_job = job_model.immediate_successor(successor_id, job, now)
-  transaction_effect.run(
-    transaction_program.sequence([
-      job_effect.update_job_tx(completed_job),
-      release_queue_slot(job),
-      job_effect.create_job_tx(successor_job),
-    ]),
-  )
+  finalization.commit(finalize, [
+    job_effect.update_job_tx(completed_job),
+    release_queue_slot(job),
+    job_effect.create_job_tx(successor_job),
+  ])
 }
 
 fn reschedule_job(job: Job, err: Error) -> Program(Nil) {

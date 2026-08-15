@@ -8,12 +8,14 @@ import glot_backend/spam_classifier/ports/client as classifier_client
 import glot_backend/system/effect/database_ports
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/infra_error
+import glot_backend/system/effect/program
 import glot_backend/system/effect/service_ports
 import glot_backend/system/effect/system_ports
-import glot_backend/system/effect/transaction/transaction_port
+import glot_backend/system/effect/transaction/transaction_effect
 import glot_core/snippet/spam_classification
 import support/integration/adapter/service_ports as test_service_ports
 import support/integration/adapter/snippet as test_snippet_adapter
+import support/integration/adapter/transaction as test_transaction_adapter
 import support/integration/fixture
 import support/integration/model
 import support/integration/runner
@@ -38,7 +40,7 @@ pub fn invalid_snippet_is_quarantined_and_processing_continues_test() {
 
   let #(result, _) =
     runner.run_test_program_with(
-      classify_next.classify_next(fixture.test_context()),
+      classify_and_finalize(fixture.test_context()),
       fixture.test_context(),
       initial_state,
       fn(test_state) {
@@ -51,7 +53,7 @@ pub fn invalid_snippet_is_quarantined_and_processing_continues_test() {
       },
     )
 
-  assert result == Ok(True)
+  let assert Ok(classify_next.Processed(_)) = result
   let assert Ok(#(_, _, failure)) = process.receive(failures, 0)
   assert failure.error_code == "invalid_payload"
   assert failure.failed_at == fixture.test_system_time()
@@ -94,6 +96,17 @@ fn with_classifier_config(state: model.TestState) -> model.TestState {
   model.TestState(..state, dynamic_config: config)
 }
 
+fn classify_and_finalize(ctx) {
+  use outcome <- program.and_then(classify_next.classify_next(ctx))
+  case outcome {
+    classify_next.NoCandidate -> program.succeed(outcome)
+    classify_next.Processed(finalize) -> {
+      use _ <- program.and_then(transaction_effect.run(finalize))
+      program.succeed(outcome)
+    }
+  }
+}
+
 fn services(test_state, snippet, failures, classifier_result) {
   let base_services =
     test_service_ports.defaults(test_state)
@@ -106,7 +119,7 @@ fn services(test_state, snippet, failures, classifier_result) {
       get_newest_unclassified_snippet: fn() { Ok(option.Some(candidate)) },
       store_spam_classification_failure: fn(id, expected_updated_at, failure) {
         process.send(failures, #(id, expected_updated_at, failure))
-        Ok(Nil)
+        Ok(spam_classification.Stored)
       },
     )
   let database = database_ports.with_snippet(base_services.database, snippets)
@@ -121,6 +134,6 @@ fn services(test_state, snippet, failures, classifier_result) {
     ..base_services,
     database: database,
     system: system,
-    transaction: transaction_port.none(),
+    transaction: test_transaction_adapter.new(test_state, database),
   )
 }

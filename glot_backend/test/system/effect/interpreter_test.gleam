@@ -50,6 +50,7 @@ import glot_backend/system/effect/transaction/transaction_program
 import glot_backend/system/request/context
 import glot_backend/user_action/ports/store as user_action_store
 import glot_core/job/job_model
+import glot_core/snippet/spam_classification
 import glot_core/validation_error
 import youid/uuid
 
@@ -341,8 +342,12 @@ fn test_service_ports() -> service_ports.ServicePorts {
         create_snippet: fn(_) { Ok(Nil) },
         update_snippet: fn(_) { Ok(Nil) },
         get_newest_unclassified_snippet: fn() { Ok(option.None) },
-        store_spam_classification: fn(_, _, _) { Ok(Nil) },
-        store_spam_classification_failure: fn(_, _, _) { Ok(Nil) },
+        store_spam_classification: fn(_, _, _) {
+          Ok(spam_classification.Stored)
+        },
+        store_spam_classification_failure: fn(_, _, _) {
+          Ok(spam_classification.Stored)
+        },
       ),
       user_action: user_action_store.Store(
         count: fn(_) { Ok([]) },

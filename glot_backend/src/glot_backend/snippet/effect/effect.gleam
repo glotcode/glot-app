@@ -121,41 +121,37 @@ pub fn get_newest_unclassified() -> program_types.Program(
   )
 }
 
-pub fn store_spam_classification(
+pub fn store_spam_classification_tx(
   id: uuid.Uuid,
   expected_updated_at: Timestamp,
   classification: spam_classification.ClassificationResult,
-) -> program_types.Program(Nil) {
-  program.perform_db(
-    program_types.SnippetEffect(
-      snippet_algebra.StoreSpamClassification(
-        id:,
-        expected_updated_at:,
-        classification:,
-        next: program.from_mapped_result(
-          _,
-          map_error: error.database_command_error,
-        ),
+) -> program_types.TransactionProgram(spam_classification.StoreResult) {
+  transaction_program.perform(
+    store_spam_classification_effect(
+      id,
+      expected_updated_at,
+      classification,
+      transaction_program.from_mapped_result(
+        _,
+        map_error: error.database_command_error,
       ),
     ),
   )
 }
 
-pub fn store_spam_classification_failure(
+pub fn store_spam_classification_failure_tx(
   id: uuid.Uuid,
   expected_updated_at: Timestamp,
   failure: spam_classification.ClassificationFailure,
-) -> program_types.Program(Nil) {
-  program.perform_db(
-    program_types.SnippetEffect(
-      snippet_algebra.StoreSpamClassificationFailure(
-        id:,
-        expected_updated_at:,
-        failure:,
-        next: program.from_mapped_result(
-          _,
-          map_error: error.database_command_error,
-        ),
+) -> program_types.TransactionProgram(spam_classification.StoreResult) {
+  transaction_program.perform(
+    store_spam_classification_failure_effect(
+      id,
+      expected_updated_at,
+      failure,
+      transaction_program.from_mapped_result(
+        _,
+        map_error: error.database_command_error,
       ),
     ),
   )
@@ -324,5 +320,35 @@ fn update_effect(
   program_types.SnippetEffect(snippet_algebra.UpdateSnippet(
     snippet:,
     next: next,
+  ))
+}
+
+fn store_spam_classification_effect(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+  classification: spam_classification.ClassificationResult,
+  next: fn(Result(spam_classification.StoreResult, db_error.DbCommandError)) ->
+    next,
+) -> program_types.DbEffect(next) {
+  program_types.SnippetEffect(snippet_algebra.StoreSpamClassification(
+    id:,
+    expected_updated_at:,
+    classification:,
+    next:,
+  ))
+}
+
+fn store_spam_classification_failure_effect(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+  failure: spam_classification.ClassificationFailure,
+  next: fn(Result(spam_classification.StoreResult, db_error.DbCommandError)) ->
+    next,
+) -> program_types.DbEffect(next) {
+  program_types.SnippetEffect(snippet_algebra.StoreSpamClassificationFailure(
+    id:,
+    expected_updated_at:,
+    failure:,
+    next:,
   ))
 }

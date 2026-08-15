@@ -1,5 +1,6 @@
 import gleam/option
 import glot_backend/snippet/ports/store
+import glot_core/snippet/spam_classification
 import support/integration/adapter/state
 import support/integration/adapter/unexpected
 import support/integration/store/snippet
@@ -71,7 +72,9 @@ pub fn new(test_state: state.State) -> store.Store {
       Ok(Nil)
     },
     get_newest_unclassified_snippet: fn() { Ok(option.None) },
-    store_spam_classification: fn(_, _, _) { Ok(Nil) },
-    store_spam_classification_failure: fn(_, _, _) { Ok(Nil) },
+    store_spam_classification: fn(_, _, _) { Ok(spam_classification.Stored) },
+    store_spam_classification_failure: fn(_, _, _) {
+      Ok(spam_classification.Stored)
+    },
   )
 }
