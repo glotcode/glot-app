@@ -25,6 +25,9 @@ pub fn defaults() -> store.Store {
     insert_metrics_reliability_api_day: fn(_) {
       unexpected.command("analytics.insert_reliability_api_day")
     },
+    insert_metrics_reliability_job_day: fn(_) {
+      unexpected.command("analytics.insert_reliability_job_day")
+    },
     insert_metrics_completed_day: fn(_) {
       unexpected.command("analytics.insert_completed_day")
     },

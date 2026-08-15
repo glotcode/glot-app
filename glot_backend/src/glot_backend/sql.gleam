@@ -891,6 +891,17 @@ FROM (
     ORDER BY day ASC
     LIMIT 1
   ) AS api_log_source_day
+
+  UNION ALL
+
+  SELECT day
+  FROM (
+    SELECT DATE_TRUNC('day', job_log.created_at AT TIME ZONE 'UTC')::date AS day
+    FROM job_log
+    WHERE DATE_TRUNC('day', job_log.created_at AT TIME ZONE 'UTC')::date < $1::date
+    ORDER BY day ASC
+    LIMIT 1
+  ) AS job_log_source_day
 ) AS source_days
 ORDER BY day ASC
 LIMIT 1"
@@ -1090,6 +1101,120 @@ pub fn list_metrics_reliability_decoder() -> decode.Decoder(
   ))
 }
 
+pub type GetSpamClassifierOperationalMetrics {
+  GetSpamClassifierOperationalMetrics(
+    backlog: Int,
+    classified: Int,
+    failed: Int,
+    allow_count: Int,
+    review_count: Int,
+    block_count: Int,
+    attempted_backlog: Int,
+    attempts: Int,
+    pending_jobs: Int,
+    running_jobs: Int,
+    oldest_unclassified_at_seconds: Int,
+    latest_classified_at: Option(Timestamp),
+    latest_failed_at: Option(Timestamp),
+  )
+}
+
+pub fn get_spam_classifier_operational_metrics() {
+  let sql =
+    "SELECT
+  COUNT(*) FILTER (
+    WHERE spam_decision IS NULL
+      AND spam_classification_failed_at IS NULL
+  ) AS backlog,
+  COUNT(*) FILTER (WHERE spam_decision IS NOT NULL) AS classified,
+  COUNT(*) FILTER (WHERE spam_classification_failed_at IS NOT NULL) AS failed,
+  COUNT(*) FILTER (WHERE spam_decision = 'allow') AS allow_count,
+  COUNT(*) FILTER (WHERE spam_decision = 'review') AS review_count,
+  COUNT(*) FILTER (WHERE spam_decision = 'block') AS block_count,
+  COUNT(*) FILTER (
+    WHERE spam_decision IS NULL
+      AND spam_classification_failed_at IS NULL
+      AND COALESCE(spam_classification_attempts, 0) > 0
+  ) AS attempted_backlog,
+  COALESCE(SUM(spam_classification_attempts), 0)::BIGINT AS attempts,
+  (
+    SELECT COUNT(*)
+    FROM jobs
+    WHERE queue_name = 'spam_classifier' AND status = 'pending'
+  ) AS pending_jobs,
+  (
+    SELECT COUNT(*)
+    FROM jobs
+    WHERE queue_name = 'spam_classifier' AND status = 'running'
+  ) AS running_jobs,
+  COALESCE(
+    (
+      SELECT EXTRACT(EPOCH FROM candidate.updated_at)::BIGINT
+      FROM snippets AS candidate
+      WHERE candidate.spam_decision IS NULL
+        AND candidate.spam_classification_failed_at IS NULL
+      ORDER BY candidate.updated_at ASC
+      LIMIT 1
+    ),
+    0
+  )::BIGINT AS oldest_unclassified_at_seconds,
+  (
+    SELECT classified.spam_classified_at
+    FROM snippets AS classified
+    WHERE classified.spam_classified_at IS NOT NULL
+    ORDER BY classified.spam_classified_at DESC
+    LIMIT 1
+  ) AS latest_classified_at,
+  (
+    SELECT failed_snippet.spam_classification_failed_at
+    FROM snippets AS failed_snippet
+    WHERE failed_snippet.spam_classification_failed_at IS NOT NULL
+    ORDER BY failed_snippet.spam_classification_failed_at DESC
+    LIMIT 1
+  ) AS latest_failed_at
+FROM snippets"
+  #(sql, [], get_spam_classifier_operational_metrics_decoder())
+}
+
+pub fn get_spam_classifier_operational_metrics_decoder() -> decode.Decoder(
+  GetSpamClassifierOperationalMetrics,
+) {
+  use backlog <- decode.field(0, decode.int)
+  use classified <- decode.field(1, decode.int)
+  use failed <- decode.field(2, decode.int)
+  use allow_count <- decode.field(3, decode.int)
+  use review_count <- decode.field(4, decode.int)
+  use block_count <- decode.field(5, decode.int)
+  use attempted_backlog <- decode.field(6, decode.int)
+  use attempts <- decode.field(7, decode.int)
+  use pending_jobs <- decode.field(8, decode.int)
+  use running_jobs <- decode.field(9, decode.int)
+  use oldest_unclassified_at_seconds <- decode.field(10, decode.int)
+  use latest_classified_at <- decode.field(
+    11,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use latest_failed_at <- decode.field(
+    12,
+    decode.optional(dev.datetime_decoder()),
+  )
+  decode.success(GetSpamClassifierOperationalMetrics(
+    backlog:,
+    classified:,
+    failed:,
+    allow_count:,
+    review_count:,
+    block_count:,
+    attempted_backlog:,
+    attempts:,
+    pending_jobs:,
+    running_jobs:,
+    oldest_unclassified_at_seconds:,
+    latest_classified_at:,
+    latest_failed_at:,
+  ))
+}
+
 pub fn insert_metrics_pageview_day(day day: Date) {
   let sql =
     "INSERT INTO metrics_pageview_daily (
@@ -1224,6 +1349,30 @@ SELECT
 FROM api_log
 WHERE DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')::date = $1::date
 GROUP BY action
+ON CONFLICT (day, surface, name) DO NOTHING"
+  #(sql, [dev.ParamDate(day)])
+}
+
+pub fn insert_metrics_reliability_job_day(day day: Date) {
+  let sql =
+    "INSERT INTO metrics_reliability_daily (
+  day,
+  surface,
+  name,
+  request_count,
+  error_count,
+  avg_duration_ns
+)
+SELECT
+  $1::date AS day,
+  'job',
+  job_type,
+  COUNT(*),
+  COUNT(*) FILTER (WHERE error IS NOT NULL),
+  COALESCE(AVG(duration_ns)::BIGINT, 0)
+FROM job_log
+WHERE DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')::date = $1::date
+GROUP BY job_type
 ON CONFLICT (day, surface, name) DO NOTHING"
   #(sql, [dev.ParamDate(day)])
 }

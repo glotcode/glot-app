@@ -1,6 +1,8 @@
 import gleam/dynamic/decode
 import gleam/json
 import gleam/option.{type Option}
+import gleam/time/timestamp.{type Timestamp}
+import glot_core/helpers/timestamp_helpers
 
 pub type GetAnalyticsRequest {
   GetAnalyticsRequest(days: Int)
@@ -14,6 +16,25 @@ pub type AnalyticsResponse {
     product_events: List(ProductEventMetric),
     runs: List(RunMetric),
     reliability: List(ReliabilityMetric),
+    spam_classifier: SpamClassifierOperationalMetrics,
+  )
+}
+
+pub type SpamClassifierOperationalMetrics {
+  SpamClassifierOperationalMetrics(
+    backlog: Int,
+    classified: Int,
+    failed: Int,
+    allow: Int,
+    review: Int,
+    block: Int,
+    attempted_backlog: Int,
+    attempts: Int,
+    pending_jobs: Int,
+    running_jobs: Int,
+    oldest_unclassified_at: Option(Timestamp),
+    latest_classified_at: Option(Timestamp),
+    latest_failed_at: Option(Timestamp),
   )
 }
 
@@ -85,6 +106,10 @@ pub fn response_decoder() -> decode.Decoder(AnalyticsResponse) {
     "reliability",
     decode.list(reliability_decoder()),
   )
+  use spam_classifier <- decode.field(
+    "spamClassifier",
+    spam_classifier_decoder(),
+  )
   decode.success(AnalyticsResponse(
     days: days,
     completed_through: completed_through,
@@ -92,6 +117,7 @@ pub fn response_decoder() -> decode.Decoder(AnalyticsResponse) {
     product_events: product_events,
     runs: runs,
     reliability: reliability,
+    spam_classifier: spam_classifier,
   ))
 }
 
@@ -109,6 +135,76 @@ pub fn encode_response(response: AnalyticsResponse) -> json.Json {
     ),
     #("runs", json.array(response.runs, encode_run)),
     #("reliability", json.array(response.reliability, encode_reliability)),
+    #("spamClassifier", encode_spam_classifier(response.spam_classifier)),
+  ])
+}
+
+fn spam_classifier_decoder() -> decode.Decoder(SpamClassifierOperationalMetrics) {
+  use backlog <- decode.field("backlog", decode.int)
+  use classified <- decode.field("classified", decode.int)
+  use failed <- decode.field("failed", decode.int)
+  use allow <- decode.field("allow", decode.int)
+  use review <- decode.field("review", decode.int)
+  use block <- decode.field("block", decode.int)
+  use attempted_backlog <- decode.field("attemptedBacklog", decode.int)
+  use attempts <- decode.field("attempts", decode.int)
+  use pending_jobs <- decode.field("pendingJobs", decode.int)
+  use running_jobs <- decode.field("runningJobs", decode.int)
+  use oldest_unclassified_at <- decode.field(
+    "oldestUnclassifiedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  use latest_classified_at <- decode.field(
+    "latestClassifiedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  use latest_failed_at <- decode.field(
+    "latestFailedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  decode.success(SpamClassifierOperationalMetrics(
+    backlog:,
+    classified:,
+    failed:,
+    allow:,
+    review:,
+    block:,
+    attempted_backlog:,
+    attempts:,
+    pending_jobs:,
+    running_jobs:,
+    oldest_unclassified_at:,
+    latest_classified_at:,
+    latest_failed_at:,
+  ))
+}
+
+fn encode_spam_classifier(
+  metrics: SpamClassifierOperationalMetrics,
+) -> json.Json {
+  json.object([
+    #("backlog", json.int(metrics.backlog)),
+    #("classified", json.int(metrics.classified)),
+    #("failed", json.int(metrics.failed)),
+    #("allow", json.int(metrics.allow)),
+    #("review", json.int(metrics.review)),
+    #("block", json.int(metrics.block)),
+    #("attemptedBacklog", json.int(metrics.attempted_backlog)),
+    #("attempts", json.int(metrics.attempts)),
+    #("pendingJobs", json.int(metrics.pending_jobs)),
+    #("runningJobs", json.int(metrics.running_jobs)),
+    #(
+      "oldestUnclassifiedAt",
+      json.nullable(metrics.oldest_unclassified_at, timestamp_helpers.encode),
+    ),
+    #(
+      "latestClassifiedAt",
+      json.nullable(metrics.latest_classified_at, timestamp_helpers.encode),
+    ),
+    #(
+      "latestFailedAt",
+      json.nullable(metrics.latest_failed_at, timestamp_helpers.encode),
+    ),
   ])
 }
 

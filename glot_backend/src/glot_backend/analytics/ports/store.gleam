@@ -20,6 +20,8 @@ pub type Store {
       Result(Nil, db_error.DbCommandError),
     insert_metrics_reliability_api_day: fn(Date) ->
       Result(Nil, db_error.DbCommandError),
+    insert_metrics_reliability_job_day: fn(Date) ->
+      Result(Nil, db_error.DbCommandError),
     insert_metrics_completed_day: fn(Date) ->
       Result(Nil, db_error.DbCommandError),
   )

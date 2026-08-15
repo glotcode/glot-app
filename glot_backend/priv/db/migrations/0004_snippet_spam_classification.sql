@@ -11,3 +11,11 @@ CREATE INDEX idx_snippets_spam_classification_candidates
   ON snippets (updated_at DESC, id DESC)
   WHERE spam_decision IS NULL
     AND spam_classification_failed_at IS NULL;
+
+CREATE INDEX idx_snippets_spam_classified_at
+  ON snippets (spam_classified_at DESC)
+  WHERE spam_classified_at IS NOT NULL;
+
+CREATE INDEX idx_snippets_spam_classification_failed_at
+  ON snippets (spam_classification_failed_at DESC)
+  WHERE spam_classification_failed_at IS NOT NULL;

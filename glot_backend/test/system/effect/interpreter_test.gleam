@@ -258,6 +258,7 @@ fn test_service_ports() -> service_ports.ServicePorts {
         insert_metrics_run_day: fn(_) { Ok(Nil) },
         insert_metrics_reliability_page_day: fn(_) { Ok(Nil) },
         insert_metrics_reliability_api_day: fn(_) { Ok(Nil) },
+        insert_metrics_reliability_job_day: fn(_) { Ok(Nil) },
         insert_metrics_completed_day: fn(_) { Ok(Nil) },
       ),
       email_template: template_store.TemplateStore(

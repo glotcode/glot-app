@@ -91,6 +91,17 @@ pub fn run(
         state: state,
         continue: continue,
       )
+    analytics_algebra.InsertMetricsReliabilityJobDay(day:, next:) ->
+      measured_interpreter.run(
+        fn() { store.insert_metrics_reliability_job_day(day) },
+        next,
+        name: trace_name(
+          analytics_algebra.InsertMetricsReliabilityJobDayEffectName,
+        ),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
     analytics_algebra.InsertMetricsCompletedDay(day:, next:) ->
       measured_interpreter.run(
         fn() { store.insert_metrics_completed_day(day) },

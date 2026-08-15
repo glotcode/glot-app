@@ -44,6 +44,7 @@ fn aggregate_day_tx(day: Date) -> TransactionProgram(Nil) {
     analytics_effect.insert_metrics_run_day_tx(day),
     analytics_effect.insert_metrics_reliability_page_day_tx(day),
     analytics_effect.insert_metrics_reliability_api_day_tx(day),
+    analytics_effect.insert_metrics_reliability_job_day_tx(day),
     analytics_effect.insert_metrics_completed_day_tx(day),
   ])
 }

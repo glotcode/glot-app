@@ -5,6 +5,7 @@ import gleam/regexp
 import gleam/result
 import gleam/time/timestamp
 import gleeunit
+import glot_core/admin/analytics_dto
 import glot_core/admin/snippet_dto as admin_snippet_dto
 import glot_core/admin_action
 import glot_core/api_action
@@ -94,6 +95,41 @@ pub fn admin_snippet_response_decodes_spam_classification_test() {
   assert response.snippet.spam_classification.reason_code
     == option.Some(spam_classification.Ambiguous)
   assert response.snippet.spam_classification.attempts == 2
+}
+
+pub fn analytics_spam_classifier_metrics_round_trip_test() {
+  let oldest = timestamp.from_unix_seconds(100)
+  let response =
+    analytics_dto.AnalyticsResponse(
+      days: 7,
+      completed_through: option.None,
+      pageviews: [],
+      product_events: [],
+      runs: [],
+      reliability: [],
+      spam_classifier: analytics_dto.SpamClassifierOperationalMetrics(
+        backlog: 500,
+        classified: 20,
+        failed: 2,
+        allow: 17,
+        review: 2,
+        block: 1,
+        attempted_backlog: 3,
+        attempts: 25,
+        pending_jobs: 1,
+        running_jobs: 1,
+        oldest_unclassified_at: option.Some(oldest),
+        latest_classified_at: option.None,
+        latest_failed_at: option.None,
+      ),
+    )
+  let assert Ok(decoded) =
+    response
+    |> analytics_dto.encode_response
+    |> json.to_string
+    |> json.parse(analytics_dto.response_decoder())
+
+  assert decoded == response
 }
 
 pub fn successor_job_resets_attempt_state_and_runs_immediately_test() {

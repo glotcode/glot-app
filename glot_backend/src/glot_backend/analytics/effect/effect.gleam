@@ -108,6 +108,17 @@ pub fn insert_metrics_reliability_api_day(
   )
 }
 
+pub fn insert_metrics_reliability_job_day(
+  day: Date,
+) -> program_types.Program(Nil) {
+  program.perform_db(
+    insert_metrics_reliability_job_day_effect(day, program.from_mapped_result(
+      _,
+      map_error: error.database_command_error,
+    )),
+  )
+}
+
 pub fn insert_metrics_pageview_day_tx(
   day: Date,
 ) -> program_types.TransactionProgram(Nil) {
@@ -166,6 +177,20 @@ pub fn insert_metrics_reliability_api_day_tx(
 ) -> program_types.TransactionProgram(Nil) {
   transaction_program.perform(
     insert_metrics_reliability_api_day_effect(
+      day,
+      transaction_program.from_mapped_result(
+        _,
+        map_error: error.database_command_error,
+      ),
+    ),
+  )
+}
+
+pub fn insert_metrics_reliability_job_day_tx(
+  day: Date,
+) -> program_types.TransactionProgram(Nil) {
+  transaction_program.perform(
+    insert_metrics_reliability_job_day_effect(
       day,
       transaction_program.from_mapped_result(
         _,
@@ -234,6 +259,15 @@ fn insert_metrics_reliability_api_day_effect(
 ) -> program_types.DbEffect(next) {
   program_types.AnalyticsEffect(
     analytics_algebra.InsertMetricsReliabilityApiDay(day: day, next: next),
+  )
+}
+
+fn insert_metrics_reliability_job_day_effect(
+  day: Date,
+  next: fn(Result(Nil, db_error.DbCommandError)) -> next,
+) -> program_types.DbEffect(next) {
+  program_types.AnalyticsEffect(
+    analytics_algebra.InsertMetricsReliabilityJobDay(day: day, next: next),
   )
 }
 

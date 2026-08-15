@@ -1,13 +1,14 @@
 import gleam/int
 import gleam/list
 import gleam/option
-import glot_core/admin/analytics_dto
+import glot_core/admin/analytics_dto.{type SpamClassifierOperationalMetrics}
 import glot_core/loadable
 import glot_frontend/admin/analytics/message.{
   type Msg, DaysSelected, RefreshClicked,
 }
 import glot_frontend/admin/analytics/model.{type Model}
 import glot_frontend/admin/ui/filter as admin_filter
+import glot_frontend/admin/ui/format as admin_format
 import glot_frontend/admin/ui/layout as admin_layout
 import glot_frontend/admin/ui/status as admin_status
 import glot_frontend/admin/ui/table as admin_table
@@ -93,6 +94,7 @@ fn dashboard(data: analytics_dto.AnalyticsResponse) -> Element(Msg) {
         format_int(errors) <> " / " <> format_int(requests),
       ),
     ]),
+    spam_classifier_metrics(data.spam_classifier, data.reliability),
     completion_notice(data.completed_through),
     metric_group(
       "Pageviews",
@@ -115,6 +117,86 @@ fn dashboard(data: analytics_dto.AnalyticsResponse) -> Element(Msg) {
       reliability_table(data.reliability),
     ),
   ])
+}
+
+fn spam_classifier_metrics(
+  metrics: SpamClassifierOperationalMetrics,
+  reliability: List(analytics_dto.ReliabilityMetric),
+) -> Element(Msg) {
+  let history =
+    list.filter(reliability, fn(metric) {
+      metric.surface == "job" && metric.name == "classify_snippet"
+    })
+  metric_group(
+    "Spam classifier operations",
+    "Live backlog, outcomes, attempts, and dedicated queue state, followed by daily worker throughput and reliability.",
+    html.div([attribute.class("admin-page__group")], [
+      html.div([attribute.class(admin_layout.summary_grid_class())], [
+        admin_layout.summary_card("Backlog", format_int(metrics.backlog)),
+        admin_layout.summary_card("Classified", format_int(metrics.classified)),
+        admin_layout.summary_card("Failed", format_int(metrics.failed)),
+        admin_layout.summary_card("Allow", format_int(metrics.allow)),
+        admin_layout.summary_card("Review", format_int(metrics.review)),
+        admin_layout.summary_card("Block", format_int(metrics.block)),
+        admin_layout.summary_card("Attempts", format_int(metrics.attempts)),
+        admin_layout.summary_card(
+          "Attempted backlog",
+          format_int(metrics.attempted_backlog),
+        ),
+      ]),
+      html.div([attribute.class(admin_layout.detail_grid_class())], [
+        admin_layout.detail_item(
+          "Pending queue jobs",
+          format_int(metrics.pending_jobs),
+        ),
+        admin_layout.detail_item(
+          "Running queue jobs",
+          format_int(metrics.running_jobs),
+        ),
+        admin_layout.detail_item(
+          "Oldest unclassified update",
+          admin_format.optional_timestamp(metrics.oldest_unclassified_at),
+        ),
+        admin_layout.detail_item(
+          "Latest classification",
+          admin_format.optional_timestamp(metrics.latest_classified_at),
+        ),
+        admin_layout.detail_item(
+          "Latest terminal failure",
+          admin_format.optional_timestamp(metrics.latest_failed_at),
+        ),
+      ]),
+      html.h3([attribute.class("admin-page__group-title")], [
+        html.text("Daily classifier jobs"),
+      ]),
+      classifier_reliability_table(history),
+    ]),
+  )
+}
+
+fn classifier_reliability_table(
+  metrics: List(analytics_dto.ReliabilityMetric),
+) -> Element(Msg) {
+  let day = admin_table.fit_column("Day")
+  let jobs = admin_table.fit_column("Jobs")
+  let errors = admin_table.fit_column("Errors")
+  let duration = admin_table.fit_column("Avg duration")
+  data_table(
+    [day, jobs, errors, duration],
+    metrics
+      |> latest
+      |> list.map(fn(metric) {
+        admin_table.row([
+          admin_table.value_cell(day, metric.day),
+          admin_table.value_cell(jobs, format_int(metric.request_count)),
+          admin_table.value_cell(errors, format_int(metric.error_count)),
+          admin_table.value_cell(
+            duration,
+            duration_label(metric.avg_duration_ns),
+          ),
+        ])
+      }),
+  )
 }
 
 fn completion_notice(completed_through: option.Option(String)) -> Element(Msg) {

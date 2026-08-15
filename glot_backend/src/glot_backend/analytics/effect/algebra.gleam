@@ -37,6 +37,10 @@ pub type AnalyticsEffect(next) {
     day: Date,
     next: fn(Result(Nil, db_error.DbCommandError)) -> next,
   )
+  InsertMetricsReliabilityJobDay(
+    day: Date,
+    next: fn(Result(Nil, db_error.DbCommandError)) -> next,
+  )
   InsertMetricsCompletedDay(
     day: Date,
     next: fn(Result(Nil, db_error.DbCommandError)) -> next,
@@ -69,6 +73,10 @@ pub fn map(effect: AnalyticsEffect(a), f: fn(a) -> b) -> AnalyticsEffect(b) {
       InsertMetricsReliabilityApiDay(day: day, next: fn(value) {
         f(next(value))
       })
+    InsertMetricsReliabilityJobDay(day:, next:) ->
+      InsertMetricsReliabilityJobDay(day: day, next: fn(value) {
+        f(next(value))
+      })
     InsertMetricsCompletedDay(day:, next:) ->
       InsertMetricsCompletedDay(day: day, next: fn(value) { f(next(value)) })
   }
@@ -83,6 +91,7 @@ pub type EffectName {
   InsertMetricsRunDayEffectName
   InsertMetricsReliabilityPageDayEffectName
   InsertMetricsReliabilityApiDayEffectName
+  InsertMetricsReliabilityJobDayEffectName
   InsertMetricsCompletedDayEffectName
 }
 
@@ -98,6 +107,8 @@ pub fn effect_name_to_string(name: EffectName) -> String {
       "insert_metrics_reliability_page_day"
     InsertMetricsReliabilityApiDayEffectName ->
       "insert_metrics_reliability_api_day"
+    InsertMetricsReliabilityJobDayEffectName ->
+      "insert_metrics_reliability_job_day"
     InsertMetricsCompletedDayEffectName -> "insert_metrics_completed_day"
   }
 }

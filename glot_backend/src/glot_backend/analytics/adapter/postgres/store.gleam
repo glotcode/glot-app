@@ -4,6 +4,7 @@ import gleam/option
 import gleam/result
 import gleam/string
 import gleam/time/calendar
+import gleam/time/timestamp
 import glot_backend/analytics/ports/store as analytics_store
 import glot_backend/sql
 import glot_backend/system/database as db_helpers
@@ -31,6 +32,9 @@ pub fn new(db: db_helpers.Db) -> analytics_store.Store {
     },
     insert_metrics_reliability_api_day: fn(day) {
       insert_metrics_reliability_api_day(db, day)
+    },
+    insert_metrics_reliability_job_day: fn(day) {
+      insert_metrics_reliability_job_day(db, day)
     },
     insert_metrics_completed_day: fn(day) {
       insert_metrics_completed_day(db, day)
@@ -65,6 +69,14 @@ pub fn get_analytics(
     db,
     sql.list_metrics_reliability(start_day:, end_day:),
     to_error,
+  ))
+  use spam_classifier <- result.try(db_helpers.query(
+    db,
+    sql.get_spam_classifier_operational_metrics(),
+    to_error,
+  ))
+  use spam_classifier <- result.try(exactly_one_spam_classifier_row(
+    spam_classifier.rows,
   ))
 
   Ok(analytics_dto.AnalyticsResponse(
@@ -109,7 +121,38 @@ pub fn get_analytics(
         row.avg_duration_ns,
       )
     }),
+    spam_classifier: analytics_dto.SpamClassifierOperationalMetrics(
+      backlog: spam_classifier.backlog,
+      classified: spam_classifier.classified,
+      failed: spam_classifier.failed,
+      allow: spam_classifier.allow_count,
+      review: spam_classifier.review_count,
+      block: spam_classifier.block_count,
+      attempted_backlog: spam_classifier.attempted_backlog,
+      attempts: spam_classifier.attempts,
+      pending_jobs: spam_classifier.pending_jobs,
+      running_jobs: spam_classifier.running_jobs,
+      oldest_unclassified_at: case spam_classifier.backlog > 0 {
+        True ->
+          option.Some(timestamp.from_unix_seconds(
+            spam_classifier.oldest_unclassified_at_seconds,
+          ))
+        False -> option.None
+      },
+      latest_classified_at: spam_classifier.latest_classified_at,
+      latest_failed_at: spam_classifier.latest_failed_at,
+    ),
   ))
+}
+
+fn exactly_one_spam_classifier_row(rows) {
+  case rows {
+    [row] -> Ok(row)
+    _ ->
+      Error(db_error.DbQueryError(
+        "Expected one spam classifier operational metrics row",
+      ))
+  }
 }
 
 fn date_to_string(date: calendar.Date) -> String {
@@ -194,6 +237,13 @@ pub fn insert_metrics_reliability_api_day(
   day: calendar.Date,
 ) -> Result(Nil, db_error.DbCommandError) {
   execute_rollup(db, sql.insert_metrics_reliability_api_day(day))
+}
+
+pub fn insert_metrics_reliability_job_day(
+  db: db_helpers.Db,
+  day: calendar.Date,
+) -> Result(Nil, db_error.DbCommandError) {
+  execute_rollup(db, sql.insert_metrics_reliability_job_day(day))
 }
 
 pub fn insert_metrics_completed_day(
