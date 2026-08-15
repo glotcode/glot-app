@@ -33,6 +33,8 @@ pub type Store {
         option.Option(spam_classification.Candidate),
         db_error.DbQueryError,
       ),
+    increment_spam_classification_attempts: fn(Uuid, Timestamp) ->
+      Result(spam_classification.StoreResult, db_error.DbCommandError),
     store_spam_classification: fn(
       Uuid,
       Timestamp,

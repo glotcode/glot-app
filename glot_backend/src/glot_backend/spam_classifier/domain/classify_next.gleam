@@ -51,6 +51,36 @@ fn classify_candidate(
   candidate: spam_classification.Candidate,
 ) -> Program(Outcome) {
   let spam_classification.Candidate(snippet, expected_updated_at) = candidate
+  use recorded <- program.and_then(
+    snippet_effect.increment_spam_classification_attempts(
+      snippet.id,
+      expected_updated_at,
+    ),
+  )
+  case recorded {
+    spam_classification.Stored ->
+      classify_recorded_candidate(config, snippet, expected_updated_at)
+    spam_classification.Stale ->
+      program.succeed(
+        Processed(
+          transaction_program.succeed(
+            finalization.Skipped(
+              log.from_list([
+                log.uuid("snippet_id", snippet.id),
+                log.bool("spam_classification_stale", True),
+              ]),
+            ),
+          ),
+        ),
+      )
+  }
+}
+
+fn classify_recorded_candidate(
+  config,
+  snippet: Snippet,
+  expected_updated_at: Timestamp,
+) -> Program(Outcome) {
   use attempt <- program.and_then(
     classifier_effect.classify(config, snippet)
     |> program.map(Classified)

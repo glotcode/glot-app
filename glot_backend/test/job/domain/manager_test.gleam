@@ -390,6 +390,9 @@ fn classifier_services(
     snippet_store.Store(
       ..test_snippet_adapter.defaults(),
       get_newest_unclassified_snippet: fn() { Ok(option.Some(candidate)) },
+      increment_spam_classification_attempts: fn(_, _) {
+        Ok(spam_classification.Stored)
+      },
       store_spam_classification: fn(_, _, _) {
         case store_result {
           spam_classification.Stored ->

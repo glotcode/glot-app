@@ -29,6 +29,7 @@ pub fn invalid_snippet_is_quarantined_and_processing_continues_test() {
     )
   let initial_state = with_classifier_config(test_fixture.state)
   let failures = process.new_subject()
+  let attempts = process.new_subject()
   let classifier_error =
     error.infra(
       infra_error.SpamClassifierError(infra_error.SpamClassifierRequestFailed(
@@ -48,12 +49,17 @@ pub fn invalid_snippet_is_quarantined_and_processing_continues_test() {
           test_state,
           test_fixture.snippet,
           failures,
+          attempts,
           Error(classifier_error),
         )
       },
     )
 
   let assert Ok(classify_next.Processed(_)) = result
+  let assert Ok(#(attempted_id, expected_updated_at)) =
+    process.receive(attempts, 0)
+  assert attempted_id == test_fixture.snippet.id
+  assert expected_updated_at == test_fixture.snippet.updated_at
   let assert Ok(#(_, _, failure)) = process.receive(failures, 0)
   assert failure.error_code == "invalid_payload"
   assert failure.failed_at == fixture.test_system_time()
@@ -107,7 +113,7 @@ fn classify_and_finalize(ctx) {
   }
 }
 
-fn services(test_state, snippet, failures, classifier_result) {
+fn services(test_state, snippet, failures, attempts, classifier_result) {
   let base_services =
     test_service_ports.defaults(test_state)
     |> test_service_ports.with_app_config(test_state)
@@ -117,6 +123,10 @@ fn services(test_state, snippet, failures, classifier_result) {
     snippet_store.Store(
       ..base_snippet_store,
       get_newest_unclassified_snippet: fn() { Ok(option.Some(candidate)) },
+      increment_spam_classification_attempts: fn(id, expected_updated_at) {
+        process.send(attempts, #(id, expected_updated_at))
+        Ok(spam_classification.Stored)
+      },
       store_spam_classification_failure: fn(id, expected_updated_at, failure) {
         process.send(failures, #(id, expected_updated_at, failure))
         Ok(spam_classification.Stored)

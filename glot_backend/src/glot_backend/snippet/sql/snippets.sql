@@ -315,10 +315,17 @@ WHERE id = $5
   AND spam_decision IS NULL
   AND spam_classification_failed_at IS NULL;
 
+-- name: IncrementSpamClassificationAttempts :exec
+UPDATE snippets
+SET spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1
+WHERE id = $1
+  AND updated_at = $2
+  AND spam_decision IS NULL
+  AND spam_classification_failed_at IS NULL;
+
 -- name: StoreSpamClassificationFailure :exec
 UPDATE snippets
-SET spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1,
-    spam_classification_last_error = $1,
+SET spam_classification_last_error = $1,
     spam_classification_failed_at = $2
 WHERE id = $3
   AND updated_at = $4

@@ -6017,6 +6017,20 @@ WHERE id = $5
   ])
 }
 
+pub fn increment_spam_classification_attempts(
+  id id: BitArray,
+  updated_at updated_at: Timestamp,
+) {
+  let sql =
+    "UPDATE snippets
+SET spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1
+WHERE id = $1
+  AND updated_at = $2
+  AND spam_decision IS NULL
+  AND spam_classification_failed_at IS NULL"
+  #(sql, [dev.ParamBitArray(id), dev.ParamTimestamp(updated_at)])
+}
+
 pub fn store_spam_classification_failure(
   spam_classification_last_error spam_classification_last_error: Option(String),
   spam_classification_failed_at spam_classification_failed_at: Option(Timestamp),
@@ -6025,8 +6039,7 @@ pub fn store_spam_classification_failure(
 ) {
   let sql =
     "UPDATE snippets
-SET spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1,
-    spam_classification_last_error = $1,
+SET spam_classification_last_error = $1,
     spam_classification_failed_at = $2
 WHERE id = $3
   AND updated_at = $4

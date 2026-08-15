@@ -112,6 +112,23 @@ pub fn run(
         state: state,
         continue: continue,
       )
+    snippet_algebra.IncrementSpamClassificationAttempts(
+      id:,
+      expected_updated_at:,
+      next:,
+    ) ->
+      measured_interpreter.run(
+        fn() {
+          store.increment_spam_classification_attempts(id, expected_updated_at)
+        },
+        next,
+        name: trace_name(
+          snippet_algebra.IncrementSpamClassificationAttemptsEffectName,
+        ),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
     snippet_algebra.StoreSpamClassification(
       id:,
       expected_updated_at:,

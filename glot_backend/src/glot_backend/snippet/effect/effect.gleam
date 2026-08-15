@@ -122,6 +122,19 @@ pub fn get_newest_unclassified() -> program_types.Program(
   )
 }
 
+pub fn increment_spam_classification_attempts(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+) -> program_types.Program(spam_classification.StoreResult) {
+  program.perform_db(
+    increment_spam_classification_attempts_effect(
+      id,
+      expected_updated_at,
+      program.from_mapped_result(_, map_error: error.database_command_error),
+    ),
+  )
+}
+
 pub fn store_spam_classification_tx(
   id: uuid.Uuid,
   expected_updated_at: Timestamp,
@@ -336,6 +349,21 @@ fn store_spam_classification_effect(
     classification:,
     next:,
   ))
+}
+
+fn increment_spam_classification_attempts_effect(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+  next: fn(Result(spam_classification.StoreResult, db_error.DbCommandError)) ->
+    next,
+) -> program_types.DbEffect(next) {
+  program_types.SnippetEffect(
+    snippet_algebra.IncrementSpamClassificationAttempts(
+      id:,
+      expected_updated_at:,
+      next:,
+    ),
+  )
 }
 
 fn store_spam_classification_failure_effect(

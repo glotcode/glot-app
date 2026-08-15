@@ -27,6 +27,9 @@ pub fn defaults() -> store.Store {
     get_newest_unclassified_snippet: fn() {
       unexpected.query("snippet.get_newest_unclassified")
     },
+    increment_spam_classification_attempts: fn(_, _) {
+      unexpected.command("snippet.increment_spam_classification_attempts")
+    },
     store_spam_classification: fn(_, _, _) {
       unexpected.command("snippet.store_spam_classification")
     },
@@ -76,6 +79,9 @@ pub fn new(test_state: state.State) -> store.Store {
       Ok(Nil)
     },
     get_newest_unclassified_snippet: fn() { Ok(option.None) },
+    increment_spam_classification_attempts: fn(_, _) {
+      Ok(spam_classification.Stored)
+    },
     store_spam_classification: fn(_, _, _) { Ok(spam_classification.Stored) },
     store_spam_classification_failure: fn(_, _, _) {
       Ok(spam_classification.Stored)

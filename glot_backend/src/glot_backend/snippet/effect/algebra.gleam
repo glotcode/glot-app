@@ -63,6 +63,12 @@ pub type SnippetEffect(next) {
       ),
     ) -> next,
   )
+  IncrementSpamClassificationAttempts(
+    id: Uuid,
+    expected_updated_at: Timestamp,
+    next: fn(Result(spam_classification.StoreResult, db_error.DbCommandError)) ->
+      next,
+  )
   StoreSpamClassification(
     id: Uuid,
     expected_updated_at: Timestamp,
@@ -111,6 +117,12 @@ pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
       UpdateSnippet(snippet, next: fn(value) { f(next(value)) })
     GetNewestUnclassifiedSnippet(next:) ->
       GetNewestUnclassifiedSnippet(next: fn(value) { f(next(value)) })
+    IncrementSpamClassificationAttempts(id:, expected_updated_at:, next:) ->
+      IncrementSpamClassificationAttempts(
+        id:,
+        expected_updated_at:,
+        next: fn(value) { f(next(value)) },
+      )
     StoreSpamClassification(id:, expected_updated_at:, classification:, next:) ->
       StoreSpamClassification(
         id:,
@@ -140,6 +152,7 @@ pub type EffectName {
   CreateSnippetEffectName
   UpdateSnippetEffectName
   GetNewestUnclassifiedSnippetEffectName
+  IncrementSpamClassificationAttemptsEffectName
   StoreSpamClassificationEffectName
   StoreSpamClassificationFailureEffectName
 }
@@ -157,6 +170,8 @@ pub fn effect_name_to_string(name: EffectName) -> String {
     CreateSnippetEffectName -> "create_snippet"
     UpdateSnippetEffectName -> "update_snippet"
     GetNewestUnclassifiedSnippetEffectName -> "get_newest_unclassified_snippet"
+    IncrementSpamClassificationAttemptsEffectName ->
+      "increment_spam_classification_attempts"
     StoreSpamClassificationEffectName -> "store_spam_classification"
     StoreSpamClassificationFailureEffectName ->
       "store_spam_classification_failure"

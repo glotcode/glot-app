@@ -343,6 +343,9 @@ fn test_service_ports() -> service_ports.ServicePorts {
         create_snippet: fn(_) { Ok(Nil) },
         update_snippet: fn(_) { Ok(Nil) },
         get_newest_unclassified_snippet: fn() { Ok(option.None) },
+        increment_spam_classification_attempts: fn(_, _) {
+          Ok(spam_classification.Stored)
+        },
         store_spam_classification: fn(_, _, _) {
           Ok(spam_classification.Stored)
         },
