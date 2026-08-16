@@ -61,13 +61,18 @@ pub fn list(
 
 pub fn list_admin(
   username username: option.Option(String),
+  spam_classification spam_classification_filter: option.Option(
+    spam_classification.Filter,
+  ),
   pagination pagination: CursorPagination,
 ) -> program_types.Program(List(HydratedSnippet)) {
   program.perform_db(
-    list_admin_effect(username, pagination, program.from_mapped_result(
-      _,
-      map_error: error.database_query_error,
-    )),
+    list_admin_effect(
+      username,
+      spam_classification_filter,
+      pagination,
+      program.from_mapped_result(_, map_error: error.database_query_error),
+    ),
   )
 }
 
@@ -289,11 +294,13 @@ fn list_effect(
 
 fn list_admin_effect(
   username: option.Option(String),
+  spam_classification_filter: option.Option(spam_classification.Filter),
   pagination: CursorPagination,
   next: fn(Result(List(HydratedSnippet), db_error.DbQueryError)) -> next,
 ) -> program_types.DbEffect(next) {
   program_types.SnippetEffect(snippet_algebra.ListAdminSnippets(
     username: username,
+    spam_classification: spam_classification_filter,
     pagination: pagination,
     next: next,
   ))

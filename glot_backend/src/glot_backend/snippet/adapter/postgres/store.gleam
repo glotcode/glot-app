@@ -12,8 +12,8 @@ pub fn new(db: db_helpers.Db) -> snippet_store.Store {
     },
     get_admin_snippet_by_slug: fn(slug) { read.get_admin_by_slug(db, slug) },
     list_snippets: fn(filter, pagination) { read.list(db, filter, pagination) },
-    list_admin_snippets: fn(username, pagination) {
-      read.list_admin(db, username, pagination)
+    list_admin_snippets: fn(username, spam_classification, pagination) {
+      read.list_admin(db, username, spam_classification, pagination)
     },
     delete_snippet: fn(id) { write.delete(db, id) },
     delete_snippets_by_account_id: fn(account_id) {

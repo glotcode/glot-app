@@ -9,6 +9,7 @@ import glot_core/admin/snippet_dto
 import glot_core/loadable
 import glot_core/pagination_model
 import glot_core/route
+import glot_core/snippet/spam_classification
 import glot_frontend/admin/api_logs/list_managed as api_logs
 import glot_frontend/admin/api_logs/list_model as api_logs_model
 import glot_frontend/admin/command
@@ -140,11 +141,15 @@ pub fn resource_lists_restore_filters_and_cursor_requests_from_the_url_test() {
   assert_before(jobs_request.pagination, "jobs-cursor")
 
   let #(snippets_model, _) =
-    snippets.init(option.Some("username=petter&after=snippets-cursor"))
+    snippets.init(option.Some(
+      "username=petter&classification=block&after=snippets-cursor",
+    ))
   let #(_, snippets_command) = snippets.ensure_loaded(snippets_model)
   let assert command.Content(content.GetSnippets(snippets_request, _)) =
     snippets_command
   assert snippets_request.username == option.Some("petter")
+  assert snippets_request.spam_classification
+    == option.Some(spam_classification.Classified(spam_classification.Block))
   assert_after(snippets_request.pagination, "snippets-cursor")
 }
 
@@ -156,10 +161,13 @@ pub fn invalid_direct_filter_is_presentable_without_starting_a_request_test() {
   assert next_command == command.None
 }
 
-pub fn loaded_cursor_page_navigates_to_the_next_page_url_test() {
-  let #(model, _) = snippets.init(option.None)
+pub fn loaded_cursor_page_preserves_classification_in_the_next_page_url_test() {
+  let #(model, _) = snippets.init(option.Some("classification=pass"))
   let #(loading, request_command) = snippets.ensure_loaded(model)
-  let assert command.Content(content.GetSnippets(_, complete)) = request_command
+  let assert command.Content(content.GetSnippets(request, complete)) =
+    request_command
+  assert request.spam_classification
+    == option.Some(spam_classification.Classified(spam_classification.Allow))
   let #(loaded, _) =
     snippets.update(
       loading,
@@ -179,8 +187,20 @@ pub fn loaded_cursor_page_navigates_to_the_next_page_url_test() {
     snippets.update(loaded, snippets_message.NextPageClicked)
   assert navigation_command
     == command.Navigate(
-      route.Admin(route.AdminSnippets(query: option.Some("after=next-page"))),
+      route.Admin(
+        route.AdminSnippets(query: option.Some(
+          "classification=pass&after=next-page",
+        )),
+      ),
     )
+}
+
+pub fn unclassified_snippet_filter_is_sent_to_the_api_test() {
+  let #(model, _) = snippets.init(option.Some("classification=unclassified"))
+  let #(_, request_command) = snippets.ensure_loaded(model)
+  let assert command.Content(content.GetSnippets(request, _)) = request_command
+  assert request.spam_classification
+    == option.Some(spam_classification.Unclassified)
 }
 
 fn assert_uuid(actual: option.Option(uuid.Uuid), expected: String) {

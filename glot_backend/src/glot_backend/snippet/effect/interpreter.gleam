@@ -58,9 +58,16 @@ pub fn run(
         state: state,
         continue: continue,
       )
-    snippet_algebra.ListAdminSnippets(username:, pagination:, next:) ->
+    snippet_algebra.ListAdminSnippets(
+      username:,
+      spam_classification:,
+      pagination:,
+      next:,
+    ) ->
       measured_interpreter.run(
-        fn() { store.list_admin_snippets(username, pagination) },
+        fn() {
+          store.list_admin_snippets(username, spam_classification, pagination)
+        },
         next,
         name: trace_name(snippet_algebra.ListAdminSnippetsEffectName),
         kind: effect_trace.DatabaseReadEffect,

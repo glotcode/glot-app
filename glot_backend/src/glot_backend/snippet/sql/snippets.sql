@@ -245,6 +245,14 @@ WHERE
     sqlc.narg(username)::text IS NULL
     OR users.username = sqlc.narg(username)::text
   )
+  AND (
+    sqlc.narg(spam_classification)::text IS NULL
+    OR (
+      sqlc.narg(spam_classification)::text = 'unclassified'
+      AND snippets.spam_decision IS NULL
+    )
+    OR snippets.spam_decision = sqlc.narg(spam_classification)::text
+  )
   AND
   (
     sqlc.narg(after_slug)::text IS NULL
@@ -279,6 +287,14 @@ WHERE
   (
     sqlc.narg(username)::text IS NULL
     OR users.username = sqlc.narg(username)::text
+  )
+  AND (
+    sqlc.narg(spam_classification)::text IS NULL
+    OR (
+      sqlc.narg(spam_classification)::text = 'unclassified'
+      AND snippets.spam_decision IS NULL
+    )
+    OR snippets.spam_decision = sqlc.narg(spam_classification)::text
   )
   AND
   (

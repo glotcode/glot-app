@@ -9,7 +9,7 @@ import glot_core/pagination_model
 import glot_core/route
 import glot_frontend/admin/snippets/list_message.{
   type Msg, ApplyFilterClicked, ClearFilterClicked, NextPageClicked,
-  PreviousPageClicked, UsernameFilterChanged,
+  PreviousPageClicked, SpamClassificationFilterChanged, UsernameFilterChanged,
 }
 import glot_frontend/admin/snippets/list_model.{type Model}
 import glot_frontend/admin/snippets/route as snippets_route
@@ -46,7 +46,7 @@ pub fn view(model: Model, now: Timestamp) -> Element(Msg) {
     ),
     content: [
       admin_filter.filter_section(
-        copy: "Filter snippets by exact username.",
+        copy: "Filter snippets by exact username and spam classification.",
         content: admin_filter.filter_surface(
           [attribute.class("admin-snippets-page__filters")],
           [
@@ -57,6 +57,19 @@ pub fn view(model: Model, now: Timestamp) -> Element(Msg) {
                 value: model.username_filter,
                 placeholder: "username",
                 on_input: UsernameFilterChanged,
+              ),
+              admin_form.select_input(
+                label: "Spam classification",
+                value: model.spam_classification_filter,
+                on_input: SpamClassificationFilterChanged,
+                options: [
+                  #("", "All classifications"),
+                  #("block", "Block"),
+                  #("review", "Review"),
+                  #("pass", "Pass"),
+                  #("unclassified", "Unclassified"),
+                ],
+                help: "Matches the classifier decision.",
               ),
             ]),
             admin_filter.filter_actions([], [
@@ -71,7 +84,10 @@ pub fn view(model: Model, now: Timestamp) -> Element(Msg) {
               admin_layout.secondary_button(
                 [
                   attribute.type_("button"),
-                  attribute.disabled(model.username_filter == ""),
+                  attribute.disabled(
+                    model.username_filter == ""
+                    && model.spam_classification_filter == "",
+                  ),
                   event.on_click(ClearFilterClicked),
                 ],
                 "Clear",

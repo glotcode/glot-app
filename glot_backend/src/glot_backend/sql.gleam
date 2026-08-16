@@ -5805,6 +5805,7 @@ pub type ListAdminSnippetsAfter {
 
 pub fn list_admin_snippets_after(
   username username: Option(String),
+  spam_classification spam_classification: Option(String),
   after_slug after_slug: Option(String),
   page_limit page_limit: Int,
 ) {
@@ -5835,17 +5836,28 @@ WHERE
     $1::text IS NULL
     OR users.username = $1::text
   )
+  AND (
+    $2::text IS NULL
+    OR (
+      $2::text = 'unclassified'
+      AND snippets.spam_decision IS NULL
+    )
+    OR snippets.spam_decision = $2::text
+  )
   AND
   (
-    $2::text IS NULL
-    OR snippets.slug < $2::text
+    $3::text IS NULL
+    OR snippets.slug < $3::text
   )
 ORDER BY snippets.slug DESC
-LIMIT $3"
+LIMIT $4"
   #(
     sql,
     [
       dev.ParamNullable(option.map(username, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(
+        option.map(spam_classification, fn(v) { dev.ParamString(v) }),
+      ),
       dev.ParamNullable(option.map(after_slug, fn(v) { dev.ParamString(v) })),
       dev.ParamInt(page_limit),
     ],
@@ -5921,6 +5933,7 @@ pub type ListAdminSnippetsBefore {
 
 pub fn list_admin_snippets_before(
   username username: Option(String),
+  spam_classification spam_classification: Option(String),
   before_slug before_slug: Option(String),
   page_limit page_limit: Int,
 ) {
@@ -5951,17 +5964,28 @@ WHERE
     $1::text IS NULL
     OR users.username = $1::text
   )
+  AND (
+    $2::text IS NULL
+    OR (
+      $2::text = 'unclassified'
+      AND snippets.spam_decision IS NULL
+    )
+    OR snippets.spam_decision = $2::text
+  )
   AND
   (
-    $2::text IS NULL
-    OR snippets.slug > $2::text
+    $3::text IS NULL
+    OR snippets.slug > $3::text
   )
 ORDER BY snippets.slug ASC
-LIMIT $3"
+LIMIT $4"
   #(
     sql,
     [
       dev.ParamNullable(option.map(username, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(
+        option.map(spam_classification, fn(v) { dev.ParamString(v) }),
+      ),
       dev.ParamNullable(option.map(before_slug, fn(v) { dev.ParamString(v) })),
       dev.ParamInt(page_limit),
     ],

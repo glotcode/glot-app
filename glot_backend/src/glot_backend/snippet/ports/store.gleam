@@ -21,8 +21,11 @@ pub type Store {
       Result(option.Option(AdminSnippet), db_error.DbQueryError),
     list_snippets: fn(ListSnippetsFilter, CursorPagination) ->
       Result(List(HydratedSnippet), db_error.DbQueryError),
-    list_admin_snippets: fn(option.Option(String), CursorPagination) ->
-      Result(List(HydratedSnippet), db_error.DbQueryError),
+    list_admin_snippets: fn(
+      option.Option(String),
+      option.Option(spam_classification.Filter),
+      CursorPagination,
+    ) -> Result(List(HydratedSnippet), db_error.DbQueryError),
     delete_snippet: fn(Uuid) -> Result(Nil, db_error.DbCommandError),
     delete_snippets_by_account_id: fn(Uuid) ->
       Result(Nil, db_error.DbCommandError),

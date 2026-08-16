@@ -17,7 +17,7 @@ pub fn defaults() -> store.Store {
       unexpected.query("snippet.get_admin_by_slug")
     },
     list_snippets: fn(_, _) { unexpected.query("snippet.list") },
-    list_admin_snippets: fn(_, _) { unexpected.query("snippet.list_admin") },
+    list_admin_snippets: fn(_, _, _) { unexpected.query("snippet.list_admin") },
     delete_snippet: fn(_) { unexpected.command("snippet.delete") },
     delete_snippets_by_account_id: fn(_) {
       unexpected.command("snippet.delete_by_account_id")
@@ -59,7 +59,7 @@ pub fn new(test_state: state.State) -> store.Store {
     list_snippets: fn(filter, pagination) {
       Ok(snippet.list_snippets(state.get(test_state), filter, pagination))
     },
-    list_admin_snippets: fn(_, _) { Ok([]) },
+    list_admin_snippets: fn(_, _, _) { Ok([]) },
     delete_snippet: fn(id) {
       state.update(test_state, fn(db) { snippet.delete_snippet_by_id(db, id) })
       Ok(Nil)

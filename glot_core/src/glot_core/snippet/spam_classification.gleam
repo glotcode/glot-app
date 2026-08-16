@@ -2,6 +2,7 @@ import gleam/dynamic/decode
 import gleam/int
 import gleam/json
 import gleam/option
+import gleam/result
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
 import glot_core/snippet/snippet_model.{type Snippet}
@@ -10,6 +11,11 @@ pub type Decision {
   Allow
   Review
   Block
+}
+
+pub type Filter {
+  Classified(Decision)
+  Unclassified
 }
 
 pub type ReasonCode {
@@ -77,6 +83,29 @@ pub fn decision_from_string(value: String) -> Result(Decision, String) {
     "block" -> Ok(Block)
     _ -> Error("Invalid spam classification decision: " <> value)
   }
+}
+
+pub fn filter_to_string(value: Filter) -> String {
+  case value {
+    Classified(decision) -> decision_to_string(decision)
+    Unclassified -> "unclassified"
+  }
+}
+
+pub fn filter_from_string(value: String) -> Result(Filter, String) {
+  case value {
+    "unclassified" -> Ok(Unclassified)
+    value -> decision_from_string(value) |> result.map(Classified)
+  }
+}
+
+pub fn filter_decoder() -> decode.Decoder(Filter) {
+  decode.then(decode.string, fn(value) {
+    case filter_from_string(value) {
+      Ok(filter) -> decode.success(filter)
+      Error(message) -> decode.failure(Unclassified, message)
+    }
+  })
 }
 
 pub fn reason_code_to_string(value: ReasonCode) -> String {

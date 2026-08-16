@@ -10,13 +10,16 @@ import glot_core/language
 import glot_core/pagination_model
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
 import glot_core/snippet/snippet_model
-import glot_core/snippet/spam_classification.{type ClassificationMetadata}
+import glot_core/snippet/spam_classification.{
+  type ClassificationMetadata, type Filter,
+}
 import youid/uuid
 
 pub type ListSnippetsRequest {
   ListSnippetsRequest(
     pagination: pagination_model.CursorPagination,
     username: option.Option(String),
+    spam_classification: option.Option(Filter),
   )
 }
 
@@ -68,9 +71,14 @@ pub type GetSnippetResponse {
 pub fn list_request_decoder() -> decode.Decoder(ListSnippetsRequest) {
   decode.then(pagination_model.request_decoder(), fn(pagination) {
     use username <- decode.field("username", decode.optional(decode.string))
+    use spam_classification_filter <- decode.field(
+      "spamClassification",
+      decode.optional(spam_classification.filter_decoder()),
+    )
     decode.success(ListSnippetsRequest(
       pagination: pagination,
       username: username,
+      spam_classification: spam_classification_filter,
     ))
   })
 }
@@ -79,6 +87,12 @@ pub fn encode_list_request(request: ListSnippetsRequest) -> json.Json {
   json.object(
     list.append(pagination_model.encode_request_fields(request.pagination), [
       #("username", json.nullable(request.username, json.string)),
+      #(
+        "spamClassification",
+        json.nullable(request.spam_classification, fn(filter) {
+          json.string(spam_classification.filter_to_string(filter))
+        }),
+      ),
     ]),
   )
 }

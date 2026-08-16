@@ -9,6 +9,7 @@ pub type Model {
       pagination_model.CursorPage(snippet_dto.SnippetSummaryResponse),
     ),
     username_filter: String,
+    spam_classification_filter: String,
     query: list_query.Query,
   )
 }

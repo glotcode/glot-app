@@ -36,6 +36,7 @@ pub type SnippetEffect(next) {
   )
   ListAdminSnippets(
     username: option.Option(String),
+    spam_classification: option.Option(spam_classification.Filter),
     pagination: CursorPagination,
     next: fn(Result(List(HydratedSnippet), db_error.DbQueryError)) -> next,
   )
@@ -99,9 +100,10 @@ pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
       ListSnippets(filter: filter, pagination: pagination, next: fn(value) {
         f(next(value))
       })
-    ListAdminSnippets(username:, pagination:, next:) ->
+    ListAdminSnippets(username:, spam_classification:, pagination:, next:) ->
       ListAdminSnippets(
         username: username,
+        spam_classification: spam_classification,
         pagination: pagination,
         next: fn(value) { f(next(value)) },
       )

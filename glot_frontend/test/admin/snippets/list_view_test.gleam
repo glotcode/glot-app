@@ -35,6 +35,7 @@ pub fn owner_links_filter_the_snippet_list_by_exact_username_test() {
         next_cursor: option.None,
       )),
       username_filter: "",
+      spam_classification_filter: "",
       query: list_query.empty(),
     )
 
@@ -47,4 +48,9 @@ pub fn owner_links_filter_the_snippet_list_by_exact_username_test() {
     "href=\"/admin/snippets?username=fixture-owner\"",
   )
   assert string.contains(rendered, ">fixture-owner</a>")
+  assert string.contains(rendered, ">All classifications</option>")
+  assert string.contains(rendered, ">Block</option>")
+  assert string.contains(rendered, ">Review</option>")
+  assert string.contains(rendered, ">Pass</option>")
+  assert string.contains(rendered, ">Unclassified</option>")
 }

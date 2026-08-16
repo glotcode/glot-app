@@ -34,6 +34,7 @@ pub fn get_snippets(
   ))
   use snippets <- program.and_then(snippet_effect.list_admin(
     request.username,
+    request.spam_classification,
     pagination_model.increment_limit(pagination),
   ))
 

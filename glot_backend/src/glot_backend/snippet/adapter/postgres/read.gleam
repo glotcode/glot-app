@@ -166,14 +166,19 @@ pub fn list(
 pub fn list_admin(
   db: db_helpers.Db,
   username: option.Option(String),
+  spam_classification_filter: option.Option(spam_classification.Filter),
   pagination: CursorPagination,
 ) -> Result(List(HydratedSnippet), db_error.DbQueryError) {
+  let spam_classification_filter =
+    spam_classification_filter
+    |> option.map(spam_classification.filter_to_string)
   case pagination {
     pagination_model.BeforePage(before_slug, limit) ->
       db_helpers.query(
         db,
         sql.list_admin_snippets_before(
           username,
+          spam_classification_filter,
           option.Some(pagination_model.to_string(before_slug)),
           limit,
         ),
@@ -195,7 +200,12 @@ pub fn list_admin(
       }
       db_helpers.query(
         db,
-        sql.list_admin_snippets_after(username, after_slug, limit),
+        sql.list_admin_snippets_after(
+          username,
+          spam_classification_filter,
+          after_slug,
+          limit,
+        ),
         query_error,
       )
       |> result.try(fn(returned) {
