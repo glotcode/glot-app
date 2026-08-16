@@ -238,6 +238,13 @@ pub fn get_admin_snippet(
   Content(content.GetSnippet(request, done))
 }
 
+pub fn classify_admin_snippet(
+  request: admin_snippet_dto.GetSnippetRequest,
+  done: fn(response.Response(admin_snippet_dto.GetSnippetResponse)) -> msg,
+) -> Command(msg) {
+  Content(content.ClassifySnippet(request, done))
+}
+
 pub fn delete_admin_snippet(
   request: snippet_dto.DeleteSnippetRequest,
   done: fn(response.Response(Nil)) -> msg,

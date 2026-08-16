@@ -13,10 +13,11 @@ import glot_core/snippet/spam_classification.{
 }
 import glot_frontend/admin/snippets/detail_constants as constants
 import glot_frontend/admin/snippets/detail_message.{
-  type Msg, DeleteCancelled, DeleteClicked, DeleteConfirmed, DeleteDialogClosed,
+  type Msg, ClassifyClicked, DeleteCancelled, DeleteClicked, DeleteConfirmed,
+  DeleteDialogClosed,
 }
 import glot_frontend/admin/snippets/detail_model.{
-  type Model, DeleteIdle, Deleting,
+  type Model, ClassificationIdle, Classifying, DeleteIdle, Deleting,
 }
 import glot_frontend/admin/ui/dialog as admin_dialog
 import glot_frontend/admin/ui/format as admin_format
@@ -43,6 +44,23 @@ pub fn view(model: Model) -> Element(Msg) {
         html.button(
           [
             attribute.type_("button"),
+            attribute.class("admin-page__button"),
+            attribute.disabled(
+              model.classification_state == Classifying
+              || model.delete_state == Deleting,
+            ),
+            event.on_click(ClassifyClicked),
+          ],
+          [
+            html.text(case model.classification_state {
+              Classifying -> "Classifying..."
+              ClassificationIdle -> "Run spam classification"
+            }),
+          ],
+        ),
+        html.button(
+          [
+            attribute.type_("button"),
             attribute.class("admin-page__button admin-page__button--danger"),
             attribute.disabled(model.delete_state == Deleting),
             event.on_click(DeleteClicked),
@@ -62,11 +80,18 @@ pub fn view(model: Model) -> Element(Msg) {
 }
 
 fn snippet_status(model: Model) -> Element(Msg) {
-  case model.snippet, model.delete_state {
-    loadable.LoadError(message), _ -> admin_status.error_status(message)
-    loadable.Loading, _ -> admin_status.status("Loading snippet...")
-    _, Deleting -> admin_status.status("Deleting snippet...")
-    _, DeleteIdle -> admin_status.status("")
+  case
+    model.snippet,
+    model.classification_state,
+    model.delete_state,
+    model.classification_error
+  {
+    loadable.LoadError(message), _, _, _ -> admin_status.error_status(message)
+    loadable.Loading, _, _, _ -> admin_status.status("Loading snippet...")
+    _, _, Deleting, _ -> admin_status.status("Deleting snippet...")
+    _, Classifying, _, _ -> admin_status.status("Classifying snippet...")
+    _, _, _, option.Some(message) -> admin_status.error_status(message)
+    _, ClassificationIdle, DeleteIdle, option.None -> admin_status.status("")
   }
 }
 

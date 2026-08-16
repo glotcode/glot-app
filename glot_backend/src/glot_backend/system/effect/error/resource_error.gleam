@@ -10,6 +10,7 @@ pub type ResourceError {
   EmailTemplateNotFound
   DockerRunConfigNotFound
   SpamClassifierConfigNotFound
+  SnippetClassificationStale
   CloudflareConfigNotFound
   AccountDeleteNotScheduled
   AccountDeleteAlreadyScheduled
@@ -17,7 +18,9 @@ pub type ResourceError {
 
 pub fn status(err: ResourceError) -> Int {
   case err {
-    AccountDeleteNotScheduled | AccountDeleteAlreadyScheduled -> 409
+    AccountDeleteNotScheduled
+    | AccountDeleteAlreadyScheduled
+    | SnippetClassificationStale -> 409
     _ -> 404
   }
 }
@@ -35,6 +38,7 @@ pub fn code(err: ResourceError) -> String {
     EmailTemplateNotFound -> "email_template_not_found"
     DockerRunConfigNotFound -> "docker_run_config_not_found"
     SpamClassifierConfigNotFound -> "spam_classifier_config_not_found"
+    SnippetClassificationStale -> "snippet_classification_stale"
     CloudflareConfigNotFound -> "cloudflare_config_not_found"
     AccountDeleteNotScheduled -> "account_delete_not_scheduled"
     AccountDeleteAlreadyScheduled -> "account_delete_already_scheduled"
@@ -54,6 +58,8 @@ pub fn message(err: ResourceError) -> String {
     EmailTemplateNotFound -> "Email template not found"
     DockerRunConfigNotFound -> "Docker run config is not configured"
     SpamClassifierConfigNotFound -> "Spam classifier config is not configured"
+    SnippetClassificationStale ->
+      "Snippet changed while it was being classified; try again"
     CloudflareConfigNotFound -> "Cloudflare config is not configured"
     AccountDeleteNotScheduled -> "Account deletion is not scheduled"
     AccountDeleteAlreadyScheduled -> "Account deletion already scheduled"

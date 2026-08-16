@@ -6,10 +6,12 @@ import glot_core/snippet/snippet_dto as public_snippet_dto
 import glot_frontend/admin/command as admin_effect
 import glot_frontend/admin/snippets/detail_constants as constants
 import glot_frontend/admin/snippets/detail_message.{
-  DeleteCancelled, DeleteClicked, DeleteConfirmed, DeleteDialogClosed,
-  DeleteFinished, SnippetLoaded,
+  ClassificationFinished, ClassifyClicked, DeleteCancelled, DeleteClicked,
+  DeleteConfirmed, DeleteDialogClosed, DeleteFinished, SnippetLoaded,
 }
-import glot_frontend/admin/snippets/detail_model.{DeleteIdle, Deleting, Model}
+import glot_frontend/admin/snippets/detail_model.{
+  ClassificationIdle, Classifying, DeleteIdle, Deleting, Model,
+}
 import glot_frontend/admin/ui/loadable as loadable_effect
 import glot_frontend/api/response as api_response
 import glot_frontend/request_generation
@@ -26,6 +28,9 @@ pub fn init(slug: String) -> #(Model, admin_effect.Command(Msg)) {
       slug: slug,
       snippet: loadable.NotLoaded,
       pending_delete: option.None,
+      classification_state: ClassificationIdle,
+      classification_error: option.None,
+      classification_generation: request_generation.initial(),
       delete_state: DeleteIdle,
       delete_generation: request_generation.initial(),
     ),
@@ -56,6 +61,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
             ..model,
             snippet: loadable.Loaded(response.snippet),
             pending_delete: option.None,
+            classification_error: option.None,
             delete_state: DeleteIdle,
           ),
           admin_effect.none(),
@@ -75,6 +81,59 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
             snippet: loadable.LoadError("Could not load snippet."),
             pending_delete: option.None,
             delete_state: DeleteIdle,
+          ),
+          admin_effect.none(),
+        )
+      }
+
+    ClassifyClicked ->
+      case model.snippet, model.classification_state {
+        loadable.Loaded(snippet), ClassificationIdle -> {
+          let generation =
+            request_generation.next(model.classification_generation)
+          #(
+            Model(
+              ..model,
+              classification_state: Classifying,
+              classification_error: option.None,
+              classification_generation: generation,
+            ),
+            admin_effect.classify_admin_snippet(
+              snippet_dto.GetSnippetRequest(slug: snippet.slug),
+              fn(result) { ClassificationFinished(generation, result) },
+            ),
+          )
+        }
+        _, _ -> #(model, admin_effect.none())
+      }
+
+    ClassificationFinished(generation, _)
+      if generation != model.classification_generation
+    -> #(model, admin_effect.none())
+    ClassificationFinished(_, result) ->
+      case result {
+        api_response.Success(response) -> #(
+          Model(
+            ..model,
+            snippet: loadable.Loaded(response.snippet),
+            classification_state: ClassificationIdle,
+            classification_error: option.None,
+          ),
+          admin_effect.none(),
+        )
+        api_response.ApiFailure(error) -> #(
+          Model(
+            ..model,
+            classification_state: ClassificationIdle,
+            classification_error: option.Some(api_response.error_message(error)),
+          ),
+          admin_effect.none(),
+        )
+        api_response.HttpFailure(_) -> #(
+          Model(
+            ..model,
+            classification_state: ClassificationIdle,
+            classification_error: option.Some("Could not classify snippet."),
           ),
           admin_effect.none(),
         )

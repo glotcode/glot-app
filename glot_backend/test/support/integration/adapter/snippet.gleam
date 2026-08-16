@@ -33,6 +33,9 @@ pub fn defaults() -> store.Store {
     store_spam_classification: fn(_, _, _) {
       unexpected.command("snippet.store_spam_classification")
     },
+    update_spam_classification: fn(_, _, _) {
+      unexpected.command("snippet.update_spam_classification")
+    },
     store_spam_classification_failure: fn(_, _, _) {
       unexpected.command("snippet.store_spam_classification_failure")
     },
@@ -83,6 +86,7 @@ pub fn new(test_state: state.State) -> store.Store {
       Ok(spam_classification.Stored)
     },
     store_spam_classification: fn(_, _, _) { Ok(spam_classification.Stored) },
+    update_spam_classification: fn(_, _, _) { Ok(spam_classification.Stored) },
     store_spam_classification_failure: fn(_, _, _) {
       Ok(spam_classification.Stored)
     },

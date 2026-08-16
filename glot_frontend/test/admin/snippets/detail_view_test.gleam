@@ -47,6 +47,9 @@ pub fn owner_name_and_id_link_to_the_admin_user_detail_page_test() {
       slug: snippet.slug,
       snippet: loadable.Loaded(snippet),
       pending_delete: option.None,
+      classification_state: detail_model.ClassificationIdle,
+      classification_error: option.None,
+      classification_generation: request_generation.initial(),
       delete_state: detail_model.DeleteIdle,
       delete_generation: request_generation.initial(),
     )
@@ -57,4 +60,5 @@ pub fn owner_name_and_id_link_to_the_admin_user_detail_page_test() {
   assert rendered |> string.split(owner_href) |> list.length == 4
   assert string.contains(rendered, ">fixture-owner</a>")
   assert string.contains(rendered, ">00000000-0000-4000-8000-000000000002</a>")
+  assert string.contains(rendered, ">Run spam classification</button>")
 }

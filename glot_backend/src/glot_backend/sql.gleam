@@ -6194,6 +6194,39 @@ WHERE id = $5
   ])
 }
 
+pub fn update_spam_classification(
+  spam_decision spam_decision: Option(String),
+  spam_confidence spam_confidence: Option(Int),
+  spam_reason_code spam_reason_code: Option(String),
+  spam_classified_at spam_classified_at: Option(Timestamp),
+  id id: BitArray,
+  updated_at updated_at: Timestamp,
+) {
+  let sql =
+    "UPDATE snippets
+SET spam_decision = $1,
+    spam_confidence = $2,
+    spam_reason_code = $3,
+    spam_classified_at = $4,
+    spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1,
+    spam_classification_last_error = NULL,
+    spam_classification_failed_at = NULL
+WHERE id = $5
+  AND updated_at = $6"
+  #(sql, [
+    dev.ParamNullable(option.map(spam_decision, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(spam_confidence, fn(v) { dev.ParamInt(v) })),
+    dev.ParamNullable(
+      option.map(spam_reason_code, fn(v) { dev.ParamString(v) }),
+    ),
+    dev.ParamNullable(
+      option.map(spam_classified_at, fn(v) { dev.ParamTimestamp(v) }),
+    ),
+    dev.ParamBitArray(id),
+    dev.ParamTimestamp(updated_at),
+  ])
+}
+
 pub fn increment_spam_classification_attempts(
   id id: BitArray,
   updated_at updated_at: Timestamp,

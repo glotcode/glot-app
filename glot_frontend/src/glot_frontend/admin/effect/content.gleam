@@ -23,6 +23,10 @@ pub type Command(msg) {
     admin_snippet_dto.GetSnippetRequest,
     fn(response.Response(admin_snippet_dto.GetSnippetResponse)) -> msg,
   )
+  ClassifySnippet(
+    admin_snippet_dto.GetSnippetRequest,
+    fn(response.Response(admin_snippet_dto.GetSnippetResponse)) -> msg,
+  )
   DeleteSnippet(
     snippet_dto.DeleteSnippetRequest,
     fn(response.Response(Nil)) -> msg,
@@ -41,6 +45,8 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
       GetSnippets(request, fn(result) { transform(complete(result)) })
     GetSnippet(request, complete) ->
       GetSnippet(request, fn(result) { transform(complete(result)) })
+    ClassifySnippet(request, complete) ->
+      ClassifySnippet(request, fn(result) { transform(complete(result)) })
     DeleteSnippet(request, complete) ->
       DeleteSnippet(request, fn(result) { transform(complete(result)) })
   }

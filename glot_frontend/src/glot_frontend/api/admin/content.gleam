@@ -82,6 +82,21 @@ pub fn get_admin_snippet(
   )
 }
 
+pub fn classify_admin_snippet(
+  request: admin_snippet_dto.GetSnippetRequest,
+  to_msg: fn(response.Response(admin_snippet_dto.GetSnippetResponse)) -> msg,
+) -> effect.Effect(msg) {
+  let req =
+    request.AdminRequest(admin_action.ClassifyAdminSnippetAction, request)
+
+  request.send_admin(
+    req,
+    admin_snippet_dto.encode_get_request,
+    admin_snippet_dto.get_response_decoder(),
+    to_msg,
+  )
+}
+
 pub fn delete_admin_snippet(
   request: snippet_dto.DeleteSnippetRequest,
   to_msg: fn(response.Response(Nil)) -> msg,

@@ -350,6 +350,9 @@ fn test_service_ports() -> service_ports.ServicePorts {
         store_spam_classification: fn(_, _, _) {
           Ok(spam_classification.Stored)
         },
+        update_spam_classification: fn(_, _, _) {
+          Ok(spam_classification.Stored)
+        },
         store_spam_classification_failure: fn(_, _, _) {
           Ok(spam_classification.Stored)
         },

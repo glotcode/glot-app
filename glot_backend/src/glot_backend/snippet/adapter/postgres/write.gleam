@@ -96,6 +96,31 @@ pub fn store_spam_classification(
   classification_store_result(id, returned.count)
 }
 
+pub fn update_spam_classification(
+  db: db_helpers.Db,
+  id: Uuid,
+  expected_updated_at: Timestamp,
+  classification: spam_classification.ClassificationResult,
+) -> Result(spam_classification.StoreResult, db_error.DbCommandError) {
+  use returned <- result.try(db_helpers.execute(
+    db,
+    sql.update_spam_classification(
+      option.Some(spam_classification.decision_to_string(
+        classification.decision,
+      )),
+      option.Some(classification.confidence),
+      option.Some(spam_classification.reason_code_to_string(
+        classification.reason_code,
+      )),
+      option.Some(classification.classified_at),
+      uuid.to_bit_array(id),
+      expected_updated_at,
+    ),
+    command_error,
+  ))
+  classification_store_result(id, returned.count)
+}
+
 pub fn increment_spam_classification_attempts(
   db: db_helpers.Db,
   id: Uuid,

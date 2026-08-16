@@ -80,6 +80,7 @@ pub fn admin(action: AdminAction) -> transport.Ownership {
     | admin_action.UpdateAdminPeriodicJobAction
     | admin_action.CreateAdminJobAction
     | admin_action.UpdateAdminEmailTemplateAction
+    | admin_action.ClassifyAdminSnippetAction
     | admin_action.DeleteAdminSnippetAction
     | admin_action.UpdateAdminUserAction
     | admin_action.DeleteAdminAccountAction

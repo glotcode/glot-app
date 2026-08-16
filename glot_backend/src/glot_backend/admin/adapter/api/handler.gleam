@@ -47,6 +47,7 @@ import glot_backend/admin/domain/job/update_periodic as update_periodic_job_doma
 import glot_backend/admin/domain/job/upsert_type_policy as upsert_job_type_policy_domain
 import glot_backend/admin/domain/run_log/get as get_run_log_domain
 import glot_backend/admin/domain/run_log/list as get_run_logs_domain
+import glot_backend/admin/domain/snippet/classify as admin_classify_snippet_domain
 import glot_backend/admin/domain/snippet/delete as admin_delete_snippet_domain
 import glot_backend/admin/domain/snippet/get as admin_get_snippet_domain
 import glot_backend/admin/domain/snippet/list as get_snippets_domain
@@ -228,6 +229,13 @@ pub fn dispatch(
         admin_get_snippet_domain.request_from_dynamic(data),
       )
       admin_get_snippet_domain.get_snippet(request_ctx, request)
+      |> program.map(api_result.AdminSnippetResponse)
+    }
+    admin_action.ClassifyAdminSnippetAction -> {
+      use request <- program.and_then(
+        admin_classify_snippet_domain.request_from_dynamic(data),
+      )
+      admin_classify_snippet_domain.classify_snippet(request_ctx, request)
       |> program.map(api_result.AdminSnippetResponse)
     }
     admin_action.DeleteAdminSnippetAction -> {

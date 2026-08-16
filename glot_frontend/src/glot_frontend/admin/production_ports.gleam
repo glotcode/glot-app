@@ -125,6 +125,8 @@ fn run_content(command: content.Command(msg)) -> Effect(msg) {
       content_api.get_admin_snippets(request, done)
     content.GetSnippet(request, done) ->
       content_api.get_admin_snippet(request, done)
+    content.ClassifySnippet(request, done) ->
+      content_api.classify_admin_snippet(request, done)
     content.DeleteSnippet(request, done) ->
       content_api.delete_admin_snippet(request, done)
   }

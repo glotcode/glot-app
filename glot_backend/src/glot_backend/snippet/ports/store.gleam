@@ -43,6 +43,11 @@ pub type Store {
       Timestamp,
       spam_classification.ClassificationResult,
     ) -> Result(spam_classification.StoreResult, db_error.DbCommandError),
+    update_spam_classification: fn(
+      Uuid,
+      Timestamp,
+      spam_classification.ClassificationResult,
+    ) -> Result(spam_classification.StoreResult, db_error.DbCommandError),
     store_spam_classification_failure: fn(
       Uuid,
       Timestamp,

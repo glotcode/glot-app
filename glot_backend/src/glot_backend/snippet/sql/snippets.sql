@@ -332,6 +332,19 @@ WHERE id = $5
   AND spam_decision IS NULL
   AND spam_classification_failed_at IS NULL;
 
+-- name: UpdateSpamClassification :exec
+-- Classification is operational metadata and must not change the snippet's updated_at.
+UPDATE snippets
+SET spam_decision = $1,
+    spam_confidence = $2,
+    spam_reason_code = $3,
+    spam_classified_at = $4,
+    spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1,
+    spam_classification_last_error = NULL,
+    spam_classification_failed_at = NULL
+WHERE id = $5
+  AND updated_at = $6;
+
 -- name: IncrementSpamClassificationAttempts :exec
 UPDATE snippets
 SET spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1

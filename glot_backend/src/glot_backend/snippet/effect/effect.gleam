@@ -158,6 +158,24 @@ pub fn store_spam_classification_tx(
   )
 }
 
+pub fn update_spam_classification_tx(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+  classification: spam_classification.ClassificationResult,
+) -> program_types.TransactionProgram(spam_classification.StoreResult) {
+  transaction_program.perform(
+    update_spam_classification_effect(
+      id,
+      expected_updated_at,
+      classification,
+      transaction_program.from_mapped_result(
+        _,
+        map_error: error.database_command_error,
+      ),
+    ),
+  )
+}
+
 pub fn store_spam_classification_failure_tx(
   id: uuid.Uuid,
   expected_updated_at: Timestamp,
@@ -351,6 +369,21 @@ fn store_spam_classification_effect(
     next,
 ) -> program_types.DbEffect(next) {
   program_types.SnippetEffect(snippet_algebra.StoreSpamClassification(
+    id:,
+    expected_updated_at:,
+    classification:,
+    next:,
+  ))
+}
+
+fn update_spam_classification_effect(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+  classification: spam_classification.ClassificationResult,
+  next: fn(Result(spam_classification.StoreResult, db_error.DbCommandError)) ->
+    next,
+) -> program_types.DbEffect(next) {
+  program_types.SnippetEffect(snippet_algebra.UpdateSpamClassification(
     id:,
     expected_updated_at:,
     classification:,

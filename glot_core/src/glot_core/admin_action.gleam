@@ -32,6 +32,7 @@ pub type AdminAction {
   UpdateAdminEmailTemplateAction
   GetAdminSnippetsAction
   GetAdminSnippetAction
+  ClassifyAdminSnippetAction
   DeleteAdminSnippetAction
   GetAdminUsersAction
   GetAdminUserAction
@@ -87,6 +88,7 @@ pub fn list() -> List(AdminAction) {
     UpdateAdminEmailTemplateAction,
     GetAdminSnippetsAction,
     GetAdminSnippetAction,
+    ClassifyAdminSnippetAction,
     DeleteAdminSnippetAction,
     GetAdminUsersAction,
     GetAdminUserAction,
@@ -158,6 +160,7 @@ pub fn to_string(action: AdminAction) -> String {
     UpdateAdminEmailTemplateAction -> "update_admin_email_template"
     GetAdminSnippetsAction -> "get_admin_snippets"
     GetAdminSnippetAction -> "get_admin_snippet"
+    ClassifyAdminSnippetAction -> "classify_admin_snippet"
     DeleteAdminSnippetAction -> "delete_admin_snippet"
     GetAdminUsersAction -> "get_admin_users"
     GetAdminUserAction -> "get_admin_user"
@@ -221,6 +224,7 @@ pub fn from_string(action: String) -> option.Option(AdminAction) {
     "update_admin_email_template" -> option.Some(UpdateAdminEmailTemplateAction)
     "get_admin_snippets" -> option.Some(GetAdminSnippetsAction)
     "get_admin_snippet" -> option.Some(GetAdminSnippetAction)
+    "classify_admin_snippet" -> option.Some(ClassifyAdminSnippetAction)
     "delete_admin_snippet" -> option.Some(DeleteAdminSnippetAction)
     "get_admin_users" -> option.Some(GetAdminUsersAction)
     "get_admin_user" -> option.Some(GetAdminUserAction)
