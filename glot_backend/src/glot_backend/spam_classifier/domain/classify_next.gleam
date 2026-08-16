@@ -29,7 +29,9 @@ type ClassificationAttempt {
   SnippetRejected(error_code: String)
 }
 
-pub fn classify_next(_ctx: Context) -> Program(Outcome) {
+const retry_limit_exceeded = "retry_limit_exceeded"
+
+pub fn classify_next(_ctx: Context, max_attempts: Int) -> Program(Outcome) {
   use config <- program.and_then(app_config_effect.get_dynamic_config())
   case dynamic_config.spam_classifier_config(config) {
     option.None ->
@@ -40,7 +42,8 @@ pub fn classify_next(_ctx: Context) -> Program(Outcome) {
       )
       case candidate {
         option.None -> program.succeed(NoCandidate)
-        option.Some(candidate) -> classify_candidate(config, candidate)
+        option.Some(candidate) ->
+          classify_candidate(config, candidate, max_attempts)
       }
     }
   }
@@ -49,45 +52,67 @@ pub fn classify_next(_ctx: Context) -> Program(Outcome) {
 fn classify_candidate(
   config,
   candidate: spam_classification.Candidate,
+  max_attempts: Int,
 ) -> Program(Outcome) {
-  let spam_classification.Candidate(snippet, expected_updated_at) = candidate
-  use recorded <- program.and_then(
-    snippet_effect.increment_spam_classification_attempts(
-      snippet.id,
-      expected_updated_at,
-    ),
-  )
-  case recorded {
-    spam_classification.Stored ->
-      classify_recorded_candidate(config, snippet, expected_updated_at)
-    spam_classification.Stale ->
-      program.succeed(
-        Processed(
-          transaction_program.succeed(
-            finalization.Skipped(
-              log.from_list([
-                log.uuid("snippet_id", snippet.id),
-                log.bool("spam_classification_stale", True),
-              ]),
-            ),
-          ),
+  let spam_classification.Candidate(snippet, expected_updated_at, attempts) =
+    candidate
+  case attempts >= max_attempts {
+    True ->
+      quarantine_snippet(snippet, expected_updated_at, retry_limit_exceeded)
+    False -> {
+      use recorded <- program.and_then(
+        snippet_effect.increment_spam_classification_attempts(
+          snippet.id,
+          expected_updated_at,
         ),
       )
+      case recorded {
+        spam_classification.Stored ->
+          classify_recorded_candidate(
+            config,
+            snippet,
+            expected_updated_at,
+            attempts + 1 >= max_attempts,
+          )
+        spam_classification.Stale -> stale_candidate(snippet)
+      }
+    }
   }
+}
+
+fn stale_candidate(snippet: Snippet) -> Program(Outcome) {
+  program.succeed(
+    Processed(
+      transaction_program.succeed(
+        finalization.Skipped(
+          log.from_list([
+            log.uuid("snippet_id", snippet.id),
+            log.bool("spam_classification_stale", True),
+          ]),
+        ),
+      ),
+    ),
+  )
 }
 
 fn classify_recorded_candidate(
   config,
   snippet: Snippet,
   expected_updated_at: Timestamp,
+  retry_limit_reached: Bool,
 ) -> Program(Outcome) {
   use attempt <- program.and_then(
     classifier_effect.classify(config, snippet)
     |> program.map(Classified)
     |> program.attempt(fn(err) {
-      case snippet_failure_code(err) {
-        option.Some(error_code) -> program.succeed(SnippetRejected(error_code))
-        option.None -> program.fail(err)
+      case snippet_failure_code(err), retry_limit_reached {
+        option.Some(error_code), _ ->
+          program.succeed(SnippetRejected(error_code))
+        option.None, True ->
+          program.succeed(SnippetRejected(
+            retry_limit_exceeded <> ":" <> error.to_string(err),
+          ))
+        option.None, False -> program.fail(err)
       }
     }),
   )

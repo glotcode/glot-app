@@ -167,7 +167,7 @@ fn delegate_job(ctx: Context, job: Job) -> Program(HandlerOutcome) {
     job_model.AggregateMetricsJob ->
       complete_after(aggregate_metrics_domain.aggregate_metrics(ctx))
     job_model.ClassifySnippetJob ->
-      classify_snippet_domain.classify_next(ctx)
+      classify_snippet_domain.classify_next(ctx, job.max_attempts)
       |> program.map(fn(outcome) {
         case outcome {
           classify_snippet_domain.Processed(finalize) ->

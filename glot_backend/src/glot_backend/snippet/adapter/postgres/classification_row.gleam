@@ -34,6 +34,10 @@ pub fn from_unclassified(
   use run_instructions <- result.try(decode_run_instructions(
     row.run_instructions,
   ))
+  use attempts <- result.try(
+    spam_classification.attempts_from_int(row.spam_classification_attempts)
+    |> result.map_error(db_error.DbQueryError),
+  )
   let snippet =
     snippet_model.Snippet(
       id: uuid_helpers.from_bit_array(row.id),
@@ -48,7 +52,7 @@ pub fn from_unclassified(
       created_at: row.created_at,
       updated_at: row.updated_at,
     )
-  Ok(spam_classification.Candidate(snippet, row.updated_at))
+  Ok(spam_classification.Candidate(snippet, row.updated_at, attempts))
 }
 
 fn decode_run_instructions(

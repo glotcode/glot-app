@@ -6089,12 +6089,14 @@ pub type GetNewestUnclassifiedSnippet {
     files: String,
     created_at: Timestamp,
     updated_at: Timestamp,
+    spam_classification_attempts: Int,
   )
 }
 
 pub fn get_newest_unclassified_snippet() {
   let sql =
-    "SELECT id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at
+    "SELECT id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at,
+  COALESCE(spam_classification_attempts, 0)::int AS spam_classification_attempts
 FROM snippets
 WHERE spam_decision IS NULL
   AND spam_classification_failed_at IS NULL
@@ -6117,6 +6119,7 @@ pub fn get_newest_unclassified_snippet_decoder() -> decode.Decoder(
   use files <- decode.field(8, decode.string)
   use created_at <- decode.field(9, dev.datetime_decoder())
   use updated_at <- decode.field(10, dev.datetime_decoder())
+  use spam_classification_attempts <- decode.field(11, decode.int)
   decode.success(GetNewestUnclassifiedSnippet(
     id:,
     slug:,
@@ -6129,6 +6132,7 @@ pub fn get_newest_unclassified_snippet_decoder() -> decode.Decoder(
     files:,
     created_at:,
     updated_at:,
+    spam_classification_attempts:,
   ))
 }
 

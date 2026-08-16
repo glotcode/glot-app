@@ -55,7 +55,7 @@ pub type StoreResult {
 }
 
 pub type Candidate {
-  Candidate(snippet: Snippet, expected_updated_at: Timestamp)
+  Candidate(snippet: Snippet, expected_updated_at: Timestamp, attempts: Int)
 }
 
 pub type ServiceResponse {

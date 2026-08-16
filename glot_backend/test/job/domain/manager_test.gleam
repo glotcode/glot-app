@@ -385,7 +385,7 @@ fn classifier_services(
     test_service_ports.defaults(test_state)
     |> test_service_ports.with_app_config(test_state)
     |> test_service_ports.with_job(test_state)
-  let candidate = spam_classification.Candidate(snippet, snippet.updated_at)
+  let candidate = spam_classification.Candidate(snippet, snippet.updated_at, 0)
   let snippets =
     snippet_store.Store(
       ..test_snippet_adapter.defaults(),

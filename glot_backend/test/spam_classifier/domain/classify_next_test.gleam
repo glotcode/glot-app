@@ -41,7 +41,7 @@ pub fn invalid_snippet_is_quarantined_and_processing_continues_test() {
 
   let #(result, _) =
     runner.run_test_program_with(
-      classify_and_finalize(fixture.test_context()),
+      classify_and_finalize(fixture.test_context(), 10),
       fixture.test_context(),
       initial_state,
       fn(test_state) {
@@ -50,6 +50,7 @@ pub fn invalid_snippet_is_quarantined_and_processing_continues_test() {
           test_fixture.snippet,
           failures,
           attempts,
+          0,
           Error(classifier_error),
         )
       },
@@ -75,7 +76,7 @@ pub fn missing_config_is_visible_and_keeps_circuit_job_active_test() {
 
   let #(result, _) =
     runner.run_test_program_with(
-      classify_next.classify_next(fixture.test_context()),
+      classify_next.classify_next(fixture.test_context(), 10),
       fixture.test_context(),
       test_fixture.state,
       fn(test_state) {
@@ -102,8 +103,85 @@ fn with_classifier_config(state: model.TestState) -> model.TestState {
   model.TestState(..state, dynamic_config: config)
 }
 
-fn classify_and_finalize(ctx) {
-  use outcome <- program.and_then(classify_next.classify_next(ctx))
+pub fn final_service_failure_quarantines_snippet_test() {
+  let test_fixture =
+    fixture.integration_fixture(
+      next_uuids: [],
+      jobs: [],
+      account_delete_job_id: option.None,
+    )
+  let initial_state = with_classifier_config(test_fixture.state)
+  let failures = process.new_subject()
+  let attempts = process.new_subject()
+  let classifier_error =
+    error.infra(
+      infra_error.SpamClassifierError(infra_error.SpamClassifierRequestFailed(
+        "status=502:request_id=test",
+        infra_error.RetryIndefinitelyWithBackoff,
+        infra_error.ServiceFailure,
+      )),
+    )
+
+  let #(result, _) =
+    runner.run_test_program_with(
+      classify_and_finalize(fixture.test_context(), 10),
+      fixture.test_context(),
+      initial_state,
+      fn(test_state) {
+        services(
+          test_state,
+          test_fixture.snippet,
+          failures,
+          attempts,
+          9,
+          Error(classifier_error),
+        )
+      },
+    )
+
+  let assert Ok(classify_next.Processed(_)) = result
+  let assert Ok(#(_, _, failure)) = process.receive(failures, 0)
+  assert failure.error_code
+    == "retry_limit_exceeded:spam_classifier_request_failed:status=502:request_id=test"
+  assert failure.failed_at == fixture.test_system_time()
+}
+
+pub fn exhausted_snippet_is_quarantined_without_another_attempt_test() {
+  let test_fixture =
+    fixture.integration_fixture(
+      next_uuids: [],
+      jobs: [],
+      account_delete_job_id: option.None,
+    )
+  let initial_state = with_classifier_config(test_fixture.state)
+  let failures = process.new_subject()
+  let attempts = process.new_subject()
+
+  let #(result, _) =
+    runner.run_test_program_with(
+      classify_and_finalize(fixture.test_context(), 10),
+      fixture.test_context(),
+      initial_state,
+      fn(test_state) {
+        services(
+          test_state,
+          test_fixture.snippet,
+          failures,
+          attempts,
+          10,
+          Error(error.infra(infra_error.RunRequestServerError)),
+        )
+      },
+    )
+
+  let assert Ok(classify_next.Processed(_)) = result
+  let assert Ok(#(_, _, failure)) = process.receive(failures, 0)
+  assert failure.error_code == "retry_limit_exceeded"
+  assert process.receive(attempts, 0) == Error(Nil)
+}
+
+fn classify_and_finalize(ctx, max_attempts) {
+  use outcome <- program.and_then(classify_next.classify_next(ctx, max_attempts))
   case outcome {
     classify_next.NoCandidate -> program.succeed(outcome)
     classify_next.Processed(finalize) -> {
@@ -113,12 +191,24 @@ fn classify_and_finalize(ctx) {
   }
 }
 
-fn services(test_state, snippet, failures, attempts, classifier_result) {
+fn services(
+  test_state,
+  snippet,
+  failures,
+  attempts,
+  candidate_attempts,
+  classifier_result,
+) {
   let base_services =
     test_service_ports.defaults(test_state)
     |> test_service_ports.with_app_config(test_state)
   let base_snippet_store = test_snippet_adapter.defaults()
-  let candidate = spam_classification.Candidate(snippet, snippet.updated_at)
+  let candidate =
+    spam_classification.Candidate(
+      snippet,
+      snippet.updated_at,
+      candidate_attempts,
+    )
   let snippets =
     snippet_store.Store(
       ..base_snippet_store,
