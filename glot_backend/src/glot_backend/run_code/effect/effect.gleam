@@ -1,4 +1,6 @@
 import gleam/option.{type Option}
+import glot_backend/app_config/effect/effect as app_config_effect
+import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/run_code/effect/algebra
 import glot_backend/run_code/model/config.{type DockerRunConfig}
 import glot_backend/system/effect/error
@@ -19,6 +21,13 @@ pub fn run_code(
       )),
     ),
   )
+}
+
+pub fn run_code_from_dynamic_config(
+  request: run.RunRequest,
+) -> program_types.Program(run.RunResult) {
+  use config <- program.and_then(app_config_effect.get_dynamic_config())
+  run_code(dynamic_config.docker_run_config(config), request)
 }
 
 pub fn get_language_version(

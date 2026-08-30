@@ -17,3 +17,16 @@ pub fn updating_classification_does_not_update_snippet_timestamp_test() {
 
   assert !string.contains(set_clause, "updated_at")
 }
+
+pub fn storing_runnability_does_not_update_snippet_timestamp_test() {
+  let #(statement, _) =
+    sql.store_snippet_runnability(
+      option.Some(True),
+      option.None,
+      <<>>,
+      timestamp.from_unix_seconds(0),
+    )
+  let assert [set_clause, _] = string.split(statement, on: "WHERE")
+
+  assert !string.contains(set_clause, "updated_at")
+}

@@ -1,5 +1,6 @@
 import gleam/dynamic/decode
 import gleam/json
+import gleam/list
 import gleam/option.{type Option}
 import gleam/result
 import glot_core/language
@@ -32,6 +33,59 @@ pub type FailedRun {
 
 pub type RunResult =
   Result(SuccessfulRun, FailedRun)
+
+pub fn snippet_request(
+  snippet_language: language.Language,
+  run_instructions_override: Option(language.RunInstructions),
+  files: List(snippet_model.File),
+  stdin: Option(String),
+) -> RunRequest {
+  RunRequest(
+    image: language.container_image(snippet_language),
+    payload: RunRequestPayload(
+      run_instructions: effective_run_instructions(
+        snippet_language,
+        run_instructions_override,
+        files,
+      ),
+      files: files,
+      stdin: stdin,
+    ),
+  )
+}
+
+pub fn effective_run_instructions(
+  snippet_language: language.Language,
+  run_instructions_override: Option(language.RunInstructions),
+  files: List(snippet_model.File),
+) -> language.RunInstructions {
+  case run_instructions_override {
+    option.Some(run_instructions) -> run_instructions
+    option.None -> default_run_instructions(snippet_language, files)
+  }
+}
+
+pub fn default_run_instructions(
+  snippet_language: language.Language,
+  files: List(snippet_model.File),
+) -> language.RunInstructions {
+  let default_name = language.default_filename(snippet_language)
+  let names = list.map(files, fn(file) { file.name })
+  let main_file = case list.find(names, fn(name) { name == default_name }) {
+    Ok(name) -> name
+    Error(_) -> list.first(names) |> result.unwrap("")
+  }
+  let other_files = remove_first(names, main_file)
+  language.run_instructions(snippet_language, main_file, other_files)
+}
+
+fn remove_first(values: List(a), target: a) -> List(a) {
+  case values {
+    [] -> []
+    [value, ..rest] if value == target -> rest
+    [value, ..rest] -> [value, ..remove_first(rest, target)]
+  }
+}
 
 pub fn is_empty(r: SuccessfulRun) -> Bool {
   r.stdout == "" && r.stderr == "" && r.error == ""

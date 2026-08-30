@@ -86,6 +86,11 @@ pub fn start() {
   let spam_classifier_job_executor =
     process.named_subject(spam_classifier_job_executor_name)
     |> job_executor_control_adapter.new
+  let snippet_runnability_job_executor_name =
+    process.new_name("snippet_runnability_job_executor")
+  let snippet_runnability_job_executor =
+    process.named_subject(snippet_runnability_job_executor_name)
+    |> job_executor_control_adapter.new
   let request_tracker_name = process.new_name("request_tracker")
   let request_tracker_subject = process.named_subject(request_tracker_name)
   let request_tracker = request_tracker_adapter.new(request_tracker_subject)
@@ -167,6 +172,7 @@ pub fn start() {
         language_version_cache_worker_name: language_version_cache_worker_name,
         default_job_executor_name: default_job_executor_name,
         spam_classifier_job_executor_name: spam_classifier_job_executor_name,
+        snippet_runnability_job_executor_name: snippet_runnability_job_executor_name,
       ),
       mist_builder: mist_builder,
     ))
@@ -177,7 +183,11 @@ pub fn start() {
     server_mode,
     request_tracker,
     job_tracker,
-    [default_job_executor, spam_classifier_job_executor],
+    [
+      default_job_executor,
+      spam_classifier_job_executor,
+      snippet_runnability_job_executor,
+    ],
   )
 }
 

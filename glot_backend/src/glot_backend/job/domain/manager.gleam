@@ -14,6 +14,7 @@ import glot_backend/logging/api_log/domain/cleanup as clean_api_log_domain
 import glot_backend/logging/page_log/domain/cleanup as clean_page_log_domain
 import glot_backend/logging/pageview/domain/cleanup as clean_pageview_log_domain
 import glot_backend/logging/run_log/domain/cleanup as clean_run_log_domain
+import glot_backend/snippet_runnability/domain/check_next as check_runnability_domain
 import glot_backend/spam_classifier/domain/classify_next as classify_snippet_domain
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error.{type Error}
@@ -173,6 +174,16 @@ fn delegate_job(ctx: Context, job: Job) -> Program(HandlerOutcome) {
           classify_snippet_domain.Processed(finalize) ->
             ContinueImmediately(finalize)
           classify_snippet_domain.NoCandidate ->
+            CompleteJob(transaction_program.succeed(finalization.Applied))
+        }
+      })
+    job_model.CheckSnippetRunnabilityJob ->
+      check_runnability_domain.check_next(ctx, job.max_attempts)
+      |> program.map(fn(outcome) {
+        case outcome {
+          check_runnability_domain.Processed(finalize) ->
+            ContinueImmediately(finalize)
+          check_runnability_domain.NoCandidate ->
             CompleteJob(transaction_program.succeed(finalization.Applied))
         }
       })

@@ -9,6 +9,7 @@ import glot_core/helpers/uuid_helpers
 import glot_core/language
 import glot_core/pagination_model
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/runnability.{type RunnabilityMetadata}
 import glot_core/snippet/snippet_model
 import glot_core/snippet/spam_classification.{
   type ClassificationMetadata, type Filter,
@@ -53,6 +54,7 @@ pub type SnippetDetailResponse {
     run_instructions: option.Option(language.RunInstructions),
     files: List(snippet_model.File),
     spam_classification: ClassificationMetadata,
+    runnability: RunnabilityMetadata,
     created_at: Timestamp,
     updated_at: Timestamp,
   )
@@ -178,6 +180,7 @@ fn to_admin_snippet_detail(snippet: AdminSnippet) -> SnippetDetailResponse {
     run_instructions: hydrated.identity.run_instructions,
     files: hydrated.identity.files,
     spam_classification: snippet.spam_classification,
+    runnability: snippet.runnability,
     created_at: hydrated.identity.created_at,
     updated_at: hydrated.identity.updated_at,
   )
@@ -243,6 +246,7 @@ fn snippet_detail_decoder() -> decode.Decoder(SnippetDetailResponse) {
     "spamClassification",
     spam_classification_decoder(),
   )
+  use runnability <- decode.field("runnability", runnability_decoder())
   use created_at <- decode.field("createdAt", timestamp_helpers.decoder())
   use updated_at <- decode.field("updatedAt", timestamp_helpers.decoder())
   decode.success(SnippetDetailResponse(
@@ -256,6 +260,7 @@ fn snippet_detail_decoder() -> decode.Decoder(SnippetDetailResponse) {
     run_instructions: run_instructions,
     files: files,
     spam_classification: spam_classification,
+    runnability: runnability,
     created_at: created_at,
     updated_at: updated_at,
   ))
@@ -279,8 +284,48 @@ fn encode_snippet_detail(response: SnippetDetailResponse) -> json.Json {
       "spamClassification",
       encode_spam_classification(response.spam_classification),
     ),
+    #("runnability", encode_runnability(response.runnability)),
     #("createdAt", timestamp_helpers.encode(response.created_at)),
     #("updatedAt", timestamp_helpers.encode(response.updated_at)),
+  ])
+}
+
+fn runnability_decoder() -> decode.Decoder(RunnabilityMetadata) {
+  use is_runnable <- decode.field("isRunnable", decode.optional(decode.bool))
+  use checked_at <- decode.field(
+    "checkedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  use attempts <- decode.field(
+    "attempts",
+    decode.then(decode.int, fn(value) {
+      case runnability.attempts_from_int(value) {
+        Ok(attempts) -> decode.success(attempts)
+        Error(message) -> decode.failure(value, message)
+      }
+    }),
+  )
+  use last_error <- decode.field("lastError", decode.optional(decode.string))
+  use failed_at <- decode.field(
+    "failedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  decode.success(runnability.RunnabilityMetadata(
+    is_runnable: is_runnable,
+    checked_at: checked_at,
+    attempts: attempts,
+    last_error: last_error,
+    failed_at: failed_at,
+  ))
+}
+
+fn encode_runnability(metadata: RunnabilityMetadata) -> json.Json {
+  json.object([
+    #("isRunnable", json.nullable(metadata.is_runnable, json.bool)),
+    #("checkedAt", json.nullable(metadata.checked_at, timestamp_helpers.encode)),
+    #("attempts", json.int(metadata.attempts)),
+    #("lastError", json.nullable(metadata.last_error, json.string)),
+    #("failedAt", json.nullable(metadata.failed_at, timestamp_helpers.encode)),
   ])
 }
 

@@ -28,6 +28,7 @@ pub fn new(
           outcome |> result.map_error(string.inspect)
         }
         job_model.SpamClassifierQueue -> Ok(False)
+        job_model.SnippetRunnabilityQueue -> Ok(False)
       }
     },
     recover_next_expired_job: fn(ctx) {

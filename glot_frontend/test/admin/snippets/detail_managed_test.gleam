@@ -4,6 +4,7 @@ import glot_core/admin/snippet_dto
 import glot_core/auth/user_dto
 import glot_core/language
 import glot_core/loadable
+import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model
 import glot_core/snippet/spam_classification
 import glot_frontend/admin/command
@@ -79,6 +80,13 @@ fn fixture_snippet() -> snippet_dto.SnippetDetailResponse {
       reason_code: option.Some(spam_classification.None),
       classified_at: option.Some(timestamp.from_unix_seconds(100)),
       attempts: 3,
+      last_error: option.None,
+      failed_at: option.None,
+    ),
+    runnability: runnability.RunnabilityMetadata(
+      is_runnable: option.Some(True),
+      checked_at: option.Some(timestamp.from_unix_seconds(150)),
+      attempts: 1,
       last_error: option.None,
       failed_at: option.None,
     ),

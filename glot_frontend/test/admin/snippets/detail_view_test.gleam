@@ -6,6 +6,7 @@ import glot_core/admin/snippet_dto
 import glot_core/auth/user_dto
 import glot_core/language
 import glot_core/loadable
+import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model
 import glot_core/snippet/spam_classification
 import glot_frontend/admin/snippets/detail_model
@@ -39,6 +40,13 @@ pub fn owner_name_and_id_link_to_the_admin_user_detail_page_test() {
         last_error: option.None,
         failed_at: option.None,
       ),
+      runnability: runnability.RunnabilityMetadata(
+        is_runnable: option.Some(False),
+        checked_at: option.Some(timestamp.from_unix_seconds(150)),
+        attempts: 2,
+        last_error: option.None,
+        failed_at: option.None,
+      ),
       created_at: timestamp.from_unix_seconds(100),
       updated_at: timestamp.from_unix_seconds(200),
     )
@@ -61,4 +69,6 @@ pub fn owner_name_and_id_link_to_the_admin_user_detail_page_test() {
   assert string.contains(rendered, ">fixture-owner</a>")
   assert string.contains(rendered, ">00000000-0000-4000-8000-000000000002</a>")
   assert string.contains(rendered, ">Run spam classification</button>")
+  assert string.contains(rendered, ">Runnability</h3>")
+  assert string.contains(rendered, ">Not runnable</")
 }

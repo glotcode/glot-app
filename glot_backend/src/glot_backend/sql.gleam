@@ -5356,6 +5356,11 @@ pub type GetAdminSnippetBySlug {
     spam_classification_attempts: Option(Int),
     spam_classification_last_error: Option(String),
     spam_classification_failed_at: Option(Timestamp),
+    is_runnable: Option(Bool),
+    runnability_checked_at: Option(Timestamp),
+    runnability_check_attempts: Int,
+    runnability_check_last_error: Option(String),
+    runnability_check_failed_at: Option(Timestamp),
     user_id: BitArray,
     user_account_id: BitArray,
     user_email: String,
@@ -5387,6 +5392,11 @@ pub fn get_admin_snippet_by_slug(slug slug: String) {
   snippets.spam_classification_attempts,
   snippets.spam_classification_last_error,
   snippets.spam_classification_failed_at,
+  snippets.is_runnable,
+  snippets.runnability_checked_at,
+  snippets.runnability_check_attempts,
+  snippets.runnability_check_last_error,
+  snippets.runnability_check_failed_at,
   users.id AS user_id,
   users.account_id AS user_account_id,
   users.email AS user_email,
@@ -5433,14 +5443,28 @@ pub fn get_admin_snippet_by_slug_decoder() -> decode.Decoder(
     16,
     decode.optional(dev.datetime_decoder()),
   )
-  use user_id <- decode.field(17, decode.bit_array)
-  use user_account_id <- decode.field(18, decode.bit_array)
-  use user_email <- decode.field(19, decode.string)
-  use user_username <- decode.field(20, decode.string)
-  use user_role <- decode.field(21, decode.string)
-  use user_last_login_at <- decode.field(22, dev.datetime_decoder())
-  use user_created_at <- decode.field(23, dev.datetime_decoder())
-  use user_updated_at <- decode.field(24, dev.datetime_decoder())
+  use is_runnable <- decode.field(17, decode.optional(dev.bool_decoder()))
+  use runnability_checked_at <- decode.field(
+    18,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use runnability_check_attempts <- decode.field(19, decode.int)
+  use runnability_check_last_error <- decode.field(
+    20,
+    decode.optional(decode.string),
+  )
+  use runnability_check_failed_at <- decode.field(
+    21,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use user_id <- decode.field(22, decode.bit_array)
+  use user_account_id <- decode.field(23, decode.bit_array)
+  use user_email <- decode.field(24, decode.string)
+  use user_username <- decode.field(25, decode.string)
+  use user_role <- decode.field(26, decode.string)
+  use user_last_login_at <- decode.field(27, dev.datetime_decoder())
+  use user_created_at <- decode.field(28, dev.datetime_decoder())
+  use user_updated_at <- decode.field(29, dev.datetime_decoder())
   decode.success(GetAdminSnippetBySlug(
     id:,
     slug:,
@@ -5459,6 +5483,11 @@ pub fn get_admin_snippet_by_slug_decoder() -> decode.Decoder(
     spam_classification_attempts:,
     spam_classification_last_error:,
     spam_classification_failed_at:,
+    is_runnable:,
+    runnability_checked_at:,
+    runnability_check_attempts:,
+    runnability_check_last_error:,
+    runnability_check_failed_at:,
     user_id:,
     user_account_id:,
     user_email:,
@@ -6082,7 +6111,7 @@ pub fn update_snippet(
   id id: BitArray,
 ) {
   let sql =
-    "UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10, spam_decision = NULL, spam_confidence = NULL, spam_reason_code = NULL, spam_classified_at = NULL, spam_classification_attempts = 0, spam_classification_last_error = NULL, spam_classification_failed_at = NULL WHERE id = $11"
+    "UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10, spam_decision = NULL, spam_confidence = NULL, spam_reason_code = NULL, spam_classified_at = NULL, spam_classification_attempts = 0, spam_classification_last_error = NULL, spam_classification_failed_at = NULL, is_runnable = NULL, runnability_checked_at = NULL, runnability_check_attempts = 0, runnability_check_last_error = NULL, runnability_check_failed_at = NULL WHERE id = $11"
   #(sql, [
     dev.ParamString(slug),
     dev.ParamBitArray(user_id),
@@ -6261,6 +6290,132 @@ WHERE id = $3
     ),
     dev.ParamNullable(
       option.map(spam_classification_failed_at, fn(v) { dev.ParamTimestamp(v) }),
+    ),
+    dev.ParamBitArray(id),
+    dev.ParamTimestamp(updated_at),
+  ])
+}
+
+pub type GetNewestUncheckedSnippetRunnability {
+  GetNewestUncheckedSnippetRunnability(
+    id: BitArray,
+    slug: String,
+    user_id: BitArray,
+    language: String,
+    title: String,
+    visibility: String,
+    stdin: String,
+    run_instructions: Option(String),
+    files: String,
+    created_at: Timestamp,
+    updated_at: Timestamp,
+    runnability_check_attempts: Int,
+  )
+}
+
+pub fn get_newest_unchecked_snippet_runnability() {
+  let sql =
+    "SELECT id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at,
+  runnability_check_attempts
+FROM snippets
+WHERE is_runnable IS NULL
+  AND runnability_check_failed_at IS NULL
+ORDER BY updated_at DESC, id DESC
+LIMIT 1"
+  #(sql, [], get_newest_unchecked_snippet_runnability_decoder())
+}
+
+pub fn get_newest_unchecked_snippet_runnability_decoder() -> decode.Decoder(
+  GetNewestUncheckedSnippetRunnability,
+) {
+  use id <- decode.field(0, decode.bit_array)
+  use slug <- decode.field(1, decode.string)
+  use user_id <- decode.field(2, decode.bit_array)
+  use language <- decode.field(3, decode.string)
+  use title <- decode.field(4, decode.string)
+  use visibility <- decode.field(5, decode.string)
+  use stdin <- decode.field(6, decode.string)
+  use run_instructions <- decode.field(7, decode.optional(decode.string))
+  use files <- decode.field(8, decode.string)
+  use created_at <- decode.field(9, dev.datetime_decoder())
+  use updated_at <- decode.field(10, dev.datetime_decoder())
+  use runnability_check_attempts <- decode.field(11, decode.int)
+  decode.success(GetNewestUncheckedSnippetRunnability(
+    id:,
+    slug:,
+    user_id:,
+    language:,
+    title:,
+    visibility:,
+    stdin:,
+    run_instructions:,
+    files:,
+    created_at:,
+    updated_at:,
+    runnability_check_attempts:,
+  ))
+}
+
+pub fn increment_snippet_runnability_check_attempts(
+  id id: BitArray,
+  updated_at updated_at: Timestamp,
+) {
+  let sql =
+    "UPDATE snippets
+SET runnability_check_attempts = runnability_check_attempts + 1
+WHERE id = $1
+  AND updated_at = $2
+  AND is_runnable IS NULL
+  AND runnability_check_failed_at IS NULL"
+  #(sql, [dev.ParamBitArray(id), dev.ParamTimestamp(updated_at)])
+}
+
+pub fn store_snippet_runnability(
+  is_runnable is_runnable: Option(Bool),
+  runnability_checked_at runnability_checked_at: Option(Timestamp),
+  id id: BitArray,
+  updated_at updated_at: Timestamp,
+) {
+  let sql =
+    "UPDATE snippets
+SET is_runnable = $1,
+    runnability_checked_at = $2,
+    runnability_check_last_error = NULL,
+    runnability_check_failed_at = NULL
+WHERE id = $3
+  AND updated_at = $4
+  AND is_runnable IS NULL
+  AND runnability_check_failed_at IS NULL"
+  #(sql, [
+    dev.ParamNullable(option.map(is_runnable, fn(v) { dev.ParamBool(v) })),
+    dev.ParamNullable(
+      option.map(runnability_checked_at, fn(v) { dev.ParamTimestamp(v) }),
+    ),
+    dev.ParamBitArray(id),
+    dev.ParamTimestamp(updated_at),
+  ])
+}
+
+pub fn store_snippet_runnability_check_failure(
+  runnability_check_last_error runnability_check_last_error: Option(String),
+  runnability_check_failed_at runnability_check_failed_at: Option(Timestamp),
+  id id: BitArray,
+  updated_at updated_at: Timestamp,
+) {
+  let sql =
+    "UPDATE snippets
+SET runnability_check_last_error = $1,
+    runnability_check_failed_at = $2
+WHERE id = $3
+  AND updated_at = $4
+  AND is_runnable IS NULL
+  AND runnability_check_failed_at IS NULL"
+  #(sql, [
+    dev.ParamNullable(
+      option.map(runnability_check_last_error, fn(v) { dev.ParamString(v) }),
+    ),
+    dev.ParamNullable(
+      option.map(runnability_check_failed_at, fn(v) { dev.ParamTimestamp(v) }),
     ),
     dev.ParamBitArray(id),
     dev.ParamTimestamp(updated_at),

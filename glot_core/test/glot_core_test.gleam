@@ -83,9 +83,9 @@ pub fn spam_classifier_response_rejects_out_of_range_confidence_test() {
     |> result.is_error
 }
 
-pub fn admin_snippet_response_decodes_spam_classification_test() {
+pub fn admin_snippet_response_decodes_operational_metadata_test() {
   let payload =
-    "{\"snippet\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"slug\":\"example\",\"user\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"username\":\"owner\"},\"title\":\"Example\",\"language\":\"python\",\"visibility\":\"public\",\"stdin\":\"\",\"runInstructions\":null,\"files\":[{\"name\":\"main.py\",\"content\":\"\"}],\"spamClassification\":{\"decision\":\"review\",\"confidence\":82,\"reasonCode\":\"ambiguous\",\"classifiedAt\":{\"seconds\":1776254400,\"nanos\":0},\"attempts\":2,\"lastError\":null,\"failedAt\":null},\"createdAt\":{\"seconds\":1776250800,\"nanos\":0},\"updatedAt\":{\"seconds\":1776252600,\"nanos\":0}}}"
+    "{\"snippet\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"slug\":\"example\",\"user\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"username\":\"owner\"},\"title\":\"Example\",\"language\":\"python\",\"visibility\":\"public\",\"stdin\":\"\",\"runInstructions\":null,\"files\":[{\"name\":\"main.py\",\"content\":\"\"}],\"spamClassification\":{\"decision\":\"review\",\"confidence\":82,\"reasonCode\":\"ambiguous\",\"classifiedAt\":{\"seconds\":1776254400,\"nanos\":0},\"attempts\":2,\"lastError\":null,\"failedAt\":null},\"runnability\":{\"isRunnable\":true,\"checkedAt\":{\"seconds\":1776254500,\"nanos\":0},\"attempts\":1,\"lastError\":null,\"failedAt\":null},\"createdAt\":{\"seconds\":1776250800,\"nanos\":0},\"updatedAt\":{\"seconds\":1776252600,\"nanos\":0}}}"
   let assert Ok(response) =
     json.parse(payload, admin_snippet_dto.get_response_decoder())
 
@@ -95,6 +95,8 @@ pub fn admin_snippet_response_decodes_spam_classification_test() {
   assert response.snippet.spam_classification.reason_code
     == option.Some(spam_classification.Ambiguous)
   assert response.snippet.spam_classification.attempts == 2
+  assert response.snippet.runnability.is_runnable == option.Some(True)
+  assert response.snippet.runnability.attempts == 1
 }
 
 pub fn analytics_spam_classifier_metrics_round_trip_test() {

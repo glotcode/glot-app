@@ -7,6 +7,7 @@ import glot_core/admin/snippet_dto
 import glot_core/language
 import glot_core/loadable
 import glot_core/route
+import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model
 import glot_core/snippet/spam_classification.{
   type ClassificationMetadata, type Decision, type ReasonCode,
@@ -155,6 +156,44 @@ fn detail_view(model: Model) -> Element(Msg) {
             admin_layout.detail_item(
               "Updated at",
               admin_format.format_timestamp(snippet.updated_at),
+            ),
+          ]),
+        ]),
+        html.div([attribute.class("admin-page__group")], [
+          html.div([attribute.class("admin-page__group-header")], [
+            html.h3([attribute.class("admin-page__group-title")], [
+              html.text("Runnability"),
+            ]),
+            html.p([attribute.class("admin-page__group-copy")], [
+              html.text(
+                "The asynchronous execution check for the current snippet revision.",
+              ),
+            ]),
+          ]),
+          html.div([attribute.class(admin_layout.detail_grid_class())], [
+            admin_layout.detail_item(
+              "Status",
+              runnability_status(snippet.runnability),
+            ),
+            admin_layout.detail_item(
+              "Runnable",
+              optional_runnability(snippet.runnability.is_runnable),
+            ),
+            admin_layout.detail_item(
+              "Attempts",
+              int.to_string(snippet.runnability.attempts),
+            ),
+            admin_layout.detail_item(
+              "Checked at",
+              admin_format.optional_timestamp(snippet.runnability.checked_at),
+            ),
+            admin_layout.detail_item(
+              "Failed at",
+              admin_format.optional_timestamp(snippet.runnability.failed_at),
+            ),
+            admin_layout.detail_item(
+              "Last error",
+              admin_format.optional_text(snippet.runnability.last_error),
             ),
           ]),
         ]),
@@ -360,6 +399,23 @@ fn classification_status(classification: ClassificationMetadata) -> String {
     option.Some(_), _ -> "Classified"
     option.None, option.Some(_) -> "Failed"
     option.None, option.None -> "Unclassified"
+  }
+}
+
+fn runnability_status(metadata: runnability.RunnabilityMetadata) -> String {
+  case metadata.is_runnable, metadata.failed_at {
+    option.Some(True), _ -> "Runnable"
+    option.Some(False), _ -> "Not runnable"
+    option.None, option.Some(_) -> "Failed"
+    option.None, option.None -> "Pending"
+  }
+}
+
+fn optional_runnability(value: option.Option(Bool)) -> String {
+  case value {
+    option.Some(True) -> "Yes"
+    option.Some(False) -> "No"
+    option.None -> "Unknown"
   }
 }
 

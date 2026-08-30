@@ -50,6 +50,7 @@ import glot_backend/system/effect/transaction/transaction_program
 import glot_backend/system/request/context
 import glot_backend/user_action/ports/store as user_action_store
 import glot_core/job/job_model
+import glot_core/snippet/runnability
 import glot_core/snippet/spam_classification
 import glot_core/validation_error
 import youid/uuid
@@ -356,6 +357,12 @@ fn test_service_ports() -> service_ports.ServicePorts {
         store_spam_classification_failure: fn(_, _, _) {
           Ok(spam_classification.Stored)
         },
+        get_newest_unchecked_runnability: fn() { Ok(option.None) },
+        increment_runnability_check_attempts: fn(_, _) {
+          Ok(runnability.Stored)
+        },
+        store_runnability: fn(_, _, _) { Ok(runnability.Stored) },
+        store_runnability_check_failure: fn(_, _, _) { Ok(runnability.Stored) },
       ),
       user_action: user_action_store.Store(
         count: fn(_) { Ok([]) },

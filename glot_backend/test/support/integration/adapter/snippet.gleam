@@ -1,6 +1,7 @@
 import gleam/option
 import glot_backend/snippet/ports/store
 import glot_core/snippet/admin_snippet
+import glot_core/snippet/runnability
 import glot_core/snippet/spam_classification
 import support/integration/adapter/state
 import support/integration/adapter/unexpected
@@ -38,6 +39,18 @@ pub fn defaults() -> store.Store {
     },
     store_spam_classification_failure: fn(_, _, _) {
       unexpected.command("snippet.store_spam_classification_failure")
+    },
+    get_newest_unchecked_runnability: fn() {
+      unexpected.query("snippet.get_newest_unchecked_runnability")
+    },
+    increment_runnability_check_attempts: fn(_, _) {
+      unexpected.command("snippet.increment_runnability_check_attempts")
+    },
+    store_runnability: fn(_, _, _) {
+      unexpected.command("snippet.store_runnability")
+    },
+    store_runnability_check_failure: fn(_, _, _) {
+      unexpected.command("snippet.store_runnability_check_failure")
     },
   )
 }
@@ -90,6 +103,10 @@ pub fn new(test_state: state.State) -> store.Store {
     store_spam_classification_failure: fn(_, _, _) {
       Ok(spam_classification.Stored)
     },
+    get_newest_unchecked_runnability: fn() { Ok(option.None) },
+    increment_runnability_check_attempts: fn(_, _) { Ok(runnability.Stored) },
+    store_runnability: fn(_, _, _) { Ok(runnability.Stored) },
+    store_runnability_check_failure: fn(_, _, _) { Ok(runnability.Stored) },
   )
 }
 
@@ -101,6 +118,13 @@ fn admin_snippet_without_classification(snippet) {
       confidence: option.None,
       reason_code: option.None,
       classified_at: option.None,
+      attempts: 0,
+      last_error: option.None,
+      failed_at: option.None,
+    ),
+    runnability: runnability.RunnabilityMetadata(
+      is_runnable: option.None,
+      checked_at: option.None,
       attempts: 0,
       last_error: option.None,
       failed_at: option.None,

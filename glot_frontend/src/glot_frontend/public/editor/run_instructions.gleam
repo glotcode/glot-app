@@ -5,7 +5,6 @@ import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/command
-import glot_frontend/public/editor/files as editor_files
 import glot_frontend/public/editor/message.{
   type ExecutionMsg, VersionRunFinished,
 }
@@ -65,22 +64,15 @@ pub fn default_run_instructions(
   lang: language.Language,
   files: List(snippet_model.File),
 ) -> language.RunInstructions {
-  let default_name = language.default_filename(lang)
-  let main_file = editor_files.select_main_name(files, default_name)
-  let other_files =
-    files
-    |> list.map(fn(file) { file.name })
-    |> editor_files.remove_first_name(main_file)
-
-  language.run_instructions(lang, main_file, other_files)
+  run.default_run_instructions(lang, files)
 }
 
 pub fn effective_run_instructions(model: Editor) -> language.RunInstructions {
-  case model.snippet.run_instructions_override {
-    option.Some(run_instructions) -> run_instructions
-    option.None ->
-      default_run_instructions(model.snippet.language, model.snippet.files)
-  }
+  run.effective_run_instructions(
+    model.snippet.language,
+    model.snippet.run_instructions_override,
+    model.snippet.files,
+  )
 }
 
 pub fn run_instructions_override_from_draft(

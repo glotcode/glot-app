@@ -7,6 +7,7 @@ import glot_backend/sql
 import glot_backend/system/database as db_helpers
 import glot_backend/system/effect/error/db_error
 import glot_core/language
+import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{type Snippet}
 import glot_core/snippet/spam_classification
 import youid/uuid.{type Uuid}
@@ -166,6 +167,77 @@ pub fn classification_store_result(
     count ->
       Error(db_error.DbCommandError(
         "guarded spam classification update affected "
+        <> string.inspect(count)
+        <> " rows for snippet "
+        <> uuid.to_string(id),
+      ))
+  }
+}
+
+pub fn increment_runnability_check_attempts(
+  db: db_helpers.Db,
+  id: Uuid,
+  expected_updated_at: Timestamp,
+) -> Result(runnability.StoreResult, db_error.DbCommandError) {
+  use returned <- result.try(db_helpers.execute(
+    db,
+    sql.increment_snippet_runnability_check_attempts(
+      uuid.to_bit_array(id),
+      expected_updated_at,
+    ),
+    command_error,
+  ))
+  runnability_store_result(id, returned.count)
+}
+
+pub fn store_runnability(
+  db: db_helpers.Db,
+  id: Uuid,
+  expected_updated_at: Timestamp,
+  check_result: runnability.CheckResult,
+) -> Result(runnability.StoreResult, db_error.DbCommandError) {
+  use returned <- result.try(db_helpers.execute(
+    db,
+    sql.store_snippet_runnability(
+      option.Some(check_result.is_runnable),
+      option.Some(check_result.checked_at),
+      uuid.to_bit_array(id),
+      expected_updated_at,
+    ),
+    command_error,
+  ))
+  runnability_store_result(id, returned.count)
+}
+
+pub fn store_runnability_check_failure(
+  db: db_helpers.Db,
+  id: Uuid,
+  expected_updated_at: Timestamp,
+  failure: runnability.CheckFailure,
+) -> Result(runnability.StoreResult, db_error.DbCommandError) {
+  use returned <- result.try(db_helpers.execute(
+    db,
+    sql.store_snippet_runnability_check_failure(
+      option.Some(failure.error_code),
+      option.Some(failure.failed_at),
+      uuid.to_bit_array(id),
+      expected_updated_at,
+    ),
+    command_error,
+  ))
+  runnability_store_result(id, returned.count)
+}
+
+fn runnability_store_result(
+  id: Uuid,
+  affected_rows: Int,
+) -> Result(runnability.StoreResult, db_error.DbCommandError) {
+  case affected_rows {
+    0 -> Ok(runnability.Stale)
+    1 -> Ok(runnability.Stored)
+    count ->
+      Error(db_error.DbCommandError(
+        "guarded runnability update affected "
         <> string.inspect(count)
         <> " rows for snippet "
         <> uuid.to_string(id),

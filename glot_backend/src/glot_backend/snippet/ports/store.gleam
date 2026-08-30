@@ -3,6 +3,7 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_backend/system/effect/error/db_error
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
 }
@@ -53,5 +54,16 @@ pub type Store {
       Timestamp,
       spam_classification.ClassificationFailure,
     ) -> Result(spam_classification.StoreResult, db_error.DbCommandError),
+    get_newest_unchecked_runnability: fn() ->
+      Result(option.Option(runnability.Candidate), db_error.DbQueryError),
+    increment_runnability_check_attempts: fn(Uuid, Timestamp) ->
+      Result(runnability.StoreResult, db_error.DbCommandError),
+    store_runnability: fn(Uuid, Timestamp, runnability.CheckResult) ->
+      Result(runnability.StoreResult, db_error.DbCommandError),
+    store_runnability_check_failure: fn(
+      Uuid,
+      Timestamp,
+      runnability.CheckFailure,
+    ) -> Result(runnability.StoreResult, db_error.DbCommandError),
   )
 }

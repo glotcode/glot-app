@@ -14,6 +14,7 @@ pub fn job_type_label(job_type: String) -> String {
     "clean_user_actions" -> "Clean user actions"
     "aggregate_metrics" -> "Aggregate metrics"
     "classify_snippet" -> "Classify snippet"
+    "check_snippet_runnability" -> "Check snippet runnability"
     "delete_account" -> "Delete account"
     "send_email" -> "Send email"
     _ -> job_type

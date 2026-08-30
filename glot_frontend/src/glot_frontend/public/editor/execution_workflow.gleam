@@ -1,4 +1,3 @@
-import glot_core/language
 import glot_core/run
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/message.{
@@ -6,7 +5,6 @@ import glot_frontend/public/editor/message.{
 }
 import glot_frontend/public/editor/model.{type Editor, Editor}
 import glot_frontend/public/editor/operations
-import glot_frontend/public/editor/run_instructions
 
 const cancellation_delay_ms = 3000
 
@@ -17,13 +15,11 @@ pub fn run_snippet(editor: Editor) -> #(Editor, command.Command(ExecutionMsg)) {
   let #(next_operations, generation) =
     operations.begin_execution(editor.operations)
   let request =
-    run.RunRequest(
-      image: language.container_image(editor.snippet.language),
-      payload: run.RunRequestPayload(
-        run_instructions: run_instructions.effective_run_instructions(editor),
-        files: editor.snippet.files,
-        stdin: editor.snippet.stdin,
-      ),
+    run.snippet_request(
+      editor.snippet.language,
+      editor.snippet.run_instructions_override,
+      editor.snippet.files,
+      editor.snippet.stdin,
     )
 
   #(

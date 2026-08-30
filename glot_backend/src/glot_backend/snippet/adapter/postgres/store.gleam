@@ -49,5 +49,22 @@ pub fn new(db: db_helpers.Db) -> snippet_store.Store {
         failure,
       )
     },
+    get_newest_unchecked_runnability: fn() {
+      read.get_newest_unchecked_runnability(db)
+    },
+    increment_runnability_check_attempts: fn(id, expected_updated_at) {
+      write.increment_runnability_check_attempts(db, id, expected_updated_at)
+    },
+    store_runnability: fn(id, expected_updated_at, check_result) {
+      write.store_runnability(db, id, expected_updated_at, check_result)
+    },
+    store_runnability_check_failure: fn(id, expected_updated_at, failure) {
+      write.store_runnability_check_failure(
+        db,
+        id,
+        expected_updated_at,
+        failure,
+      )
+    },
   )
 }

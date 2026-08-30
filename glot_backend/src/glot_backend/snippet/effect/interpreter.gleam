@@ -198,6 +198,68 @@ pub fn run(
         state: state,
         continue: continue,
       )
+    snippet_algebra.GetNewestUncheckedRunnability(next:) ->
+      measured_interpreter.run(
+        fn() { store.get_newest_unchecked_runnability() },
+        next,
+        name: trace_name(
+          snippet_algebra.GetNewestUncheckedRunnabilityEffectName,
+        ),
+        kind: effect_trace.DatabaseReadEffect,
+        state: state,
+        continue: continue,
+      )
+    snippet_algebra.IncrementRunnabilityCheckAttempts(
+      id:,
+      expected_updated_at:,
+      next:,
+    ) ->
+      measured_interpreter.run(
+        fn() {
+          store.increment_runnability_check_attempts(id, expected_updated_at)
+        },
+        next,
+        name: trace_name(
+          snippet_algebra.IncrementRunnabilityCheckAttemptsEffectName,
+        ),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
+    snippet_algebra.StoreRunnability(
+      id:,
+      expected_updated_at:,
+      check_result:,
+      next:,
+    ) ->
+      measured_interpreter.run(
+        fn() { store.store_runnability(id, expected_updated_at, check_result) },
+        next,
+        name: trace_name(snippet_algebra.StoreRunnabilityEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
+    snippet_algebra.StoreRunnabilityCheckFailure(
+      id:,
+      expected_updated_at:,
+      failure:,
+      next:,
+    ) ->
+      measured_interpreter.run(
+        fn() {
+          store.store_runnability_check_failure(
+            id,
+            expected_updated_at,
+            failure,
+          )
+        },
+        next,
+        name: trace_name(snippet_algebra.StoreRunnabilityCheckFailureEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state: state,
+        continue: continue,
+      )
   }
 }
 

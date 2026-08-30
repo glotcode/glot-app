@@ -4,6 +4,7 @@ import gleam/result
 import gleam/string
 import glot_backend/snippet/adapter/postgres/classification_row
 import glot_backend/snippet/adapter/postgres/row
+import glot_backend/snippet/adapter/postgres/runnability_row
 import glot_backend/sql
 import glot_backend/system/database as db_helpers
 import glot_backend/system/effect/error/db_error
@@ -11,11 +12,28 @@ import glot_core/auth/account_model
 import glot_core/language
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter,
 }
 import glot_core/snippet/spam_classification
 import youid/uuid.{type Uuid}
+
+pub fn get_newest_unchecked_runnability(
+  db: db_helpers.Db,
+) -> Result(option.Option(runnability.Candidate), db_error.DbQueryError) {
+  use returned <- result.try(db_helpers.query(
+    db,
+    sql.get_newest_unchecked_snippet_runnability(),
+    query_error,
+  ))
+  case returned.rows {
+    [] -> Ok(option.None)
+    [candidate] ->
+      runnability_row.from_unchecked(candidate) |> result.map(option.Some)
+    _ -> Error(db_error.DbQueryError("Expected at most one unchecked snippet"))
+  }
+}
 
 pub fn get_newest_unclassified(
   db: db_helpers.Db,

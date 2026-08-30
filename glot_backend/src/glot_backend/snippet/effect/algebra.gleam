@@ -3,6 +3,7 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_backend/system/effect/error/db_error
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
 }
@@ -91,6 +92,28 @@ pub type SnippetEffect(next) {
     next: fn(Result(spam_classification.StoreResult, db_error.DbCommandError)) ->
       next,
   )
+  GetNewestUncheckedRunnability(
+    next: fn(
+      Result(option.Option(runnability.Candidate), db_error.DbQueryError),
+    ) -> next,
+  )
+  IncrementRunnabilityCheckAttempts(
+    id: Uuid,
+    expected_updated_at: Timestamp,
+    next: fn(Result(runnability.StoreResult, db_error.DbCommandError)) -> next,
+  )
+  StoreRunnability(
+    id: Uuid,
+    expected_updated_at: Timestamp,
+    check_result: runnability.CheckResult,
+    next: fn(Result(runnability.StoreResult, db_error.DbCommandError)) -> next,
+  )
+  StoreRunnabilityCheckFailure(
+    id: Uuid,
+    expected_updated_at: Timestamp,
+    failure: runnability.CheckFailure,
+    next: fn(Result(runnability.StoreResult, db_error.DbCommandError)) -> next,
+  )
 }
 
 pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
@@ -153,6 +176,28 @@ pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
         failure:,
         next: fn(value) { f(next(value)) },
       )
+    GetNewestUncheckedRunnability(next:) ->
+      GetNewestUncheckedRunnability(next: fn(value) { f(next(value)) })
+    IncrementRunnabilityCheckAttempts(id:, expected_updated_at:, next:) ->
+      IncrementRunnabilityCheckAttempts(
+        id:,
+        expected_updated_at:,
+        next: fn(value) { f(next(value)) },
+      )
+    StoreRunnability(id:, expected_updated_at:, check_result:, next:) ->
+      StoreRunnability(
+        id:,
+        expected_updated_at:,
+        check_result:,
+        next: fn(value) { f(next(value)) },
+      )
+    StoreRunnabilityCheckFailure(id:, expected_updated_at:, failure:, next:) ->
+      StoreRunnabilityCheckFailure(
+        id:,
+        expected_updated_at:,
+        failure:,
+        next: fn(value) { f(next(value)) },
+      )
   }
 }
 
@@ -172,6 +217,10 @@ pub type EffectName {
   StoreSpamClassificationEffectName
   UpdateSpamClassificationEffectName
   StoreSpamClassificationFailureEffectName
+  GetNewestUncheckedRunnabilityEffectName
+  IncrementRunnabilityCheckAttemptsEffectName
+  StoreRunnabilityEffectName
+  StoreRunnabilityCheckFailureEffectName
 }
 
 pub fn effect_name_to_string(name: EffectName) -> String {
@@ -193,5 +242,11 @@ pub fn effect_name_to_string(name: EffectName) -> String {
     UpdateSpamClassificationEffectName -> "update_spam_classification"
     StoreSpamClassificationFailureEffectName ->
       "store_spam_classification_failure"
+    GetNewestUncheckedRunnabilityEffectName ->
+      "get_newest_unchecked_runnability"
+    IncrementRunnabilityCheckAttemptsEffectName ->
+      "increment_runnability_check_attempts"
+    StoreRunnabilityEffectName -> "store_runnability"
+    StoreRunnabilityCheckFailureEffectName -> "store_runnability_check_failure"
   }
 }

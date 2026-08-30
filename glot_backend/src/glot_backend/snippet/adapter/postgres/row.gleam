@@ -10,6 +10,7 @@ import glot_core/email/email_address_model
 import glot_core/helpers/uuid_helpers
 import glot_core/language
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{type HydratedSnippet}
 import glot_core/snippet/spam_classification
 
@@ -179,6 +180,10 @@ pub fn from_admin_get_by_slug(
     |> spam_classification.attempts_from_int
     |> result.map_error(db_error.DbQueryError),
   )
+  use runnability_attempts <- result.try(
+    runnability.attempts_from_int(row.runnability_check_attempts)
+    |> result.map_error(db_error.DbQueryError),
+  )
 
   Ok(admin_snippet.AdminSnippet(
     snippet: snippet,
@@ -190,6 +195,13 @@ pub fn from_admin_get_by_slug(
       attempts: attempts,
       last_error: row.spam_classification_last_error,
       failed_at: row.spam_classification_failed_at,
+    ),
+    runnability: runnability.RunnabilityMetadata(
+      is_runnable: row.is_runnable,
+      checked_at: row.runnability_checked_at,
+      attempts: runnability_attempts,
+      last_error: row.runnability_check_last_error,
+      failed_at: row.runnability_check_failed_at,
     ),
   ))
 }

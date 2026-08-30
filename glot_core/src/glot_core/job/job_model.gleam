@@ -23,17 +23,20 @@ pub type JobType {
   CleanUserActionsJob
   AggregateMetricsJob
   ClassifySnippetJob
+  CheckSnippetRunnabilityJob
 }
 
 pub type Queue {
   DefaultQueue
   SpamClassifierQueue
+  SnippetRunnabilityQueue
 }
 
 pub fn queue_to_string(queue: Queue) -> String {
   case queue {
     DefaultQueue -> "default"
     SpamClassifierQueue -> "spam_classifier"
+    SnippetRunnabilityQueue -> "snippet_runnability"
   }
 }
 
@@ -41,6 +44,7 @@ pub fn queue_from_string(value: String) -> Result(Queue, String) {
   case value {
     "default" -> Ok(DefaultQueue)
     "spam_classifier" -> Ok(SpamClassifierQueue)
+    "snippet_runnability" -> Ok(SnippetRunnabilityQueue)
     _ -> Error("Invalid job queue: " <> value)
   }
 }
@@ -60,6 +64,7 @@ pub fn job_type_to_string(job_type: JobType) -> String {
     CleanUserActionsJob -> "clean_user_actions"
     AggregateMetricsJob -> "aggregate_metrics"
     ClassifySnippetJob -> "classify_snippet"
+    CheckSnippetRunnabilityJob -> "check_snippet_runnability"
   }
 }
 
@@ -80,6 +85,7 @@ pub fn job_type_from_string(
     "clean_user_actions" -> Ok(CleanUserActionsJob)
     "aggregate_metrics" -> Ok(AggregateMetricsJob)
     "classify_snippet" -> Ok(ClassifySnippetJob)
+    "check_snippet_runnability" -> Ok(CheckSnippetRunnabilityJob)
     _ -> Error(validation_error.InvalidJobType(value))
   }
 }

@@ -8,6 +8,7 @@ import glot_backend/system/effect/program_types
 import glot_backend/system/effect/transaction/transaction_program
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
 }
@@ -189,6 +190,79 @@ pub fn store_spam_classification_failure_tx(
       transaction_program.from_mapped_result(
         _,
         map_error: error.database_command_error,
+      ),
+    ),
+  )
+}
+
+pub fn get_newest_unchecked_runnability() -> program_types.Program(
+  option.Option(runnability.Candidate),
+) {
+  program.perform_db(
+    program_types.SnippetEffect(
+      snippet_algebra.GetNewestUncheckedRunnability(
+        next: program.from_mapped_result(
+          _,
+          map_error: error.database_query_error,
+        ),
+      ),
+    ),
+  )
+}
+
+pub fn increment_runnability_check_attempts(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+) -> program_types.Program(runnability.StoreResult) {
+  program.perform_db(
+    program_types.SnippetEffect(
+      snippet_algebra.IncrementRunnabilityCheckAttempts(
+        id:,
+        expected_updated_at:,
+        next: program.from_mapped_result(
+          _,
+          map_error: error.database_command_error,
+        ),
+      ),
+    ),
+  )
+}
+
+pub fn store_runnability_tx(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+  check_result: runnability.CheckResult,
+) -> program_types.TransactionProgram(runnability.StoreResult) {
+  transaction_program.perform(
+    program_types.SnippetEffect(
+      snippet_algebra.StoreRunnability(
+        id:,
+        expected_updated_at:,
+        check_result:,
+        next: transaction_program.from_mapped_result(
+          _,
+          map_error: error.database_command_error,
+        ),
+      ),
+    ),
+  )
+}
+
+pub fn store_runnability_check_failure_tx(
+  id: uuid.Uuid,
+  expected_updated_at: Timestamp,
+  failure: runnability.CheckFailure,
+) -> program_types.TransactionProgram(runnability.StoreResult) {
+  transaction_program.perform(
+    program_types.SnippetEffect(
+      snippet_algebra.StoreRunnabilityCheckFailure(
+        id:,
+        expected_updated_at:,
+        failure:,
+        next: transaction_program.from_mapped_result(
+          _,
+          map_error: error.database_command_error,
+        ),
       ),
     ),
   )

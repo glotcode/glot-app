@@ -66,6 +66,7 @@ pub type WorkerNames {
     ),
     default_job_executor_name: process.Name(job_worker.Message),
     spam_classifier_job_executor_name: process.Name(job_worker.Message),
+    snippet_runnability_job_executor_name: process.Name(job_worker.Message),
   )
 }
 
@@ -94,6 +95,12 @@ pub fn start(config: Config) {
       dependencies.effect_runtime,
       job_log_store,
       job_model.SpamClassifierQueue,
+    )
+  let snippet_runnability_job_executor_deps =
+    job_executor_adapter.new(
+      dependencies.effect_runtime,
+      job_log_store,
+      job_model.SnippetRunnabilityQueue,
     )
   let logging_deps =
     logging_batcher_adapter.new(
@@ -156,6 +163,14 @@ pub fn start(config: Config) {
     dependencies.server_mode,
     dependencies.job_tracker,
     spam_classifier_job_executor_deps,
+  ))
+  |> static_supervisor.add(job_worker.supervised_named(
+    worker_names.snippet_runnability_job_executor_name,
+    startup.app,
+    startup.regexes,
+    dependencies.server_mode,
+    dependencies.job_tracker,
+    snippet_runnability_job_executor_deps,
   ))
   |> static_supervisor.add(mist.supervised(config.mist_builder))
   |> static_supervisor.start
