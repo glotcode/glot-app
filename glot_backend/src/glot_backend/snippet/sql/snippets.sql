@@ -330,6 +330,7 @@ SELECT id, slug, user_id, language, title, visibility, stdin, run_instructions, 
 FROM snippets
 WHERE spam_decision IS NULL
   AND spam_classification_failed_at IS NULL
+  AND is_runnable IS NOT NULL
 ORDER BY updated_at DESC, id DESC
 LIMIT 1;
 

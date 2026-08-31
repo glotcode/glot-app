@@ -6169,6 +6169,7 @@ pub fn get_newest_unclassified_snippet() {
 FROM snippets
 WHERE spam_decision IS NULL
   AND spam_classification_failed_at IS NULL
+  AND is_runnable IS NOT NULL
 ORDER BY updated_at DESC, id DESC
 LIMIT 1"
   #(sql, [], get_newest_unclassified_snippet_decoder())
