@@ -5536,6 +5536,7 @@ pub fn list_snippets_after(
   user_created_before user_created_before: Option(Timestamp),
   excluded_titles excluded_titles: List(String),
   excluded_languages excluded_languages: List(String),
+  is_runnable is_runnable: Option(Bool),
   after_slug after_slug: Option(String),
   page_limit page_limit: Int,
 ) {
@@ -5591,11 +5592,15 @@ WHERE
   AND lower(snippets.title) <> ALL($8::text[])
   AND snippets.language <> ALL($9::text[])
   AND (
-    $10::text IS NULL
-    OR snippets.slug < $10::text
+    $10::boolean IS NULL
+    OR snippets.is_runnable = $10::boolean
+  )
+  AND (
+    $11::text IS NULL
+    OR snippets.slug < $11::text
   )
 ORDER BY snippets.slug DESC
-LIMIT $11"
+LIMIT $12"
   #(
     sql,
     [
@@ -5610,6 +5615,7 @@ LIMIT $11"
       ),
       dev.ParamList(list.map(excluded_titles, dev.ParamString)),
       dev.ParamList(list.map(excluded_languages, dev.ParamString)),
+      dev.ParamNullable(option.map(is_runnable, fn(v) { dev.ParamBool(v) })),
       dev.ParamNullable(option.map(after_slug, fn(v) { dev.ParamString(v) })),
       dev.ParamInt(page_limit),
     ],
@@ -5691,6 +5697,7 @@ pub fn list_snippets_before(
   user_created_before user_created_before: Option(Timestamp),
   excluded_titles excluded_titles: List(String),
   excluded_languages excluded_languages: List(String),
+  is_runnable is_runnable: Option(Bool),
   before_slug before_slug: Option(String),
   page_limit page_limit: Int,
 ) {
@@ -5746,11 +5753,15 @@ WHERE
   AND lower(snippets.title) <> ALL($8::text[])
   AND snippets.language <> ALL($9::text[])
   AND (
-    $10::text IS NULL
-    OR snippets.slug > $10::text
+    $10::boolean IS NULL
+    OR snippets.is_runnable = $10::boolean
+  )
+  AND (
+    $11::text IS NULL
+    OR snippets.slug > $11::text
   )
 ORDER BY snippets.slug ASC
-LIMIT $11"
+LIMIT $12"
   #(
     sql,
     [
@@ -5765,6 +5776,7 @@ LIMIT $11"
       ),
       dev.ParamList(list.map(excluded_titles, dev.ParamString)),
       dev.ParamList(list.map(excluded_languages, dev.ParamString)),
+      dev.ParamNullable(option.map(is_runnable, fn(v) { dev.ParamBool(v) })),
       dev.ParamNullable(option.map(before_slug, fn(v) { dev.ParamString(v) })),
       dev.ParamInt(page_limit),
     ],

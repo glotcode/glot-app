@@ -157,6 +157,7 @@ pub type ListSnippetsFilter {
     user_created_before: option.Option(Timestamp),
     excluded_titles: List(String),
     excluded_languages: List(language.Language),
+    is_runnable: option.Option(Bool),
   )
 }
 
@@ -171,6 +172,7 @@ pub fn new_filter() -> ListSnippetsFilter {
     user_created_before: option.None,
     excluded_titles: [],
     excluded_languages: [],
+    is_runnable: option.None,
   )
 }
 
@@ -235,6 +237,10 @@ pub fn exclude_languages(
   excluded_languages: List(language.Language),
 ) -> ListSnippetsFilter {
   ListSnippetsFilter(..filter, excluded_languages: excluded_languages)
+}
+
+pub fn only_runnable(filter: ListSnippetsFilter) -> ListSnippetsFilter {
+  ListSnippetsFilter(..filter, is_runnable: option.Some(True))
 }
 
 fn validate_run_instructions(

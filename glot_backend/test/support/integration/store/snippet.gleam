@@ -2,6 +2,7 @@ import gleam/dict.{type Dict}
 import gleam/list
 import gleam/option
 import gleam/order
+import gleam/result
 import gleam/string
 import glot_core/auth/account_model.{type AccountState}
 import glot_core/helpers/timestamp_helpers
@@ -82,6 +83,10 @@ pub fn insert_snippet(
   model.TestState(
     ..db,
     snippets: dict.insert(db.snippets, common.uuid_key(snippet.id), snippet),
+    snippet_runnability: dict.delete(
+      db.snippet_runnability,
+      common.uuid_key(snippet.id),
+    ),
   )
 }
 
@@ -89,7 +94,14 @@ pub fn delete_snippet_by_id(
   db: model.TestState,
   id: uuid.Uuid,
 ) -> model.TestState {
-  model.TestState(..db, snippets: dict.delete(db.snippets, common.uuid_key(id)))
+  model.TestState(
+    ..db,
+    snippets: dict.delete(db.snippets, common.uuid_key(id)),
+    snippet_runnability: dict.delete(
+      db.snippet_runnability,
+      common.uuid_key(id),
+    ),
+  )
 }
 
 pub fn delete_snippets_by_account_id(
@@ -157,6 +169,21 @@ fn matches_filter(
         string.lowercase(snippet.title),
       )
       && !list.contains(filter.excluded_languages, snippet.language)
+      && matches_runnability_filter(db, snippet.id, filter.is_runnable)
+  }
+}
+
+fn matches_runnability_filter(
+  db: model.TestState,
+  snippet_id: uuid.Uuid,
+  expected: option.Option(Bool),
+) -> Bool {
+  case expected {
+    option.None -> True
+    option.Some(expected) ->
+      dict.get(db.snippet_runnability, common.uuid_key(snippet_id))
+      |> result.unwrap(False)
+      |> fn(actual) { actual == expected }
   }
 }
 

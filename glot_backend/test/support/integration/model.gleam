@@ -48,6 +48,7 @@ pub type TestState {
     job_type_policies: Dict(String, job_model.JobTypePolicy),
     periodic_jobs: Dict(String, periodic_job_model.PeriodicJob),
     snippets: Dict(String, snippet_model.Snippet),
+    snippet_runnability: Dict(String, Bool),
     user_actions: Dict(String, user_action.UserAction),
     user_action_count: Int,
     write_steps: List(String),

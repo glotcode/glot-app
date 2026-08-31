@@ -91,6 +91,13 @@ pub fn public_listing_excludes_default_titles_and_plaintext_test() {
         |> dict.insert(common.uuid_key(untitled_snippet.id), untitled_snippet)
         |> dict.insert(common.uuid_key(plaintext.id), plaintext)
         |> dict.insert(common.uuid_key(ruby.id), ruby),
+      snippet_runnability: fixture.state.snippet_runnability
+        |> dict.insert(common.uuid_key(default_title.id), True)
+        |> dict.insert(common.uuid_key(mixed_case_default_title.id), True)
+        |> dict.insert(common.uuid_key(hello_world.id), True)
+        |> dict.insert(common.uuid_key(untitled_snippet.id), True)
+        |> dict.insert(common.uuid_key(plaintext.id), True)
+        |> dict.insert(common.uuid_key(ruby.id), True),
     )
   let request =
     snippet_dto.ListPublicSnippetsRequest(
@@ -168,6 +175,56 @@ pub fn public_listing_excludes_snippets_from_suspended_accounts_test() {
         request,
       ),
       anonymous_ctx,
+      state,
+    )
+
+  let assert Ok(response) = result
+  let assert pagination_model.InitialCursorPage([], option.None) = response.page
+}
+
+pub fn public_listing_excludes_non_runnable_snippets_test() {
+  let fixture =
+    fixture.integration_fixture(
+      next_uuids: [],
+      jobs: [],
+      account_delete_job_id: option.None,
+    )
+  let eligible_user =
+    user_model.User(
+      ..fixture.user,
+      created_at: timestamp_helpers.subtract_seconds(
+        fixture.ctx.timestamp,
+        7 * 24 * 60 * 60 + 1,
+      ),
+    )
+  let state =
+    model.TestState(
+      ..fixture.state,
+      users: dict.insert(
+        fixture.state.users,
+        common.uuid_key(eligible_user.id),
+        eligible_user,
+      ),
+      snippet_runnability: dict.insert(
+        fixture.state.snippet_runnability,
+        common.uuid_key(fixture.snippet.id),
+        False,
+      ),
+    )
+  let request =
+    snippet_dto.ListPublicSnippetsRequest(
+      pagination: pagination_model.InitialPage(10),
+      usernames: [],
+      languages: [],
+    )
+
+  let #(result, _) =
+    runner.run_test_program(
+      list_public.list_public_snippets(
+        request_context.new(fixture.ctx, state.dynamic_config),
+        request,
+      ),
+      fixture.ctx,
       state,
     )
 

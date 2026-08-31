@@ -68,7 +68,8 @@ pub fn list_public_snippets(
       |> snippet_model.only_usernames(request.usernames)
       |> snippet_model.only_languages(request.languages)
       |> snippet_model.exclude_titles(excluded_titles)
-      |> snippet_model.exclude_languages([language.Plaintext]),
+      |> snippet_model.exclude_languages([language.Plaintext])
+      |> snippet_model.only_runnable,
     pagination: snippet_listing.fetch_pagination(pagination),
   ))
 

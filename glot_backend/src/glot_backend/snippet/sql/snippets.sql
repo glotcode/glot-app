@@ -160,6 +160,10 @@ WHERE
   AND lower(snippets.title) <> ALL(sqlc.arg(excluded_titles)::text[])
   AND snippets.language <> ALL(sqlc.arg(excluded_languages)::text[])
   AND (
+    sqlc.narg(is_runnable)::boolean IS NULL
+    OR snippets.is_runnable = sqlc.narg(is_runnable)::boolean
+  )
+  AND (
     sqlc.narg(after_slug)::text IS NULL
     OR snippets.slug < sqlc.narg(after_slug)::text
   )
@@ -217,6 +221,10 @@ WHERE
   )
   AND lower(snippets.title) <> ALL(sqlc.arg(excluded_titles)::text[])
   AND snippets.language <> ALL(sqlc.arg(excluded_languages)::text[])
+  AND (
+    sqlc.narg(is_runnable)::boolean IS NULL
+    OR snippets.is_runnable = sqlc.narg(is_runnable)::boolean
+  )
   AND (
     sqlc.narg(before_slug)::text IS NULL
     OR snippets.slug > sqlc.narg(before_slug)::text
