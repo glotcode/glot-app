@@ -44,13 +44,16 @@ pub fn runtime_failure_renders_run_failure_feedback_test() {
   assert string.contains(rendered, "Compilation failed.")
 }
 
-pub fn successful_run_without_output_returns_to_ready_test() {
+pub fn successful_run_without_output_renders_completion_status_test() {
   let completed =
     complete_execution(Ok(run.SuccessfulRun(1_000_000, "", "", "")))
   let rendered = render(completed)
 
-  assert string.contains(rendered, "READY.")
-  assert !string.contains(rendered, "editor-shell__result-panel")
+  assert string.contains(rendered, "RUN COMPLETE")
+  assert string.contains(rendered, "No output.")
+  assert string.contains(rendered, "1.00ms")
+  assert string.contains(rendered, "editor-shell__result-panel")
+  assert string.contains(rendered, "editor-shell__result-header--stdout")
 }
 
 pub fn each_output_stream_renders_its_own_semantic_panel_test() {

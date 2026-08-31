@@ -101,7 +101,7 @@ type ResultStream {
 
 fn output_panels(outputs: List(ResultStream), duration: Int) -> Element(msg) {
   case outputs {
-    [] -> block("", "READY.")
+    [] -> result_panel("run complete", "No output.", option.Some(duration))
     [first, ..remaining] ->
       html.div([], [
         result_panel(first.label, first.content, option.Some(duration)),
@@ -160,7 +160,7 @@ fn duration_view(duration: option.Option(Int)) -> Element(msg) {
 
 fn header_class(label: String) -> String {
   case label {
-    "stdout" ->
+    "stdout" | "run complete" ->
       "editor-shell__result-header editor-shell__result-header--stdout"
     "stderr" ->
       "editor-shell__result-header editor-shell__result-header--stderr"
