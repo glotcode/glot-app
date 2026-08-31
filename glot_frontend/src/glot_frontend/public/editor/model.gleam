@@ -38,6 +38,7 @@ pub type Snippet {
     visibility: snippet_model.Visibility,
     created_at: option.Option(Timestamp),
     updated_at: option.Option(Timestamp),
+    is_runnable: option.Option(Bool),
     files: List(snippet_model.File),
     stdin: option.Option(String),
     run_instructions_override: option.Option(language.RunInstructions),

@@ -28,6 +28,26 @@ pub fn seo_login_metadata_is_not_indexable_test() {
   assert seo.canonical_url(seo.login()) == "https://glot.io/login"
 }
 
+pub fn non_runnable_public_snippet_is_not_indexable_test() {
+  let snippet =
+    editor.ExistingSnippet(editor.EditorModel(
+      slug: option.Some("non-runnable"),
+      owner_user_id: option.None,
+      owner_username: option.None,
+      title: "Non-runnable snippet",
+      language: language.JavaScript,
+      visibility: option.Some(snippet_model.Public),
+      created_at: option.None,
+      updated_at: option.None,
+      is_runnable: option.Some(False),
+      run_instructions_override: option.None,
+      files: [snippet_model.File("main.js", "")],
+      stdin: option.None,
+    ))
+
+  assert seo.robots(editor.metadata(snippet)) == "noindex, nofollow"
+}
+
 pub fn structured_data_escapes_script_closing_tags_test() {
   let rendered =
     seo.json_ld(json.object([#("name", json.string("</script><script>"))]))
@@ -74,6 +94,7 @@ pub fn editor_document_embeds_large_ssr_payload_outside_app_attributes_test() {
       visibility: option.None,
       created_at: option.None,
       updated_at: option.None,
+      is_runnable: option.None,
       run_instructions_override: option.None,
       files: [snippet_model.File("main.js", large_source)],
       stdin: option.None,
@@ -163,6 +184,7 @@ pub fn populated_snippets_use_native_table_semantics_and_specific_link_names_tes
       ),
       created_at: timestamp.from_unix_seconds(100),
       updated_at: now,
+      is_runnable: option.None,
     )
   let rendered =
     snippets.ViewModel(

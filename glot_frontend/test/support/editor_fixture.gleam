@@ -51,6 +51,7 @@ pub fn snippet_with(
     ),
     created_at: timestamp.from_unix_seconds(100),
     updated_at: timestamp.from_unix_seconds(200),
+    is_runnable: option.None,
   )
 }
 

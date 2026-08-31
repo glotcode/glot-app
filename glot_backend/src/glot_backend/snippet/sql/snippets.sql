@@ -34,6 +34,7 @@ SELECT
   snippets.files,
   snippets.created_at,
   snippets.updated_at,
+  snippets.is_runnable,
   users.id AS user_id,
   users.account_id AS user_account_id,
   users.email AS user_email,

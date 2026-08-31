@@ -30,7 +30,11 @@ pub type Snippet {
 }
 
 pub type HydratedSnippet {
-  HydratedSnippet(identity: Snippet, user: User)
+  HydratedSnippet(
+    identity: Snippet,
+    user: User,
+    is_runnable: option.Option(Bool),
+  )
 }
 
 pub type Visibility {

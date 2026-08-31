@@ -117,6 +117,7 @@ pub fn public_listing_excludes_default_titles_and_plaintext_test() {
       snippet_dto.from_snippet(snippet_model.HydratedSnippet(
         identity: fixture.snippet,
         user: eligible_user,
+        is_runnable: option.None,
       )),
     ]
 }

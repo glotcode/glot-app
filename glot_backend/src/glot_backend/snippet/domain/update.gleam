@@ -1,4 +1,5 @@
 import gleam/dynamic.{type Dynamic}
+import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/request_policy/api_action as api_action_policy
@@ -126,6 +127,7 @@ fn update_snippet_tx(
   transaction_program.succeed(snippet_model.HydratedSnippet(
     identity: updated,
     user: existing.user,
+    is_runnable: option.None,
   ))
 }
 

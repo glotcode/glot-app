@@ -125,7 +125,11 @@ fn hydrate(
 ) -> option.Option(snippet_model.HydratedSnippet) {
   case dict.get(db.users, common.uuid_key(snippet.user_id)) {
     Ok(user) ->
-      option.Some(snippet_model.HydratedSnippet(identity: snippet, user: user))
+      option.Some(snippet_model.HydratedSnippet(
+        identity: snippet,
+        user: user,
+        is_runnable: option.None,
+      ))
     Error(_) -> option.None
   }
 }

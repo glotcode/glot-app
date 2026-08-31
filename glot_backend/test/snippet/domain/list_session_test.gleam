@@ -56,6 +56,7 @@ pub fn session_listing_filters_by_language_test() {
       snippet_dto.from_snippet(snippet_model.HydratedSnippet(
         identity: fixture.snippet,
         user: fixture.user,
+        is_runnable: option.None,
       )),
     ]
 }

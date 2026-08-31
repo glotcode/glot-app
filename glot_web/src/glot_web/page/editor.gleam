@@ -39,6 +39,7 @@ pub type EditorModel {
     visibility: option.Option(snippet_model.Visibility),
     created_at: option.Option(timestamp.Timestamp),
     updated_at: option.Option(timestamp.Timestamp),
+    is_runnable: option.Option(Bool),
     run_instructions_override: option.Option(language.RunInstructions),
     files: List(snippet_model.File),
     stdin: option.Option(String),
@@ -62,6 +63,7 @@ pub fn from_snippet(response: snippet_dto.SnippetResponse) -> ViewModel {
     visibility: option.Some(response.data.visibility),
     created_at: option.Some(response.created_at),
     updated_at: option.Some(response.updated_at),
+    is_runnable: response.is_runnable,
     run_instructions_override: response.data.run_instructions,
     files: response.data.files,
     stdin: stdin_option(response.data.stdin),
@@ -160,8 +162,12 @@ pub fn metadata(view_model: ViewModel) -> seo.Metadata {
 fn is_indexable(view_model: ViewModel) -> Bool {
   case view_model {
     NewSnippet(_) -> True
-    ExistingSnippet(EditorModel(visibility: option.Some(visibility), ..)) ->
-      visibility == snippet_model.Public
+    ExistingSnippet(EditorModel(
+      visibility: option.Some(visibility),
+      is_runnable:,
+      ..
+    )) ->
+      visibility == snippet_model.Public && is_runnable != option.Some(False)
     UnsupportedLanguage(_) | LoadError(_) | ExistingSnippet(_) -> False
   }
 }
@@ -616,6 +622,7 @@ fn encode_editor_model(model: EditorModel) -> json.Json {
     ),
     #("createdAt", json.nullable(model.created_at, timestamp_helpers.encode)),
     #("updatedAt", json.nullable(model.updated_at, timestamp_helpers.encode)),
+    #("isRunnable", json.nullable(model.is_runnable, json.bool)),
     #(
       "runInstructionsOverride",
       json.nullable(
@@ -652,6 +659,7 @@ fn editor_model_decoder() -> decode.Decoder(EditorModel) {
     "updatedAt",
     decode.optional(timestamp_helpers.decoder()),
   )
+  use is_runnable <- decode.field("isRunnable", decode.optional(decode.bool))
   use run_instructions_override <- decode.field(
     "runInstructionsOverride",
     decode.optional(language.run_instructions_decoder()),
@@ -668,6 +676,7 @@ fn editor_model_decoder() -> decode.Decoder(EditorModel) {
     visibility: visibility,
     created_at: created_at,
     updated_at: updated_at,
+    is_runnable: is_runnable,
     run_instructions_override: run_instructions_override,
     files: files,
     stdin: stdin,
@@ -686,6 +695,7 @@ fn default_editor_model(lang: language.Language) -> EditorModel {
     visibility: option.None,
     created_at: option.None,
     updated_at: option.None,
+    is_runnable: option.None,
     run_instructions_override: option.None,
     files: [default_file],
     stdin: option.None,

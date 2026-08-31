@@ -47,6 +47,7 @@ fn to_ssr_view_model(model: Editor) -> editor_ssr.ViewModel {
       visibility: option.Some(model.snippet.visibility),
       created_at: model.snippet.created_at,
       updated_at: model.snippet.updated_at,
+      is_runnable: model.snippet.is_runnable,
       run_instructions_override: model.snippet.run_instructions_override,
       files: model.snippet.files,
       stdin: model.snippet.stdin,

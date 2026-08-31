@@ -73,5 +73,6 @@ fn hydrated_snippet(
   snippet_model.HydratedSnippet(
     identity: snippet_model.Snippet(..fixture.snippet, visibility: visibility),
     user: fixture.user,
+    is_runnable: option.None,
   )
 }

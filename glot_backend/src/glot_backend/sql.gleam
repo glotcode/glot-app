@@ -5164,6 +5164,7 @@ pub type GetSnippetBySlug {
     files: String,
     created_at: Timestamp,
     updated_at: Timestamp,
+    is_runnable: Option(Bool),
     user_id: BitArray,
     user_account_id: BitArray,
     user_email: String,
@@ -5188,6 +5189,7 @@ pub fn get_snippet_by_slug(slug slug: String) {
   snippets.files,
   snippets.created_at,
   snippets.updated_at,
+  snippets.is_runnable,
   users.id AS user_id,
   users.account_id AS user_account_id,
   users.email AS user_email,
@@ -5213,14 +5215,15 @@ pub fn get_snippet_by_slug_decoder() -> decode.Decoder(GetSnippetBySlug) {
   use files <- decode.field(7, decode.string)
   use created_at <- decode.field(8, dev.datetime_decoder())
   use updated_at <- decode.field(9, dev.datetime_decoder())
-  use user_id <- decode.field(10, decode.bit_array)
-  use user_account_id <- decode.field(11, decode.bit_array)
-  use user_email <- decode.field(12, decode.string)
-  use user_username <- decode.field(13, decode.string)
-  use user_role <- decode.field(14, decode.string)
-  use user_last_login_at <- decode.field(15, dev.datetime_decoder())
-  use user_created_at <- decode.field(16, dev.datetime_decoder())
-  use user_updated_at <- decode.field(17, dev.datetime_decoder())
+  use is_runnable <- decode.field(10, decode.optional(dev.bool_decoder()))
+  use user_id <- decode.field(11, decode.bit_array)
+  use user_account_id <- decode.field(12, decode.bit_array)
+  use user_email <- decode.field(13, decode.string)
+  use user_username <- decode.field(14, decode.string)
+  use user_role <- decode.field(15, decode.string)
+  use user_last_login_at <- decode.field(16, dev.datetime_decoder())
+  use user_created_at <- decode.field(17, dev.datetime_decoder())
+  use user_updated_at <- decode.field(18, dev.datetime_decoder())
   decode.success(GetSnippetBySlug(
     id:,
     slug:,
@@ -5232,6 +5235,7 @@ pub fn get_snippet_by_slug_decoder() -> decode.Decoder(GetSnippetBySlug) {
     files:,
     created_at:,
     updated_at:,
+    is_runnable:,
     user_id:,
     user_account_id:,
     user_email:,

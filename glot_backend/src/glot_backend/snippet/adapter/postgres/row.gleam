@@ -36,6 +36,7 @@ pub fn from_get_by_id(
     files: row.files,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    is_runnable: option.None,
   )
 }
 
@@ -61,6 +62,7 @@ pub fn from_get_by_slug(
     files: row.files,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    is_runnable: row.is_runnable,
   )
 }
 
@@ -86,6 +88,7 @@ pub fn from_get_by_slug_for_update(
     files: row.files,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    is_runnable: option.None,
   )
 }
 
@@ -111,6 +114,7 @@ pub fn from_list_after(
     files: row.files,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    is_runnable: option.None,
   )
 }
 
@@ -136,6 +140,7 @@ pub fn from_list_before(
     files: row.files,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    is_runnable: option.None,
   )
 }
 
@@ -161,6 +166,7 @@ pub fn from_admin_get_by_slug(
     files: row.files,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    is_runnable: row.is_runnable,
   ))
   use decision <- result.try(decode_optional_enum(
     row.spam_decision,
@@ -248,6 +254,7 @@ pub fn from_admin_list_after(
     files: row.files,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    is_runnable: option.None,
   )
 }
 
@@ -273,6 +280,7 @@ pub fn from_admin_list_before(
     files: row.files,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    is_runnable: option.None,
   )
 }
 
@@ -295,6 +303,7 @@ fn from_fields(
   files files: String,
   created_at created_at,
   updated_at updated_at,
+  is_runnable is_runnable: option.Option(Bool),
 ) -> Result(HydratedSnippet, db_error.DbQueryError) {
   use snippet_language <- result.try(
     language.from_string(language_name)
@@ -350,6 +359,7 @@ fn from_fields(
       created_at: user_created_at,
       updated_at: user_updated_at,
     ),
+    is_runnable: is_runnable,
   ))
 }
 

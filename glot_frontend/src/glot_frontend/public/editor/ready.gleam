@@ -29,6 +29,7 @@ pub fn new(
       visibility: snippet_model.Unlisted,
       created_at: option.None,
       updated_at: option.None,
+      is_runnable: option.None,
       files: [file],
       stdin: option.None,
       run_instructions_override: option.None,
@@ -46,6 +47,7 @@ pub fn existing(
   visibility visibility: snippet_model.Visibility,
   created_at created_at: option.Option(Timestamp),
   updated_at updated_at: Timestamp,
+  is_runnable is_runnable: option.Option(Bool),
   files files: List(snippet_model.File),
   stdin stdin: option.Option(String),
   run_instructions_override run_instructions_override: option.Option(
@@ -63,6 +65,7 @@ pub fn existing(
       visibility: visibility,
       created_at: created_at,
       updated_at: option.Some(updated_at),
+      is_runnable: is_runnable,
       files: files,
       stdin: stdin,
       run_instructions_override: run_instructions_override,

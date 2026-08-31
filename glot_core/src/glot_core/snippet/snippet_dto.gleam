@@ -87,6 +87,7 @@ pub type SnippetResponse {
     data: SnippetData,
     created_at: Timestamp,
     updated_at: Timestamp,
+    is_runnable: option.Option(Bool),
   )
 }
 
@@ -111,6 +112,7 @@ pub fn response_decoder() -> decode.Decoder(SnippetResponse) {
   use files <- decode.field("files", decode.list(snippet_model.file_decoder()))
   use created_at <- decode.field("createdAt", timestamp_helpers.decoder())
   use updated_at <- decode.field("updatedAt", timestamp_helpers.decoder())
+  use is_runnable <- decode.field("isRunnable", decode.optional(decode.bool))
 
   decode.success(SnippetResponse(
     slug: slug,
@@ -125,6 +127,7 @@ pub fn response_decoder() -> decode.Decoder(SnippetResponse) {
     ),
     created_at: created_at,
     updated_at: updated_at,
+    is_runnable: is_runnable,
   ))
 }
 
@@ -140,6 +143,7 @@ pub fn from_snippet(snippet: snippet_model.HydratedSnippet) -> SnippetResponse {
     data: data_from_snippet(snippet.identity),
     created_at: snippet.identity.created_at,
     updated_at: snippet.identity.updated_at,
+    is_runnable: snippet.is_runnable,
   )
 }
 
@@ -162,6 +166,7 @@ pub fn encode_response(response: SnippetResponse) -> json.Json {
     #("files", json.array(response.data.files, snippet_model.encode_file)),
     #("createdAt", timestamp_helpers.encode(response.created_at)),
     #("updatedAt", timestamp_helpers.encode(response.updated_at)),
+    #("isRunnable", json.nullable(response.is_runnable, json.bool)),
   ])
 }
 

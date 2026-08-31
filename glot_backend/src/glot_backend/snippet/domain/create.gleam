@@ -1,4 +1,5 @@
 import gleam/dynamic.{type Dynamic}
+import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/auth/domain/session/current as current_session
 import glot_backend/request_policy/api_action as api_action_policy
@@ -76,6 +77,7 @@ pub fn create_snippet(
     snippet_model.HydratedSnippet(
       identity: new_snippet,
       user: session.user.identity,
+      is_runnable: option.None,
     )
     |> snippet_dto.from_snippet,
   )
