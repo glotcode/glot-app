@@ -11,6 +11,7 @@ pub type ResourceError {
   DockerRunConfigNotFound
   SpamClassifierConfigNotFound
   SnippetClassificationStale
+  SnippetRunnabilityUnchecked
   CloudflareConfigNotFound
   AccountDeleteNotScheduled
   AccountDeleteAlreadyScheduled
@@ -20,7 +21,8 @@ pub fn status(err: ResourceError) -> Int {
   case err {
     AccountDeleteNotScheduled
     | AccountDeleteAlreadyScheduled
-    | SnippetClassificationStale -> 409
+    | SnippetClassificationStale
+    | SnippetRunnabilityUnchecked -> 409
     _ -> 404
   }
 }
@@ -39,6 +41,7 @@ pub fn code(err: ResourceError) -> String {
     DockerRunConfigNotFound -> "docker_run_config_not_found"
     SpamClassifierConfigNotFound -> "spam_classifier_config_not_found"
     SnippetClassificationStale -> "snippet_classification_stale"
+    SnippetRunnabilityUnchecked -> "snippet_runnability_unchecked"
     CloudflareConfigNotFound -> "cloudflare_config_not_found"
     AccountDeleteNotScheduled -> "account_delete_not_scheduled"
     AccountDeleteAlreadyScheduled -> "account_delete_already_scheduled"
@@ -60,6 +63,8 @@ pub fn message(err: ResourceError) -> String {
     SpamClassifierConfigNotFound -> "Spam classifier config is not configured"
     SnippetClassificationStale ->
       "Snippet changed while it was being classified; try again"
+    SnippetRunnabilityUnchecked ->
+      "Snippet runnability must be checked before classification"
     CloudflareConfigNotFound -> "Cloudflare config is not configured"
     AccountDeleteNotScheduled -> "Account deletion is not scheduled"
     AccountDeleteAlreadyScheduled -> "Account deletion already scheduled"

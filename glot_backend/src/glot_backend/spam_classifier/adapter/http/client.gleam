@@ -11,7 +11,6 @@ import glot_backend/system/effect/error
 import glot_backend/system/effect/error/infra_error
 import glot_backend/system/http/client as http_client
 import glot_backend/system/http/pool.{type Pool}
-import glot_core/snippet/snippet_model.{type Snippet}
 import glot_core/snippet/spam_classification
 import wisp
 
@@ -20,15 +19,15 @@ const default_retry_delay_seconds = 30
 const configuration_retry_delay_seconds = 900
 
 pub fn new(pool: Pool) -> classifier_client.Client {
-  classifier_client.Client(classify: fn(config, snippet, timeout_ms) {
-    classify(pool, config, snippet, timeout_ms)
+  classifier_client.Client(classify: fn(config, request, timeout_ms) {
+    classify(pool, config, request, timeout_ms)
   })
 }
 
 fn classify(
   pool: Pool,
   config: config.Config,
-  snippet: Snippet,
+  request: spam_classification.ServiceRequest,
   timeout_ms: Int,
 ) -> Result(#(spam_classification.ServiceResponse, String), error.Error) {
   let response =
@@ -38,7 +37,7 @@ fn classify(
       headers: dict.from_list([
         #("authorization", "Bearer " <> config.auth_token),
       ]),
-      body: spam_classification.encode_request(snippet),
+      body: spam_classification.encode_request(request),
       timeout_ms: timeout_ms,
     )
   case response {

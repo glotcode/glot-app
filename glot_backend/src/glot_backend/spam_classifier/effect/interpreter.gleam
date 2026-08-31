@@ -20,12 +20,12 @@ pub fn run(
     #(Result(a, error.Error), program_state.State),
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
-    algebra.Classify(config, snippet, next) ->
+    algebra.Classify(config, request, next) ->
       measured_interpreter.run(
         fn() {
           client.classify(
             config,
-            snippet,
+            request,
             context.remaining_timeout_ms(ctx)
               |> option.map(fn(remaining) {
                 int.min(remaining, service_timeout_ms)

@@ -325,7 +325,7 @@ INSERT INTO snippets (id, slug, user_id, language, title, visibility, stdin, run
 UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10, spam_decision = NULL, spam_confidence = NULL, spam_reason_code = NULL, spam_classified_at = NULL, spam_classification_attempts = 0, spam_classification_last_error = NULL, spam_classification_failed_at = NULL, is_runnable = NULL, runnability_checked_at = NULL, runnability_check_attempts = 0, runnability_check_last_error = NULL, runnability_check_failed_at = NULL WHERE id = $11;
 
 -- name: GetNewestUnclassifiedSnippet :one
-SELECT id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at,
+SELECT id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at, is_runnable,
   COALESCE(spam_classification_attempts, 0)::int AS spam_classification_attempts
 FROM snippets
 WHERE spam_decision IS NULL

@@ -1,12 +1,11 @@
 import glot_backend/spam_classifier/model/config.{type Config}
 import glot_backend/system/effect/error
-import glot_core/snippet/snippet_model.{type Snippet}
 import glot_core/snippet/spam_classification
 
 pub type Effect(next) {
   Classify(
     Config,
-    Snippet,
+    spam_classification.ServiceRequest,
     fn(Result(#(spam_classification.ServiceResponse, String), error.Error)) ->
       next,
   )
@@ -14,8 +13,8 @@ pub type Effect(next) {
 
 pub fn map(effect: Effect(a), f: fn(a) -> b) -> Effect(b) {
   case effect {
-    Classify(config, snippet, next) ->
-      Classify(config, snippet, fn(value) { f(next(value)) })
+    Classify(config, request, next) ->
+      Classify(config, request, fn(value) { f(next(value)) })
   }
 }
 

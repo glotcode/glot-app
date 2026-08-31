@@ -56,9 +56,12 @@ pub fn spam_classifier_request_matches_contract_test() {
       created_at: now,
       updated_at: now,
     )
-  assert spam_classification.encode_request(snippet)
+  assert spam_classification.encode_request(spam_classification.ServiceRequest(
+    snippet:,
+    is_runnable: False,
+  ))
     |> json.to_string
-    == "{\"snippet\":{\"title\":\"Example\",\"language\":\"python\",\"stdin\":\"\",\"runInstructions\":{\"buildCommands\":[],\"runCommand\":\"python main.py\"},\"files\":[{\"name\":\"main.py\",\"content\":\"print('hello')\"}]}}"
+    == "{\"snippet\":{\"title\":\"Example\",\"language\":\"python\",\"is_runnable\":false,\"stdin\":\"\",\"runInstructions\":{\"buildCommands\":[],\"runCommand\":\"python main.py\"},\"files\":[{\"name\":\"main.py\",\"content\":\"print('hello')\"}]}}"
 }
 
 pub fn spam_classifier_response_decodes_all_fields_test() {

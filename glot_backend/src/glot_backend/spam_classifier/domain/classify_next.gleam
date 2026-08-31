@@ -54,8 +54,12 @@ fn classify_candidate(
   candidate: spam_classification.Candidate,
   max_attempts: Int,
 ) -> Program(Outcome) {
-  let spam_classification.Candidate(snippet, expected_updated_at, attempts) =
-    candidate
+  let spam_classification.Candidate(
+    snippet:,
+    is_runnable:,
+    expected_updated_at:,
+    attempts:,
+  ) = candidate
   case attempts >= max_attempts {
     True ->
       quarantine_snippet(snippet, expected_updated_at, retry_limit_exceeded)
@@ -70,7 +74,7 @@ fn classify_candidate(
         spam_classification.Stored ->
           classify_recorded_candidate(
             config,
-            snippet,
+            spam_classification.ServiceRequest(snippet:, is_runnable:),
             expected_updated_at,
             attempts + 1 >= max_attempts,
           )
@@ -97,12 +101,13 @@ fn stale_candidate(snippet: Snippet) -> Program(Outcome) {
 
 fn classify_recorded_candidate(
   config,
-  snippet: Snippet,
+  request: spam_classification.ServiceRequest,
   expected_updated_at: Timestamp,
   retry_limit_reached: Bool,
 ) -> Program(Outcome) {
+  let spam_classification.ServiceRequest(snippet:, ..) = request
   use attempt <- program.and_then(
-    classifier_effect.classify(config, snippet)
+    classifier_effect.classify(config, request)
     |> program.map(Classified)
     |> program.attempt(fn(err) {
       case snippet_failure_code(err), retry_limit_reached {

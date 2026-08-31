@@ -38,6 +38,12 @@ pub fn from_unclassified(
     spam_classification.attempts_from_int(row.spam_classification_attempts)
     |> result.map_error(db_error.DbQueryError),
   )
+  use is_runnable <- result.try(
+    row.is_runnable
+    |> option.to_result(db_error.DbQueryError(
+      "Spam classification candidate has not been checked for runnability",
+    )),
+  )
   let snippet =
     snippet_model.Snippet(
       id: uuid_helpers.from_bit_array(row.id),
@@ -52,7 +58,12 @@ pub fn from_unclassified(
       created_at: row.created_at,
       updated_at: row.updated_at,
     )
-  Ok(spam_classification.Candidate(snippet, row.updated_at, attempts))
+  Ok(spam_classification.Candidate(
+    snippet:,
+    is_runnable:,
+    expected_updated_at: row.updated_at,
+    attempts:,
+  ))
 }
 
 fn decode_run_instructions(

@@ -205,9 +205,10 @@ fn services(
   let base_snippet_store = test_snippet_adapter.defaults()
   let candidate =
     spam_classification.Candidate(
-      snippet,
-      snippet.updated_at,
-      candidate_attempts,
+      snippet:,
+      is_runnable: False,
+      expected_updated_at: snippet.updated_at,
+      attempts: candidate_attempts,
     )
   let snippets =
     snippet_store.Store(
@@ -226,7 +227,12 @@ fn services(
   let system =
     system_ports.SystemPorts(
       ..base_services.system,
-      spam_classifier: classifier_client.Client(classify: fn(_, _, _) {
+      spam_classifier: classifier_client.Client(classify: fn(_, request, _) {
+        let assert spam_classification.ServiceRequest(
+          snippet: requested_snippet,
+          is_runnable: False,
+        ) = request
+        assert requested_snippet == snippet
         classifier_result
       }),
     )

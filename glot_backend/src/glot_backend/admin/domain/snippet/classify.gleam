@@ -44,9 +44,15 @@ pub fn classify_snippet(
     |> program.require(error.resource(resource_error.SnippetNotFound)),
   )
   let identity = snippet.snippet.identity
+  use is_runnable <- program.and_then(
+    snippet.runnability.is_runnable
+    |> program.from_option(error.resource(
+      resource_error.SnippetRunnabilityUnchecked,
+    )),
+  )
   use response <- program.and_then(classifier_effect.classify(
     classifier_config,
-    identity,
+    spam_classification.ServiceRequest(snippet: identity, is_runnable:),
   ))
   let #(service_response, _) = response
   use classified_at <- program.and_then(basic_effect.system_time())

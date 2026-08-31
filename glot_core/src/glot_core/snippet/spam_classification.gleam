@@ -61,7 +61,16 @@ pub type StoreResult {
 }
 
 pub type Candidate {
-  Candidate(snippet: Snippet, expected_updated_at: Timestamp, attempts: Int)
+  Candidate(
+    snippet: Snippet,
+    is_runnable: Bool,
+    expected_updated_at: Timestamp,
+    attempts: Int,
+  )
+}
+
+pub type ServiceRequest {
+  ServiceRequest(snippet: Snippet, is_runnable: Bool)
 }
 
 pub type ServiceResponse {
@@ -192,13 +201,15 @@ pub fn reason_code_decoder() -> decode.Decoder(ReasonCode) {
   })
 }
 
-pub fn encode_request(snippet: Snippet) -> json.Json {
+pub fn encode_request(request: ServiceRequest) -> json.Json {
+  let ServiceRequest(snippet:, is_runnable:) = request
   json.object([
     #(
       "snippet",
       json.object([
         #("title", json.string(snippet.title)),
         #("language", json.string(language.to_string(snippet.language))),
+        #("is_runnable", json.bool(is_runnable)),
         #("stdin", json.string(snippet.stdin)),
         #(
           "runInstructions",
