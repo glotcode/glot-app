@@ -42,7 +42,7 @@ body {
   [tabindex]:not([tabindex="-1"]),
   [contenteditable="true"]
 ):focus-visible,
-glot-codemirror:focus-within {
+#code-editor-input:focus-visible {
   outline: var(--focus-ring-width) solid var(--color-focus);
   outline-offset: var(--focus-ring-offset);
 }
@@ -90,9 +90,18 @@ button {
   min-height: var(--control-min-size);
 }
 
+/* Gutter line numbers are one text line tall by construction: the minimum
+   touch target would make each button taller than its line, so the numbers
+   would drift away from the code. They are not a touch target of their own —
+   the same caret move is a tap in the text. */
+.code-editor__line-number {
+  min-block-size: 0;
+  min-inline-size: 0;
+}
+
 .editor-shell__tab:focus-visible,
 .editor-shell__tab-meta-button:focus-visible,
-glot-codemirror:focus-within {
+#code-editor-input:focus-visible {
   outline-offset: calc(-1 * var(--focus-ring-offset));
 }
 
@@ -184,7 +193,7 @@ glot-codemirror:focus-within {
     [tabindex]:not([tabindex="-1"]),
     [contenteditable="true"]
   ):focus-visible,
-  glot-codemirror:focus-within {
+  #code-editor-input:focus-visible {
     outline: var(--focus-ring-width) solid Highlight;
   }
 

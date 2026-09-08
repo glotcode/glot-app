@@ -12,34 +12,17 @@
     "check:css": "node scripts/check-css-architecture.mjs",
     "test:gleam": "gleam test",
     "test:javascript": "node --test js/custom_elements/*.test.mjs src/glot_frontend/api/*.test.mjs src/glot_frontend/platform/*.test.mjs",
-    "test:codemirror": "node --test js/custom_elements/glot-codemirror-document.test.mjs"
+    "test:browser": "playwright test",
+    "test:browser:install": "playwright install --with-deps chromium firefox webkit"
   },
   "type": "module",
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "@codemirror/autocomplete": "^6.18.6",
-    "@codemirror/lang-cpp": "^6.0.3",
-    "@codemirror/lang-go": "^6.0.1",
-    "@codemirror/lang-java": "^6.0.2",
-    "@codemirror/lang-javascript": "^6.2.4",
-    "@codemirror/lang-php": "^6.0.2",
-    "@codemirror/lang-python": "^6.2.1",
-    "@codemirror/lang-rust": "^6.0.2",
-    "@codemirror/language": "^6.11.3",
-    "@codemirror/legacy-modes": "^6.5.1",
-    "@codemirror/state": "^6.5.2",
-    "@codemirror/view": "^6.38.1",
-    "@plutojl/lang-julia": "^0.12.1",
-    "@replit/codemirror-emacs": "^6.1.0",
-    "@replit/codemirror-lang-nix": "^6.0.1",
-    "@replit/codemirror-vim": "^6.3.0",
-    "codemirror": "^6.0.2",
-    "codemirror-lang-elixir": "^4.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "vite": "^7.3.0"
+    "vite": "^7.3.0",
+    "@playwright/test": "^1.50.0"
   }
 }

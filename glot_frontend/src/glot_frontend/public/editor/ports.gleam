@@ -2,8 +2,10 @@ import gleam/option
 import glot_core/run
 import glot_core/snippet/snippet_dto
 import glot_frontend/api/response
+import glot_frontend/public/editor/code_editor/ports as code_editor_ports
 import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/draft_persistence
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/settings
 import lustre/effect.{type Effect}
 
@@ -11,7 +13,7 @@ import lustre/effect.{type Effect}
 /// supplies browser-backed ports; tests interpret commands as data instead.
 pub type Ports(msg) {
   Ports(
-    load_environment: fn(fn(String, settings.EditorSettings) -> msg) ->
+    load_environment: fn(fn(String, environment.Environment) -> msg) ->
       Effect(msg),
     load_draft: fn(
       draft_persistence.Target,
@@ -46,5 +48,6 @@ pub type Ports(msg) {
     blur: fn(String) -> Effect(msg),
     navigate: fn(String) -> Effect(msg),
     schedule: fn(Int, msg) -> Effect(msg),
+    code_editor: code_editor_ports.Ports(msg),
   )
 }

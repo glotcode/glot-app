@@ -5,8 +5,9 @@ import glot_frontend/public/editor/entry_drafts
 import glot_frontend/public/editor/file_policy
 import glot_frontend/public/editor/files as editor_files
 import glot_frontend/public/editor/model.{
-  type Editor, Editor, EntryDrafts, FileTab, Snippet, StdinTab, Workspace,
+  type Editor, Editor, EntryDrafts, FileTab, Snippet, StdinTab,
 }
+import glot_frontend/public/editor/workspace
 import glot_frontend/public/editor/tab_semantics
 
 pub fn reset_add_entry_draft(model: Editor) -> Editor {
@@ -44,11 +45,7 @@ fn add_file(model: Editor, filename: String) -> Editor {
   Editor(
     ..model,
     snippet: Snippet(..model.snippet, files: next_files),
-    workspace: Workspace(
-      ..model.workspace,
-      selected_tab: FileTab(next_index),
-      editor_external_revision: model.workspace.editor_external_revision + 1,
-    ),
+    workspace: workspace.add_file(model.workspace, next_index),
     entry_drafts: EntryDrafts(
       add: entry_drafts.add(model.snippet.stdin),
       edit: entry_drafts.edit(next_files, FileTab(next_index)),
@@ -60,11 +57,7 @@ fn add_stdin(model: Editor) -> Editor {
   Editor(
     ..model,
     snippet: Snippet(..model.snippet, stdin: option.Some("")),
-    workspace: Workspace(
-      ..model.workspace,
-      selected_tab: StdinTab,
-      editor_external_revision: model.workspace.editor_external_revision + 1,
-    ),
+    workspace: workspace.add_stdin(model.workspace),
     entry_drafts: EntryDrafts(
       add: entry_drafts.add(option.Some("")),
       edit: entry_drafts.edit(model.snippet.files, StdinTab),
@@ -103,11 +96,7 @@ fn delete_stdin(model: Editor) -> Editor {
   Editor(
     ..model,
     snippet: Snippet(..model.snippet, stdin: option.None),
-    workspace: Workspace(
-      ..model.workspace,
-      selected_tab: FileTab(0),
-      editor_external_revision: model.workspace.editor_external_revision + 1,
-    ),
+    workspace: workspace.remove_stdin(model.workspace, FileTab(0)),
     entry_drafts: EntryDrafts(
       add: entry_drafts.add(option.None),
       edit: entry_drafts.edit(model.snippet.files, FileTab(0)),
@@ -125,11 +114,7 @@ fn delete_file(model: Editor, index: Int) -> Editor {
   Editor(
     ..model,
     snippet: Snippet(..model.snippet, files: next_files),
-    workspace: Workspace(
-      ..model.workspace,
-      selected_tab: next_tab,
-      editor_external_revision: model.workspace.editor_external_revision + 1,
-    ),
+    workspace: workspace.remove_file(model.workspace, index, next_tab),
     entry_drafts: EntryDrafts(
       ..model.entry_drafts,
       edit: entry_drafts.edit(next_files, next_tab),

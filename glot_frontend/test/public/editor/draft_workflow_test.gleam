@@ -2,13 +2,14 @@ import gleam/option
 import gleam/time/timestamp
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
+import glot_frontend/public/editor/workspace
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/draft_persistence
 import glot_frontend/public/editor/draft_workflow
 import glot_frontend/public/editor/existing_editor_transition
 import glot_frontend/public/editor/model
-import glot_frontend/public/editor/settings
 import support/editor_fixture
 
 pub fn loaded_existing_drafts_are_correlated_to_the_current_revision_test() {
@@ -85,8 +86,10 @@ pub fn applying_a_draft_rebuilds_all_dependent_editor_state_test() {
   assert applied.snippet.title == "Recovered"
   assert applied.snippet.stdin == option.Some("input")
   assert applied.workspace.selected_tab == model.FileTab(0)
-  assert applied.workspace.editor_external_revision
-    == editor.workspace.editor_external_revision + 1
+  // A restored draft is an explicit document replacement, so the editor
+  // sessions restart and the active session shows the restored text.
+  assert applied.workspace.editor != editor.workspace.editor
+  assert workspace.selected_text(applied.workspace) == "source"
   assert applied.entry_drafts.add.filename == ""
   assert applied.entry_drafts.edit.filename == "app.js"
   assert applied.metadata_draft.title == "Recovered"
@@ -100,7 +103,7 @@ pub fn applying_a_draft_rebuilds_all_dependent_editor_state_test() {
 fn existing_editor() -> model.Editor {
   let fixture = editor_fixture.snippet("draft-target", "saved")
   let #(ready, _) =
-    existing_editor_transition.from_response(fixture, settings.defaults())
+    existing_editor_transition.from_response(fixture, environment.defaults())
   let assert model.Ready(editor) = ready
   editor
 }

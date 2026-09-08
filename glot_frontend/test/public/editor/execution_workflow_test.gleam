@@ -3,6 +3,7 @@ import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/execution_workflow
@@ -10,12 +11,11 @@ import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 import support/editor_fixture
 
 pub fn run_projects_one_complete_editor_snapshot_into_the_request_test() {
   let custom = language.RunInstructions(["npm build"], "node dist.js")
-  let base = ready.new(language.JavaScript, settings.defaults())
+  let base = ready.new(language.JavaScript, environment.defaults())
   let editor =
     model.Editor(
       ..base,
@@ -55,7 +55,7 @@ pub fn run_projects_one_complete_editor_snapshot_into_the_request_test() {
 }
 
 pub fn run_uses_language_defaults_when_no_override_exists_test() {
-  let base = ready.new(language.JavaScript, settings.defaults())
+  let base = ready.new(language.JavaScript, environment.defaults())
   let editor =
     model.Editor(
       ..base,

@@ -1,12 +1,13 @@
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
+import glot_frontend/public/editor/code_editor/browser_command
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_projection
 import glot_frontend/public/editor/file_update
 import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 
 pub fn add_dialog_messages_own_the_add_draft_and_browser_commands_test() {
   let editor =
@@ -53,6 +54,7 @@ pub fn successful_add_closes_the_dialog_and_persists_the_projected_draft_test() 
     == command.Batch([
       command.CloseDialog("editor-page-add-entry-dialog"),
       command.SaveDraft(draft_projection.write(added)),
+      command.CodeEditor(browser_command.SyncSession("file-1", 0, "", 0, 0, 0, 0)),
     ])
 }
 
@@ -72,7 +74,7 @@ pub fn add_cancel_and_close_reset_the_draft_with_distinct_effects_test() {
   let #(closed, close_command) =
     file_update.update(editor, message.AddEntryDialogClosed)
   assert closed.entry_drafts.add.filename == ""
-  assert close_command == command.Focus("editor-page-codemirror")
+  assert close_command == command.Focus("code-editor-input")
 }
 
 pub fn edit_dialog_messages_own_the_edit_draft_and_browser_commands_test() {
@@ -103,7 +105,7 @@ pub fn edit_dialog_messages_own_the_edit_draft_and_browser_commands_test() {
   let #(closed, close_command) =
     file_update.update(changed, message.EditEntryDialogClosed)
   assert closed.entry_drafts.edit.filename == "helper.js"
-  assert close_command == command.Focus("editor-page-codemirror")
+  assert close_command == command.Focus("code-editor-input")
 }
 
 pub fn rename_and_delete_persist_only_successful_changes_test() {
@@ -136,6 +138,7 @@ pub fn rename_and_delete_persist_only_successful_changes_test() {
     == command.Batch([
       command.CloseDialog("editor-page-edit-entry-dialog"),
       command.SaveDraft(draft_projection.write(deleted)),
+      command.CodeEditor(browser_command.SyncSession("file-0", 0, "console.log(\"Hello World!\");", 0, 0, 0, 0)),
     ])
 
   assert file_update.update(deleted, message.EditEntryDeleted)
@@ -143,7 +146,7 @@ pub fn rename_and_delete_persist_only_successful_changes_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn with_add_filename(editor: model.Editor, filename: String) -> model.Editor {

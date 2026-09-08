@@ -2,10 +2,10 @@ import gleam/option
 import gleam/string
 import gleam/time/timestamp
 import glot_core/language
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/restore_draft_view
-import glot_frontend/public/editor/settings
 import lustre/element
 import support/editor_fixture
 
@@ -46,7 +46,7 @@ pub fn existing_snippet_restore_prompt_explains_newer_unsaved_changes_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn with_pending_draft(editor: model.Editor) -> model.Editor {

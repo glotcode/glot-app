@@ -3,9 +3,9 @@ import gleam/option
 import gleam/string
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/tab_navigation_view
 import lustre/element
 import lustre/element/html
@@ -58,7 +58,7 @@ pub fn absent_stdin_is_not_rendered_and_long_names_are_truncated_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn render(editor: model.Editor) -> String {

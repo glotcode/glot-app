@@ -1,4 +1,5 @@
 import gleam/list
+import glot_frontend/public/editor/code_editor/interpreter as code_editor_interpreter
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/ports
 import lustre/effect.{type Effect}
@@ -11,6 +12,8 @@ pub fn run(
     command.None -> effect.none()
     command.Batch(commands) ->
       effect.batch(list.map(commands, fn(command) { run(command, ports) }))
+    command.CodeEditor(inner) ->
+      code_editor_interpreter.run(inner, ports.code_editor)
     command.LoadEnvironment(complete) -> ports.load_environment(complete)
     command.LoadDraft(target, complete) -> ports.load_draft(target, complete)
     command.GetSnippet(request, complete) ->

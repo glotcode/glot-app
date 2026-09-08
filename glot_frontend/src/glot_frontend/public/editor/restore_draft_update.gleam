@@ -1,5 +1,6 @@
 import gleam/option
 import glot_core/language
+import glot_frontend/public/editor/code_editor/update as code_editor_update
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/draft_projection
@@ -40,10 +41,20 @@ pub fn update(
 
     RestoreDraftAccepted ->
       case model.restore_draft {
-        RestoreDraftPending(draft) -> #(
-          draft_workflow.apply_editor_draft(model, draft.draft),
-          command.CloseDialog(ids.restore_draft_dialog),
-        )
+        RestoreDraftPending(draft) -> {
+          let restored = draft_workflow.apply_editor_draft(model, draft.draft)
+          #(
+            restored,
+            command.batch([
+              // The restored draft replaced every document, so the textarea is
+              // rewritten from the new session rather than diffed into it.
+              command.CodeEditor(
+                code_editor_update.sync(restored.workspace.editor),
+              ),
+              command.CloseDialog(ids.restore_draft_dialog),
+            ]),
+          )
+        }
         NoRestoreDraft -> #(model, command.none())
       }
 

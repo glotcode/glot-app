@@ -12,4 +12,5 @@ pub const snippet_info_dialog = "editor-page-snippet-info-dialog"
 
 pub const restore_draft_dialog = "editor-page-restore-draft-dialog"
 
-pub const editor = "editor-page-codemirror"
+/// The editor's focus target is the textarea that holds the document.
+pub const editor = "code-editor-input"

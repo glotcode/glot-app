@@ -5,10 +5,10 @@ import gleam/time/timestamp
 import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/operations
-import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/view
 import glot_frontend/ui/delayed_loading
 import lustre/element
@@ -61,7 +61,7 @@ pub fn editor_lifecycle_states_satisfy_the_markup_accessibility_contract_test() 
     model.Lifecycle(lifecycle.Initializing(lifecycle.NewEditor("javascript"))),
     model.Lifecycle(lifecycle.LoadingSnippet(
       "fixture",
-      settings.defaults(),
+      environment.defaults(),
       visible_loading,
     )),
     model.Lifecycle(lifecycle.LoadError("Could not load snippet.")),

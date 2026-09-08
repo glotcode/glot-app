@@ -1,11 +1,11 @@
-import glot_frontend/public/editor/settings
+import glot_frontend/public/editor/environment
 import glot_frontend/ui/delayed_loading
 
 /// State owned by the editor page before a loaded editor is ready.
 pub type Model {
   Initializing(Target)
   UnsupportedLanguage(String)
-  LoadingSnippet(String, settings.EditorSettings, delayed_loading.State)
+  LoadingSnippet(String, environment.Environment, delayed_loading.State)
   LoadError(String)
 }
 

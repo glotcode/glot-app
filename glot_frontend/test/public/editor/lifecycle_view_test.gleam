@@ -1,7 +1,7 @@
 import gleam/string
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/lifecycle_view
-import glot_frontend/public/editor/settings
 import glot_frontend/ui/delayed_loading
 import lustre/element
 
@@ -13,7 +13,7 @@ pub fn initializing_and_unrevealed_loading_render_no_page_content_test() {
 
   let #(loading, _) = delayed_loading.begin(delayed_loading.idle())
   let unrevealed =
-    lifecycle.LoadingSnippet("fixture", settings.defaults(), loading)
+    lifecycle.LoadingSnippet("fixture", environment.defaults(), loading)
     |> render
   assert !string.contains(unrevealed, "main-content")
   assert !string.contains(unrevealed, "Loading snippet...")
@@ -23,7 +23,7 @@ pub fn revealed_loading_renders_an_accessible_status_page_test() {
   let #(loading, generation) = delayed_loading.begin(delayed_loading.idle())
   let visible = delayed_loading.reveal(loading, generation)
   let rendered =
-    lifecycle.LoadingSnippet("fixture", settings.defaults(), visible)
+    lifecycle.LoadingSnippet("fixture", environment.defaults(), visible)
     |> render
 
   assert string.contains(rendered, "id=\"main-content\"")

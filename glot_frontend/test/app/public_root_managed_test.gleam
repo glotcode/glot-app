@@ -13,13 +13,13 @@ import glot_frontend/app/public_page_message
 import glot_frontend/app/public_page_state
 import glot_frontend/app/public_root_managed
 import glot_frontend/navigation
+import glot_frontend/public/editor/environment as editor_environment
 import glot_frontend/public/editor/command as editor_command
 import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle as editor_lifecycle
 import glot_frontend/public/editor/message as editor_message
 import glot_frontend/public/editor/model as editor_model
 import glot_frontend/public/editor/operations
-import glot_frontend/public/editor/settings as editor_settings
 import glot_frontend/public/home/message
 import glot_frontend/public/login/message as login_message
 import glot_frontend/public/snippets/command as snippets_command
@@ -427,7 +427,7 @@ pub fn editor_metadata_is_applied_when_the_resulting_state_changes_it_test() {
           editor_message.Lifecycle(editor_message.EnvironmentLoaded(
             editor_lifecycle.NewEditor("javascript"),
             "",
-            editor_settings.defaults(),
+            editor_environment.defaults(),
           )),
         ),
       ),
@@ -608,7 +608,7 @@ fn load_snippet(
           editor_message.Lifecycle(editor_message.EnvironmentLoaded(
             target,
             "",
-            editor_settings.defaults(),
+            editor_environment.defaults(),
           )),
         ),
       ),

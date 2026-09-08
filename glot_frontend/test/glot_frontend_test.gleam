@@ -10,11 +10,11 @@ import glot_frontend/account/page as account_page
 import glot_frontend/public/contact/message as contact_message
 import glot_frontend/public/contact/model as contact_model
 import glot_frontend/public/contact/page as contact_page
+import glot_frontend/public/editor/environment as editor_environment
 import glot_frontend/public/editor/lifecycle as editor_lifecycle
 import glot_frontend/public/editor/message as editor_message
 import glot_frontend/public/editor/model as editor_model
 import glot_frontend/public/editor/page as editor_page
-import glot_frontend/public/editor/settings as editor_settings
 import glot_frontend/public/login/message as login_message
 import glot_frontend/public/login/model as login_model
 import glot_frontend/public/login/page as login_page
@@ -100,7 +100,7 @@ pub fn editor_page_ignores_loading_timer_from_previous_slug_test() {
       editor_message.Lifecycle(editor_message.EnvironmentLoaded(
         target,
         "",
-        editor_settings.defaults(),
+        editor_environment.defaults(),
       )),
       option.None,
     )

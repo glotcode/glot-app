@@ -1,10 +1,10 @@
 import gleam/option
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/file_policy
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 
 pub fn add_file_requires_a_unique_trimmed_valid_name_test() {
   let editor = new_editor()
@@ -135,7 +135,7 @@ pub fn decisions_reject_nonexistent_selected_entries_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn with_add_file(editor: model.Editor, filename: String) -> model.Editor {

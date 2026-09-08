@@ -4,10 +4,10 @@ import glot_core/language
 import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/managed
 import glot_frontend/public/editor/message
-import glot_frontend/public/editor/settings
 import support/editor_fixture
 import support/editor_scenario
 import youid/uuid.{type Uuid}
@@ -16,10 +16,7 @@ pub fn existing_save_failure_can_retry_without_losing_edits_test() {
   let original = editor_fixture.snippet("save-retry", "console.log('old')")
   let scenario =
     ready_existing(original, option.Some(editor_fixture.owner_id()))
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
-      "console.log('retained')",
-      1,
-    ))
+    |> editor_scenario.type_source("console.log('retained')")
     |> editor_scenario.dispatch_save(message.SaveClicked)
     |> editor_scenario.respond_to_update(editor_fixture.api_failure(
       "Update rejected.",
@@ -44,9 +41,9 @@ pub fn stale_existing_save_response_cannot_overwrite_latest_success_test() {
   let original = editor_fixture.snippet("stale-save", "before")
   let scenario =
     ready_existing(original, option.Some(editor_fixture.owner_id()))
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged("first", 1))
+    |> editor_scenario.type_source("first")
     |> editor_scenario.dispatch_save(message.SaveClicked)
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged("second", 2))
+    |> editor_scenario.type_source("second")
     |> editor_scenario.dispatch_save(message.SaveClicked)
   let assert [
     editor_scenario.UpdateSnippet(_, _),
@@ -133,7 +130,7 @@ pub fn stale_create_response_cannot_repeat_navigation_or_draft_clear_test() {
     editor_scenario.new_editor(language.JavaScript)
     |> editor_scenario.start(option.Some(current_user))
     |> editor_scenario.dispatch_save(message.SaveConfirmed)
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged("newer", 1))
+    |> editor_scenario.type_source("newer")
     |> editor_scenario.dispatch_save(message.SaveConfirmed)
   let assert [
     editor_scenario.CreateSnippet(_, _),
@@ -147,10 +144,7 @@ pub fn stale_create_response_cannot_repeat_navigation_or_draft_clear_test() {
       1,
       response.Success(latest_response),
     )
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
-      "unsaved after latest response",
-      2,
-    ))
+    |> editor_scenario.type_source("unsaved after latest response")
     |> editor_scenario.respond_to_create_at(0, response.Success(stale_response))
   assert editor_scenario.count_navigations(scenario) == 1
   assert editor_scenario.count_draft_clears(scenario) == 1
@@ -166,10 +160,7 @@ pub fn saved_existing_snippet_runs_the_saved_code_test() {
   let owner = editor_fixture.owner_id()
   let scenario =
     ready_existing(original, option.Some(owner))
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
-      "console.log('saved output')",
-      1,
-    ))
+    |> editor_scenario.type_source("console.log('saved output')")
     |> editor_scenario.dispatch_save(message.SaveClicked)
   let assert [editor_scenario.UpdateSnippet(update_request, _)] =
     editor_scenario.pending(scenario)
@@ -202,7 +193,7 @@ fn ready_existing(
   let #(initial, initial_command) =
     managed.init(lifecycle.ExistingEditor(fixture.slug))
   editor_scenario.start_with_command(initial, current_user, initial_command)
-  |> editor_scenario.respond_to_environment("", settings.defaults())
+  |> editor_scenario.respond_to_environment("", environment.defaults())
   |> editor_scenario.deliver_next_scheduled
   |> editor_scenario.respond_to_get_snippet(response.Success(fixture))
   |> editor_scenario.respond_to_language_version(editor_fixture.successful_run(

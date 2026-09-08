@@ -130,6 +130,42 @@ Transport cancellation remains the prompt resource cleanup mechanism, while
 route identity is the correctness boundary for responses that were already
 queued when navigation began.
 
+## The code editor
+
+`public/editor/code_editor` is a child feature of the editor page and follows
+the same managed model, message, command and interpreter pattern as any other
+feature. It replaces the previous CodeMirror custom element outright; there is
+no editor custom element, no shadow DOM, and no second Lustre application.
+
+- Editing is deterministic Gleam. The document is an indexed line list, every
+  change is a transaction, and undo grouping, selection mapping, search, the
+  keybinding state machines and the lexers are all pure and testable without a
+  browser.
+- Offsets are UTF-16 code units at every browser interface, because that is what
+  `selectionStart` and `beforeinput` ranges use. Movement and deletion are
+  grapheme-aware; `code_editor/text` is the only place the two are converted.
+- Presentation is ordinary Lustre elements: a `textarea` that holds the whole
+  document and owns focus, the caret, native and touch selection and IME, with a
+  highlighting layer behind it that renders only the visible lines plus
+  overscan. Both share one typography and neither soft-wraps.
+- Browser interop lives in `platform/code_editor_dom`. It writes values,
+  selections and scroll positions, measures geometry, observes resizes and
+  reaches the clipboard. It never decides what a command means, and it never
+  owns history.
+- Native edits are reconciled rather than intercepted. The browser is allowed to
+  edit the textarea — that is what keeps IME, dictation, autocorrect and mobile
+  keyboards working — and `code_editor/reconcile` diffs the result into one
+  transaction.
+- Each open file, and stdin, has its own session with a stable key that is
+  independent of the filename and of the file's position. Switching tabs changes
+  the active key; history, cursor, selection and scroll survive. Explicit
+  document replacement starts a new generation, and browser callbacks quoting a
+  stale session or generation are dropped.
+- Every language in `glot_core/language.list()` has its own lexer rules under
+  `code_editor/syntax`. The scanner is incremental: it caches lexical state per
+  line and rescans from a change until the state converges. An exhaustive test
+  fails if a language ever loses its rules.
+
 ## Presentation
 
 - Feature views live with their feature. Reusable, domain-neutral controls live
@@ -177,3 +213,9 @@ When adding or changing a feature:
    to the workflow risk.
 7. Register new managed entry points with the boundary checker.
 8. Run `npm test` and `npm run build`.
+
+Editor changes additionally run `npm run test:browser` (Chromium, Firefox and
+WebKit) and `node scripts/benchmark-editor.mjs`. `docs/editor-verification.md`
+records the benchmark results and the real-device and screen-reader checks that
+cannot be automated; `docs/editor-compatibility-matrix.md` records the command
+coverage the editor is measured against.

@@ -1,18 +1,15 @@
-import gleam/dynamic/decode
-import gleam/int
 import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
 import glot_frontend/public/editor/console_view
-import glot_frontend/public/editor/document
 import glot_frontend/public/editor/file_dialog_view
-import glot_frontend/public/editor/ids
+import glot_frontend/public/editor/code_editor/view as code_editor_view
 import glot_frontend/public/editor/lifecycle_view
 import glot_frontend/public/editor/message.{
-  type EditorMsg, type Msg, EditMetadataClicked, Editor as EditorMessage,
-  Execution, File, Metadata, RestoreDraft, RunCancellationSubmitted,
-  RunSubmitted, Save, SaveClicked, Settings, SnippetInfo, SnippetInfoClicked,
-  SourceCodeChanged,
+  type EditorMsg, type Msg, CodeEditor, EditMetadataClicked,
+  Editor as EditorMessage, Execution, File, Metadata, RestoreDraft,
+  RunCancellationSubmitted, RunSubmitted, Save, SaveClicked, Settings,
+  SnippetInfo, SnippetInfoClicked,
 }
 import glot_frontend/public/editor/metadata_dialog_view
 import glot_frontend/public/editor/model.{
@@ -22,7 +19,6 @@ import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/restore_draft_view
 import glot_frontend/public/editor/save_dialog_view
-import glot_frontend/public/editor/settings as editor_settings
 import glot_frontend/public/editor/settings_dialog_view
 import glot_frontend/public/editor/snippet_info_view
 import glot_frontend/public/editor/tab_semantics
@@ -102,46 +98,8 @@ fn view_helper(
     },
     tabbar_children: workspace_toolbar_view.view(model),
     active_tab_id: tab_semantics.tab_id(model.workspace.selected_tab),
-    editor: element.element(
-      "glot-codemirror",
-      [
-        attribute.id(ids.editor),
-        attribute.class("editor-shell__codemirror"),
-        attribute.attribute(
-          "language",
-          language.to_string(model.snippet.language),
-        ),
-        attribute.attribute(
-          "editor-external-revision",
-          int.to_string(model.workspace.editor_external_revision),
-        ),
-        attribute.attribute(
-          "editor-revision",
-          int.to_string(model.workspace.editor_revision),
-        ),
-        attribute.attribute(
-          "value",
-          document.selected_content(
-            model.snippet.files,
-            model.snippet.stdin,
-            model.workspace.selected_tab,
-          ),
-        ),
-        attribute.disabled(!language.is_writable(model.snippet.language)),
-        attribute.attribute(
-          "keyboard-bindings",
-          model.editor_settings.keyboard_bindings
-            |> editor_settings.keyboard_bindings_to_string(),
-        ),
-        event.on("change", {
-          use value <- decode.subfield(["detail", "value"], decode.string)
-          use revision <- decode.subfield(["detail", "revision"], decode.int)
-          decode.success(Execution(SourceCodeChanged(value, revision)))
-        }),
-        event.on("editor-run", decode.success(Execution(RunSubmitted))),
-      ],
-      [],
-    ),
+    editor: code_editor_view.view(model.workspace.editor)
+      |> element.map(CodeEditor),
     action_buttons: [
       action_button(
         "editor-shell__action-button",

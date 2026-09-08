@@ -154,6 +154,6 @@ pub fn test_static_base_path() -> String {
 pub fn write_test_manifest() -> Result(Nil, String) {
   file_system.write_file(
     test_static_base_path() <> "/manifest.json",
-    "{\"js/public.ts\":{\"file\":\"assets/test-frontend.js\",\"imports\":[\"_shared.js\"]},\"js/admin.ts\":{\"file\":\"assets/test-admin.js\",\"css\":[\"assets/test-admin.css\"],\"imports\":[\"_shared.js\"]},\"js/custom_elements/glot-codemirror.ts\":{\"file\":\"assets/test-codemirror.js\",\"imports\":[\"_shared.js\",\"_codemirror-shared.js\"]},\"js/styles.ts\":{\"file\":\"assets/empty.js\",\"css\":[\"assets/test-styles.css\"]},\"assets/home-banner.jpg\":{\"file\":\"assets/test-home-banner.jpg\"},\"_shared.js\":{\"file\":\"assets/test-shared.js\"},\"_codemirror-shared.js\":{\"file\":\"assets/test-codemirror-shared.js\"}}",
+    "{\"js/public.ts\":{\"file\":\"assets/test-frontend.js\",\"imports\":[\"_shared.js\"]},\"js/admin.ts\":{\"file\":\"assets/test-admin.js\",\"css\":[\"assets/test-admin.css\"],\"imports\":[\"_shared.js\"]},\"js/styles.ts\":{\"file\":\"assets/empty.js\",\"css\":[\"assets/test-styles.css\"]},\"assets/home-banner.jpg\":{\"file\":\"assets/test-home-banner.jpg\"},\"_shared.js\":{\"file\":\"assets/test-shared.js\"}}",
   )
 }

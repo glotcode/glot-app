@@ -3,9 +3,9 @@ import gleam/string
 import gleam/time/timestamp
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/snippet_info_view
 import lustre/element
 import support/editor_fixture
@@ -86,7 +86,7 @@ pub fn owner_id_is_used_when_a_saved_snippet_has_no_username_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn render(editor: model.Editor) -> String {

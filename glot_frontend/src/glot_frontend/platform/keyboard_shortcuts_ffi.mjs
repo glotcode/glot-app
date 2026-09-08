@@ -22,7 +22,8 @@ function shouldTriggerEditorRun(target) {
     return true;
   }
 
-  if (target.closest("glot-codemirror")) {
+  // Ctrl/Cmd-Enter runs the snippet from inside the code editor too.
+  if (target.closest(".code-editor")) {
     return true;
   }
 
@@ -41,7 +42,7 @@ export function bindShortcuts(onQuickActions, onEditorRun) {
   }
 
   document.addEventListener("keydown", (event) => {
-    if (event.defaultPrevented) {
+    if (event.defaultPrevented || event.isComposing || event.keyCode === 229) {
       return;
     }
 

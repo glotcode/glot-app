@@ -41,7 +41,7 @@ fn application_directives() -> List(#(String, List(String))) {
     #("img-src", ["'self'", "data:"]),
     #("object-src", ["'none'"]),
     #("script-src", ["'self'"]),
-    // Inline SVG artwork, shadow-root components, and CodeMirror all apply
+    // Inline SVG artwork and shadow-root components apply
     // runtime styles. Script execution remains restricted independently.
     #("style-src", ["'self'", "'unsafe-inline'"]),
   ]

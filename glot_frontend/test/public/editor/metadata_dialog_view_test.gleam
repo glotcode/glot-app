@@ -2,10 +2,10 @@ import gleam/option
 import gleam/string
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/metadata_dialog_view
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 import lustre/element
 
 pub fn new_snippet_renders_title_draft_without_visibility_test() {
@@ -47,7 +47,7 @@ pub fn existing_snippet_renders_the_visibility_draft_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn render(editor: model.Editor) -> String {

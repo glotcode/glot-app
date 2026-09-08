@@ -58,7 +58,6 @@ pub fn public_page_uses_public_frontend_entry_test() {
   assert string.contains(body, "/static/assets/test-frontend.js")
   assert string.contains(body, "/static/assets/test-admin.js") == False
   assert string.contains(body, "/static/assets/test-shared.js")
-  assert string.contains(body, "/static/assets/test-codemirror.js") == False
   assert string.contains(body, "/static/assets/test-styles.css")
   assert string.contains(body, "/static/assets/test-admin.css") == False
 }
@@ -127,20 +126,16 @@ pub fn admin_page_uses_admin_frontend_entry_test() {
   assert string.contains(body, "/static/assets/test-admin.js")
   assert string.contains(body, "/static/assets/test-frontend.js") == False
   assert string.contains(body, "/static/assets/test-shared.js")
-  assert string.contains(body, "/static/assets/test-codemirror.js") == False
   assert string.contains(body, "/static/assets/test-styles.css")
   assert string.contains(body, "/static/assets/test-admin.css")
 }
 
-pub fn static_assets_loads_codemirror_entry_and_imports_test() {
+pub fn static_assets_resolve_entries_from_the_manifest_test() {
   let assert Ok(_) = http_support.write_test_manifest()
   let assert Ok(assets) =
     static_assets.load(http_support.test_static_base_path())
 
-  assert assets.code_mirror_preloads
-    == [
-      "/static/assets/test-codemirror.js",
-      "/static/assets/test-codemirror-shared.js",
-    ]
+  assert assets.frontend_src == "/static/assets/test-frontend.js"
+  assert assets.frontend_preloads == ["/static/assets/test-shared.js"]
   assert assets.social_image_href == "/static/assets/test-home-banner.jpg"
 }

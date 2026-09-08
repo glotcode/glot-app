@@ -5,19 +5,16 @@ import glot_core/language
 import glot_core/public_action
 import glot_core/run
 import glot_frontend/api/response as api_response
+import glot_frontend/public/editor/code_editor/update as code_editor_update
 import glot_frontend/public/editor/command
-import glot_frontend/public/editor/draft_projection
 import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/execution_workflow
-import glot_frontend/public/editor/file_workflow
 import glot_frontend/public/editor/message.{
   type ExecutionMsg, RunCancellationDelayElapsed, RunCancellationSubmitted,
-  RunFinished, RunSubmitted, SourceCodeChanged, TabKeyPressed, TabSelected,
-  VersionRunFinished,
+  RunFinished, RunSubmitted, TabKeyPressed, TabSelected, VersionRunFinished,
 }
-import glot_frontend/public/editor/model.{
-  type Editor, type EditorTab, Editor, Workspace,
-}
+import glot_frontend/public/editor/model.{type Editor, type EditorTab, Editor}
+import glot_frontend/public/editor/workspace
 import glot_frontend/public/editor/operations
 import glot_frontend/public/editor/tab_semantics
 import glot_frontend/request_generation.{type Generation}
@@ -32,28 +29,17 @@ pub fn update(
     TabKeyPressed(current, key) -> {
       let tabs = available_tabs(model)
       case tab_semantics.keyboard_destination(tabs, current, key) {
-        option.Some(tab) -> #(
-          select_tab(model, tab),
-          command.Focus(tab_semantics.tab_id(tab)),
-        )
-        option.None -> #(model, command.none())
-      }
-    }
-
-    SourceCodeChanged(source_code, revision) -> {
-      case file_workflow.update_selected_tab_content(model, source_code) {
-        option.None -> #(model, command.none())
-        option.Some(changed) -> {
-          let next_model =
-            Editor(
-              ..changed,
-              workspace: Workspace(
-                ..changed.workspace,
-                editor_revision: revision,
-              ),
-            )
-          #(next_model, command.SaveDraft(draft_projection.write(next_model)))
+        option.Some(tab) -> {
+          let next = select_tab(model, tab)
+          #(
+            next,
+            command.batch([
+              sync_editor(next),
+              command.Focus(tab_semantics.tab_id(tab)),
+            ]),
+          )
         }
+        option.None -> #(model, command.none())
       }
     }
 
@@ -150,14 +136,13 @@ fn finish_run(
 }
 
 fn select_tab(model: Editor, tab: EditorTab) -> Editor {
-  Editor(
-    ..model,
-    workspace: Workspace(
-      ..model.workspace,
-      selected_tab: tab,
-      editor_external_revision: model.workspace.editor_external_revision + 1,
-    ),
-  )
+  Editor(..model, workspace: workspace.select(model.workspace, tab))
+}
+
+/// Activating another file changes what the editor shows without any editor
+/// message, so the textarea is brought back in step explicitly.
+fn sync_editor(model: Editor) -> command.Command(ExecutionMsg) {
+  command.CodeEditor(code_editor_update.sync(model.workspace.editor))
 }
 
 fn select_requested_tab(
@@ -167,7 +152,10 @@ fn select_requested_tab(
   let tabs = available_tabs(model)
   case tab_semantics.select_tab(tabs, requested) {
     tab_semantics.SelectionBlocked -> #(model, command.none())
-    tab_semantics.SelectTab(tab) -> #(select_tab(model, tab), command.none())
+    tab_semantics.SelectTab(tab) -> {
+      let next = select_tab(model, tab)
+      #(next, sync_editor(next))
+    }
   }
 }
 

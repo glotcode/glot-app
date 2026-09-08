@@ -1,10 +1,10 @@
 import gleam/option
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 import support/editor_fixture
 
 pub fn save_decision_requires_login_before_resolving_a_plan_test() {
@@ -69,7 +69,7 @@ pub fn plan_helpers_follow_the_resolved_plan_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn existing_editor() -> model.Editor {

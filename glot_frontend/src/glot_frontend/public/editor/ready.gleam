@@ -5,18 +5,18 @@ import glot_core/snippet/snippet_model
 import glot_frontend/public/editor/document
 import glot_frontend/public/editor/entry_drafts
 import glot_frontend/public/editor/metadata_draft
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/model.{
   type Editor, type Snippet, Editor, NoRestoreDraft, SaveDraft, Snippet,
-  Workspace,
 }
 import glot_frontend/public/editor/operations
-import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/settings_draft
+import glot_frontend/public/editor/workspace
 import youid/uuid.{type Uuid}
 
 pub fn new(
   language: language.Language,
-  editor_settings: settings.EditorSettings,
+  found: environment.Environment,
 ) -> Editor {
   let file = snippet_model.default_file(language)
   build(
@@ -34,7 +34,7 @@ pub fn new(
       stdin: option.None,
       run_instructions_override: option.None,
     ),
-    editor_settings,
+    found,
   )
 }
 
@@ -53,7 +53,7 @@ pub fn existing(
   run_instructions_override run_instructions_override: option.Option(
     language.RunInstructions,
   ),
-  editor_settings editor_settings: settings.EditorSettings,
+  environment found: environment.Environment,
 ) -> Editor {
   build(
     Snippet(
@@ -70,19 +70,22 @@ pub fn existing(
       stdin: stdin,
       run_instructions_override: run_instructions_override,
     ),
-    editor_settings,
+    found,
   )
 }
 
-fn build(snippet: Snippet, editor_settings: settings.EditorSettings) -> Editor {
+fn build(snippet: Snippet, found: environment.Environment) -> Editor {
   let selected_tab = document.initial_tab(snippet.files, snippet.stdin)
+  let editor_settings = found.settings
 
   Editor(
     snippet: snippet,
-    workspace: Workspace(
-      editor_revision: 0,
-      editor_external_revision: 0,
-      selected_tab: selected_tab,
+    workspace: workspace.build(
+      snippet.files,
+      snippet.stdin,
+      selected_tab,
+      snippet.language,
+      found,
     ),
     entry_drafts: entry_drafts.initial(
       snippet.files,

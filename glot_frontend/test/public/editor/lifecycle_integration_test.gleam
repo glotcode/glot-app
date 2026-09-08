@@ -6,6 +6,7 @@ import glot_core/language
 import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/draft_persistence
 import glot_frontend/public/editor/lifecycle
@@ -105,7 +106,7 @@ pub fn invalid_ssr_falls_back_to_environment_settings_and_storage_fixtures_test(
     editor_scenario.start_with_command(initial, option.None, command)
     |> editor_scenario.respond_to_environment(
       "{invalid ssr",
-      settings.EditorSettings(settings.VimBindings),
+      environment.Environment(settings: settings.EditorSettings(settings.VimBindings), mac: False),
     )
     |> editor_scenario.respond_to_language_version(
       editor_fixture.successful_run(stdout: "v22", stderr: "", error: ""),
@@ -129,7 +130,7 @@ pub fn valid_existing_ssr_uses_the_shared_existing_editor_transition_test() {
     editor_scenario.start_with_command(initial, option.None, command)
     |> editor_scenario.respond_to_environment(
       raw_ssr,
-      settings.EditorSettings(settings.VimBindings),
+      environment.Environment(settings: settings.EditorSettings(settings.VimBindings), mac: False),
     )
     |> editor_scenario.respond_to_language_version(
       editor_fixture.successful_run(stdout: "v22", stderr: "", error: ""),
@@ -165,7 +166,7 @@ pub fn stale_lifecycle_messages_are_ignored_after_the_editor_is_ready_test() {
       message.EnvironmentLoaded(
         lifecycle.NewEditor("javascript"),
         "",
-        settings.defaults(),
+        environment.defaults(),
       ),
     )
 
@@ -188,7 +189,7 @@ pub fn accepting_new_draft_restores_content_and_closes_dialog_test() {
 fn loading_existing(slug: String) -> editor_scenario.Scenario {
   let #(initial, command) = managed.init(lifecycle.ExistingEditor(slug))
   editor_scenario.start_with_command(initial, option.None, command)
-  |> editor_scenario.respond_to_environment("", settings.defaults())
+  |> editor_scenario.respond_to_environment("", environment.defaults())
   |> editor_scenario.deliver_next_scheduled
 }
 
@@ -217,7 +218,7 @@ fn new_with_draft() -> editor_scenario.Scenario {
     )
   let #(initial, command) = managed.init(lifecycle.NewEditor("javascript"))
   editor_scenario.start_with_command(initial, option.None, command)
-  |> editor_scenario.respond_to_environment("", settings.defaults())
+  |> editor_scenario.respond_to_environment("", environment.defaults())
   |> editor_scenario.respond_to_language_version(editor_fixture.successful_run(
     stdout: "v22",
     stderr: "",

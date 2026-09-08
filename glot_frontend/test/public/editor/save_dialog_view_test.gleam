@@ -1,10 +1,10 @@
 import gleam/option
 import gleam/string
 import glot_core/language
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/save_dialog_view
-import glot_frontend/public/editor/settings
 import lustre/element
 import support/editor_fixture
 import youid/uuid.{type Uuid}
@@ -51,7 +51,7 @@ pub fn owners_of_existing_snippets_receive_update_confirmation_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn existing_editor() -> model.Editor {

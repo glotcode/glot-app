@@ -7,8 +7,10 @@
   --theme-text-strong: light-dark(#002b36, #fdf6e3);
   --theme-text: light-dark(#073642, #eee8d5);
   --theme-text-muted: light-dark(#586e75, #93a1a1);
-  /* Secondary copy still meets 4.5:1 against its page and surface. */
-  --theme-text-subtle: light-dark(#586e75, #93a1a1);
+  /* Secondary copy still meets 4.5:1 against its page and surface. The light
+     tone is darkened past that floor so comments and operators keep 4.5:1 even
+     under the editor's selection and search-match washes. */
+  --theme-text-subtle: light-dark(#4a5f66, #93a1a1);
   --theme-text-disabled: light-dark(#586e75, #93a1a1);
   --theme-border: light-dark(#d8d1bd, #34505a);
   --theme-screen-line: light-dark(rgba(255, 255, 255, 0.12), rgba(147, 161, 161, 0.04));
@@ -32,14 +34,18 @@
 
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
   --color-accent-line: color-mix(in srgb, var(--color-accent) 6%, transparent);
-  --color-accent-selection: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  /* Selection paints above the highlight layer, so this wash lands on the
+     glyphs too; 12% keeps every syntax token at 4.5:1 through it. */
+  --color-accent-selection: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --color-accent-selection-muted: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --color-danger-soft: color-mix(in srgb, var(--color-danger) 10%, transparent);
   --color-danger-subtle: color-mix(in srgb, var(--color-danger) 8%, transparent);
   --color-danger-hover: color-mix(in srgb, var(--color-danger) 16%, transparent);
   --color-danger-border: color-mix(in srgb, var(--color-danger) 35%, transparent);
   --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, transparent);
-  --color-warning-emphasis: color-mix(in srgb, var(--color-warning) 24%, transparent);
+  /* A search match is identified by its outline, so the fill stays light
+     enough to keep the highlighted code itself at 4.5:1. */
+  --color-warning-emphasis: color-mix(in srgb, var(--color-warning) 12%, transparent);
   --color-warning-border: color-mix(in srgb, var(--color-warning) 35%, transparent);
   --color-success-soft: color-mix(in srgb, var(--color-success) 12%, transparent);
   --color-success-border: color-mix(in srgb, var(--color-success) 35%, transparent);

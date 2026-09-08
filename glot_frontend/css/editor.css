@@ -524,9 +524,247 @@
   overflow: hidden;
 }
 
-.editor-shell__codemirror {
-  display: block;
+/* Native code editor
+   ------------------
+   A textarea holds the whole document and owns focus, the caret, native
+   selection, touch selection and IME. The highlighting layer behind it renders
+   the visible lines with identical typography, so the two stay aligned. */
+
+.code-editor {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      180deg,
+      var(--theme-screen-line) 0,
+      var(--theme-screen-line) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    var(--theme-page);
+  color: var(--theme-text-strong);
+  font-family: "Lucida Console", Monaco, "Courier New", monospace;
+  font-size: 16px;
+  /* Fixed, so the gutter, the decorations and the textarea agree on where a
+     line begins without any measurement drift. */
+  line-height: 26px;
+  tab-size: 4;
+}
+
+.code-editor__frame {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.code-editor__gutter {
+  overflow: hidden;
+  /* Sized from the whole document's line count, not from the numbers currently
+     rendered. The layer only ever renders the visible window, so an intrinsic
+     width would grow as you scrolled past line 99 and would disagree with the
+     server, which renders every line. 21px covers the 1px border and the line
+     number's 10px side padding; the digits are `ch`, which is exact in a
+     monospace font. */
+  width: calc(21px + var(--code-editor-gutter-digits, 2) * 1ch);
+  min-width: 42px;
+  border-right: 1px solid var(--theme-border);
+  background: var(--theme-surface-muted);
+  color: var(--theme-text-subtle);
+}
+
+.code-editor__line-number {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+
+.code-editor__line-number--active {
+  background: var(--color-accent-selection-muted);
+  color: var(--theme-text-muted);
+}
+
+.code-editor__area {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.code-editor__layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.code-editor__lines {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  min-width: 100%;
+  white-space: pre;
+}
+
+.code-editor__line {
+  white-space: pre;
+  text-shadow: 0 0 4px var(--theme-code-shadow);
+}
+
+.code-editor__active-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  background: var(--color-accent-line);
+}
+
+.code-editor__match {
+  position: absolute;
+  background: var(--color-warning-emphasis);
+  outline: 1px solid var(--color-diagnostic);
+}
+
+.code-editor__bracket {
+  position: absolute;
+  outline: 1px solid var(--color-accent);
+}
+
+.code-editor__rectangle {
+  position: absolute;
+  outline: 1px dashed var(--color-accent);
+}
+
+.code-editor__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-block-size: 0;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  overflow: auto;
+  resize: none;
+  font: inherit;
+  line-height: inherit;
+  white-space: pre;
+  overflow-wrap: normal;
+  background: transparent;
+  /* The highlighting layer draws the text; the textarea contributes only the
+     caret and the native selection. */
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--color-accent);
+}
+
+.code-editor__input::selection {
+  background: var(--color-accent-selection);
+  -webkit-text-fill-color: transparent;
+}
+
+.code-editor__status {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0 0.5rem;
+  border-top: 1px solid var(--theme-border);
+  background: var(--theme-surface-muted);
+  color: var(--theme-text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.code-editor__status-mode {
+  font-weight: 700;
+}
+
+.code-editor__status-hint {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.code-editor__panel,
+.code-editor__prompt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--theme-border);
+  background: var(--theme-surface-muted);
+  color: var(--theme-text-strong);
+  font-size: 0.8rem;
+}
+
+.code-editor__panel input[type="text"],
+.code-editor__prompt input[type="text"] {
+  min-width: 8rem;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
+  color: var(--theme-text-strong);
+  font: inherit;
+}
+
+.code-editor__panel button,
+.code-editor__prompt button {
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
+  color: var(--theme-text-muted);
+  font: inherit;
+}
+
+.code-editor__panel-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.code-editor__panel-count {
+  color: var(--theme-text-subtle);
+}
+
+.code-editor__token--keyword {
+  color: var(--syntax-keyword);
+  font-weight: 700;
+}
+
+.code-editor__token--string {
+  color: var(--syntax-string);
+}
+
+.code-editor__token--number {
+  color: var(--syntax-number);
+}
+
+.code-editor__token--function {
+  color: var(--syntax-function);
+}
+
+.code-editor__token--type {
+  color: var(--syntax-type);
+}
+
+.code-editor__token--comment {
+  color: var(--theme-text-subtle);
+  font-style: italic;
+}
+
+.code-editor__token--operator {
+  color: var(--theme-text-subtle);
+}
+
+.code-editor__token--meta {
+  color: var(--syntax-type);
 }
 
 .editor-shell__actions {

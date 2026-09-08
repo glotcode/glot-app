@@ -46,7 +46,7 @@ pub fn view(model: Editor) -> Element(SettingsMsg) {
             [
               dialog_controls.keyboard_bindings_option(
                 "Default",
-                "Standard CodeMirror shortcuts.",
+                "Standard editor shortcuts.",
                 editor_settings.DefaultBindings,
                 model.settings_draft.editor_settings.keyboard_bindings,
               ),

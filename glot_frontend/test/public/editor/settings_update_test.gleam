@@ -1,5 +1,6 @@
 import gleam/option
 import glot_core/language
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_projection
 import glot_frontend/public/editor/message
@@ -14,7 +15,10 @@ pub fn opening_synchronizes_the_draft_from_authoritative_settings_test() {
   let base =
     ready.new(
       language.JavaScript,
-      settings.EditorSettings(settings.VimBindings),
+      environment.Environment(
+        settings: settings.EditorSettings(settings.VimBindings),
+        mac: False,
+      ),
     )
   let editor =
     model.Editor(
@@ -43,7 +47,7 @@ pub fn opening_synchronizes_the_draft_from_authoritative_settings_test() {
 }
 
 pub fn draft_messages_update_only_the_selected_setting_test() {
-  let editor = ready.new(language.JavaScript, settings.defaults())
+  let editor = ready.new(language.JavaScript, environment.defaults())
   let #(bindings, bindings_command) =
     settings_update.update(
       editor,
@@ -88,7 +92,7 @@ pub fn draft_messages_update_only_the_selected_setting_test() {
 }
 
 pub fn submitting_commits_settings_and_persists_both_projections_test() {
-  let base = ready.new(language.JavaScript, settings.defaults())
+  let base = ready.new(language.JavaScript, environment.defaults())
   let editor =
     model.Editor(
       ..base,
@@ -115,7 +119,7 @@ pub fn submitting_commits_settings_and_persists_both_projections_test() {
 
 pub fn submitting_default_mode_removes_the_custom_override_test() {
   let custom = language.RunInstructions([], "custom")
-  let base = ready.new(language.JavaScript, settings.defaults())
+  let base = ready.new(language.JavaScript, environment.defaults())
   let editor =
     model.Editor(
       ..base,
@@ -138,7 +142,10 @@ pub fn cancel_and_close_resynchronize_with_distinct_browser_effects_test() {
   let base =
     ready.new(
       language.JavaScript,
-      settings.EditorSettings(settings.VimBindings),
+      environment.Environment(
+        settings: settings.EditorSettings(settings.VimBindings),
+        mac: False,
+      ),
     )
   let stale =
     model.Editor(
@@ -157,5 +164,5 @@ pub fn cancel_and_close_resynchronize_with_distinct_browser_effects_test() {
   let #(closed, close_command) =
     settings_update.update(stale, message.SettingsDialogClosed)
   assert closed.settings_draft == settings_draft.from_editor(stale)
-  assert close_command == command.Focus("editor-page-codemirror")
+  assert close_command == command.Focus("code-editor-input")
 }

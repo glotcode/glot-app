@@ -5,7 +5,9 @@ import glot_core/run
 import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response as api_response
+import glot_frontend/public/editor/code_editor/message as code_editor_message
 import glot_frontend/public/editor/draft
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/execution_operation
 import glot_frontend/public/editor/lifecycle.{type Target}
 import glot_frontend/public/editor/model.{type AddEntryKind, type EditorTab}
@@ -29,10 +31,11 @@ pub type EditorMsg {
   Save(SaveMsg)
   SnippetInfo(SnippetInfoMsg)
   Execution(ExecutionMsg)
+  CodeEditor(code_editor_message.Msg)
 }
 
 pub type LifecycleMsg {
-  EnvironmentLoaded(Target, String, settings.EditorSettings)
+  EnvironmentLoaded(Target, String, environment.Environment)
   SnippetLoaded(String, api_response.Response(snippet_dto.SnippetResponse))
   SnippetLoadingDelayElapsed(String, Generation(delayed_loading.Stream))
 }
@@ -102,7 +105,6 @@ pub type SnippetInfoMsg {
 pub type ExecutionMsg {
   TabSelected(EditorTab)
   TabKeyPressed(EditorTab, String)
-  SourceCodeChanged(String, Int)
   RunSubmitted
   RunCancellationDelayElapsed(Generation(execution_operation.Stream))
   RunCancellationSubmitted

@@ -11,10 +11,7 @@ pub fn added_file_renders_and_participates_in_execution_test() {
   let scenario =
     new_scenario()
     |> add_file("helper.js")
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
-      "export const answer = 42",
-      1,
-    ))
+    |> editor_scenario.type_source("export const answer = 42")
   assert string.contains(editor_scenario.render(scenario), "helper.js")
 
   let scenario =
@@ -57,10 +54,7 @@ pub fn stdin_edits_reach_execution_and_removal_restores_the_file_document_test()
       model.AddStdinEntry,
     ))
     |> editor_scenario.dispatch_file(message.AddEntrySubmitted)
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
-      "fixture input",
-      1,
-    ))
+    |> editor_scenario.type_source("fixture input")
     |> editor_scenario.dispatch_execution(message.RunSubmitted)
   let assert [editor_scenario.RunCode(request, _)] =
     editor_scenario.pending(scenario)

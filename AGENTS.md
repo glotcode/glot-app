@@ -43,6 +43,20 @@ Repository instructions for future agent sessions.
   another global DB effect, global trace variant, or individual system-level
   port.
 
+## Frontend Conventions
+
+- Follow the layering and managed-effect rules documented in
+  `glot_frontend/ARCHITECTURE.md`.
+- The code editor lives in `glot_frontend/src/glot_frontend/public/editor/code_editor`.
+  It is plain Gleam and Lustre; there is no CodeMirror and no editor custom
+  element. Keep editing, history, search, keybindings and lexing in pure
+  modules, and keep browser access in `platform/code_editor_dom`.
+- Every language in `glot_core/language.list()` must keep its own lexer rules in
+  `code_editor/syntax`; a language must never fall back to a generic lexer.
+- After editor changes, run `npm test`, `npm run test:browser` and
+  `node scripts/benchmark-editor.mjs` in `glot_frontend`, and record real-device
+  results in `glot_frontend/docs/editor-verification.md`.
+
 ## Generated Files
 
 - `glot_backend/src/glot_backend/sql.gleam` is generated. Do not hand-edit it unless the task explicitly requires a temporary/manual fix.
@@ -59,3 +73,5 @@ Repository instructions for future agent sessions.
 ## Validation
 
 - After backend changes, run `gleam test` in `glot_backend`.
+- After frontend changes, run `npm test` and `npm run build` in `glot_frontend`.
+- After changes to shared server-rendered markup, run `gleam test` in `glot_web`.

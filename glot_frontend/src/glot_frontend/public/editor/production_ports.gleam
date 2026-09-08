@@ -3,8 +3,11 @@ import glot_frontend/api/public as public_api
 import glot_frontend/platform/app_dialog
 import glot_frontend/platform/spa_navigation
 import glot_frontend/platform/ssr_data
+import glot_frontend/platform/user_agent
 import glot_frontend/platform/timer
+import glot_frontend/public/editor/code_editor/production_ports as code_editor_production_ports
 import glot_frontend/public/editor/draft_store
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/ports
 import glot_frontend/public/editor/settings_store
 import lustre/effect
@@ -13,7 +16,15 @@ pub fn new() -> ports.Ports(msg) {
   ports.Ports(
     load_environment: fn(complete) {
       effect.from(fn(dispatch) {
-        dispatch(complete(ssr_data.take(), settings_store.load()))
+        dispatch(
+          complete(
+            ssr_data.take(),
+            environment.Environment(
+              settings: settings_store.load(),
+              mac: user_agent.is_mac(),
+            ),
+          ),
+        )
       })
     },
     load_draft: fn(target, complete) {
@@ -34,6 +45,7 @@ pub fn new() -> ports.Ports(msg) {
     focus: app_dialog.focus,
     blur: app_dialog.blur,
     navigate: fn(path) { spa_navigation.push(path, option.None) },
+    code_editor: code_editor_production_ports.ports(),
     schedule: fn(milliseconds, msg) {
       effect.from(fn(dispatch) {
         timer.schedule(milliseconds, fn() { dispatch(msg) })

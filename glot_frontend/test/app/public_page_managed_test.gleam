@@ -6,6 +6,7 @@ import glot_frontend/app/public_page_managed
 import glot_frontend/app/public_page_message
 import glot_frontend/app/public_page_state
 import glot_frontend/app/runtime
+import glot_frontend/public/editor/code_editor/message as code_editor_message
 import glot_frontend/public/editor/message as editor_message
 import glot_frontend/public/editor/model as editor_model
 import support/editor_scenario
@@ -50,10 +51,15 @@ pub fn editor_metadata_changes_follow_committed_state_not_message_names_test() {
     update_editor(
       initial,
       editor_message.Editor(
-        editor_message.Execution(editor_message.SourceCodeChanged(
-          "new source",
-          1,
-        )),
+        editor_message.CodeEditor(
+          code_editor_message.InputReceived(code_editor_message.NativeInput(
+            session: "file-0",
+            generation: 0,
+            value: "new source",
+            selection_anchor: 10,
+            selection_head: 10,
+          )),
+        ),
       ),
     )
 

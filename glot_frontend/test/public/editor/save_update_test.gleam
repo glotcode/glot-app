@@ -4,6 +4,7 @@ import glot_core/language
 import glot_core/snippet/snippet_model
 import glot_frontend/api/http_error
 import glot_frontend/api/response
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_persistence
 import glot_frontend/public/editor/message
@@ -13,7 +14,6 @@ import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/save_update
-import glot_frontend/public/editor/settings
 import support/editor_fixture
 
 pub fn dialog_messages_reset_only_the_save_draft_test() {
@@ -44,7 +44,7 @@ pub fn dialog_messages_reset_only_the_save_draft_test() {
     )
   assert closed.save_draft.visibility == closed.snippet.visibility
   assert closed.metadata_draft == editor.metadata_draft
-  assert close_command == command.Focus("editor-page-codemirror")
+  assert close_command == command.Focus("code-editor-input")
 }
 
 pub fn visibility_selection_changes_only_the_save_draft_test() {
@@ -175,7 +175,7 @@ pub fn current_failures_update_save_feedback_without_commands_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn existing_editor() -> model.Editor {

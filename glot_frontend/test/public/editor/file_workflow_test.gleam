@@ -1,10 +1,11 @@
 import gleam/option
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/workspace
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/file_workflow
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 
 pub fn adding_a_file_trims_its_name_and_rebuilds_dependent_state_test() {
   let editor = with_add_draft(new_editor(), model.AddFileEntry, " helper.js ")
@@ -16,7 +17,7 @@ pub fn adding_a_file_trims_its_name_and_rebuilds_dependent_state_test() {
       snippet_model.File("helper.js", ""),
     ]
   assert added.workspace.selected_tab == model.FileTab(1)
-  assert added.workspace.editor_external_revision == 1
+  assert workspace.selected_text(added.workspace) == ""
   assert added.entry_drafts.add.filename == ""
   assert added.entry_drafts.edit.filename == "helper.js"
 }
@@ -38,7 +39,7 @@ pub fn stdin_addition_and_deletion_rebuild_selection_and_drafts_test() {
   let assert option.Some(added) = file_workflow.add_entry(editor)
   assert added.snippet.stdin == option.Some("")
   assert added.workspace.selected_tab == model.StdinTab
-  assert added.workspace.editor_external_revision == 1
+  assert workspace.selected_text(added.workspace) == ""
   assert added.entry_drafts.add.kind == model.AddFileEntry
   assert file_workflow.add_entry(with_add_draft(
       added,
@@ -50,7 +51,8 @@ pub fn stdin_addition_and_deletion_rebuild_selection_and_drafts_test() {
   let assert option.Some(deleted) = file_workflow.delete_selected_entry(added)
   assert deleted.snippet.stdin == option.None
   assert deleted.workspace.selected_tab == model.FileTab(0)
-  assert deleted.workspace.editor_external_revision == 2
+  assert workspace.selected_text(deleted.workspace)
+    == "console.log(\"Hello World!\");"
   assert deleted.entry_drafts.edit.filename == "main.js"
 }
 
@@ -190,7 +192,7 @@ pub fn resetting_each_dialog_draft_preserves_the_other_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn two_file_editor() -> model.Editor {

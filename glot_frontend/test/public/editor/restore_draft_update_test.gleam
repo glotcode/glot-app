@@ -2,13 +2,13 @@ import gleam/option
 import gleam/time/timestamp
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_persistence
 import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/restore_draft_update
-import glot_frontend/public/editor/settings
 import support/editor_fixture
 
 pub fn matching_new_draft_is_offered_while_absence_clears_pending_state_test() {
@@ -76,7 +76,8 @@ pub fn accepting_a_pending_draft_applies_it_and_closes_the_dialog_test() {
   assert restored.snippet.title == "Recovered"
   assert restored.snippet.files == [snippet_model.File("main.js", "draft")]
   assert restored.restore_draft == model.NoRestoreDraft
-  assert next_command == command.CloseDialog("editor-page-restore-draft-dialog")
+  let assert command.Batch([command.CodeEditor(_), closed]) = next_command
+  assert closed == command.CloseDialog("editor-page-restore-draft-dialog")
 
   let idle = new_editor()
   assert restore_draft_update.update(idle, message.RestoreDraftAccepted)
@@ -101,11 +102,11 @@ pub fn decline_and_close_discard_pending_state_with_distinct_effects_test() {
   let #(closed, close_command) =
     restore_draft_update.update(editor, message.RestoreDraftClosed)
   assert closed.restore_draft == model.NoRestoreDraft
-  assert close_command == command.Focus("editor-page-codemirror")
+  assert close_command == command.Focus("code-editor-input")
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn existing_editor() -> model.Editor {

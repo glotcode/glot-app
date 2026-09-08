@@ -2,10 +2,10 @@ import gleam/option
 import gleam/string
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/file_dialog_view
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 import lustre/element
 
 pub fn add_file_submit_reflects_filename_validity_test() {
@@ -79,7 +79,7 @@ pub fn stdin_edit_offers_deletion_without_file_fields_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn render_add(editor: model.Editor) -> String {

@@ -3,6 +3,8 @@ import gleam/string
 import glot_core/language
 import glot_frontend/api/http_error
 import glot_frontend/api/response
+import glot_frontend/public/editor/environment
+import glot_frontend/public/editor/code_editor/browser_command
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_persistence
 import glot_frontend/public/editor/lifecycle
@@ -20,11 +22,11 @@ pub fn start_loads_the_environment_for_the_correlated_target_test() {
   assert initial == model.Lifecycle(lifecycle.Initializing(target))
   let assert command.LoadEnvironment(complete) = next_command
 
-  assert complete("ssr", settings.EditorSettings(settings.VimBindings))
+  assert complete("ssr", environment.Environment(settings: settings.EditorSettings(settings.VimBindings), mac: False))
     == message.Lifecycle(message.EnvironmentLoaded(
       target,
       "ssr",
-      settings.EditorSettings(settings.VimBindings),
+      environment.Environment(settings: settings.EditorSettings(settings.VimBindings), mac: False),
     ))
 }
 
@@ -36,14 +38,16 @@ pub fn matching_new_environment_starts_the_editor_and_follow_up_reads_test() {
       message.EnvironmentLoaded(
         target,
         "",
-        settings.EditorSettings(settings.VimBindings),
+        environment.Environment(settings: settings.EditorSettings(settings.VimBindings), mac: False),
       ),
     )
   let assert model.Ready(editor) = next_model
   assert editor.snippet.language == language.JavaScript
   assert editor.editor_settings == settings.EditorSettings(settings.VimBindings)
   let assert command.Batch([
+    command.CodeEditor(browser_command.SyncSession("file-0", 0, _, 0, 0, 0, 0)),
     command.GetLanguageVersion(version_request, version_complete),
+    command.CodeEditor(_),
     command.LoadDraft(
       draft_persistence.NewSnippet("javascript"),
       draft_complete,
@@ -65,7 +69,7 @@ pub fn matching_existing_environment_starts_correlated_fetch_and_delay_test() {
   let assert lifecycle.LoadingSnippet(slug, editor_settings, indicator) =
     loading
   assert slug == "existing"
-  assert editor_settings == settings.defaults()
+  assert editor_settings == environment.defaults()
   assert !delayed_loading.is_visible(indicator)
   let assert command.Batch([
     command.GetSnippet(request, complete),
@@ -94,7 +98,7 @@ pub fn stale_environment_snippet_and_delay_messages_are_ignored_test() {
       message.EnvironmentLoaded(
         lifecycle.ExistingEditor("other"),
         "",
-        settings.defaults(),
+        environment.defaults(),
       ),
     )
     == #(model.Lifecycle(initializing), command.None)
@@ -134,7 +138,9 @@ pub fn matching_snippet_response_uses_the_existing_editor_transition_test() {
   assert editor.snippet.slug == option.Some("loaded")
   assert editor.snippet.files == fixture.data.files
   let assert command.Batch([
+    command.CodeEditor(browser_command.SyncSession("file-0", 0, _, 0, 0, 0, 0)),
     command.GetLanguageVersion(_, _),
+    command.CodeEditor(_),
     command.LoadDraft(draft_persistence.ExistingSnippet("loaded"), _),
   ]) = next_command
 }
@@ -174,7 +180,7 @@ pub fn messages_outside_the_matching_lifecycle_state_are_ignored_test() {
       message.EnvironmentLoaded(
         lifecycle.NewEditor("javascript"),
         "",
-        settings.defaults(),
+        environment.defaults(),
       ),
     )
     == #(model.Lifecycle(terminal), command.None)
@@ -187,7 +193,7 @@ fn begin_existing(
   let #(next_model, next_command) =
     lifecycle_update.update(
       lifecycle.Initializing(target),
-      message.EnvironmentLoaded(target, "", settings.defaults()),
+      message.EnvironmentLoaded(target, "", environment.defaults()),
     )
   let assert model.Lifecycle(loading) = next_model
   #(loading, next_command)

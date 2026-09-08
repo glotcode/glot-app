@@ -1,4 +1,5 @@
 import gleam/option
+import glot_frontend/public/editor/code_editor/update as code_editor_update
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_projection
 import glot_frontend/public/editor/entry_drafts
@@ -64,6 +65,7 @@ pub fn update(
           command.batch([
             command.CloseDialog(ids.add_entry_dialog),
             command.SaveDraft(draft_projection.write(next_model)),
+            command.CodeEditor(code_editor_update.sync(next_model.workspace.editor)),
           ]),
         )
 
@@ -127,6 +129,7 @@ pub fn update(
           command.batch([
             command.CloseDialog(ids.edit_entry_dialog),
             command.SaveDraft(draft_projection.write(next_model)),
+            command.CodeEditor(code_editor_update.sync(next_model.workspace.editor)),
           ]),
         )
 

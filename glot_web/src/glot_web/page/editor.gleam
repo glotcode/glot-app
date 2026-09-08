@@ -231,16 +231,7 @@ fn content_for_model(
     pre_tabbar_children: [metadata_panel(model)],
     tabbar_children: tabbar_children(model),
     active_tab_id: "editor-file-tab-0",
-    editor: lustre_element.element(
-      "glot-codemirror",
-      [
-        attribute.id("editor-page-codemirror"),
-        attribute.class("editor-shell__codemirror"),
-        attribute.attribute("language", language.to_string(model.language)),
-        attribute.attribute("keyboard-bindings", "default"),
-      ],
-      [code_fallback(model)],
-    ),
+    editor: static_editor(model),
     action_buttons: [
       action_button("editor-shell__action-button", "Run"),
       action_button("editor-shell__action-button", "Save"),
@@ -277,6 +268,25 @@ fn title_edit_button(view_model: ViewModel) -> lustre_element.Element(Nil) {
   }
 }
 
+/// An empty div has no line box, so a blank line would collapse to nothing and
+/// pull every line below it out of step with its line number until hydration.
+/// The browser renders a blank line as a single space for the same reason, so
+/// the two agree and nothing moves.
+/// The gutter is sized from the document's line count rather than from the
+/// numbers on screen, so it stays put while the browser scrolls its rendered
+/// window and does not move when hydration replaces every line number with just
+/// the visible ones. The editor's `view` module computes the same value.
+fn gutter_digits(line_count: Int) -> Int {
+  int.max(2, string.length(int.to_string(line_count)))
+}
+
+fn rendered_line(line: String) -> String {
+  case line {
+    "" -> " "
+    _ -> line
+  }
+}
+
 fn selected_tab_content(model: EditorModel) -> String {
   case model.files, model.stdin {
     [snippet_model.File(content:, ..), ..], _ -> content
@@ -285,9 +295,79 @@ fn selected_tab_content(model: EditorModel) -> String {
   }
 }
 
-fn code_fallback(model: EditorModel) -> lustre_element.Element(Nil) {
-  html.pre([attribute.class("editor-page__ssr-code")], [
-    html.code([], [html.text(selected_tab_content(model))]),
+/// The server renders the same editor markup the browser will hydrate: a
+/// gutter, the document's lines, and a read-only textarea holding the whole
+/// document. The code is therefore readable, selectable, and correctly laid out
+/// before any JavaScript runs, and hydration does not move it.
+fn static_editor(model: EditorModel) -> lustre_element.Element(Nil) {
+  let content = selected_tab_content(model)
+  let lines = string.split(content, "\n")
+
+  html.div([attribute.class("code-editor")], [
+    html.div([attribute.class("code-editor__frame")], [
+      html.div(
+        [
+          attribute.class("code-editor__gutter"),
+          attribute.attribute("aria-hidden", "true"),
+          attribute.style(
+            "--code-editor-gutter-digits",
+            int.to_string(gutter_digits(list.length(lines))),
+          ),
+        ],
+        [
+          html.div(
+            [attribute.class("code-editor__gutter-inner")],
+            list.index_map(lines, fn(_, index) {
+              html.span([attribute.class("code-editor__line-number")], [
+                html.text(int.to_string(index + 1)),
+              ])
+            }),
+          ),
+        ],
+      ),
+      html.div([attribute.class("code-editor__area")], [
+        html.div(
+          [
+            attribute.class("code-editor__layer"),
+            attribute.attribute("aria-hidden", "true"),
+          ],
+          [
+            html.div(
+              [attribute.class("code-editor__lines")],
+              list.map(lines, fn(line) {
+                html.div([attribute.class("code-editor__line")], [
+                  html.text(rendered_line(line)),
+                ])
+              }),
+            ),
+          ],
+        ),
+        html.textarea(
+          [
+            attribute.id("code-editor-input"),
+            attribute.class("code-editor__input"),
+            attribute.attribute("wrap", "off"),
+            attribute.attribute("spellcheck", "false"),
+            attribute.attribute("aria-label", "Code editor"),
+            attribute.attribute("aria-multiline", "true"),
+            attribute.readonly(True),
+          ],
+          content,
+        ),
+      ]),
+    ]),
+    html.div(
+      [
+        attribute.class("code-editor__status"),
+        attribute.id("code-editor-status"),
+        attribute.attribute("role", "status"),
+      ],
+      [
+        html.span([attribute.class("code-editor__status-mode")], [
+          html.text(language.name(model.language)),
+        ]),
+      ],
+    ),
   ])
 }
 

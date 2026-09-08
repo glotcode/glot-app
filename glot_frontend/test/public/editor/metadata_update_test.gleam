@@ -1,5 +1,6 @@
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_projection
 import glot_frontend/public/editor/message
@@ -7,10 +8,9 @@ import glot_frontend/public/editor/metadata_draft
 import glot_frontend/public/editor/metadata_update
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 
 pub fn opening_synchronizes_the_draft_from_authoritative_metadata_test() {
-  let base = ready.new(language.JavaScript, settings.defaults())
+  let base = ready.new(language.JavaScript, environment.defaults())
   let editor =
     model.Editor(
       ..base,
@@ -29,7 +29,7 @@ pub fn opening_synchronizes_the_draft_from_authoritative_metadata_test() {
 }
 
 pub fn draft_messages_update_only_the_selected_metadata_field_test() {
-  let editor = ready.new(language.JavaScript, settings.defaults())
+  let editor = ready.new(language.JavaScript, environment.defaults())
   let #(title_changed, title_command) =
     metadata_update.update(editor, message.TitleDraftChanged("Draft title"))
   assert title_changed.metadata_draft.title == "Draft title"
@@ -48,7 +48,7 @@ pub fn draft_messages_update_only_the_selected_metadata_field_test() {
 }
 
 pub fn submission_commits_metadata_and_persists_the_editor_draft_test() {
-  let base = ready.new(language.JavaScript, settings.defaults())
+  let base = ready.new(language.JavaScript, environment.defaults())
   let editor =
     model.Editor(
       ..base,
@@ -70,7 +70,7 @@ pub fn submission_commits_metadata_and_persists_the_editor_draft_test() {
 }
 
 pub fn cancel_and_close_resynchronize_with_distinct_browser_effects_test() {
-  let base = ready.new(language.JavaScript, settings.defaults())
+  let base = ready.new(language.JavaScript, environment.defaults())
   let stale =
     model.Editor(
       ..base,
@@ -85,5 +85,5 @@ pub fn cancel_and_close_resynchronize_with_distinct_browser_effects_test() {
   let #(closed, close_command) =
     metadata_update.update(stale, message.EditMetadataDialogClosed)
   assert closed.metadata_draft == metadata_draft.from_editor(stale)
-  assert close_command == command.Focus("editor-page-codemirror")
+  assert close_command == command.Focus("code-editor-input")
 }

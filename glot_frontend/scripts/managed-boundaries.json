@@ -143,13 +143,14 @@
         "src/glot_frontend/public/editor/draft_policy.gleam",
         "src/glot_frontend/public/editor/draft_projection.gleam",
         "src/glot_frontend/public/editor/draft_workflow.gleam",
+        "src/glot_frontend/public/editor/environment.gleam",
+        "src/glot_frontend/public/editor/execution_operation.gleam",
+        "src/glot_frontend/public/editor/existing_editor_transition.gleam",
         "src/glot_frontend/public/editor/file_workflow.gleam",
         "src/glot_frontend/public/editor/lifecycle.gleam",
         "src/glot_frontend/public/editor/lifecycle_resolution.gleam",
         "src/glot_frontend/public/editor/lifecycle_update.gleam",
         "src/glot_frontend/public/editor/managed.gleam",
-        "src/glot_frontend/public/editor/existing_editor_transition.gleam",
-        "src/glot_frontend/public/editor/execution_operation.gleam",
         "src/glot_frontend/public/editor/message.gleam",
         "src/glot_frontend/public/editor/model.gleam",
         "src/glot_frontend/public/editor/operations.gleam",
@@ -158,7 +159,8 @@
         "src/glot_frontend/public/editor/save_operation.gleam",
         "src/glot_frontend/public/editor/save_workflow.gleam",
         "src/glot_frontend/public/editor/settings.gleam",
-        "src/glot_frontend/public/editor/update.gleam"
+        "src/glot_frontend/public/editor/update.gleam",
+        "src/glot_frontend/public/editor/workspace.gleam"
       ]
     },
     {
@@ -186,6 +188,44 @@
         "src/glot_frontend/public/snippets/managed.gleam",
         "src/glot_frontend/public/snippets/message.gleam",
         "src/glot_frontend/public/snippets/model.gleam"
+      ]
+    },
+    {
+      "name": "code editor",
+      "modules": [
+        "src/glot_frontend/public/editor/code_editor/browser_command.gleam",
+        "src/glot_frontend/public/editor/code_editor/command.gleam",
+        "src/glot_frontend/public/editor/code_editor/document.gleam",
+        "src/glot_frontend/public/editor/code_editor/editing.gleam",
+        "src/glot_frontend/public/editor/code_editor/execute.gleam",
+        "src/glot_frontend/public/editor/code_editor/highlight_state.gleam",
+        "src/glot_frontend/public/editor/code_editor/history.gleam",
+        "src/glot_frontend/public/editor/code_editor/ids.gleam",
+        "src/glot_frontend/public/editor/code_editor/keymap/default_keymap.gleam",
+        "src/glot_frontend/public/editor/code_editor/keymap/emacs.gleam",
+        "src/glot_frontend/public/editor/code_editor/keymap/vim.gleam",
+        "src/glot_frontend/public/editor/code_editor/keymap/vim_object.gleam",
+        "src/glot_frontend/public/editor/code_editor/keys.gleam",
+        "src/glot_frontend/public/editor/code_editor/message.gleam",
+        "src/glot_frontend/public/editor/code_editor/model.gleam",
+        "src/glot_frontend/public/editor/code_editor/movement.gleam",
+        "src/glot_frontend/public/editor/code_editor/reconcile.gleam",
+        "src/glot_frontend/public/editor/code_editor/search.gleam",
+        "src/glot_frontend/public/editor/code_editor/selection.gleam",
+        "src/glot_frontend/public/editor/code_editor/session.gleam",
+        "src/glot_frontend/public/editor/code_editor/settings_bridge.gleam",
+        "src/glot_frontend/public/editor/code_editor/state.gleam",
+        "src/glot_frontend/public/editor/code_editor/syntax/language_rules.gleam",
+        "src/glot_frontend/public/editor/code_editor/syntax/rules.gleam",
+        "src/glot_frontend/public/editor/code_editor/syntax/rules_c_family.gleam",
+        "src/glot_frontend/public/editor/code_editor/syntax/rules_functional.gleam",
+        "src/glot_frontend/public/editor/code_editor/syntax/rules_other.gleam",
+        "src/glot_frontend/public/editor/code_editor/syntax/rules_scripting.gleam",
+        "src/glot_frontend/public/editor/code_editor/syntax/scanner.gleam",
+        "src/glot_frontend/public/editor/code_editor/syntax/token.gleam",
+        "src/glot_frontend/public/editor/code_editor/text.gleam",
+        "src/glot_frontend/public/editor/code_editor/transaction.gleam",
+        "src/glot_frontend/public/editor/code_editor/update.gleam"
       ]
     }
   ],

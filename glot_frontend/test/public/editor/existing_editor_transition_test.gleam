@@ -1,6 +1,8 @@
 import gleam/option
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/environment
+import glot_frontend/public/editor/code_editor/browser_command
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_persistence
 import glot_frontend/public/editor/existing_editor_transition
@@ -24,7 +26,7 @@ pub fn response_builds_the_editor_and_required_follow_up_commands_test() {
   let #(next_model, next_command) =
     existing_editor_transition.from_response(
       fixture,
-      settings.EditorSettings(settings.VimBindings),
+      environment.Environment(settings: settings.EditorSettings(settings.VimBindings), mac: False),
     )
   let assert model.Ready(editor) = next_model
 
@@ -34,7 +36,9 @@ pub fn response_builds_the_editor_and_required_follow_up_commands_test() {
   assert editor.editor_settings == settings.EditorSettings(settings.VimBindings)
 
   let assert command.Batch([
+    command.CodeEditor(browser_command.SyncSession("file-0", 0, _, 0, 0, 0, 0)),
     command.GetLanguageVersion(version_request, version_complete),
+    command.CodeEditor(_),
     command.LoadDraft(
       draft_persistence.ExistingSnippet("transition"),
       draft_complete,
@@ -55,7 +59,7 @@ pub fn response_builds_the_editor_and_required_follow_up_commands_test() {
 
 pub fn ssr_and_api_data_produce_the_same_ready_editor_test() {
   let fixture = editor_fixture.snippet("shared-transition", "source")
-  let settings = settings.EditorSettings(settings.EmacsBindings)
+  let settings = environment.Environment(settings: settings.EditorSettings(settings.EmacsBindings), mac: False)
   let #(from_api, _) =
     existing_editor_transition.from_response(fixture, settings)
   let assert editor_ssr.ExistingSnippet(ssr) = editor_ssr.from_snippet(fixture)
@@ -70,6 +74,6 @@ pub fn incomplete_ssr_is_rejected_at_the_transition_boundary_test() {
   let assert editor_ssr.ExistingSnippet(ssr) = editor_ssr.from_snippet(fixture)
   let incomplete = editor_ssr.EditorModel(..ssr, updated_at: option.None)
 
-  assert existing_editor_transition.from_ssr(incomplete, settings.defaults())
+  assert existing_editor_transition.from_ssr(incomplete, environment.defaults())
     == Error("Could not load snippet.")
 }

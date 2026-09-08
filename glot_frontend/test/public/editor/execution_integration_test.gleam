@@ -9,14 +9,8 @@ import support/editor_scenario
 pub fn run_request_uses_the_latest_editor_revision_content_test() {
   let scenario =
     new_scenario()
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
-      "revision one",
-      1,
-    ))
-    |> editor_scenario.dispatch_execution(message.SourceCodeChanged(
-      "revision two",
-      2,
-    ))
+    |> editor_scenario.type_source("revision one")
+    |> editor_scenario.type_source("revision two")
     |> editor_scenario.dispatch_execution(message.RunSubmitted)
   let assert [editor_scenario.RunCode(request, _)] =
     editor_scenario.pending(scenario)

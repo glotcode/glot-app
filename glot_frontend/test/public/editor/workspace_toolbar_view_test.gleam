@@ -1,9 +1,9 @@
 import gleam/option
 import gleam/string
 import glot_core/language
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/model
 import glot_frontend/public/editor/ready
-import glot_frontend/public/editor/settings
 import glot_frontend/public/editor/workspace_toolbar_view
 import lustre/element
 import lustre/element/html
@@ -34,7 +34,7 @@ pub fn stdin_selection_changes_the_management_action_label_test() {
 }
 
 fn new_editor() -> model.Editor {
-  ready.new(language.JavaScript, settings.defaults())
+  ready.new(language.JavaScript, environment.defaults())
 }
 
 fn render(editor: model.Editor) -> String {

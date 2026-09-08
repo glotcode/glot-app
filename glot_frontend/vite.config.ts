@@ -10,10 +10,6 @@ export default defineConfig(({ command }) => ({
       input: {
         frontend: new URL("./js/public.ts", import.meta.url).pathname,
         admin: new URL("./js/admin.ts", import.meta.url).pathname,
-        codemirror: new URL(
-          "./js/custom_elements/glot-codemirror.ts",
-          import.meta.url,
-        ).pathname,
         styles: new URL("./js/styles.ts", import.meta.url).pathname,
       },
       output: {

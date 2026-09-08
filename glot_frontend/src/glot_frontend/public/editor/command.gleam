@@ -3,14 +3,16 @@ import gleam/option
 import glot_core/run
 import glot_core/snippet/snippet_dto
 import glot_frontend/api/response
+import glot_frontend/public/editor/code_editor/browser_command as code_editor_browser_command
 import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/draft_persistence
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/settings
 
 pub type Command(msg) {
   None
   Batch(List(Command(msg)))
-  LoadEnvironment(fn(String, settings.EditorSettings) -> msg)
+  LoadEnvironment(fn(String, environment.Environment) -> msg)
   LoadDraft(
     draft_persistence.Target,
     fn(option.Option(draft.StoredEditorDraft)) -> msg,
@@ -43,6 +45,7 @@ pub type Command(msg) {
   Blur(String)
   Navigate(String)
   Schedule(Int, msg)
+  CodeEditor(code_editor_browser_command.Command(msg))
 }
 
 pub fn none() -> Command(msg) {
@@ -59,7 +62,7 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
     Batch(commands) ->
       Batch(list.map(commands, fn(item) { map(item, transform) }))
     LoadEnvironment(callback) ->
-      LoadEnvironment(fn(raw, settings) { callback(raw, settings) |> transform })
+      LoadEnvironment(fn(raw, found) { callback(raw, found) |> transform })
     LoadDraft(target, callback) ->
       LoadDraft(target, fn(stored) { callback(stored) |> transform })
     GetSnippet(request, callback) ->
@@ -83,5 +86,7 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
     Blur(id) -> Blur(id)
     Navigate(path) -> Navigate(path)
     Schedule(delay, msg) -> Schedule(delay, transform(msg))
+    CodeEditor(inner) ->
+      CodeEditor(code_editor_browser_command.map(inner, transform))
   }
 }

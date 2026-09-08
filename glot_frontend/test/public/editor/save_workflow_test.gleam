@@ -3,6 +3,7 @@ import glot_core/language
 import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
 import glot_frontend/api/response
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/message
 import glot_frontend/public/editor/model
@@ -11,12 +12,11 @@ import glot_frontend/public/editor/policy
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/save_operation
 import glot_frontend/public/editor/save_workflow
-import glot_frontend/public/editor/settings
 import support/editor_fixture
 
 pub fn create_projects_the_complete_editor_state_into_a_request_test() {
   let custom = language.RunInstructions(["npm build"], "node dist.js")
-  let base = ready.new(language.JavaScript, settings.defaults())
+  let base = ready.new(language.JavaScript, environment.defaults())
   let editor =
     model.Editor(
       ..base,
@@ -57,7 +57,7 @@ pub fn create_projects_the_complete_editor_state_into_a_request_test() {
 }
 
 pub fn create_normalizes_absent_stdin_for_the_api_test() {
-  let editor = ready.new(language.JavaScript, settings.defaults())
+  let editor = ready.new(language.JavaScript, environment.defaults())
   let #(_, next_command) =
     save_workflow.save_snippet(
       editor,
@@ -106,7 +106,7 @@ pub fn non_owner_existing_snippet_is_created_as_a_copy_test() {
 }
 
 fn existing_editor() -> model.Editor {
-  let editor = ready.new(language.JavaScript, settings.defaults())
+  let editor = ready.new(language.JavaScript, environment.defaults())
   model.Editor(
     ..editor,
     snippet: model.Snippet(

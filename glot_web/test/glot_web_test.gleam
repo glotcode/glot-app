@@ -110,7 +110,10 @@ pub fn editor_document_embeds_large_ssr_payload_outside_app_attributes_test() {
   assert !string.contains(rendered, "</script><script>")
   assert string.contains(rendered, "\\u003c/script\\u003e")
 
-  let assert [_, editor_element] = string.split(rendered, "<glot-codemirror")
+  // The document lives in the textarea's content, never in an attribute, so a
+  // 100,000 character snippet cannot bloat the opening tag.
+  let assert [_, editor_element] =
+    string.split(rendered, "<textarea aria-label=\"Code editor\"")
   let assert Ok(editor_opening_tag) =
     editor_element |> string.split(">") |> list.first
   assert !string.contains(editor_opening_tag, " value=")

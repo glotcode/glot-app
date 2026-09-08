@@ -11,8 +11,6 @@ const frontend_entry = "js/public.ts"
 
 const admin_entry = "js/admin.ts"
 
-const code_mirror_entry = "js/custom_elements/glot-codemirror.ts"
-
 const styles_entry = "js/styles.ts"
 
 const social_image_entry = "assets/home-banner.jpg"
@@ -23,7 +21,6 @@ pub type Assets {
     frontend_preloads: List(String),
     admin_frontend_src: String,
     admin_frontend_preloads: List(String),
-    code_mirror_preloads: List(String),
     stylesheet_href: String,
     social_image_href: String,
     admin_stylesheet_hrefs: List(String),
@@ -34,7 +31,6 @@ pub fn load(static_base_path: String) -> Result(Assets, String) {
   use manifest <- result.try(read_manifest(static_base_path))
   use frontend <- result.try(find_entry(manifest, frontend_entry))
   use admin <- result.try(find_entry(manifest, admin_entry))
-  use code_mirror <- result.try(find_entry(manifest, code_mirror_entry))
   use styles <- result.try(find_entry(manifest, styles_entry))
   use social_image <- result.try(find_entry(manifest, social_image_entry))
   use stylesheet <- result.try(
@@ -45,16 +41,12 @@ pub fn load(static_base_path: String) -> Result(Assets, String) {
     }),
   )
   let frontend_preloads = imported_files(manifest, frontend)
-  let code_mirror_preloads =
-    entry_files(manifest, code_mirror)
-    |> list.filter(fn(file) { !list.contains(frontend_preloads, file) })
 
   Ok(Assets(
     frontend_src: static_url(frontend.file),
     frontend_preloads: frontend_preloads,
     admin_frontend_src: static_url(admin.file),
     admin_frontend_preloads: imported_files(manifest, admin),
-    code_mirror_preloads: code_mirror_preloads,
     stylesheet_href: static_url(stylesheet),
     social_image_href: static_url(social_image.file),
     admin_stylesheet_hrefs: list.map(admin.css, static_url),
@@ -102,13 +94,6 @@ fn imported_files(
   collect_imports(manifest, entry.imports, [])
   |> list.filter_map(fn(name) { dict.get(manifest, name) })
   |> list.map(fn(entry) { static_url(entry.file) })
-}
-
-fn entry_files(
-  manifest: Dict(String, ManifestEntry),
-  entry: ManifestEntry,
-) -> List(String) {
-  [static_url(entry.file), ..imported_files(manifest, entry)]
 }
 
 fn collect_imports(

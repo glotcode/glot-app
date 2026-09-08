@@ -10,9 +10,10 @@ import glot_frontend/public/editor/ids
 import glot_frontend/public/editor/message.{type RestoreDraftMsg}
 import glot_frontend/public/editor/metadata_draft
 import glot_frontend/public/editor/model.{
-  type Editor, Editor, NoRestoreDraft, RestoreDraftPending, Snippet, Workspace,
+  type Editor, Editor, NoRestoreDraft, RestoreDraftPending, Snippet,
 }
 import glot_frontend/public/editor/settings_draft
+import glot_frontend/public/editor/workspace
 
 pub fn apply_loaded_draft(
   model: Editor,
@@ -66,11 +67,13 @@ pub fn apply_editor_draft(
       stdin: stdin,
       run_instructions_override: run_instructions_override,
     ),
-    workspace: Workspace(
-      ..model.workspace,
-      editor_external_revision: model.workspace.editor_external_revision + 1,
-      selected_tab: selected_tab,
-    ),
+    workspace: workspace.replace_documents(
+        current: model.workspace,
+        files: files,
+        stdin: stdin,
+        selected_tab: selected_tab,
+      )
+      |> workspace.set_language(draft.language),
     entry_drafts: entry_drafts.initial(files, stdin, selected_tab),
     metadata_draft: metadata_draft.new(draft.title, model.snippet.visibility),
     settings_draft: settings_draft.new(

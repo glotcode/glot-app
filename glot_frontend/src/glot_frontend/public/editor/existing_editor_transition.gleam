@@ -3,21 +3,24 @@ import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
 import glot_core/snippet/snippet_dto
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/code_editor/update as code_editor_update
 import glot_frontend/public/editor/command
 import glot_frontend/public/editor/draft_persistence
+import glot_frontend/public/editor/code_editor/browser_command as code_editor_browser_command
+import glot_frontend/public/editor/code_editor/message as code_editor_message
 import glot_frontend/public/editor/message.{
-  type Msg, Editor, Execution, ExistingDraftLoaded, RestoreDraft,
+  type Msg, CodeEditor, Editor, Execution, ExistingDraftLoaded, RestoreDraft,
 }
 import glot_frontend/public/editor/model.{type Model, Ready}
 import glot_frontend/public/editor/ready
 import glot_frontend/public/editor/run_instructions
-import glot_frontend/public/editor/settings as editor_settings
+import glot_frontend/public/editor/environment
 import glot_web/page/editor as editor_ssr
 import youid/uuid.{type Uuid}
 
 pub fn from_ssr(
   model: editor_ssr.EditorModel,
-  settings: editor_settings.EditorSettings,
+  found: environment.Environment,
 ) -> Result(#(Model, command.Command(Msg)), String) {
   let editor_ssr.EditorModel(
     slug: slug,
@@ -49,7 +52,7 @@ pub fn from_ssr(
         run_instructions_override: run_instructions_override,
         files: files,
         stdin: stdin,
-        settings: settings,
+        environment: found,
       ))
     _, _, _ -> Error("Could not load snippet.")
   }
@@ -57,7 +60,7 @@ pub fn from_ssr(
 
 pub fn from_response(
   response: snippet_dto.SnippetResponse,
-  settings: editor_settings.EditorSettings,
+  found: environment.Environment,
 ) -> #(Model, command.Command(Msg)) {
   from_data(
     slug: response.slug,
@@ -72,7 +75,7 @@ pub fn from_response(
     run_instructions_override: response.data.run_instructions,
     files: response.data.files,
     stdin: stdin_option(response.data.stdin),
-    settings: settings,
+    environment: found,
   )
 }
 
@@ -91,7 +94,7 @@ pub fn from_data(
   ),
   files files: List(snippet_model.File),
   stdin stdin: option.Option(String),
-  settings settings: editor_settings.EditorSettings,
+  environment found: environment.Environment,
 ) -> #(Model, command.Command(Msg)) {
   let next_model =
     Ready(ready.existing(
@@ -107,14 +110,34 @@ pub fn from_data(
       files: files,
       stdin: stdin,
       run_instructions_override: run_instructions_override,
-      editor_settings: settings,
+      environment: found,
     ))
+
+  let Ready(editor) = next_model
 
   #(
     next_model,
     command.batch([
+      command.CodeEditor(code_editor_update.sync(editor.workspace.editor)),
       run_instructions.version_run_command(language)
         |> command.map(fn(msg) { Editor(Execution(msg)) }),
+      command.CodeEditor(
+        code_editor_browser_command.Measure(fn(
+          line_height,
+          height,
+          width,
+          char_width,
+        ) {
+          Editor(
+            CodeEditor(code_editor_message.Measured(
+              line_height:,
+              height:,
+              width:,
+              char_width:,
+            )),
+          )
+        }),
+      ),
       command.LoadDraft(draft_persistence.ExistingSnippet(slug), fn(stored) {
         Editor(RestoreDraft(ExistingDraftLoaded(slug, updated_at, stored)))
       }),

@@ -12,6 +12,7 @@ import glot_frontend/public/editor/model.{
 }
 import glot_frontend/public/editor/run_instructions
 import glot_frontend/public/editor/settings as editor_settings
+import glot_frontend/public/editor/workspace
 import glot_frontend/public/editor/settings_draft
 
 pub fn update(
@@ -92,6 +93,12 @@ pub fn update(
         Editor(
           ..model,
           editor_settings: model.settings_draft.editor_settings,
+          // Changing the keyboard bindings resets the Vim and Emacs state
+          // machines, so a half-typed command cannot survive the switch.
+          workspace: workspace.set_bindings(
+            model.workspace,
+            model.settings_draft.editor_settings.keyboard_bindings,
+          ),
           snippet: Snippet(
             ..model.snippet,
             run_instructions_override: run_instructions.run_instructions_override_from_draft(

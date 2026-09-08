@@ -1,11 +1,19 @@
+import gleam/int
 import gleam/list
 import gleam/option
+import gleam/string
 import gleam/time/timestamp
 import glot_core/language
 import glot_core/run
 import glot_core/snippet/snippet_dto
 import glot_frontend/api/response
+import glot_frontend/public/editor/code_editor/browser_command as code_editor_browser_command
+import glot_frontend/public/editor/code_editor/message as code_editor_message
+import glot_frontend/public/editor/code_editor/model as code_editor_model
+import glot_frontend/public/editor/code_editor/session
+import glot_frontend/public/editor/code_editor/text
 import glot_frontend/public/editor/command
+import glot_frontend/public/editor/environment
 import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/draft_persistence
 import glot_frontend/public/editor/managed
@@ -21,7 +29,7 @@ import youid/uuid.{type Uuid}
 /// Managed reads stay pending until a scenario supplies a fixture response.
 /// The callback is the same callback used by the production interpreter.
 pub type PendingEffect {
-  LoadEnvironment(fn(String, settings.EditorSettings) -> message.Msg)
+  LoadEnvironment(fn(String, environment.Environment) -> message.Msg)
   LoadDraft(
     draft_persistence.Target,
     fn(option.Option(draft.StoredEditorDraft)) -> message.Msg,
@@ -51,6 +59,7 @@ pub type ObservedEffect {
   DraftSaved(draft_persistence.Write)
   DraftCleared(draft_persistence.Target)
   SettingsSaved(settings.EditorSettings)
+  EditorCommandIssued(String)
   DialogOpened(String)
   DialogOpenedNextFrame(String)
   DialogClosed(String)
@@ -254,11 +263,60 @@ pub fn respond_to_run(
 pub fn respond_to_environment(
   scenario: Scenario,
   raw_ssr: String,
-  settings: settings.EditorSettings,
+  found: environment.Environment,
 ) -> Scenario {
   let #(effect, scenario) = take_next_pending(scenario)
   let assert LoadEnvironment(complete) = effect
-  dispatch(scenario, complete(raw_ssr, settings))
+  dispatch(scenario, complete(raw_ssr, found))
+}
+
+/// Type into the editor the way the browser does: the textarea reports its new
+/// value and caret, and the editor reconciles that into a transaction. Tests
+/// therefore exercise the same path production input takes.
+pub fn type_source(scenario: Scenario, content: String) -> Scenario {
+  let assert model.Ready(editor) = model(scenario)
+  let current = code_editor_model.active_session(editor.workspace.editor)
+  let caret = text.width(content)
+  dispatch(
+    scenario,
+    message.Editor(
+      message.CodeEditor(
+        code_editor_message.InputReceived(code_editor_message.NativeInput(
+          session: session.key_to_string(current.key),
+          generation: current.generation,
+          value: content,
+          selection_anchor: caret,
+          selection_head: caret,
+        )),
+      ),
+    ),
+  )
+}
+
+/// The same input, but quoting a session generation that has since been
+/// replaced. The editor must ignore it.
+pub fn type_stale_source(
+  scenario: Scenario,
+  content: String,
+  generation: Int,
+) -> Scenario {
+  let assert model.Ready(editor) = model(scenario)
+  let current = code_editor_model.active_session(editor.workspace.editor)
+  let caret = text.width(content)
+  dispatch(
+    scenario,
+    message.Editor(
+      message.CodeEditor(
+        code_editor_message.InputReceived(code_editor_message.NativeInput(
+          session: session.key_to_string(current.key),
+          generation: generation,
+          value: content,
+          selection_anchor: caret,
+          selection_head: caret,
+        )),
+      ),
+    ),
+  )
 }
 
 pub fn respond_to_new_draft(
@@ -363,7 +421,7 @@ pub fn assert_no_pending_effects(scenario: Scenario) -> Nil {
 }
 
 pub fn new_editor(lang: language.Language) -> model.Model {
-  model.Ready(ready.new(lang, settings.defaults()))
+  model.Ready(ready.new(lang, environment.defaults()))
 }
 
 pub fn start_new_editor(
@@ -417,6 +475,8 @@ fn interpret(
     command.Focus(id) -> append_observed(scenario, ElementFocused(id))
     command.Blur(id) -> append_observed(scenario, ElementBlurred(id))
     command.Navigate(path) -> append_observed(scenario, Navigated(path))
+    command.CodeEditor(inner) ->
+      append_observed(scenario, EditorCommandIssued(describe_editor(inner)))
     command.Schedule(milliseconds, msg) -> {
       let scenario =
         Scenario(
@@ -427,6 +487,45 @@ fn interpret(
         )
       append_observed(scenario, MessageScheduled(milliseconds, msg))
     }
+  }
+}
+
+/// The editor's browser commands are observable as data, so integration tests
+/// can assert on what the editor asked the browser to do without a DOM.
+fn describe_editor(
+  inner: code_editor_browser_command.Command(message.Msg),
+) -> String {
+  case inner {
+    code_editor_browser_command.None -> "none"
+    code_editor_browser_command.Batch(commands) ->
+      "batch(" <> string.join(list.map(commands, describe_editor), ", ") <> ")"
+    code_editor_browser_command.SyncDocument(_, start, end) ->
+      "sync-document("
+      <> int.to_string(start)
+      <> ","
+      <> int.to_string(end)
+      <> ")"
+    code_editor_browser_command.SyncSelection(start, end) ->
+      "sync-selection("
+      <> int.to_string(start)
+      <> ","
+      <> int.to_string(end)
+      <> ")"
+    code_editor_browser_command.ScrollToLine(line, _) ->
+      "scroll-to-line(" <> int.to_string(line) <> ")"
+    code_editor_browser_command.SyncSession(_, _, _, _, _, _, _) -> "sync-session"
+    code_editor_browser_command.ScrollBy(lines) ->
+      "scroll-by(" <> int.to_string(lines) <> ")"
+    code_editor_browser_command.FocusEditor -> "focus-editor"
+    code_editor_browser_command.FocusSearchField -> "focus-search-field"
+    code_editor_browser_command.FocusPrompt -> "focus-prompt"
+    code_editor_browser_command.MoveFocus(forward) ->
+      case forward {
+        True -> "move-focus-forward"
+        False -> "move-focus-backward"
+      }
+    code_editor_browser_command.WriteClipboard(_) -> "write-clipboard"
+    code_editor_browser_command.Measure(_) -> "measure"
   }
 }
 

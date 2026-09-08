@@ -2,6 +2,8 @@ import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
 import glot_core/snippet/snippet_model
+import glot_frontend/public/editor/code_editor/model as code_editor_model
+import glot_frontend/public/editor/code_editor/session
 import glot_frontend/public/editor/draft
 import glot_frontend/public/editor/lifecycle
 import glot_frontend/public/editor/operations
@@ -47,9 +49,13 @@ pub type Snippet {
 
 pub type Workspace {
   Workspace(
-    editor_revision: Int,
-    editor_external_revision: Int,
     selected_tab: EditorTab,
+    editor: code_editor_model.Model,
+    /// One session key per file, in file order. Keys are opaque and stable, so
+    /// renaming a file or inserting one before it keeps that file's history,
+    /// cursor, selection, and scroll.
+    file_sessions: List(session.Key),
+    next_session: Int,
   )
 }
 
