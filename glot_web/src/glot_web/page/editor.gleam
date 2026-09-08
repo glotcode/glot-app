@@ -165,7 +165,7 @@ fn is_indexable(view_model: ViewModel) -> Bool {
     ExistingSnippet(EditorModel(
       visibility: option.Some(visibility),
       is_runnable:,
-      ..
+      ..,
     )) ->
       visibility == snippet_model.Public && is_runnable != option.Some(False)
     UnsupportedLanguage(_) | LoadError(_) | ExistingSnippet(_) -> False
@@ -303,72 +303,77 @@ fn static_editor(model: EditorModel) -> lustre_element.Element(Nil) {
   let content = selected_tab_content(model)
   let lines = string.split(content, "\n")
 
-  html.div([attribute.class("code-editor")], [
-    html.div([attribute.class("code-editor__frame")], [
-      html.div(
-        [
-          attribute.class("code-editor__gutter"),
-          attribute.attribute("aria-hidden", "true"),
-          attribute.style(
-            "--code-editor-gutter-digits",
-            int.to_string(gutter_digits(list.length(lines))),
-          ),
-        ],
-        [
-          html.div(
-            [attribute.class("code-editor__gutter-inner")],
-            list.index_map(lines, fn(_, index) {
-              html.span([attribute.class("code-editor__line-number")], [
-                html.text(int.to_string(index + 1)),
-              ])
-            }),
-          ),
-        ],
+  html.div(
+    [
+      attribute.class("code-editor"),
+      attribute.style(
+        "--code-editor-gutter-digits",
+        int.to_string(gutter_digits(list.length(lines))),
       ),
-      html.div([attribute.class("code-editor__area")], [
+    ],
+    [
+      html.div([attribute.class("code-editor__frame")], [
         html.div(
           [
-            attribute.class("code-editor__layer"),
+            attribute.class("code-editor__gutter"),
             attribute.attribute("aria-hidden", "true"),
           ],
           [
             html.div(
-              [attribute.class("code-editor__lines")],
-              list.map(lines, fn(line) {
-                html.div([attribute.class("code-editor__line")], [
-                  html.text(rendered_line(line)),
+              [attribute.class("code-editor__gutter-inner")],
+              list.index_map(lines, fn(_, index) {
+                html.span([attribute.class("code-editor__line-number")], [
+                  html.text(int.to_string(index + 1)),
                 ])
               }),
             ),
           ],
         ),
-        html.textarea(
-          [
-            attribute.id("code-editor-input"),
-            attribute.class("code-editor__input"),
-            attribute.attribute("wrap", "off"),
-            attribute.attribute("spellcheck", "false"),
-            attribute.attribute("aria-label", "Code editor"),
-            attribute.attribute("aria-multiline", "true"),
-            attribute.readonly(True),
-          ],
-          content,
-        ),
-      ]),
-    ]),
-    html.div(
-      [
-        attribute.class("code-editor__status"),
-        attribute.id("code-editor-status"),
-        attribute.attribute("role", "status"),
-      ],
-      [
-        html.span([attribute.class("code-editor__status-mode")], [
-          html.text(language.name(model.language)),
+        html.div([attribute.class("code-editor__area")], [
+          html.div(
+            [
+              attribute.class("code-editor__layer"),
+              attribute.attribute("aria-hidden", "true"),
+            ],
+            [
+              html.div(
+                [attribute.class("code-editor__lines")],
+                list.map(lines, fn(line) {
+                  html.div([attribute.class("code-editor__line")], [
+                    html.text(rendered_line(line)),
+                  ])
+                }),
+              ),
+            ],
+          ),
+          html.textarea(
+            [
+              attribute.id("code-editor-input"),
+              attribute.class("code-editor__input"),
+              attribute.attribute("wrap", "off"),
+              attribute.attribute("spellcheck", "false"),
+              attribute.attribute("aria-label", "Code editor"),
+              attribute.attribute("aria-multiline", "true"),
+              attribute.readonly(True),
+            ],
+            content,
+          ),
         ]),
-      ],
-    ),
-  ])
+      ]),
+      html.div(
+        [
+          attribute.class("code-editor__status"),
+          attribute.id("code-editor-status"),
+          attribute.attribute("role", "status"),
+        ],
+        [
+          html.span([attribute.class("code-editor__status-mode")], [
+            html.text(language.name(model.language)),
+          ]),
+        ],
+      ),
+    ],
+  )
 }
 
 fn action_button(

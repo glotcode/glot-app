@@ -674,13 +674,17 @@
   display: flex;
   gap: 1rem;
   align-items: center;
-  padding: 0 0.5rem;
+  /* Keep ch at the editor font size so this matches the gutter width. */
+  padding: 0 0.5rem 0 calc(max(42px, 21px + var(--code-editor-gutter-digits, 2) * 1ch) + 8px);
   border-top: 1px solid var(--theme-border);
   background: var(--theme-surface-muted);
   color: var(--theme-text-muted);
-  font-size: 0.7rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.code-editor__status > span {
+  font-size: 0.7rem;
 }
 
 .code-editor__status-mode {

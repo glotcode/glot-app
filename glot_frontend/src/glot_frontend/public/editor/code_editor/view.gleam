@@ -31,9 +31,14 @@ import lustre/element/html
 import lustre/event
 
 pub fn view(model: Model) -> Element(Msg) {
+  let current = editor_model.active_session(model)
   html.div(
     [
       attribute.class("code-editor"),
+      attribute.style(
+        "--code-editor-gutter-digits",
+        int.to_string(gutter_digits(document.line_count(current.state.doc))),
+      ),
       attribute.attribute("data-bindings", binding_name(model)),
     ],
     [
@@ -70,10 +75,6 @@ fn gutter(model: Model) -> Element(Msg) {
     [
       attribute.class("code-editor__gutter"),
       attribute.attribute("aria-hidden", "true"),
-      attribute.style(
-        "--code-editor-gutter-digits",
-        int.to_string(gutter_digits(document.line_count(current.state.doc))),
-      ),
     ],
     [
       html.div(
