@@ -185,19 +185,6 @@ fn letter(
     "k", True, False, True -> option.Some(command.DeleteLine)
     "/", True, False, False -> option.Some(command.ToggleComment)
     "a", False, True, True -> option.Some(command.ToggleBlockComment)
-    // Upstream bound `Ctrl-m` everywhere but macOS and `Shift-Alt-m` there.
-    // `Ctrl-m` is free on macOS too, and the Tab escape is easier to document
-    // when it is the same chord everywhere, so both are accepted.
-    "m", _, False, False ->
-      case key.ctrl && !key.meta {
-        True -> option.Some(command.ToggleTabFocusMode)
-        False -> option.None
-      }
-    "m", False, True, True ->
-      case mac {
-        True -> option.Some(command.ToggleTabFocusMode)
-        False -> option.None
-      }
     _, _, _, _ -> mac_control(key, mac)
   }
 }

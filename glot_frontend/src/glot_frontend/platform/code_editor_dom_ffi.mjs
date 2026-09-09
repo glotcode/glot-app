@@ -126,30 +126,6 @@ export function focusElement(id) {
   node.focus({ preventScroll: true });
 }
 
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-export function moveFocus(id, forward) {
-  const node = element(id);
-  if (!node) return;
-
-  const candidates = [...document.querySelectorAll(FOCUSABLE)].filter(
-    (candidate) => candidate.offsetParent !== null || candidate === node,
-  );
-  const index = candidates.indexOf(node);
-  if (index === -1) {
-    node.blur();
-    return;
-  }
-
-  const next = candidates[index + (forward ? 1 : -1)];
-  if (next) {
-    next.focus();
-  } else {
-    node.blur();
-  }
-}
-
 export function writeClipboard(value) {
   if (!value) return;
   if (navigator.clipboard?.writeText) {

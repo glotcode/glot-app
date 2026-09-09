@@ -519,11 +519,6 @@ fn describe_editor(
     code_editor_browser_command.FocusEditor -> "focus-editor"
     code_editor_browser_command.FocusSearchField -> "focus-search-field"
     code_editor_browser_command.FocusPrompt -> "focus-prompt"
-    code_editor_browser_command.MoveFocus(forward) ->
-      case forward {
-        True -> "move-focus-forward"
-        False -> "move-focus-backward"
-      }
     code_editor_browser_command.WriteClipboard(_) -> "write-clipboard"
     code_editor_browser_command.Measure(_) -> "measure"
   }

@@ -697,12 +697,6 @@
   font-weight: 700;
 }
 
-.code-editor__status-hint {
-  margin-left: auto;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
 .code-editor__panel,
 .code-editor__prompt {
   display: flex;

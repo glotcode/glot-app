@@ -559,19 +559,6 @@ fn execute(model: Model, item: EditorCommand) -> Result {
     command.ClearMarks -> idle(model)
 
     // -- Modes and outbound
-    command.ToggleTabFocusMode -> {
-      let next = !model.tab_focus_mode
-      idle(
-        Model(
-          ..model,
-          tab_focus_mode: next,
-          status: option.Some(case next {
-            True -> "Tab moves focus"
-            False -> "Tab indents"
-          }),
-        ),
-      )
-    }
     command.RunSnippet ->
       Result(..idle(model), outbound: [message.RunRequested])
     command.SaveSnippet ->

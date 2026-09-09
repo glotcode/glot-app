@@ -1,6 +1,3 @@
-import gleam/list
-import gleam/option
-import glot_frontend/public/editor/code_editor/browser_command
 import glot_frontend/public/editor/code_editor/keys
 import support/code_editor_driver as driver
 
@@ -68,22 +65,4 @@ pub fn tab_indents_and_shift_tab_dedents_test() {
 
   let dedented = driver.press(indented, keys.shift("Tab"))
   assert driver.text_of(dedented) == "line"
-}
-
-pub fn tab_focus_mode_hands_tab_back_to_the_browser_test() {
-  let editing =
-    driver.new("line")
-    |> driver.press(keys.ctrl("m"))
-
-  assert editing.model.tab_focus_mode
-  assert editing.model.status == option.Some("Tab moves focus")
-
-  // Tab moves focus from the reducer, so the behaviour cannot depend on when
-  // the last render happened.
-  let untouched = driver.press(editing, keys.plain("Tab"))
-  assert driver.text_of(untouched) == "line"
-  assert list.contains(
-    untouched.commands,
-    browser_command.MoveFocus(forward: True),
-  )
 }

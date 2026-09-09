@@ -142,7 +142,7 @@ fn reduce(model: Model, msg: Msg) -> Update {
       )
 
     message.FocusChanged(focused) ->
-      unchanged(Model(..model, focused: focused, escape_tab: False))
+      unchanged(Model(..model, focused: focused))
 
     message.GutterLineClicked(line) ->
       finish(
@@ -354,21 +354,9 @@ pub fn handles_key(model: Model, key: Key) -> Bool {
     False, False ->
       case run_shortcut(model, key) {
         True -> True
-        False ->
-          case focus_tab(model, key) || toggle_tab_focus(key) {
-            True -> True
-            False -> resolves(model, key)
-          }
+        False -> resolves(model, key)
       }
   }
-}
-
-fn focus_tab(model: Model, key: Key) -> Bool {
-  key.key == "Tab" && { model.tab_focus_mode || model.escape_tab }
-}
-
-fn toggle_tab_focus(key: Key) -> Bool {
-  string.lowercase(key.key) == "m" && key.ctrl && !key.meta && !key.alt && !key.shift
 }
 
 fn run_shortcut(model: Model, key: Key) -> Bool {
@@ -477,22 +465,6 @@ fn reconcile_decision(routed: Routed, key: Key, prevented: Bool) -> Update {
 }
 
 fn routed(model: Model, key: Key) -> Routed {
-  let leave = focus_tab(model, key)
-  let model = Model(..model, escape_tab: key == keys.plain("Escape"))
-  case leave, toggle_tab_focus(key) {
-    True, _ -> Routed(
-      result: #(model, browser_command.MoveFocus(forward: !key.shift), []),
-      claimed: True,
-    )
-    _, True -> Routed(
-      result: finish(execute.run(model, [command.ToggleTabFocusMode])),
-      claimed: True,
-    )
-    _, _ -> binding_key(model, key)
-  }
-}
-
-fn binding_key(model: Model, key: Key) -> Routed {
   case model.bindings {
     settings_bridge.VimLike -> vim_key(model, key)
     settings_bridge.EmacsLike -> emacs_key(model, key)

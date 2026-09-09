@@ -49,9 +49,6 @@ pub fn ports() -> Ports(msg) {
     focus_prompt: fn() {
       effect.after_paint(fn(_, _) { code_editor_dom.focus(ids.prompt_field) })
     },
-    move_focus: fn(forward) {
-      effect.from(fn(_) { code_editor_dom.move_focus(ids.input, forward) })
-    },
     write_clipboard: fn(value) {
       effect.from(fn(_) { code_editor_dom.write_clipboard(value) })
     },

@@ -115,45 +115,18 @@ test.describe("code editor", () => {
     await expectContains(page, "// // first file");
   });
 
-  test("Tab indents and Escape then Tab leaves the editor", async ({ page }) => {
+  test("Tab keeps indenting after Escape and Ctrl-M", async ({ page }) => {
     await open(page);
     await setCaret(page, 0);
-    await page.keyboard.press("Tab");
-    await expectContains(page, "  // first file");
-
-    await page.keyboard.press("Escape");
-    await page.keyboard.press("Tab");
-    await expect(page.locator(editor)).not.toBeFocused();
-  });
-
-  for (const bindings of ["plain", "vim", "emacs"]) {
     for (const shortcut of ["Escape", "Control+m"]) {
-      for (const tab of ["Tab", "Shift+Tab"]) {
-        test(`${bindings}: ${shortcut} then ${tab} moves focus`, async ({ page }) => {
-          await open(page, bindings);
-          const before = await value(page);
-          await page.keyboard.press(shortcut);
-          await page.keyboard.press(tab);
-          await expect(page.locator(editor)).not.toBeFocused();
-          await expect(page.locator(editor)).toHaveValue(before);
-        });
-      }
+      await page.keyboard.press(shortcut);
+      await page.keyboard.press("Tab");
+      await expect(page.locator(editor)).toBeFocused();
+      await expectContains(page, "  // first file");
+      await page.keyboard.press("Shift+Tab");
+      await expect(page.locator(editor)).toBeFocused();
+      await expect(page.locator(editor)).toHaveValue(/^\/\/ first file/);
     }
-  }
-
-  test("Escape only releases the next Tab and Ctrl-M toggles indentation back on", async ({ page }) => {
-    await open(page);
-    await setCaret(page, 0);
-    await page.keyboard.press("Escape");
-    await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("Tab");
-    await expect(page.locator(editor)).toBeFocused();
-    await expectContains(page, "  // first file");
-    await page.keyboard.press("Control+m");
-    await page.keyboard.press("Control+m");
-    await page.keyboard.press("Tab");
-    await expect(page.locator(editor)).toBeFocused();
-    await expectContains(page, "    // first file");
   });
 
   test("clipboard copy and paste round-trip", async ({ page, browserName }) => {

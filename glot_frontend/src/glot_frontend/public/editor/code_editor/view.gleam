@@ -632,9 +632,6 @@ fn status_line(model: Model) -> Element(Msg) {
           ) + 1),
         ),
       ]),
-      html.span([attribute.class("code-editor__status-hint")], [
-        html.text(tab_hint(model)),
-      ]),
     ],
   )
 }
@@ -648,13 +645,6 @@ fn mode_label(model: Model) -> String {
         settings_bridge.EmacsLike -> "Emacs"
         settings_bridge.VimLike -> "Vim"
       }
-  }
-}
-
-fn tab_hint(model: Model) -> String {
-  case model.tab_focus_mode {
-    True -> "Tab moves focus (Ctrl-M to indent)"
-    False -> "Tab indents (Ctrl-M or Escape then Tab to leave)"
   }
 }
 

@@ -25,8 +25,6 @@ pub fn scroll_by_lines(id: String, lines: Int) -> Nil
 pub fn focus(id: String) -> Nil
 
 /// Move focus to the next or previous focusable element in document order.
-@external(javascript, "./code_editor_dom_ffi.mjs", "moveFocus")
-pub fn move_focus(id: String, forward: Bool) -> Nil
 
 @external(javascript, "./code_editor_dom_ffi.mjs", "writeClipboard")
 pub fn write_clipboard(value: String) -> Nil

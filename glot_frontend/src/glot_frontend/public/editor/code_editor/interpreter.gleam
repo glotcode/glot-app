@@ -21,7 +21,6 @@ pub fn run(command: Command(msg), ports: Ports(msg)) -> Effect(msg) {
     browser_command.FocusEditor -> ports.focus_editor()
     browser_command.FocusSearchField -> ports.focus_search_field()
     browser_command.FocusPrompt -> ports.focus_prompt()
-    browser_command.MoveFocus(forward) -> ports.move_focus(forward)
     browser_command.WriteClipboard(value) -> ports.write_clipboard(value)
     browser_command.Measure(callback) -> ports.measure(callback)
   }

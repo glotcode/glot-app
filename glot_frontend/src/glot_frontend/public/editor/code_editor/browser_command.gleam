@@ -38,7 +38,6 @@ pub type Command(msg) {
   /// Hand focus to the next or previous focusable element on the page. Tab
   /// focus mode moves focus from the reducer rather than by letting the key
   /// through, so the behaviour cannot depend on when the last render happened.
-  MoveFocus(forward: Bool)
   WriteClipboard(String)
   /// Ask for fresh geometry after a resize or a font change.
   Measure(fn(Int, Int, Int, Int) -> msg)
@@ -70,7 +69,6 @@ pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
     FocusEditor -> FocusEditor
     FocusSearchField -> FocusSearchField
     FocusPrompt -> FocusPrompt
-    MoveFocus(forward) -> MoveFocus(forward)
     WriteClipboard(value) -> WriteClipboard(value)
     Measure(callback) ->
       Measure(fn(a, b, c, d) { transform(callback(a, b, c, d)) })

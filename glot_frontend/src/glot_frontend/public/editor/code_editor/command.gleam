@@ -104,7 +104,6 @@ pub type EditorCommand {
   SelectRectangularRegion
   OpenCommandPrompt(String)
 
-  ToggleTabFocusMode
   RunSnippet
   SaveSnippet
 

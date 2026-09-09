@@ -18,7 +18,6 @@ pub type Ports(msg) {
     focus_editor: fn() -> Effect(msg),
     focus_search_field: fn() -> Effect(msg),
     focus_prompt: fn() -> Effect(msg),
-    move_focus: fn(Bool) -> Effect(msg),
     write_clipboard: fn(String) -> Effect(msg),
     measure: fn(fn(Int, Int, Int, Int) -> msg) -> Effect(msg),
   )
