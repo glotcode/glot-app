@@ -92,34 +92,29 @@ pub fn diff(doc: Document, next: String) -> Option(Change) {
   }
 }
 
-/// Narrow a single-line replacement to the characters that actually changed, so
+/// Narrow the changed lines to the characters that actually changed, so
 /// typing one character records one small change and groups cleanly in history.
 fn refine(doc: Document, change: Change) -> Change {
   let removed = document.slice(doc, change.from, change.to)
-  case string.contains(removed, "\n") || string.contains(change.insert, "\n") {
-    True -> change
-    False -> {
-      let old_clusters = text.clusters(removed)
-      let new_clusters = text.clusters(change.insert)
-      let prefix = common_text_prefix(old_clusters, new_clusters, 0)
-      let suffix =
-        common_text_suffix(
-          list.reverse(old_clusters),
-          list.reverse(new_clusters),
-          0,
-          int_min(text.width(removed), text.width(change.insert)) - prefix,
-        )
-      transaction.Change(
-        from: change.from + prefix,
-        to: change.to - suffix,
-        insert: text.slice(
-          change.insert,
-          prefix,
-          text.width(change.insert) - suffix,
-        ),
-      )
-    }
-  }
+  let old_clusters = text.clusters(removed)
+  let new_clusters = text.clusters(change.insert)
+  let prefix = common_text_prefix(old_clusters, new_clusters, 0)
+  let suffix =
+    common_text_suffix(
+      list.reverse(old_clusters),
+      list.reverse(new_clusters),
+      0,
+      int_min(text.width(removed), text.width(change.insert)) - prefix,
+    )
+  transaction.Change(
+    from: change.from + prefix,
+    to: change.to - suffix,
+    insert: text.slice(
+      change.insert,
+      prefix,
+      text.width(change.insert) - suffix,
+    ),
+  )
 }
 
 fn common_prefix(left: List(String), right: List(String), count: Int) -> Int {

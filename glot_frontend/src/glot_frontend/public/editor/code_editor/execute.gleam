@@ -10,6 +10,8 @@ import glot_frontend/public/editor/code_editor/browser_command
 import glot_frontend/public/editor/code_editor/command.{type EditorCommand}
 import glot_frontend/public/editor/code_editor/document
 import glot_frontend/public/editor/code_editor/editing
+import glot_frontend/public/editor/code_editor/history
+import glot_frontend/public/editor/code_editor/reconcile
 import glot_frontend/public/editor/code_editor/highlight_state
 import glot_frontend/public/editor/code_editor/keymap/emacs
 import glot_frontend/public/editor/code_editor/message.{type Msg, type Outbound}
@@ -56,7 +58,7 @@ pub fn run(model: Model, commands: List(EditorCommand)) -> Result {
 /// After a batch, push the document and selection into the textarea once.
 fn synchronise(result: Result) -> Result {
   let current = editor_model.state(result.model)
-  let main = selection.main(current.selection)
+  let main = selection.main(editor_model.browser_selection(result.model))
   let sync = case result.changed {
     True ->
       browser_command.SyncDocument(
@@ -70,7 +72,7 @@ fn synchronise(result: Result) -> Result {
         selection_head: main.head,
       )
   }
-  let caret_line = document.line_index_at(current.doc, main.head)
+  let caret_line = document.line_index_at(current.doc, selection.head(current.selection))
   Result(
     ..result,
     command: browser_command.batch([
@@ -153,7 +155,9 @@ fn read_only_blocked(model: Model, item: EditorCommand) -> Bool {
 
 fn mutating(item: EditorCommand) -> Bool {
   case item {
-    command.InsertText(_)
+    command.CoalesceUndo(..)
+    | command.EditRanges(..)
+    | command.InsertText(_)
     | command.InsertNewlineAndIndent
     | command.InsertBlankLine
     | command.SplitLine
@@ -208,6 +212,8 @@ fn execute(model: Model, item: EditorCommand) -> Result {
   let context = editor_model.context(model)
 
   case item {
+    command.EditRanges(changes, caret) -> apply_result(model, transaction.new(changes, transaction.Command) |> transaction.with_selection(selection.from(caret)))
+    command.CoalesceUndo(before) -> coalesce_undo(model, before)
     command.Noop -> idle(model)
     command.Sequence(items) -> run(model, items)
 
@@ -1054,4 +1060,18 @@ fn keyboard_quit(model: Model) -> Result {
     ),
     command: browser_command.FocusEditor,
   )
+}
+
+/// Finish an explicit editing session as one minimal document change. This
+/// retains the pre-session history and also handles native typing/paste/IME.
+fn coalesce_undo(model: Model, before: state.State) -> Result {
+  let current = editor_model.active_session(model)
+  let next_history = case reconcile.diff(before.doc, state.text(current.state)) {
+    option.None -> before.history
+    option.Some(change) -> history.record(before.history,
+      history.Step([change], transaction.invert(before.doc, [change])),
+      before.selection, current.state.selection, transaction.Command)
+  }
+  idle(editor_model.put_session(model, session.Session(..current,
+    state: state.State(..current.state, history: next_history))))
 }

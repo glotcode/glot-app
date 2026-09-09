@@ -36,9 +36,34 @@ fn codepoint_width(value: Int) -> Int {
 
 /// Split `text` into grapheme clusters annotated with their UTF-16 width.
 pub fn clusters(text: String) -> List(Cluster) {
-  text
-  |> string.to_graphemes
-  |> list.map(fn(grapheme) { Cluster(text: grapheme, width: width(grapheme)) })
+  case ascii_clusters(string.to_utf_codepoints(text), []) {
+    Ok(clusters) -> clusters
+    Error(_) -> text
+      |> string.to_graphemes
+      |> list.map(fn(grapheme) { Cluster(text: grapheme, width: width(grapheme)) })
+  }
+}
+
+// ASCII has one codepoint per grapheme except CRLF. Avoid invoking the Unicode
+// segmenter for every character of long source lines while retaining its full
+// behavior whenever a non-ASCII codepoint is present.
+fn ascii_clusters(points: List(UtfCodepoint), collected: List(Cluster)) -> Result(List(Cluster), Nil) {
+  case points {
+    [] -> Ok(list.reverse(collected))
+    [first, ..rest] -> {
+      let value = string.utf_codepoint_to_int(first)
+      case value > 127 {
+        True -> Error(Nil)
+        False -> case value, rest {
+          13, [next, ..tail] -> case string.utf_codepoint_to_int(next) == 10 {
+            True -> ascii_clusters(tail, [Cluster("\r\n", 2), ..collected])
+            False -> ascii_clusters(rest, [Cluster("\r", 1), ..collected])
+          }
+          _, _ -> ascii_clusters(rest, [Cluster(string.from_utf_codepoints([first]), 1), ..collected])
+        }
+      }
+    }
+  }
 }
 
 /// The substring between two UTF-16 offsets. Offsets outside the string are

@@ -6,11 +6,13 @@
 //// already cached — the point at which the rest of the document is provably
 //// unchanged.
 ////
-//// Only the viewport, plus overscan, is ever tokenised, so a 100,000-character
-//// document costs the same as a short one to render.
+//// Only viewport lines, plus overscan, retain tokens. Unchanged lines reuse
+//// them on selection and scroll updates. Each changed visible line is still
+//// scanned in full, so a long minified line costs more than a short line.
 
 import gleam/dict.{type Dict}
 import gleam/list
+import gleam/option
 import gleam/string
 import glot_frontend/public/editor/code_editor/document.{type Document}
 import glot_frontend/public/editor/code_editor/syntax/rules.{type Rules}
@@ -19,7 +21,11 @@ import glot_frontend/public/editor/code_editor/syntax/token.{type Token}
 import glot_frontend/public/editor/code_editor/text
 
 pub type Cache {
-  Cache(states: Dict(Int, LexState))
+  Cache(states: Dict(Int, LexState), lines: Dict(Int, CachedLine), rules: option.Option(Rules))
+}
+
+pub type CachedLine {
+  CachedLine(text: String, before: LexState, tokens: List(Token), after: LexState)
 }
 
 /// One rendered line: its index, its text, and its tokens.
@@ -28,13 +34,15 @@ pub type HighlightedLine {
 }
 
 pub fn new() -> Cache {
-  Cache(states: dict.new())
+  Cache(states: dict.new(), lines: dict.new(), rules: option.None)
 }
 
 /// Drop everything the edit could have invalidated.
 pub fn invalidate_from(cache: Cache, line: Int) -> Cache {
   Cache(
+    ..cache,
     states: dict.filter(cache.states, fn(index, _) { index <= line }),
+    lines: dict.filter(cache.lines, fn(index, _) { index < line }),
   )
 }
 
@@ -60,6 +68,8 @@ pub fn lines(
 ) -> #(List(HighlightedLine), Cache) {
   let from = document.clamp(from, 0, document.line_count(doc))
   let to = document.clamp(to, from, document.line_count(doc))
+  let cache = for_rules(cache, language_rules)
+  let cache = Cache(..cache, lines: dict.filter(cache.lines, fn(index, _) { index >= from && index < to }))
   let #(start, state) = nearest_cached(cache, from)
   scan_forward(language_rules, cache, doc, start, state, from, to, [])
 }
@@ -78,8 +88,15 @@ fn scan_forward(
     True -> #(list.reverse(collected), cache)
     False -> {
       let text = document.line_text(doc, index)
-      let #(tokens, next_state) = scanner.scan_line(language_rules, state, text)
-      let cache = Cache(states: dict.insert(cache.states, index + 1, next_state))
+      let #(tokens, next_state) = case dict.get(cache.lines, index) {
+        Ok(cached) if cached.text == text && cached.before == state -> #(cached.tokens, cached.after)
+        _ -> scanner.scan_line(language_rules, state, text)
+      }
+      let cached_lines = case index >= from {
+        True -> dict.insert(cache.lines, index, CachedLine(text, state, tokens, next_state))
+        False -> cache.lines
+      }
+      let cache = Cache(..cache, states: dict.insert(cache.states, index + 1, next_state), lines: cached_lines)
       let collected = case index >= from {
         True -> [
           HighlightedLine(index: index, text: text, tokens: tokens),
@@ -112,6 +129,7 @@ pub fn converge(
   line: Int,
   budget: Int,
 ) -> Cache {
+  let cache = for_rules(cache, language_rules)
   let #(start, state) = nearest_cached(cache, line)
   converge_loop(language_rules, cache, doc, start, state, budget)
 }
@@ -134,7 +152,7 @@ fn converge_loop(
         _ ->
           converge_loop(
             language_rules,
-            Cache(states: dict.insert(cache.states, index + 1, next_state)),
+            Cache(..cache, states: dict.insert(cache.states, index + 1, next_state)),
             doc,
             index + 1,
             next_state,
@@ -142,6 +160,13 @@ fn converge_loop(
           )
       }
     }
+  }
+}
+
+fn for_rules(cache: Cache, rules: Rules) -> Cache {
+  case cache.rules {
+    option.Some(previous) if previous == rules -> cache
+    _ -> Cache(states: dict.new(), lines: dict.new(), rules: option.Some(rules))
   }
 }
 

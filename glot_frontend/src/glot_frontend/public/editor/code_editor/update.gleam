@@ -26,6 +26,7 @@ import glot_frontend/public/editor/code_editor/selection
 import glot_frontend/public/editor/code_editor/session
 import glot_frontend/public/editor/code_editor/settings_bridge
 import glot_frontend/public/editor/code_editor/state
+import glot_frontend/public/editor/code_editor/text
 import glot_frontend/public/editor/code_editor/transaction
 
 pub type Update =
@@ -38,7 +39,7 @@ pub type Update =
 /// for this command to bring the field back in step.
 pub fn sync(model: Model) -> browser_command.Command(msg) {
   let current = editor_model.active_session(model)
-  let main = selection.main(current.state.selection)
+  let main = selection.main(editor_model.browser_selection(model))
   browser_command.SyncSession(
     session_key: session.key_to_string(current.key),
     generation: current.generation,
@@ -76,7 +77,10 @@ fn reduce(model: Model, msg: Msg) -> Update {
         True ->
           case model.composing {
             True -> unchanged(model)
-            False -> reconcile_input(model, native, transaction.Typing)
+            False -> case editor_model.accepts_native_input(model) {
+              True -> reconcile_input(model, native, transaction.Typing)
+              False -> #(model, sync(model), [])
+            }
           }
       }
 
@@ -215,7 +219,8 @@ fn reduce(model: Model, msg: Msg) -> Update {
     message.PromptCancelled ->
       finish(
         execute.Result(
-          ..execute.idle(Model(..model, prompt: option.None)),
+          ..execute.idle(Model(..model, prompt: option.None,
+            vim: vim.Vim(..model.vim, pending: [], pending_register: option.None, search_operator: option.None, search_count: 1))),
           command: browser_command.FocusEditor,
         ),
       )
@@ -278,20 +283,28 @@ fn reconcile_input(
           command: browser_command.none(),
         ),
       )
-    option.Some(change) -> {
+    option.Some(native_change) -> {
+      let change = case model.bindings {
+        settings_bridge.VimLike -> vim.native_change(model.vim, current.state, native_change)
+        _ -> native_change
+      }
       let tr =
         transaction.new([change], origin)
         |> transaction.with_selection(caret)
+      let model = case model.bindings {
+        settings_bridge.VimLike -> Model(..model, vim: vim.record_native_edit(model.vim, current.state, change))
+        _ -> model
+      }
       let next = execute.apply(model, tr)
       #(
         next,
-        browser_command.ScrollToLine(
-          line: document.line_index_at(
-            editor_model.state(next).doc,
-            native.selection_head,
+        browser_command.batch([
+          case change != native_change { True -> replay_snapshot(next) False -> browser_command.none() },
+          browser_command.ScrollToLine(
+            line: document.line_index_at(editor_model.state(next).doc, native.selection_head),
+            intent: browser_command.KeepCaretVisible,
           ),
-          intent: browser_command.KeepCaretVisible,
-        ),
+        ]),
         [message.DocumentChanged],
       )
     }
@@ -311,12 +324,12 @@ fn selection_moved(
       primary: 0,
       rectangular: False,
     )
-  case selection.main(current.state.selection) == selection.main(next) {
+  case selection.main(editor_model.browser_selection(model)) == selection.main(next) {
     True -> unchanged(model)
     False ->
       unchanged(
         editor_model.put_session(
-          model,
+          leave_visual_for_pointer(model),
           session.Session(
             ..current,
             state: state.apply(
@@ -421,7 +434,24 @@ fn reconcile_decision(routed: Routed, key: Key, prevented: Bool) -> Update {
     // insert the character here rather than lose it.
     True, False, True ->
       case keys.is_printable(key) && !after.read_only {
-        True -> finish(execute.run(after, [command.InsertText(key.key)]))
+        True -> {
+          let current = editor_model.state(after)
+          let range = selection.main(current.selection)
+          let change = transaction.Change(selection.start(range), selection.end(range), key.key)
+          let change = case after.bindings {
+            settings_bridge.VimLike -> vim.native_change(after.vim, current, change)
+            _ -> change
+          }
+          let after = case after.bindings {
+            settings_bridge.VimLike -> Model(..after, vim: vim.record_native_edit(after.vim, current, change))
+            _ -> after
+          }
+          let item = case after.bindings {
+            settings_bridge.VimLike -> command.EditRanges([change], change.from + text.width(change.insert))
+            _ -> command.InsertText(key.key)
+          }
+          finish(execute.run(after, [item]))
+        }
         False -> routed.result
       }
 
@@ -503,7 +533,11 @@ fn repeat_commands(
 
 fn vim_key(model: Model, key: Key) -> Routed {
   let #(next, response) = vim.handle(model.vim, editor_model.state(model), key)
-  let model = Model(..model, vim: next, status: option.Some(vim.status(next)))
+  let search = case next.search_query != model.vim.search_query {
+    True -> editor_model.SearchPanel(..model.search, query: next.search_query)
+    False -> model.search
+  }
+  let model = Model(..model, vim: next, search: search, status: option.Some(vim.status(next)))
   case response {
     vim.Unhandled ->
       case vim.accepts_native_input(next) {
@@ -512,38 +546,56 @@ fn vim_key(model: Model, key: Key) -> Routed {
       }
     vim.Pending(label) ->
       Routed(result: announce_status(model, option.Some(label)), claimed: True)
-    vim.Handled(commands) ->
-      Routed(result: finish(execute.run(model, commands)), claimed: True)
+    vim.Handled(commands) -> {
+      let result = execute.run(model, commands)
+      let updated = case vim.accepts_native_input(next), next.insertion {
+        True, option.Some(start) if !start.started ->
+          Model(..result.model, vim: vim.capture_insert_start(result.model.vim, editor_model.state(result.model)))
+        _, _ -> result.model
+      }
+      Routed(result: finish(execute.Result(..result, model: updated)), claimed: True)
+    }
     vim.Prompt(kind) ->
       Routed(result: open_vim_prompt(model, kind), claimed: True)
-    vim.Replay(tokens) -> Routed(result: replay(model, tokens, 0), claimed: True)
+    vim.Replay(tokens) -> {
+      let #(final, command, outbound) = replay(model, tokens, 0)
+      Routed(result: #(final, browser_command.batch([without_replay_snapshots(command), replay_snapshot(final)]), outbound), claimed: True)
+    }
   }
 }
 
 /// Macro playback and `.` re-enter the same state machine, so a replayed
 /// command sees the document each step produced. The step budget stops a macro
 /// that records itself from looping.
-fn replay(model: Model, tokens: List(String), steps: Int) -> Update {
-  case tokens, steps > 1000 {
+fn replay(model: Model, tokens: List(vim.Stroke), steps: Int) -> Update {
+  case tokens, steps >= 1000 {
     [], _ | _, True -> unchanged(model)
-    [token, ..rest], False -> {
-      let #(next_model, next_command, next_outbound) =
-        vim_key(model, keys.plain(token)).result
-      let #(final_model, final_command, final_outbound) =
-        replay(next_model, rest, steps + 1)
-      #(
-        final_model,
-        browser_command.batch([next_command, final_command]),
-        list.append(next_outbound, final_outbound),
-      )
+    [stroke, ..rest], False -> case stroke {
+      vim.KeyStroke(token) -> {
+        let #(next, response) = vim.handle(model.vim, editor_model.state(model), vim.key_from_token(token))
+        case response {
+          vim.Replay(nested) -> replay(Model(..model, vim: next, status: option.Some(vim.status(next))), list.append(list.take(nested, 1000 - steps), rest), steps + 1)
+          _ -> replay_then(model, stroke, rest, steps)
+        }
+      }
+      _ -> replay_then(model, stroke, rest, steps)
     }
   }
+}
+
+fn replay_then(model: Model, stroke: vim.Stroke, rest: List(vim.Stroke), steps: Int) -> Update {
+  let #(next, command, outbound) = replay_stroke(model, stroke)
+  let #(final, final_command, final_outbound) = replay(next, rest, steps + 1)
+  #(final, browser_command.batch([command, final_command]), list.append(outbound, final_outbound))
 }
 
 fn open_vim_prompt(model: Model, kind: vim.PromptKind) -> Update {
   let prompt = case kind {
     vim.ExPrompt ->
-      editor_model.Prompt(kind: editor_model.ExPrompt, label: ":", value: "")
+      editor_model.Prompt(kind: editor_model.ExPrompt, label: ":", value: case model.vim.mode {
+        vim.VisualMode(_) -> "'<,'>"
+        _ -> ""
+      })
     vim.SearchPrompt(forward) ->
       editor_model.Prompt(
         kind: editor_model.SearchPrompt(forward),
@@ -584,26 +636,7 @@ fn submit_prompt(model: Model) -> Update {
             Error(_) -> execute.idle(cleared)
           }
 
-        editor_model.SearchPrompt(forward) -> {
-          let query =
-            search.Query(..cleared.search.query, search: prompt.value)
-          execute.run(
-            Model(
-              ..cleared,
-              search: editor_model.SearchPanel(..cleared.search, query: query),
-              vim: vim.Vim(
-                ..cleared.vim,
-                last_search: option.Some(prompt.value),
-              ),
-            ),
-            [
-              case forward {
-                True -> command.FindNext
-                False -> command.FindPrevious
-              },
-            ],
-          )
-        }
+        editor_model.SearchPrompt(forward) -> execute_search(cleared, prompt.value, forward)
 
         editor_model.ExPrompt -> {
           let #(next_vim, commands) =
@@ -659,4 +692,69 @@ fn named_command(name: String) -> List(EditorCommand) {
     "save-buffer" -> [command.SaveSnippet]
     _ -> []
   }
+}
+
+fn leave_visual_for_pointer(model: Model) -> Model {
+  case model.bindings, vim.mode(model.vim) {
+    settings_bridge.VimLike, vim.VisualMode(kind) -> {
+      let current = editor_model.state(model)
+      let next = vim.Vim(..model.vim, mode: vim.NormalMode, pending: [],
+        last_visual: option.Some(#(kind, model.vim.visual_anchor, selection.head(current.selection))))
+      Model(..model, vim: next, status: option.Some(vim.status(next)))
+    }
+    _, _ -> model
+  }
+}
+
+fn replay_stroke(model: Model, stroke: vim.Stroke) -> Update {
+  case stroke {
+    vim.KeyStroke(token) -> vim_key(model, vim.key_from_token(token)).result
+    vim.SearchStroke(pattern, forward) -> finish(execute_search(Model(..model, prompt: option.None), pattern, forward))
+    vim.VisualStroke(kind, lines, columns) -> {
+      let #(next, commands) = vim.replay_visual(model.vim, editor_model.state(model), kind, lines, columns)
+      finish(execute.run(Model(..model, vim: next, status: option.Some(vim.status(next))), commands))
+    }
+    vim.EditStroke(from_delta, to_delta, insert) -> {
+      let current = editor_model.state(model)
+      let caret = selection.head(current.selection)
+      let change = transaction.Change(caret + from_delta, caret + to_delta, insert)
+      let change = vim.native_change(model.vim, current, change)
+      let next = Model(..model, vim: vim.record_native_edit(model.vim, current, change))
+      finish(execute.run(next, [command.EditRanges([change], change.from + text.width(insert))]))
+    }
+  }
+}
+
+
+/// Intermediate replay states belong to the reducer, not the native textarea.
+fn without_replay_snapshots(command: browser_command.Command(msg)) -> browser_command.Command(msg) {
+  case command {
+    browser_command.Batch(commands) -> browser_command.batch(list.map(commands, without_replay_snapshots))
+    browser_command.SyncDocument(..) | browser_command.SyncSelection(..)
+    | browser_command.ScrollToLine(_, browser_command.KeepCaretVisible) -> browser_command.none()
+    _ -> command
+  }
+}
+
+
+fn replay_snapshot(model: Model) -> browser_command.Command(msg) {
+  let current = editor_model.state(model)
+  let range = selection.main(editor_model.browser_selection(model))
+  browser_command.batch([
+    browser_command.SyncDocument(state.text(current), range.anchor, range.head),
+    browser_command.ScrollToLine(document.line_index_at(current.doc, selection.head(current.selection)), browser_command.KeepCaretVisible),
+  ])
+}
+
+
+fn execute_search(model: Model, pattern: String, forward: Bool) -> execute.Result {
+  let #(next_vim, commands) = vim.submit_search(model.vim, editor_model.state(model), pattern, forward)
+  let result = execute.run(Model(..model, vim: next_vim,
+    search: editor_model.SearchPanel(..model.search, query: next_vim.search_query)), commands)
+  let next = case result.model.vim.insertion {
+    option.Some(start) if !start.started -> Model(..result.model, vim: vim.capture_insert_start(result.model.vim, editor_model.state(result.model)))
+    _ -> result.model
+  }
+  execute.Result(..result, model: next,
+    command: browser_command.batch([result.command, browser_command.FocusEditor]))
 }

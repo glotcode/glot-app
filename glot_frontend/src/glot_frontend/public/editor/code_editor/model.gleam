@@ -14,6 +14,7 @@ import glot_frontend/public/editor/code_editor/highlight_state
 import glot_frontend/public/editor/code_editor/keymap/emacs.{type Emacs}
 import glot_frontend/public/editor/code_editor/keymap/vim.{type Vim}
 import glot_frontend/public/editor/code_editor/search
+import glot_frontend/public/editor/code_editor/selection
 import glot_frontend/public/editor/code_editor/session.{type Key, type Session}
 import glot_frontend/public/editor/code_editor/state.{type State}
 import glot_frontend/public/editor/code_editor/syntax/language_rules
@@ -179,6 +180,10 @@ pub fn open_session(model: Model, key: Key, content: String) -> Model {
 }
 
 pub fn activate(model: Model, key: Key) -> Model {
+  let model = case key == model.active {
+    True -> model
+    False -> Model(..model, vim: vim.Vim(..model.vim, mode: vim.NormalMode, pending: [], search_operator: option.None, search_count: 1, pending_register: option.None, insertion: option.None, block_insertion: option.None, last_visual: option.None))
+  }
   refresh(case session_for(model, key) {
     option.Some(_) -> Model(..model, active: key)
     option.None ->
@@ -198,6 +203,10 @@ pub fn close_session(model: Model, key: Key) -> Model {
 /// Explicit document replacement — a restored draft, or a newly loaded snippet.
 /// The session gets a new generation and an empty history.
 pub fn replace_document(model: Model, key: Key, content: String) -> Model {
+  let model = case key == model.active {
+    True -> Model(..model, vim: vim.Vim(..model.vim, mode: vim.NormalMode, pending: [], search_operator: option.None, search_count: 1, pending_register: option.None, insertion: option.None, block_insertion: option.None, last_visual: option.None))
+    False -> model
+  }
   case session_for(model, key) {
     option.Some(found) -> put_session(model, session.replace(found, content))
     option.None -> put_session(model, session.new(key, content))
@@ -323,5 +332,13 @@ pub fn accepts_native_input(model: Model) -> Bool {
         settings_bridge.VimLike -> vim.accepts_native_input(model.vim)
         _ -> True
       }
+  }
+}
+
+/// Browser endpoints differ from Vim's inclusive cursor positions.
+pub fn browser_selection(model: Model) -> selection.Selection {
+  case model.bindings {
+    settings_bridge.VimLike -> vim.browser_selection(model.vim, state(model))
+    _ -> state(model).selection
   }
 }

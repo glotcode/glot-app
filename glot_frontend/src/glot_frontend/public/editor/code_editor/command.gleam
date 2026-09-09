@@ -5,7 +5,12 @@
 //// is what keeps the three binding sets behaving identically for the same
 //// operation, and what makes a keymap trace testable without a browser.
 
+import glot_frontend/public/editor/code_editor/state.{type State}
+import glot_frontend/public/editor/code_editor/transaction.{type Change}
+
 pub type EditorCommand {
+  CoalesceUndo(before: State)
+  EditRanges(changes: List(Change), caret: Int)
   Noop
 
   MoveChar(forward: Bool, extend: Bool)

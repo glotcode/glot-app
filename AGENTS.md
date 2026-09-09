@@ -72,6 +72,7 @@ Repository instructions for future agent sessions.
 
 ## Validation
 
+- Run browser tests as plain `npm run test:browser` from `glot_frontend`, with any test arguments appended. Use the existing approved command prefix when sandbox escalation is needed. Avoid shell wrappers, redirection, or chained commands for this invocation, since those can prevent the saved approval from matching and cause another approval prompt.
 - After backend changes, run `gleam test` in `glot_backend`.
 - After frontend changes, run `npm test` and `npm run build` in `glot_frontend`.
 - After changes to shared server-rendered markup, run `gleam test` in `glot_web`.

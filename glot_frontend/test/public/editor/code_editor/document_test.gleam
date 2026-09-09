@@ -1,5 +1,16 @@
 import glot_frontend/public/editor/code_editor/document
 import glot_frontend/public/editor/code_editor/text
+import gleam/list
+import gleam/string
+
+pub fn fast_segmentation_preserves_ascii_crlf_and_unicode_clusters_test() {
+  list.each(["", "abcXYZ0123 =;\t\n", "a\r\nb\rc\n", "\r\n\r\n",
+    "ascii e\u{0301} tail", "abc 👨‍👩‍👧‍👦 🇳🇴", "a\r\n界\u{0301}"], fn(source) {
+    let expected = string.to_graphemes(source)
+      |> list.map(fn(cluster) { text.Cluster(cluster, text.width(cluster)) })
+    assert text.clusters(source) == expected
+  })
+}
 
 pub fn utf16_width_counts_code_units_test() {
   assert text.width("abc") == 3

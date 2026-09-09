@@ -12,6 +12,43 @@ import glot_frontend/public/editor/code_editor/text
 pub type Span =
   #(Int, Int)
 
+pub fn counted_word(doc: Document, offset: Int, inner: Bool, big: Bool, count: Int) -> Option(Span) {
+  case word(doc, offset, inner, big) {
+    option.None -> option.None
+    option.Some(#(from, to)) -> option.map(extend_words(doc, to, inner, big, count - 1), fn(end) { #(from, end) })
+  }
+}
+
+pub fn inner_words_backward(doc: Document, offset: Int, big: Bool, count: Int) -> Option(Span) {
+  case word(doc, offset, True, big) {
+    option.None -> option.None
+    option.Some(#(from, to)) -> {
+      case count <= 1 || from <= 0 {
+        True -> option.Some(#(from, to))
+        False -> option.map(inner_words_backward(doc, movement.prev_offset(doc, from), big, count - 1),
+          fn(span) { #(span.0, to) })
+      }
+    }
+  }
+}
+
+fn extend_words(doc: Document, offset: Int, inner: Bool, big: Bool, remaining: Int) -> Option(Int) {
+  case remaining <= 0, offset >= document.length(doc) {
+    True, _ -> option.Some(offset)
+    _, True -> option.None
+    _, _ -> {
+      let at = case movement.grapheme_after(doc, offset) {
+        "\n" -> movement.next_offset(doc, offset)
+        _ -> offset
+      }
+      case word(doc, at, inner, big) {
+        option.Some(#(_, end)) if end > offset -> extend_words(doc, end, inner, big, remaining - 1)
+        _ -> option.None
+      }
+    }
+  }
+}
+
 /// `iw` / `aw`, and the `W` variants that treat any non-space run as a word.
 pub fn word(
   doc: Document,
@@ -29,6 +66,10 @@ pub fn word(
       let end = scan_forward(doc, offset, limit, class, big)
       case inner {
         True -> option.Some(#(start, end))
+        False if class == Space -> {
+          let next_class = class_of(movement.grapheme_after(doc, end), big)
+          option.Some(#(start, scan_forward(doc, end, limit, next_class, big)))
+        }
         False -> {
           let trailing = scan_forward(doc, end, limit, Space, big)
           case trailing > end {
@@ -226,8 +267,15 @@ pub fn quotes(
                 start + open + text.width(quote),
                 start + close,
               ))
-            False ->
-              option.Some(#(start + open, start + close + text.width(quote)))
+            False -> {
+              let end = close + text.width(quote)
+              let after = quote_space_right(line, end)
+              let before = case after > end {
+                True -> open
+                False -> quote_space_left(line, open)
+              }
+              option.Some(#(start + before, start + after))
+            }
           }
       }
   }
@@ -294,5 +342,27 @@ fn int_max(a: Int, b: Int) -> Int {
   case a > b {
     True -> a
     False -> b
+  }
+}
+
+// Around-quote objects prefer following whitespace. If there is none, include
+// preceding whitespace; neither scan crosses the current line.
+fn quote_space_right(line: String, offset: Int) -> Int {
+  case text.grapheme_at(line, offset) {
+    " " | "\t" -> quote_space_right(line, text.next_boundary(line, offset))
+    _ -> offset
+  }
+}
+
+fn quote_space_left(line: String, offset: Int) -> Int {
+  case offset <= 0 {
+    True -> 0
+    False -> {
+      let previous = text.prev_boundary(line, offset)
+      case text.grapheme_at(line, previous) {
+        " " | "\t" -> quote_space_left(line, previous)
+        _ -> offset
+      }
+    }
   }
 }

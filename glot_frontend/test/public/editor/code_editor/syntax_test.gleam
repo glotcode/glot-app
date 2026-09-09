@@ -10,6 +10,32 @@ import glot_frontend/public/editor/code_editor/syntax/language_rules
 import glot_frontend/public/editor/code_editor/syntax/scanner
 import glot_frontend/public/editor/code_editor/syntax/token
 
+pub fn cached_tokens_follow_language_and_multiline_state_changes_test() {
+  let rules = language_rules.for_language(language.JavaScript)
+  let source = document.from_string("/*\ncomment\n*/\nlet x = 1;")
+  let #(_, cached) = highlight_state.lines(rules, highlight_state.new(), source, 0, 4)
+  let changed = document.from_string("/*\n*/\n*/\nlet x = 1;")
+  let #(actual, cached) = highlight_state.lines(rules, highlight_state.invalidate_from(cached, 1), changed, 0, 4)
+  let #(expected, _) = highlight_state.lines(rules, highlight_state.new(), changed, 0, 4)
+  assert actual == expected
+  let plain = language_rules.for_language(language.Plaintext)
+  let #(actual, _) = highlight_state.lines(plain, cached, changed, 0, 4)
+  let #(expected, _) = highlight_state.lines(plain, highlight_state.new(), changed, 0, 4)
+  assert actual == expected
+}
+
+pub fn cached_viewport_refresh_handles_line_insertions_test() {
+  let rules = language_rules.for_language(language.JavaScript)
+  let source = document.from_string("const first = 1;\nconst second = 2;")
+  let #(before, cached) = highlight_state.lines(rules, highlight_state.new(), source, 0, 2)
+  let #(again, cached) = highlight_state.lines(rules, cached, source, 0, 2)
+  assert before == again
+  let changed = document.from_string("// added\nconst first = 1;\nconst second = 2;")
+  let #(actual, _) = highlight_state.lines(rules, highlight_state.invalidate_from(cached, 0), changed, 1, 3)
+  let #(expected, _) = highlight_state.lines(rules, highlight_state.new(), changed, 1, 3)
+  assert actual == expected
+}
+
 fn kinds(lang: language.Language, source: String) -> List(token.TokenKind) {
   let doc = document.from_string(source)
   let #(lines, _) =

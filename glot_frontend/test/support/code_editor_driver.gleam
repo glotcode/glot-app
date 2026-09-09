@@ -160,3 +160,18 @@ pub fn selected(driver: Driver) -> String {
 pub fn reset_log(driver: Driver) -> Driver {
   Driver(..driver, commands: [], outbound: [])
 }
+
+/// Reconcile a native insertion at the current selection, preserving suffixes.
+pub fn type_at_selection(driver: Driver, value: String) -> Driver {
+  let current = model.active_session(driver.model)
+  let range = selection.main(current.state.selection)
+  let from = selection.start(range)
+  let to = selection.end(range)
+  let before = model.text(driver.model)
+  let content = text.slice(before, 0, from) <> value <> text.slice(before, to, text.width(before))
+  let caret = from + text.width(value)
+  send(driver, message.InputReceived(message.NativeInput(
+    session: session.key_to_string(current.key), generation: current.generation,
+    value: content, selection_anchor: caret, selection_head: caret,
+  )))
+}

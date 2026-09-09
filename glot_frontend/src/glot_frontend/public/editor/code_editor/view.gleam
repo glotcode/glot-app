@@ -14,6 +14,8 @@ import gleam/string
 import glot_frontend/public/editor/code_editor/document
 import glot_frontend/public/editor/code_editor/highlight_state
 import glot_frontend/public/editor/code_editor/ids
+import glot_frontend/public/editor/code_editor/keymap/vim
+import glot_frontend/public/editor/code_editor/keymap/vim_block
 import glot_frontend/public/editor/code_editor/keys.{type Key}
 import glot_frontend/public/editor/code_editor/message.{type Msg}
 import glot_frontend/public/editor/code_editor/model.{type Model} as editor_model
@@ -241,7 +243,7 @@ fn decorations(model: Model) -> List(Element(Msg)) {
     False -> []
   }
 
-  list.flatten([active, matches, bracket, rectangle])
+  list.flatten([active, matches, bracket, rectangle, vim_rectangle(model)])
 }
 
 /// The query used for match highlighting: the search panel's when it is open,
@@ -653,5 +655,26 @@ fn tab_hint(model: Model) -> String {
   case model.tab_focus_mode {
     True -> "Tab moves focus (Ctrl-M to indent)"
     False -> "Tab indents (Ctrl-M or Escape then Tab to leave)"
+  }
+}
+
+fn vim_rectangle(model: Model) -> List(Element(Msg)) {
+  case model.bindings, vim.mode(model.vim) {
+    settings_bridge.VimLike, vim.VisualMode(vim.BlockWise) -> {
+      let current = editor_model.state(model)
+      let #(first, last) = editor_model.visible_range(model)
+      vim_block.rows(current.doc, model.vim.visual_anchor, selection.head(current.selection), model.vim.goal_column, model.vim.goal_line_end)
+      |> list.filter(fn(row) { row.line >= first && row.line < last && row.right > row.left })
+      |> list.map(fn(row) {
+        html.div([
+          attribute.class("code-editor__vim-block"),
+          attribute.style("top", pixels({ row.line - first } * model.viewport.line_height)),
+          attribute.style("height", pixels(model.viewport.line_height)),
+          attribute.style("left", pixels(row.left * model.viewport.char_width)),
+          attribute.style("width", pixels({ row.right - row.left } * model.viewport.char_width)),
+        ], [])
+      })
+    }
+    _, _ -> []
   }
 }
