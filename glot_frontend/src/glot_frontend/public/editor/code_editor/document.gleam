@@ -150,7 +150,11 @@ pub fn slice(document: Document, from: Int, to: Int) -> String {
       case first == last {
         True -> {
           let start = line_start(document, first)
-          text.slice(line_text(document, first), from - start, to - start)
+          let item = line(document, first)
+          case from == start && to == start + item.width {
+            True -> item.text
+            False -> text.slice(item.text, from - start, to - start)
+          }
         }
         False -> {
           let first_start = line_start(document, first)
@@ -183,8 +187,13 @@ pub fn replace(
   let last = line_index_at(document, to)
   let first_start = line_start(document, first)
   let last_start = line_start(document, last)
-  let prefix = text.take(line_text(document, first), from - first_start)
-  let suffix = text.drop(line_text(document, last), to - last_start)
+  let #(prefix, suffix) = case first == last {
+    True -> retained_parts(line(document, first), from - first_start, to - first_start)
+    False -> #(
+      text.take(line_text(document, first), from - first_start),
+      text.drop(line_text(document, last), to - last_start),
+    )
+  }
   let replacement =
     { prefix <> normalize_newlines(insert) <> suffix }
     |> string.split("\n")
@@ -197,6 +206,23 @@ pub fn replace(
       list.drop(document.lines, last + 1),
     ]),
   )
+}
+
+// A typical edit needs both ends of the same line. Share its segmentation,
+// and reuse the source directly when inserting at either edge.
+fn retained_parts(line: Line, from: Int, to: Int) -> #(String, String) {
+  case from, to {
+    0, 0 -> #("", line.text)
+    _, _ if from == line.width -> #(line.text, "")
+    0, _ if to == line.width -> #("", "")
+    _, _ -> {
+      let clusters = text.clusters(line.text)
+      #(
+        text.slice_clusters(clusters, 0, from),
+        text.slice_clusters(clusters, to, line.width),
+      )
+    }
+  }
 }
 
 /// Lines `from` (inclusive) through `to` (exclusive), used by viewport

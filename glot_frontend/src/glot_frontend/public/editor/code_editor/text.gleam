@@ -70,10 +70,19 @@ fn ascii_clusters(points: List(UtfCodepoint), collected: List(Cluster)) -> Resul
 /// clamped, and an offset that falls inside a cluster is snapped outward so the
 /// result never contains half a character.
 pub fn slice(text: String, from: Int, to: Int) -> String {
+  case to <= int_max(0, from) {
+    True -> ""
+    False -> slice_clusters(clusters(text), from, to)
+  }
+}
+
+/// Slice already segmented text using the same UTF-16 and cluster rules.
+/// Callers doing several operations on a line can share one segmentation.
+pub fn slice_clusters(clusters: List(Cluster), from: Int, to: Int) -> String {
   let from = int_max(0, from)
   case to <= from {
     True -> ""
-    False -> take_slice(clusters(text), 0, from, to, "")
+    False -> take_slice(clusters, 0, from, to, []) |> list.reverse |> string.join("")
   }
 }
 
@@ -82,8 +91,8 @@ fn take_slice(
   offset: Int,
   from: Int,
   to: Int,
-  collected: String,
-) -> String {
+  collected: List(String),
+) -> List(String) {
   case remaining {
     [] -> collected
     [cluster, ..rest] -> {
@@ -94,7 +103,7 @@ fn take_slice(
           case offset >= to {
             True -> collected
             False ->
-              take_slice(rest, next_offset, from, to, collected <> cluster.text)
+              take_slice(rest, next_offset, from, to, [cluster.text, ..collected])
           }
       }
     }
@@ -108,7 +117,10 @@ pub fn take(text: String, offset: Int) -> String {
 
 /// Everything from `offset` onwards.
 pub fn drop(text: String, offset: Int) -> String {
-  slice(text, offset, width(text))
+  case offset <= 0 {
+    True -> text
+    False -> slice(text, offset, width(text))
+  }
 }
 
 /// The cluster boundary at or before `offset`.

@@ -31,6 +31,27 @@ pub fn slicing_never_splits_a_cluster_test() {
   assert text.drop("a😀b", 3) == "b"
 }
 
+pub fn shared_cluster_slices_preserve_boundaries_and_clamping_test() {
+  let source = "a😀e\u{0301}\r\nz"
+  let clusters = text.clusters(source)
+  assert text.slice_clusters(clusters, -5, 100) == source
+  assert text.slice_clusters(clusters, 2, 4) == "😀e\u{0301}"
+  assert text.slice_clusters(clusters, 6, 7) == "\r\n"
+  assert text.slice_clusters(clusters, 4, 4) == ""
+  assert text.slice_clusters(clusters, 100, 200) == ""
+  assert text.drop(source, -1) == source
+  assert text.drop(source, 0) == source
+  assert text.drop(source, 2) == "😀e\u{0301}\r\nz"
+}
+
+pub fn whole_line_slices_keep_unicode_and_separators_test() {
+  let doc = document.from_string("a😀\ne\u{0301}\n")
+  assert document.slice(doc, 0, 3) == "a😀"
+  assert document.slice(doc, 4, 6) == "e\u{0301}"
+  assert document.slice(doc, -1, 100) == "a😀\ne\u{0301}\n"
+  assert document.slice(doc, 2, 3) == "😀"
+}
+
 pub fn cluster_boundaries_move_around_whole_characters_test() {
   assert text.next_boundary("a😀b", 1) == 3
   assert text.prev_boundary("a😀b", 3) == 1

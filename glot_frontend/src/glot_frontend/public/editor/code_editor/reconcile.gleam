@@ -98,21 +98,23 @@ fn refine(doc: Document, change: Change) -> Change {
   let removed = document.slice(doc, change.from, change.to)
   let old_clusters = text.clusters(removed)
   let new_clusters = text.clusters(change.insert)
+  let old_width = change.to - change.from
+  let new_width = list.fold(new_clusters, 0, fn(total, cluster) { total + cluster.width })
   let prefix = common_text_prefix(old_clusters, new_clusters, 0)
   let suffix =
     common_text_suffix(
       list.reverse(old_clusters),
       list.reverse(new_clusters),
       0,
-      int_min(text.width(removed), text.width(change.insert)) - prefix,
+      int_min(old_width, new_width) - prefix,
     )
   transaction.Change(
     from: change.from + prefix,
     to: change.to - suffix,
-    insert: text.slice(
-      change.insert,
+    insert: text.slice_clusters(
+      new_clusters,
       prefix,
-      text.width(change.insert) - suffix,
+      new_width - suffix,
     ),
   )
 }

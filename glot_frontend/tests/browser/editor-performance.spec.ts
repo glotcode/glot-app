@@ -88,3 +88,32 @@ test("native clipboard: 100KB paste reaches the model intact", async ({ page, br
   await expect(page.locator("#code-editor-input")).toHaveValue(source);
   await expect(page.locator("#harness-text")).toHaveText(source);
 });
+
+test("long Unicode line: native typing at start, middle and end preserves undo", async ({ page }) => {
+  test.setTimeout(120_000);
+  const source = "// " + "e\u0301🦊界 ".repeat(3000);
+  await page.goto("/harness/editor.html");
+  const input = page.locator("#code-editor-input");
+  await input.evaluate((node: HTMLTextAreaElement, source) => {
+    node.value = source;
+    node.setSelectionRange(0, 0);
+    node.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertFromPaste" }));
+  }, source);
+  await expect(input).toHaveValue(source);
+  await expect(page.locator("#harness-text")).toHaveText(source);
+  for (const offset of [0, 3 + 6 * 1500, source.length]) {
+    await input.focus();
+    await input.evaluate((node: HTMLTextAreaElement, offset) => {
+      node.setSelectionRange(offset, offset);
+      node.dispatchEvent(new Event("select", { bubbles: true }));
+    }, offset);
+    await page.keyboard.type("xyz");
+    const expected = source.slice(0, offset) + "xyz" + source.slice(offset);
+    await expect(input).toHaveValue(expected);
+    await expect(page.locator("#harness-text")).toHaveText(expected);
+    await expect(page.locator(".code-editor__line")).toHaveText(expected);
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(input).toHaveValue(source);
+    await expect(page.locator("#harness-text")).toHaveText(source);
+  }
+});
