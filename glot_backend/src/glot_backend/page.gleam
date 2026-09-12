@@ -305,7 +305,7 @@ fn handle_page_request_with_runtime(
         },
       )
     route.Public(route.Snippet(slug)) ->
-      run_page_program(
+      run_page_program_with_status(
         "snippet page",
         editor_page_domain.load_existing_view_model(request_ctx, slug),
         runtime,
@@ -428,16 +428,32 @@ fn run_page_program(
   ctx: context.Context,
   render_document: fn(a) -> String,
 ) -> page_response.PageResponse {
+  run_page_program_with_status(
+    page_name,
+    total_program |> total_program.map(fn(value) { #(value, 200) }),
+    runtime,
+    ctx,
+    render_document,
+  )
+}
+
+fn run_page_program_with_status(
+  page_name: String,
+  total_program: total_program.TotalProgram(#(a, Int)),
+  runtime: Runtime,
+  ctx: context.Context,
+  render_document: fn(a) -> String,
+) -> page_response.PageResponse {
   let #(result, state) =
     total_program
     |> total_program.to_program
     |> interpreter.run(runtime, ctx)
 
   case result {
-    Ok(value) ->
+    Ok(#(value, status)) ->
       page_response.PageResponse(
-        response: wisp.html_response(render_document(value), 200),
-        status_code: 200,
+        response: wisp.html_response(render_document(value), status),
+        status_code: status,
         render_mode: "ssr",
         effects: state.effect_measurements,
         info: state.info_fields,

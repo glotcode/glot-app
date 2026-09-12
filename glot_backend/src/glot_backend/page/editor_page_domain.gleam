@@ -17,14 +17,18 @@ pub fn load_new_view_model(
 pub fn load_existing_view_model(
   request_ctx: request_context.RequestContext,
   slug: String,
-) -> total_program.TotalProgram(editor.ViewModel) {
+) -> total_program.TotalProgram(#(editor.ViewModel, Int)) {
   get_snippet_domain.get_snippet(
     request_ctx,
     snippet_dto.GetSnippetRequest(slug: slug),
   )
-  |> program.map(editor.from_snippet)
+  |> program.map(fn(snippet) { #(editor.from_snippet(snippet), 200) })
   |> total_program.from_program(fn(err) {
-    editor.LoadError(page_error_message(err))
+    let status = case err {
+      error.ResourceError(resource_error.SnippetNotFound) -> 404
+      _ -> 200
+    }
+    #(editor.LoadError(page_error_message(err)), status)
   })
 }
 

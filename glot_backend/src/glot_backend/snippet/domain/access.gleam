@@ -1,4 +1,5 @@
 import gleam/option.{type Option}
+import glot_backend/auth/effect/user as user_effect
 import glot_backend/auth/error as auth_error
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/resource_error
@@ -7,6 +8,7 @@ import glot_backend/system/effect/program_types.{
   type Program, type TransactionProgram,
 }
 import glot_backend/system/effect/transaction/transaction_program
+import glot_core/auth/account_model
 import glot_core/auth/user_model.{type User}
 import glot_core/snippet/snippet_model.{type HydratedSnippet}
 import youid/uuid.{type Uuid}
@@ -19,6 +21,22 @@ pub fn can_view(snippet: HydratedSnippet, viewer: Option(User)) -> Bool {
 }
 
 pub fn require_view(
+  snippet: HydratedSnippet,
+  viewer: Option(User),
+) -> Program(Nil) {
+  use owner <- program.and_then(
+    user_effect.get_user_by_id(snippet.user.id)
+    |> program.require(error.resource(resource_error.SnippetNotFound)),
+  )
+  case owner.account.identity.account_state {
+    account_model.Suspended ->
+      program.fail(error.resource(resource_error.SnippetNotFound))
+    account_model.Active | account_model.ReadOnly ->
+      require_visibility(snippet, viewer)
+  }
+}
+
+fn require_visibility(
   snippet: HydratedSnippet,
   viewer: Option(User),
 ) -> Program(Nil) {
