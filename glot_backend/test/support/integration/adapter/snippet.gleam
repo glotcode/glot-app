@@ -9,6 +9,10 @@ import support/integration/store/snippet
 
 pub fn defaults() -> store.Store {
   store.Store(
+    list_spam_review: fn(_) { unexpected.query("snippet.list_spam_review") },
+    save_manual_review: fn(_, _, _) {
+      unexpected.query("snippet.save_manual_review")
+    },
     get_snippet_by_id: fn(_) { unexpected.query("snippet.get_by_id") },
     get_snippet_by_slug: fn(_) { unexpected.query("snippet.get_by_slug") },
     get_snippet_by_slug_for_update: fn(_) {
@@ -57,6 +61,10 @@ pub fn defaults() -> store.Store {
 
 pub fn new(test_state: state.State) -> store.Store {
   store.Store(
+    list_spam_review: fn(_) { unexpected.query("snippet.list_spam_review") },
+    save_manual_review: fn(_, _, _) {
+      unexpected.query("snippet.save_manual_review")
+    },
     get_snippet_by_id: fn(id) {
       Ok(snippet.find_by_id(state.get(test_state), id))
     },

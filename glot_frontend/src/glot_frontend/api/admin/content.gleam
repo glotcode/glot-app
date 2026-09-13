@@ -1,7 +1,10 @@
 import gleam/json
 import glot_core/admin/email_template_dto
 import glot_core/admin/snippet_dto as admin_snippet_dto
+import glot_core/admin/spam_review_dto
 import glot_core/admin_action
+import glot_core/pagination_model
+import glot_core/snippet/manual_review
 import glot_core/snippet/snippet_dto
 import glot_frontend/api/client
 import glot_frontend/api/request
@@ -112,5 +115,33 @@ pub fn delete_admin_snippet(
     },
     client.nil_decoder(),
     to_msg,
+  )
+}
+
+pub fn get_spam_review(
+  value: spam_review_dto.ListRequest,
+  done: fn(
+    response.Response(
+      pagination_model.CursorPage(spam_review_dto.ReviewSnippet),
+    ),
+  ) -> msg,
+) -> effect.Effect(msg) {
+  request.send_admin(
+    request.AdminRequest(admin_action.GetAdminSpamReviewAction, value),
+    spam_review_dto.encode_list_request,
+    spam_review_dto.list_response_decoder(),
+    done,
+  )
+}
+
+pub fn save_manual_review(
+  value: spam_review_dto.SaveRequest,
+  done: fn(response.Response(manual_review.ManualReview)) -> msg,
+) -> effect.Effect(msg) {
+  request.send_admin(
+    request.AdminRequest(admin_action.SaveAdminManualReviewAction, value),
+    spam_review_dto.encode_save_request,
+    manual_review.decoder(),
+    done,
   )
 }

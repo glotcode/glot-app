@@ -1,3 +1,4 @@
+import glot_backend/snippet/adapter/postgres/manual_review as review_store
 import glot_backend/snippet/adapter/postgres/read
 import glot_backend/snippet/adapter/postgres/write
 import glot_backend/snippet/ports/store as snippet_store
@@ -5,6 +6,10 @@ import glot_backend/system/database as db_helpers
 
 pub fn new(db: db_helpers.Db) -> snippet_store.Store {
   snippet_store.Store(
+    list_spam_review: fn(request) { review_store.list(db, request) },
+    save_manual_review: fn(request, reviewer, reviewed_at) {
+      review_store.save(db, request, reviewer, reviewed_at)
+    },
     get_snippet_by_id: fn(id) { read.get_by_id(db, id) },
     get_snippet_by_slug: fn(slug) { read.get_by_slug(db, slug) },
     get_snippet_by_slug_for_update: fn(slug) {

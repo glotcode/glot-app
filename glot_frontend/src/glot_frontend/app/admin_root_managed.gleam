@@ -72,7 +72,12 @@ pub fn init(
   page_visible: Bool,
 ) -> #(Model, Command) {
   let #(lifecycle, lifecycle_command) =
-    admin_managed.init(initial_route, now, page_visible, pages())
+    admin_managed.init(
+      initial_route,
+      now,
+      page_visible,
+      pages(router_managed.empty()),
+    )
   let model =
     Model(
       lifecycle:,
@@ -151,7 +156,11 @@ fn update_lifecycle(
   msg: admin_managed.Msg(router_message.Msg),
 ) -> #(Model, Command) {
   let #(lifecycle, command) =
-    admin_managed.update(model.lifecycle, msg, pages())
+    admin_managed.update(
+      model.lifecycle,
+      msg,
+      pages(model.lifecycle.page_model),
+    )
   let route_changed = lifecycle.route != model.lifecycle.route
   let candidate = Page(route: lifecycle.route, model: lifecycle.page_model)
   let presentation_transition = case route_changed {
@@ -301,14 +310,18 @@ pub fn quick_action_sections(
   )
 }
 
-fn pages() -> admin_managed.Pages(
+fn pages(
+  previous: router_state.Model,
+) -> admin_managed.Pages(
   router_state.Model,
   router_message.Msg,
   admin_command.Command(router_message.Msg),
 ) {
   admin_managed.Pages(
     empty: router_managed.empty,
-    init: router_managed.init,
+    init: fn(route, is_admin) {
+      router_managed.init_from(previous, route, is_admin)
+    },
     session_loaded: router_managed.session_loaded,
     update: router_managed.update,
     none: admin_command.none(),

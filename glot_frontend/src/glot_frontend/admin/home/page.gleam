@@ -122,6 +122,11 @@ pub fn view(_model: Model) -> Element(Msg) {
             target: route.Admin(route.AdminUsers(query: option.None)),
           ),
           link_card(
+            title: "Spam review",
+            description: "Review snippet content and record manual spam verdicts.",
+            target: route.Admin(route.AdminSpamReview(query: option.None)),
+          ),
+          link_card(
             title: "Snippets",
             description: "Review saved user snippets and inspect their stored files in a read-only admin view.",
             target: route.Admin(route.AdminSnippets(query: option.None)),

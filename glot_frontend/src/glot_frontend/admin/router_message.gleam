@@ -17,6 +17,7 @@ import glot_frontend/admin/run_logs/detail_message as admin_run_log_page
 import glot_frontend/admin/run_logs/list_message as admin_run_logs_page
 import glot_frontend/admin/snippets/detail_message as admin_snippet_page
 import glot_frontend/admin/snippets/list_message as admin_snippets_page
+import glot_frontend/admin/spam_review/message as admin_spam_review_page
 import glot_frontend/admin/users/list_message as admin_users_page
 import glot_frontend/admin/users/message as admin_user_page
 
@@ -35,6 +36,7 @@ pub type Msg {
   AdminJobPageMsg(admin_job_page.Msg)
   AdminEmailTemplatesPageMsg(admin_email_templates_page.Msg)
   AdminEmailTemplatePageMsg(admin_email_template_page.Msg)
+  AdminSpamReviewPageMsg(admin_spam_review_page.Msg)
   AdminSnippetsPageMsg(admin_snippets_page.Msg)
   AdminSnippetPageMsg(admin_snippet_page.Msg)
   AdminJobLogsPageMsg(admin_job_logs_page.Msg)

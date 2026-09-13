@@ -22,7 +22,8 @@ import glot_frontend/admin/router_message.{
   AdminJobTypePoliciesPageMsg, AdminJobsPageMsg, AdminPageMsg,
   AdminPeriodicJobPageMsg, AdminPeriodicJobsPageMsg, AdminRateLimitsPageMsg,
   AdminRunLogPageMsg, AdminRunLogsPageMsg, AdminSnippetPageMsg,
-  AdminSnippetsPageMsg, AdminUserPageMsg, AdminUsersPageMsg,
+  AdminSnippetsPageMsg, AdminSpamReviewPageMsg, AdminUserPageMsg,
+  AdminUsersPageMsg,
 }
 import glot_frontend/admin/router_state.{
   type PageModel, AdminAnalyticsPage, AdminApiLogPage, AdminApiLogsPage,
@@ -30,12 +31,15 @@ import glot_frontend/admin/router_state.{
   AdminJobLogPage, AdminJobLogsPage, AdminJobPage, AdminJobTypePoliciesPage,
   AdminJobsPage, AdminPage, AdminPeriodicJobPage, AdminPeriodicJobsPage,
   AdminRateLimitsPage, AdminRunLogPage, AdminRunLogsPage, AdminSnippetPage,
-  AdminSnippetsPage, AdminUserPage, AdminUsersPage, EmptyPageModel,
+  AdminSnippetsPage, AdminSpamReviewPage, AdminUserPage, AdminUsersPage,
+  EmptyPageModel,
 }
 import glot_frontend/admin/run_logs/detail_managed as admin_run_log_page
 import glot_frontend/admin/run_logs/list_managed as admin_run_logs_page
 import glot_frontend/admin/snippets/detail_managed as admin_snippet_page
 import glot_frontend/admin/snippets/list_managed as admin_snippets_page
+import glot_frontend/admin/spam_review/managed as admin_spam_review_page
+import glot_frontend/admin/spam_review/model as review_model
 import glot_frontend/admin/users/list_managed as admin_users_page
 import glot_frontend/admin/users/managed as admin_user_page
 
@@ -130,6 +134,12 @@ fn init_page(
         admin_email_template_page.init(name),
         AdminEmailTemplatePage,
         AdminEmailTemplatePageMsg,
+      )
+    route.AdminSpamReview(query) ->
+      lift_page(
+        admin_spam_review_page.init(query),
+        AdminSpamReviewPage,
+        AdminSpamReviewPageMsg,
       )
     route.AdminSnippets(query) ->
       lift_page(
@@ -251,6 +261,12 @@ pub fn session_loaded(model: Model) -> #(Model, admin_effect.Command(Msg)) {
         admin_email_template_page.ensure_loaded(page_model),
         AdminEmailTemplatePage,
         AdminEmailTemplatePageMsg,
+      )
+    AdminSpamReviewPage(page_model) ->
+      lift_router_page(
+        admin_spam_review_page.ensure_loaded(page_model),
+        AdminSpamReviewPage,
+        AdminSpamReviewPageMsg,
       )
     AdminSnippetsPage(page_model) ->
       lift_router_page(
@@ -385,6 +401,12 @@ pub fn update(model: Model, msg: Msg) -> #(Model, admin_effect.Command(Msg)) {
         AdminEmailTemplatePage,
         AdminEmailTemplatePageMsg,
       )
+    AdminSpamReviewPageMsg(page_msg), AdminSpamReviewPage(page_model) ->
+      lift_router_page(
+        admin_spam_review_page.update(page_model, page_msg),
+        AdminSpamReviewPage,
+        AdminSpamReviewPageMsg,
+      )
     AdminSnippetsPageMsg(page_msg), AdminSnippetsPage(page_model) ->
       lift_router_page(
         admin_snippets_page.update(page_model, page_msg),
@@ -448,4 +470,21 @@ fn lift_router_page(
 ) -> #(Model, admin_effect.Command(Msg)) {
   let #(page_model, command) = lift_page(transition, wrap_model, wrap_msg)
   #(router_state.new(page_model), command)
+}
+
+pub fn init_from(
+  previous: Model,
+  admin_route: route.AdminRoute,
+  is_admin: Bool,
+) -> #(Model, admin_effect.Command(Msg)) {
+  let #(next, command) = init(admin_route, is_admin)
+  case router_state.page(previous), router_state.page(next) {
+    AdminSpamReviewPage(old), AdminSpamReviewPage(new) -> #(
+      router_state.new(AdminSpamReviewPage(
+        review_model.Model(..new, undo: old.undo),
+      )),
+      command,
+    )
+    _, _ -> #(next, command)
+  }
 }

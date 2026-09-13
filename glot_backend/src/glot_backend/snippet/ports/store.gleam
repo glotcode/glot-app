@@ -1,8 +1,12 @@
 import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/system/effect/error/db_error
+import glot_core/admin/spam_review_dto.{
+  type ListRequest, type ReviewSnippet, type SaveRequest,
+}
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/manual_review.{type ManualReview}
 import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
@@ -12,6 +16,10 @@ import youid/uuid.{type Uuid}
 
 pub type Store {
   Store(
+    list_spam_review: fn(ListRequest) ->
+      Result(List(ReviewSnippet), db_error.DbQueryError),
+    save_manual_review: fn(SaveRequest, Uuid, Timestamp) ->
+      Result(option.Option(ManualReview), db_error.DbQueryError),
     get_snippet_by_id: fn(Uuid) ->
       Result(option.Option(HydratedSnippet), db_error.DbQueryError),
     get_snippet_by_slug: fn(String) ->

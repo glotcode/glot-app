@@ -1,9 +1,25 @@
 import glot_core/admin/email_template_dto
 import glot_core/admin/snippet_dto as admin_snippet_dto
+import glot_core/admin/spam_review_dto
+import glot_core/pagination_model
+import glot_core/snippet/manual_review
 import glot_core/snippet/snippet_dto
 import glot_frontend/api/response
 
 pub type Command(msg) {
+  GetSpamReview(
+    spam_review_dto.ListRequest,
+    fn(
+      response.Response(
+        pagination_model.CursorPage(spam_review_dto.ReviewSnippet),
+      ),
+    ) -> msg,
+  )
+  SaveManualReview(
+    spam_review_dto.SaveRequest,
+    fn(response.Response(manual_review.ManualReview)) -> msg,
+  )
+
   GetEmailTemplates(
     fn(response.Response(email_template_dto.ListEmailTemplatesResponse)) -> msg,
   )
@@ -35,6 +51,11 @@ pub type Command(msg) {
 
 pub fn map(command: Command(a), transform: fn(a) -> b) -> Command(b) {
   case command {
+    GetSpamReview(request, complete) ->
+      GetSpamReview(request, fn(result) { transform(complete(result)) })
+    SaveManualReview(request, complete) ->
+      SaveManualReview(request, fn(result) { transform(complete(result)) })
+
     GetEmailTemplates(complete) ->
       GetEmailTemplates(fn(result) { transform(complete(result)) })
     GetEmailTemplate(request, complete) ->

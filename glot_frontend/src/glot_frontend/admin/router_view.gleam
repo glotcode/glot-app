@@ -21,7 +21,8 @@ import glot_frontend/admin/router_message.{
   AdminJobTypePoliciesPageMsg, AdminJobsPageMsg, AdminPageMsg,
   AdminPeriodicJobPageMsg, AdminPeriodicJobsPageMsg, AdminRateLimitsPageMsg,
   AdminRunLogPageMsg, AdminRunLogsPageMsg, AdminSnippetPageMsg,
-  AdminSnippetsPageMsg, AdminUserPageMsg, AdminUsersPageMsg,
+  AdminSnippetsPageMsg, AdminSpamReviewPageMsg, AdminUserPageMsg,
+  AdminUsersPageMsg,
 }
 import glot_frontend/admin/router_state.{
   type PageModel, AdminAnalyticsPage, AdminApiLogPage, AdminApiLogsPage,
@@ -29,12 +30,14 @@ import glot_frontend/admin/router_state.{
   AdminJobLogPage, AdminJobLogsPage, AdminJobPage, AdminJobTypePoliciesPage,
   AdminJobsPage, AdminPage, AdminPeriodicJobPage, AdminPeriodicJobsPage,
   AdminRateLimitsPage, AdminRunLogPage, AdminRunLogsPage, AdminSnippetPage,
-  AdminSnippetsPage, AdminUserPage, AdminUsersPage, EmptyPageModel,
+  AdminSnippetsPage, AdminSpamReviewPage, AdminUserPage, AdminUsersPage,
+  EmptyPageModel,
 }
 import glot_frontend/admin/run_logs/detail_view as admin_run_log_page
 import glot_frontend/admin/run_logs/list_view as admin_run_logs_page
 import glot_frontend/admin/snippets/detail_view as admin_snippet_page
 import glot_frontend/admin/snippets/list_view as admin_snippets_page
+import glot_frontend/admin/spam_review/view as admin_spam_review_page
 import glot_frontend/admin/users/list_view as admin_users_page
 import glot_frontend/admin/users/view as admin_user_page
 import glot_frontend/ui/not_found
@@ -74,6 +77,8 @@ pub fn view(page: PageModel, now: Timestamp) -> Element(Msg) {
     AdminEmailTemplatePage(model) ->
       admin_email_template_page.view(model)
       |> element.map(AdminEmailTemplatePageMsg)
+    AdminSpamReviewPage(model) ->
+      admin_spam_review_page.view(model) |> element.map(AdminSpamReviewPageMsg)
     AdminSnippetsPage(model) ->
       admin_snippets_page.view(model, now) |> element.map(AdminSnippetsPageMsg)
     AdminSnippetPage(model) ->

@@ -896,3 +896,31 @@
     text-align: center;
   }
 }
+
+.admin-spam-review__controls {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-block: 0.75rem;
+  background: var(--theme-surface);
+}
+
+.admin-spam-review__body {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  gap: 1.5rem;
+}
+
+.admin-spam-review__text {
+  max-height: 28rem;
+  overflow: auto;
+}
+
+@media (max-width: 48rem) {
+  .admin-spam-review__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

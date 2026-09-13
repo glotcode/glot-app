@@ -49,6 +49,7 @@ pub type AdminRoute {
   AdminJob(id: uuid.Uuid)
   AdminEmailTemplates
   AdminEmailTemplate(name: String)
+  AdminSpamReview(query: option.Option(String))
   AdminSnippets(query: option.Option(String))
   AdminSnippet(slug: String)
   AdminJobLogs(query: option.Option(String))
@@ -99,6 +100,7 @@ pub fn from_uri(uri: Uri) -> Route {
       }
     ["admin", "email-templates"] -> Admin(AdminEmailTemplates)
     ["admin", "email-templates", name] -> Admin(AdminEmailTemplate(name: name))
+    ["admin", "spam-review"] -> Admin(AdminSpamReview(query: uri.query))
     ["admin", "snippets"] -> Admin(AdminSnippets(query: uri.query))
     ["admin", "snippets", slug] -> Admin(AdminSnippet(slug: slug))
     ["admin", "logs", "job-logs"] -> Admin(AdminJobLogs(query: uri.query))
@@ -156,6 +158,7 @@ pub fn path_and_query(route: Route) -> #(String, option.Option(String)) {
     Admin(AdminRunLogs(query)) -> #("/admin/logs/runs", query)
     Admin(AdminUsers(query)) -> #("/admin/users", query)
     Admin(AdminJobs(query)) -> #("/admin/jobs", query)
+    Admin(AdminSpamReview(query)) -> #("/admin/spam-review", query)
     Admin(AdminSnippets(query)) -> #("/admin/snippets", query)
     Admin(AdminJobLogs(query)) -> #("/admin/logs/job-logs", query)
     _ -> #(to_string(route), option.None)
@@ -231,6 +234,7 @@ fn admin_path(route: AdminRoute) -> String {
     AdminJob(id) -> "/admin/jobs/" <> uuid.to_string(id)
     AdminEmailTemplates -> "/admin/email-templates"
     AdminEmailTemplate(name) -> "/admin/email-templates/" <> name
+    AdminSpamReview(_) -> "/admin/spam-review"
     AdminSnippets(_) -> "/admin/snippets"
     AdminSnippet(slug) -> "/admin/snippets/" <> slug
     AdminJobLogs(_) -> "/admin/logs/job-logs"
@@ -247,6 +251,7 @@ fn admin_query(route: AdminRoute) -> option.Option(String) {
     | AdminRunLogs(query)
     | AdminUsers(query)
     | AdminJobs(query)
+    | AdminSpamReview(query)
     | AdminSnippets(query)
     | AdminJobLogs(query) -> query
     _ -> option.None
@@ -288,6 +293,7 @@ fn admin_route_name(route: AdminRoute) -> String {
     AdminJob(_) -> "admin_job"
     AdminEmailTemplates -> "admin_email_templates"
     AdminEmailTemplate(_) -> "admin_email_template"
+    AdminSpamReview(_) -> "admin_spam_review"
     AdminSnippets(_) -> "admin_snippets"
     AdminSnippet(_) -> "admin_snippet"
     AdminJobLogs(_) -> "admin_job_logs"

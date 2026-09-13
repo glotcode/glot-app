@@ -5181,6 +5181,301 @@ WHERE created_at < $1"
   #(sql, [dev.ParamTimestamp(created_at)])
 }
 
+pub type ListSpamReview {
+  ListSpamReview(
+    manual_verdict: Option(String),
+    manual_reviewer_id: Option(BitArray),
+    manual_reviewed_at: Option(Timestamp),
+    manual_review_version: Int,
+    id: BitArray,
+    slug: String,
+    language: String,
+    title: String,
+    visibility: String,
+    stdin: String,
+    run_instructions: Option(String),
+    files: String,
+    created_at: Timestamp,
+    updated_at: Timestamp,
+    spam_decision: Option(String),
+    spam_confidence: Option(Int),
+    spam_reason_code: Option(String),
+    spam_classified_at: Option(Timestamp),
+    spam_classification_attempts: Option(Int),
+    spam_classification_last_error: Option(String),
+    spam_classification_failed_at: Option(Timestamp),
+    spam_explanation: Option(String),
+    is_runnable: Option(Bool),
+    runnability_checked_at: Option(Timestamp),
+    runnability_check_attempts: Int,
+    runnability_check_last_error: Option(String),
+    runnability_check_failed_at: Option(Timestamp),
+    user_id: BitArray,
+    user_account_id: BitArray,
+    user_email: String,
+    user_username: String,
+    user_role: String,
+    user_last_login_at: Timestamp,
+    user_created_at: Timestamp,
+    user_updated_at: Timestamp,
+  )
+}
+
+pub fn list_spam_review(
+  decision decision: String,
+  reason reason: Option(String),
+  confidence_min confidence_min: Option(Int),
+  confidence_max confidence_max: Option(Int),
+  manual manual: String,
+  username username: Option(String),
+  language language: Option(String),
+  cursor cursor: Option(String),
+  backwards backwards: Bool,
+  inclusive inclusive: Bool,
+  focus focus: Option(String),
+  page_limit page_limit: Int,
+) {
+  let sql =
+    "SELECT
+  snippets.manual_verdict,
+  snippets.manual_reviewer_id,
+  snippets.manual_reviewed_at,
+  snippets.manual_review_version,
+  snippets.id,
+  snippets.slug,
+  snippets.language,
+  snippets.title,
+  snippets.visibility,
+  snippets.stdin,
+  snippets.run_instructions,
+  snippets.files,
+  snippets.created_at,
+  snippets.updated_at,
+  snippets.spam_decision,
+  snippets.spam_confidence,
+  snippets.spam_reason_code,
+  snippets.spam_classified_at,
+  snippets.spam_classification_attempts,
+  snippets.spam_classification_last_error,
+  snippets.spam_classification_failed_at,
+  snippets.spam_explanation,
+  snippets.is_runnable,
+  snippets.runnability_checked_at,
+  snippets.runnability_check_attempts,
+  snippets.runnability_check_last_error,
+  snippets.runnability_check_failed_at,
+  users.id AS user_id,
+  users.account_id AS user_account_id,
+  users.email AS user_email,
+  users.username AS user_username,
+  users.role AS user_role,
+  users.last_login_at AS user_last_login_at,
+  users.created_at AS user_created_at,
+  users.updated_at AS user_updated_at
+FROM snippets
+INNER JOIN users ON users.id = snippets.user_id
+WHERE ($1::text = 'all'
+    OR ($1 = 'flagged' AND snippets.spam_decision IN ('review', 'block'))
+    OR ($1 = 'unclassified' AND snippets.spam_decision IS NULL)
+    OR snippets.spam_decision = $1)
+  AND ($2::text IS NULL OR snippets.spam_reason_code = $2)
+  AND ($3::int IS NULL OR snippets.spam_confidence >= $3)
+  AND ($4::int IS NULL OR snippets.spam_confidence <= $4)
+  AND ($5::text = 'all'
+    OR ($5 = 'unreviewed' AND snippets.manual_verdict IS NULL)
+    OR snippets.manual_verdict = $5)
+  AND ($6::text IS NULL OR users.username = $6)
+  AND ($7::text IS NULL OR snippets.language = $7)
+  AND ($8::text IS NULL
+    OR ($9::boolean AND (snippets.slug > $8 OR ($10::boolean AND snippets.slug = $8)))
+    OR (NOT $9::boolean AND (snippets.slug < $8 OR ($10::boolean AND snippets.slug = $8))))
+  AND ($11::text IS NULL OR snippets.slug = $11)
+ORDER BY
+  CASE WHEN $9::boolean THEN snippets.slug END ASC,
+  CASE WHEN NOT $9::boolean THEN snippets.slug END DESC
+LIMIT $12"
+  #(
+    sql,
+    [
+      dev.ParamString(decision),
+      dev.ParamNullable(option.map(reason, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(option.map(confidence_min, fn(v) { dev.ParamInt(v) })),
+      dev.ParamNullable(option.map(confidence_max, fn(v) { dev.ParamInt(v) })),
+      dev.ParamString(manual),
+      dev.ParamNullable(option.map(username, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(option.map(language, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(option.map(cursor, fn(v) { dev.ParamString(v) })),
+      dev.ParamBool(backwards),
+      dev.ParamBool(inclusive),
+      dev.ParamNullable(option.map(focus, fn(v) { dev.ParamString(v) })),
+      dev.ParamInt(page_limit),
+    ],
+    list_spam_review_decoder(),
+  )
+}
+
+pub fn list_spam_review_decoder() -> decode.Decoder(ListSpamReview) {
+  use manual_verdict <- decode.field(0, decode.optional(decode.string))
+  use manual_reviewer_id <- decode.field(1, decode.optional(decode.bit_array))
+  use manual_reviewed_at <- decode.field(
+    2,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use manual_review_version <- decode.field(3, decode.int)
+  use id <- decode.field(4, decode.bit_array)
+  use slug <- decode.field(5, decode.string)
+  use language <- decode.field(6, decode.string)
+  use title <- decode.field(7, decode.string)
+  use visibility <- decode.field(8, decode.string)
+  use stdin <- decode.field(9, decode.string)
+  use run_instructions <- decode.field(10, decode.optional(decode.string))
+  use files <- decode.field(11, decode.string)
+  use created_at <- decode.field(12, dev.datetime_decoder())
+  use updated_at <- decode.field(13, dev.datetime_decoder())
+  use spam_decision <- decode.field(14, decode.optional(decode.string))
+  use spam_confidence <- decode.field(15, decode.optional(decode.int))
+  use spam_reason_code <- decode.field(16, decode.optional(decode.string))
+  use spam_classified_at <- decode.field(
+    17,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use spam_classification_attempts <- decode.field(
+    18,
+    decode.optional(decode.int),
+  )
+  use spam_classification_last_error <- decode.field(
+    19,
+    decode.optional(decode.string),
+  )
+  use spam_classification_failed_at <- decode.field(
+    20,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use spam_explanation <- decode.field(21, decode.optional(decode.string))
+  use is_runnable <- decode.field(22, decode.optional(dev.bool_decoder()))
+  use runnability_checked_at <- decode.field(
+    23,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use runnability_check_attempts <- decode.field(24, decode.int)
+  use runnability_check_last_error <- decode.field(
+    25,
+    decode.optional(decode.string),
+  )
+  use runnability_check_failed_at <- decode.field(
+    26,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use user_id <- decode.field(27, decode.bit_array)
+  use user_account_id <- decode.field(28, decode.bit_array)
+  use user_email <- decode.field(29, decode.string)
+  use user_username <- decode.field(30, decode.string)
+  use user_role <- decode.field(31, decode.string)
+  use user_last_login_at <- decode.field(32, dev.datetime_decoder())
+  use user_created_at <- decode.field(33, dev.datetime_decoder())
+  use user_updated_at <- decode.field(34, dev.datetime_decoder())
+  decode.success(ListSpamReview(
+    manual_verdict:,
+    manual_reviewer_id:,
+    manual_reviewed_at:,
+    manual_review_version:,
+    id:,
+    slug:,
+    language:,
+    title:,
+    visibility:,
+    stdin:,
+    run_instructions:,
+    files:,
+    created_at:,
+    updated_at:,
+    spam_decision:,
+    spam_confidence:,
+    spam_reason_code:,
+    spam_classified_at:,
+    spam_classification_attempts:,
+    spam_classification_last_error:,
+    spam_classification_failed_at:,
+    spam_explanation:,
+    is_runnable:,
+    runnability_checked_at:,
+    runnability_check_attempts:,
+    runnability_check_last_error:,
+    runnability_check_failed_at:,
+    user_id:,
+    user_account_id:,
+    user_email:,
+    user_username:,
+    user_role:,
+    user_last_login_at:,
+    user_created_at:,
+    user_updated_at:,
+  ))
+}
+
+pub type SaveManualReview {
+  SaveManualReview(
+    manual_verdict: Option(String),
+    manual_reviewer_id: Option(BitArray),
+    manual_reviewed_at: Option(Timestamp),
+    manual_review_version: Int,
+  )
+}
+
+pub fn save_manual_review(
+  slug slug: String,
+  manual_verdict manual_verdict: Option(String),
+  manual_reviewer_id manual_reviewer_id: Option(BitArray),
+  manual_reviewed_at manual_reviewed_at: Option(Timestamp),
+  manual_review_version manual_review_version: Int,
+  updated_at updated_at: Timestamp,
+) {
+  let sql =
+    "UPDATE snippets
+SET manual_verdict = $2,
+    manual_reviewer_id = $3,
+    manual_reviewed_at = $4,
+    manual_review_version = manual_review_version + 1
+WHERE slug = $1
+  AND manual_review_version = $5
+  AND updated_at = $6
+RETURNING manual_verdict, manual_reviewer_id, manual_reviewed_at, manual_review_version"
+  #(
+    sql,
+    [
+      dev.ParamString(slug),
+      dev.ParamNullable(
+        option.map(manual_verdict, fn(v) { dev.ParamString(v) }),
+      ),
+      dev.ParamNullable(
+        option.map(manual_reviewer_id, fn(v) { dev.ParamBitArray(v) }),
+      ),
+      dev.ParamNullable(
+        option.map(manual_reviewed_at, fn(v) { dev.ParamTimestamp(v) }),
+      ),
+      dev.ParamInt(manual_review_version),
+      dev.ParamTimestamp(updated_at),
+    ],
+    save_manual_review_decoder(),
+  )
+}
+
+pub fn save_manual_review_decoder() -> decode.Decoder(SaveManualReview) {
+  use manual_verdict <- decode.field(0, decode.optional(decode.string))
+  use manual_reviewer_id <- decode.field(1, decode.optional(decode.bit_array))
+  use manual_reviewed_at <- decode.field(
+    2,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use manual_review_version <- decode.field(3, decode.int)
+  decode.success(SaveManualReview(
+    manual_verdict:,
+    manual_reviewer_id:,
+    manual_reviewed_at:,
+    manual_review_version:,
+  ))
+}
+
 pub type GetSnippetById {
   GetSnippetById(
     id: BitArray,

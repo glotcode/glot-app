@@ -139,3 +139,12 @@ pub fn static_assets_resolve_entries_from_the_manifest_test() {
   assert assets.frontend_preloads == ["/static/assets/test-shared.js"]
   assert assets.social_image_href == "/static/assets/test-home-banner.jpg"
 }
+
+pub fn spam_review_route_serves_the_admin_application_test() {
+  let body =
+    http_support.page_body(
+      "/admin/spam-review?decision=flagged&manual=unreviewed",
+    )
+  assert string.contains(body, "/static/assets/test-admin.js")
+  assert string.contains(body, "glot.io - spam review")
+}

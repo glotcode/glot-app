@@ -254,6 +254,7 @@ fn handle_page_request_with_runtime(
       admin_spa("glot.io - email templates")
     route.Admin(route.AdminEmailTemplate(_)) ->
       admin_spa("glot.io - email template")
+    route.Admin(route.AdminSpamReview(_)) -> admin_spa("glot.io - spam review")
     route.Admin(route.AdminSnippets(_)) -> admin_spa("glot.io - admin snippets")
     route.Admin(route.AdminSnippet(_)) -> admin_spa("glot.io - admin snippet")
     route.Admin(route.AdminJobLogs(_)) -> admin_spa("glot.io - job logs")

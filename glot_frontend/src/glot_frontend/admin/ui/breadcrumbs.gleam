@@ -85,6 +85,10 @@ fn breadcrumbs(current_route: route.Route) -> List(Crumb) {
       link("Email templates", route.Admin(route.AdminEmailTemplates)),
       current("Email template detail"),
     ]
+    route.Admin(route.AdminSpamReview(_)) -> [
+      link("Admin", route.Admin(route.AdminHome)),
+      current("Spam review"),
+    ]
     route.Admin(route.AdminSnippets(_)) -> [
       link("Admin", route.Admin(route.AdminHome)),
       current("Snippets"),

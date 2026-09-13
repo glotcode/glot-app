@@ -1,8 +1,12 @@
 import gleam/option
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/system/effect/error/db_error
+import glot_core/admin/spam_review_dto.{
+  type ListRequest, type ReviewSnippet, type SaveRequest,
+}
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/manual_review.{type ManualReview}
 import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
@@ -11,6 +15,16 @@ import glot_core/snippet/spam_classification
 import youid/uuid.{type Uuid}
 
 pub type SnippetEffect(next) {
+  ListSpamReview(
+    request: ListRequest,
+    next: fn(Result(List(ReviewSnippet), db_error.DbQueryError)) -> next,
+  )
+  SaveManualReview(
+    request: SaveRequest,
+    reviewer: Uuid,
+    reviewed_at: Timestamp,
+    next: fn(Result(option.Option(ManualReview), db_error.DbQueryError)) -> next,
+  )
   GetSnippetById(
     id: Uuid,
     next: fn(Result(option.Option(HydratedSnippet), db_error.DbQueryError)) ->
@@ -118,6 +132,12 @@ pub type SnippetEffect(next) {
 
 pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
   case effect {
+    ListSpamReview(request, next) ->
+      ListSpamReview(request, fn(value) { f(next(value)) })
+    SaveManualReview(request, reviewer, reviewed_at, next) ->
+      SaveManualReview(request, reviewer, reviewed_at, fn(value) {
+        f(next(value))
+      })
     GetSnippetById(id, next) ->
       GetSnippetById(id, next: fn(value) { f(next(value)) })
     GetSnippetBySlug(slug, next) ->
@@ -202,6 +222,8 @@ pub fn map(effect: SnippetEffect(a), f: fn(a) -> b) -> SnippetEffect(b) {
 }
 
 pub type EffectName {
+  ListSpamReviewEffectName
+  SaveManualReviewEffectName
   GetSnippetByIdEffectName
   GetSnippetBySlugEffectName
   GetSnippetBySlugForUpdateEffectName
@@ -225,6 +247,8 @@ pub type EffectName {
 
 pub fn effect_name_to_string(name: EffectName) -> String {
   case name {
+    ListSpamReviewEffectName -> "list_spam_review"
+    SaveManualReviewEffectName -> "save_manual_review"
     GetSnippetByIdEffectName -> "get_snippet_by_id"
     GetSnippetBySlugEffectName -> "get_snippet_by_slug"
     GetSnippetBySlugForUpdateEffectName -> "get_snippet_by_slug_for_update"

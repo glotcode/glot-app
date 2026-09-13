@@ -13,6 +13,25 @@ pub fn run(
     #(Result(a, error.Error), program_state.State),
 ) -> #(Result(a, error.Error), program_state.State) {
   case effect {
+    snippet_algebra.ListSpamReview(request, next) ->
+      measured_interpreter.run(
+        fn() { store.list_spam_review(request) },
+        next,
+        name: trace_name(snippet_algebra.ListSpamReviewEffectName),
+        kind: effect_trace.DatabaseReadEffect,
+        state:,
+        continue:,
+      )
+    snippet_algebra.SaveManualReview(request, reviewer, reviewed_at, next) ->
+      measured_interpreter.run(
+        fn() { store.save_manual_review(request, reviewer, reviewed_at) },
+        next,
+        name: trace_name(snippet_algebra.SaveManualReviewEffectName),
+        kind: effect_trace.DatabaseWriteEffect,
+        state:,
+        continue:,
+      )
+
     snippet_algebra.GetSnippetById(id, next) ->
       measured_interpreter.run(
         fn() { store.get_snippet_by_id(id) },

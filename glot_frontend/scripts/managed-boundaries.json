@@ -227,6 +227,15 @@
         "src/glot_frontend/public/editor/code_editor/transaction.gleam",
         "src/glot_frontend/public/editor/code_editor/update.gleam"
       ]
+    },
+    {
+      "name": "admin spam review",
+      "modules": [
+        "src/glot_frontend/admin/spam_review/managed.gleam",
+        "src/glot_frontend/admin/spam_review/model.gleam",
+        "src/glot_frontend/admin/spam_review/message.gleam",
+        "src/glot_frontend/admin/spam_review/query.gleam"
+      ]
     }
   ],
   "forbiddenImports": [

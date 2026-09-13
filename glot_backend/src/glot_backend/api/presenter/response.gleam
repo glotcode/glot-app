@@ -27,6 +27,7 @@ import glot_core/admin/rate_limit_config_dto
 import glot_core/admin/run_log_dto
 import glot_core/admin/snippet_dto as admin_snippet_dto
 import glot_core/admin/spam_classifier_config_dto
+import glot_core/admin/spam_review_dto
 import glot_core/admin/user_dto
 import glot_core/api_action.{type ApiAction}
 import glot_core/api_error_dto
@@ -37,6 +38,7 @@ import glot_core/auth/refresh_session_dto
 import glot_core/auth/session_dto
 import glot_core/run
 import glot_core/server_timing_policy
+import glot_core/snippet/manual_review
 import glot_core/snippet/snippet_dto
 import wisp
 
@@ -137,6 +139,10 @@ fn success(request: wisp.Request, result: ApiResult) -> wisp.Response {
       success_body(email_template_dto.encode_get_response(value))
     api_result.AdminUpdatedEmailTemplateResponse(value) ->
       success_body(email_template_dto.encode_update_response(value))
+    api_result.AdminSpamReviewResponse(value) ->
+      success_body(spam_review_dto.encode_list_response(value))
+    api_result.AdminManualReviewResponse(value) ->
+      success_body(manual_review.encode(value))
     api_result.AdminSnippetsResponse(value) ->
       success_body(admin_snippet_dto.encode_list_response(value))
     api_result.AdminSnippetResponse(value) ->

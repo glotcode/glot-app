@@ -6,8 +6,12 @@ import glot_backend/system/effect/error/db_error
 import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types
 import glot_backend/system/effect/transaction/transaction_program
+import glot_core/admin/spam_review_dto.{
+  type ListRequest, type ReviewSnippet, type SaveRequest,
+}
 import glot_core/pagination_model.{type CursorPagination}
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/manual_review.{type ManualReview}
 import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{
   type HydratedSnippet, type ListSnippetsFilter, type Snippet,
@@ -493,4 +497,37 @@ fn store_spam_classification_failure_effect(
     failure:,
     next:,
   ))
+}
+
+pub fn list_spam_review(
+  request: ListRequest,
+) -> program_types.Program(List(ReviewSnippet)) {
+  program.perform_db(
+    program_types.SnippetEffect(
+      snippet_algebra.ListSpamReview(request, program.from_mapped_result(
+        _,
+        map_error: error.database_query_error,
+      )),
+    ),
+  )
+}
+
+pub fn save_manual_review_tx(
+  request: SaveRequest,
+  reviewer: uuid.Uuid,
+  reviewed_at: Timestamp,
+) -> program_types.TransactionProgram(option.Option(ManualReview)) {
+  transaction_program.perform(
+    program_types.SnippetEffect(
+      snippet_algebra.SaveManualReview(
+        request,
+        reviewer,
+        reviewed_at,
+        transaction_program.from_mapped_result(
+          _,
+          map_error: error.database_query_error,
+        ),
+      ),
+    ),
+  )
 }

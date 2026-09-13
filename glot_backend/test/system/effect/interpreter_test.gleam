@@ -336,6 +336,10 @@ fn test_service_ports() -> service_ports.ServicePorts {
         ),
       ),
       snippet: snippet_store.Store(
+        list_spam_review: fn(_) { panic as "Unexpected list_spam_review" },
+        save_manual_review: fn(_, _, _) {
+          panic as "Unexpected save_manual_review"
+        },
         get_snippet_by_id: fn(_) { Ok(option.None) },
         get_snippet_by_slug: fn(_) { Ok(option.None) },
         get_snippet_by_slug_for_update: fn(_) { Ok(option.None) },

@@ -25,12 +25,15 @@ import glot_core/admin/rate_limit_config_dto
 import glot_core/admin/run_log_dto
 import glot_core/admin/snippet_dto as admin_snippet_dto
 import glot_core/admin/spam_classifier_config_dto
+import glot_core/admin/spam_review_dto
 import glot_core/admin/user_dto
 import glot_core/auth/account_dto
 import glot_core/auth/account_session_dto
 import glot_core/auth/passkey_dto
 import glot_core/auth/session_dto
+import glot_core/pagination_model
 import glot_core/run
+import glot_core/snippet/manual_review
 import glot_core/snippet/snippet_dto
 
 pub type ApiResult {
@@ -63,6 +66,10 @@ pub type ApiResult {
   AdminUpdatedEmailTemplateResponse(
     email_template_dto.UpdateEmailTemplateResponse,
   )
+  AdminSpamReviewResponse(
+    pagination_model.CursorPage(spam_review_dto.ReviewSnippet),
+  )
+  AdminManualReviewResponse(manual_review.ManualReview)
   AdminSnippetsResponse(admin_snippet_dto.ListSnippetsResponse)
   AdminSnippetResponse(admin_snippet_dto.GetSnippetResponse)
   AdminUsersResponse(user_dto.ListUsersResponse)

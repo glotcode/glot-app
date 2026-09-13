@@ -227,7 +227,7 @@ fn encode_snippet_summary(response: SnippetSummaryResponse) -> json.Json {
   ])
 }
 
-fn snippet_detail_decoder() -> decode.Decoder(SnippetDetailResponse) {
+pub fn snippet_detail_decoder() -> decode.Decoder(SnippetDetailResponse) {
   use id <- decode.field("id", uuid_helpers.decoder())
   use slug <- decode.field("slug", decode.string)
   use user <- decode.field("user", user_dto.user_decoder())
@@ -267,7 +267,7 @@ fn snippet_detail_decoder() -> decode.Decoder(SnippetDetailResponse) {
   ))
 }
 
-fn encode_snippet_detail(response: SnippetDetailResponse) -> json.Json {
+pub fn encode_snippet_detail(response: SnippetDetailResponse) -> json.Json {
   json.object([
     #("id", json.string(uuid.to_string(response.id))),
     #("slug", json.string(response.slug)),

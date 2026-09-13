@@ -51,10 +51,12 @@ import glot_backend/admin/domain/snippet/classify as admin_classify_snippet_doma
 import glot_backend/admin/domain/snippet/delete as admin_delete_snippet_domain
 import glot_backend/admin/domain/snippet/get as admin_get_snippet_domain
 import glot_backend/admin/domain/snippet/list as get_snippets_domain
+import glot_backend/admin/domain/snippet/review as review_domain
 import glot_backend/api/model/api_result.{type ApiResult}
 import glot_backend/system/effect/program
 import glot_backend/system/effect/program_types
 import glot_backend/system/request/hydrated_context as request_context
+import glot_core/admin/spam_review_dto
 import glot_core/admin_action.{type AdminAction}
 
 pub fn dispatch(
@@ -216,6 +218,22 @@ pub fn dispatch(
       )
       update_email_template_domain.update_email_template(request_ctx, request)
       |> program.map(api_result.AdminUpdatedEmailTemplateResponse)
+    }
+    admin_action.GetAdminSpamReviewAction -> {
+      use request <- program.and_then(program.decode_dynamic(
+        data,
+        spam_review_dto.list_request_decoder(),
+      ))
+      review_domain.list(request_ctx, request)
+      |> program.map(api_result.AdminSpamReviewResponse)
+    }
+    admin_action.SaveAdminManualReviewAction -> {
+      use request <- program.and_then(program.decode_dynamic(
+        data,
+        spam_review_dto.save_request_decoder(),
+      ))
+      review_domain.save(request_ctx, request)
+      |> program.map(api_result.AdminManualReviewResponse)
     }
     admin_action.GetAdminSnippetsAction -> {
       use request <- program.and_then(get_snippets_domain.request_from_dynamic(

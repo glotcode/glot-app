@@ -115,6 +115,11 @@ fn run_jobs(command: jobs.Command(msg)) -> Effect(msg) {
 
 fn run_content(command: content.Command(msg)) -> Effect(msg) {
   case command {
+    content.GetSpamReview(request, done) ->
+      content_api.get_spam_review(request, done)
+    content.SaveManualReview(request, done) ->
+      content_api.save_manual_review(request, done)
+
     content.GetEmailTemplates(done) ->
       content_api.get_admin_email_templates(done)
     content.GetEmailTemplate(request, done) ->
