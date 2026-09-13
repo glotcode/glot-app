@@ -80,6 +80,9 @@ pub fn defaults(test_state: state.State) -> system_ports.SystemPorts {
             )),
           )
         },
+        commit_index_batch: fn(_, _, _, _) {
+          panic as "unexpected fingerprint batch commit"
+        },
         index_batch: fn(_) {
           Error(
             error.database_query_error(db_error.DbQueryError(

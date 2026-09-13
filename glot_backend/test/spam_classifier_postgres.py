@@ -22,6 +22,22 @@ for path in [ROOT / "src/glot_backend/spam_classifier/sql/fingerprints.sql", ROO
         QUERIES[name] = body.strip().rstrip(";")
 
 
+# Verify regenerated bindings preserve the statements exercised below.
+generated = (ROOT / "src/glot_backend/sql.gleam").read_text()
+for query_name, function_name in [
+    ("GetClassifierIndexCursor", "get_classifier_index_cursor"),
+    ("ListClassifierIndexBatch", "list_classifier_index_batch"),
+    ("CommitClassifierIndexBatch", "commit_classifier_index_batch"),
+]:
+    parameters = {}
+    def parameter(match):
+        name = match[1]
+        return "$" + str(parameters.setdefault(name, len(parameters) + 1))
+    expected = re.sub(r"sqlc.n?arg\((\w+)\)", parameter, QUERIES[query_name])
+    actual = re.search(r"pub fn " + function_name + r"\([\s\S]*?let sql =\s*\"([\s\S]*?)\"\s*#", generated)[1]
+    assert " ".join(expected.split()) == " ".join(actual.split()), query_name
+
+
 def literal(value):
     if value is None:
         return "NULL"
@@ -36,6 +52,8 @@ def literal(value):
 
 def query(name, args):
     sql = QUERIES[name]
+    if name == "ListClassifierIndexBatch":
+        args = {"after_snippet_id": None, **args}
     if isinstance(args, dict):
         return re.sub(r"sqlc.n?arg\((\w+)\)", lambda m: literal(args[m[1]]), sql)
     return re.sub(r"\$(\d+)", lambda m: literal(args[int(m[1]) - 1]), sql)
@@ -66,18 +84,45 @@ def fingerprint(number, revision=REVISION, bands=16):
         bands=[f"{n}:same" if n < bands else f"{n}:different" for n in range(16)]))
 
 
+def cursor(version=VERSION):
+    output = run(query("GetClassifierIndexCursor", dict(algorithm_version=version)))
+    after_id, generation = output.split("|")
+    return dict(after_snippet_id=after_id or None, generation=int(generation))
+
+
+def index_batch(version=VERSION):
+    state = cursor(version)
+    return state, rows("ListClassifierIndexBatch", dict(
+        algorithm_version=version, after_snippet_id=state["after_snippet_id"]))
+
+
+def batch_entry(row):
+    return dict(snippet_id=row["id"], content_revision=row["updated_at"],
+        token_count=25, trigram_hashes=[1, 2, 3], signature=[1] * 64,
+        independently_suspicious=True, urls=["example.com"],
+        bands=[f"{n}:same" for n in range(16)])
+
+
+def batch_commit_sql(state, batch, version=VERSION, entries=None):
+    return query("CommitClassifierIndexBatch", dict(
+        algorithm_version=version, expected_generation=state["generation"],
+        after_snippet_id=batch[-1]["id"] if len(batch) == 100 else None,
+        fingerprints=json.dumps(entries if entries is not None else list(map(batch_entry, batch)))))
+
+
 def candidates(exclude=999):
     return rows("FindClassifierNeighbors", dict(algorithm_version=VERSION,
         bands=[f"{n}:same" for n in range(16)], snippet_id=identifier(exclude)))
 
 
-def concurrency_check(sql, expected):
-    """Ensure the tested write waits for a real concurrent snippet edit."""
+def concurrency_check(sql, expected, lock_sql=None):
+    """Ensure the tested write waits for a concurrent edit or cursor change."""
+    lock_sql = lock_sql or f"UPDATE snippets SET updated_at=updated_at+interval '1 second' WHERE id='{identifier(1)}'"
     holder = subprocess.Popen(["psql", DATABASE, "-XAtq", "-v", "ON_ERROR_STOP=1"],
                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     waiter = None
     try:
-        holder.stdin.write(f"SET search_path TO {SCHEMA},pg_catalog; BEGIN; UPDATE snippets SET updated_at=updated_at+interval '1 second' WHERE id='{identifier(1)}';\n\\echo locked\n")
+        holder.stdin.write(f"SET search_path TO {SCHEMA},pg_catalog; BEGIN; {lock_sql};\n\\echo locked\n")
         holder.stdin.flush()
         assert holder.stdout.readline().strip() == "locked"
         env = dict(os.environ, PGAPPNAME=SCHEMA + "_waiter")
@@ -123,18 +168,42 @@ try:
       FROM generate_series(1,205) n
     """)
     run((ROOT / "priv/db/migrations/0008_local_spam_classifier.sql").read_text())
+    run((ROOT / "priv/db/migrations/0009_spam_classifier_index_cursor.sql").read_text())
     assert run("SELECT count(*) FROM snippets WHERE spam_decision='block' AND spam_confidence=75 AND spam_explanation IS NULL") == "205"
 
-    # Durable resume: each completed fingerprint disappears from the next batch.
-    first = rows("ListClassifierIndexBatch", {"algorithm_version": VERSION})
+    # Reading/computing without committing cannot skip any snippets after restart.
+    state, first = index_batch()
     assert len(first) == 100
-    for n in range(1, 38):
-        assert run(fingerprint(n)) == "t"
-    resumed = rows("ListClassifierIndexBatch", {"algorithm_version": VERSION})
-    assert resumed[0]["id"] == identifier(38)
-    for n in range(38, 206):
-        assert run(fingerprint(n)) == "t"
-    assert rows("ListClassifierIndexBatch", {"algorithm_version": VERSION}) == []
+    assert index_batch() == (state, first)
+    # A failed batch rolls back both all fingerprint writes and the cursor.
+    invalid = list(map(batch_entry, first))
+    invalid[-1]["signature"] = [1]
+    try:
+        run(batch_commit_sql(state, first, entries=invalid))
+        raise AssertionError("invalid batch unexpectedly committed")
+    except RuntimeError as err:
+        assert "check constraint" in str(err)
+    assert cursor() == state
+    assert run("SELECT count(*) FROM spam_classifier_fingerprints") == "0"
+    assert run(batch_commit_sql(state, first)) == "t|100"
+    resumed_state, resumed = index_batch()
+    assert resumed_state["generation"] == state["generation"] + 1
+    assert resumed[0]["id"] == identifier(101)
+    # Replaying a completed generation neither rewrites fingerprints nor rewinds.
+    assert run(batch_commit_sql(state, first)) == "f|0"
+    assert cursor() == resumed_state
+    assert run(batch_commit_sql(resumed_state, resumed)) == "t|100"
+    final_state, final = index_batch()
+    assert len(final) == 5
+    assert run(batch_commit_sql(final_state, final)) == "t|5"
+    assert cursor()["after_snippet_id"] is None
+    empty_state, empty = index_batch()
+    assert empty == []
+    assert run(batch_commit_sql(empty_state, empty)) == "t|0"
+    # A separate algorithm starts its own scan independently.
+    other_state, other = index_batch("test-next-version")
+    assert other_state == dict(after_snippet_id=None, generation=0)
+    assert len(other) == 100
     assert run("SELECT count(*) FROM snippets WHERE spam_decision='block' AND spam_confidence=75 AND spam_explanation IS NULL") == "205"
     assert run("SELECT count(*) FROM spam_classifier_bands") == str(205 * 16)
     found = candidates(205)
@@ -142,6 +211,17 @@ try:
     assert found[0]["snippet_id"] == identifier(204)
     assert identifier(205) not in [row["snippet_id"] for row in found]
     assert {row["visibility"] for row in first} == {"public", "unlisted", "secret"}
+
+    # Edit behind a saved cursor: skip it during this pass, then reconcile it.
+    run(f"UPDATE spam_classifier_index_progress SET after_snippet_id='{identifier(100)}' WHERE algorithm_version='{VERSION}'")
+    run(f"DELETE FROM spam_classifier_bands WHERE snippet_id='{identifier(3)}'")
+    run(f"DELETE FROM spam_classifier_fingerprints WHERE snippet_id='{identifier(3)}'")
+    tail_state, tail = index_batch()
+    assert tail == []
+    assert run(batch_commit_sql(tail_state, tail)) == "t|0"
+    repair_state, repair = index_batch()
+    assert [row["id"] for row in repair] == [identifier(3)]
+    assert run(batch_commit_sql(repair_state, repair)) == "t|1"
 
     # The actual public SQL still returns eligible Likely-spam snippets and
     # does not expose explanation/fingerprint metadata.
@@ -167,6 +247,15 @@ try:
     concurrency_check(update + " RETURNING id", "")
     assert run(f"SELECT spam_decision FROM snippets WHERE id='{identifier(1)}'") == "block"
 
+    # Concurrent snippet edits reject stale entries in an otherwise atomic batch.
+    batch_state, batch = index_batch()
+    assert [row["id"] for row in batch] == [identifier(1)]
+    concurrency_check(batch_commit_sql(batch_state, batch), "t|0")
+    assert identifier(1) not in [row["snippet_id"] for row in candidates()]
+    retry_state, retry = index_batch()
+    assert [row["id"] for row in retry] == [identifier(1)]
+    assert run(batch_commit_sql(retry_state, retry)) == "t|1"
+
     # Metadata writes preserve revision/visibility and persist explanation separately.
     explanation = json.dumps(dict(provider="local", version="local-v1", score=75, signals=["promotional_url"], neighbors=[]))
     run(query("UpdateSpamClassification", ["block", 55, "promotional_content", REVISION, identifier(2), REVISION, explanation]))
@@ -176,6 +265,27 @@ try:
     run(f"DELETE FROM snippets WHERE id='{identifier(2)}'")
     assert run(f"SELECT count(*) FROM spam_classifier_fingerprints WHERE snippet_id='{identifier(2)}'") == "0"
     assert run(f"SELECT count(*) FROM spam_classifier_bands WHERE snippet_id='{identifier(2)}'") == "0"
-    print("PostgreSQL acceptance passed: upgrade, resume, visibility coverage, 200-candidate bound, ordering, self exclusion, edits, concurrent stale writes, explanations, cascade deletion")
+    # Mixed current/stale entries commit the other 99 fingerprints and bands.
+    race_version = "batch-race-test"
+    race_state, race_batch = index_batch(race_version)
+    assert len(race_batch) == 100
+    concurrency_check(batch_commit_sql(race_state, race_batch, race_version), "t|99")
+    assert run(f"SELECT count(*) FROM spam_classifier_fingerprints WHERE algorithm_version='{race_version}'") == "99"
+    assert run(f"SELECT count(*) FROM spam_classifier_bands WHERE algorithm_version='{race_version}'") == str(99 * 16)
+    assert cursor(race_version)["after_snippet_id"] == race_batch[-1]["id"]
+    # Deletion of the cursor snippet preserves the scan position.
+    saved_position = race_batch[-1]["id"]
+    run(f"DELETE FROM snippets WHERE id='{saved_position}'")
+    race_next_state, race_next = index_batch(race_version)
+    assert race_next_state["after_snippet_id"] == saved_position
+    assert all(row["id"] > saved_position for row in race_next)
+    # A competing commit changes generation while this writer waits.
+    concurrency_check(batch_commit_sql(race_next_state, race_next, race_version), "f|0",
+        f"UPDATE spam_classifier_index_progress SET generation=generation+1 WHERE algorithm_version='{race_version}'")
+    assert run(f"SELECT count(*) FROM spam_classifier_fingerprints WHERE algorithm_version='{race_version}'") == "98"
+    assert cursor(race_version)["after_snippet_id"] == saved_position
+    retry_state, retry = index_batch(race_version)
+    assert run(batch_commit_sql(retry_state, retry, race_version)) == f"t|{len(retry)}"
+    print("PostgreSQL acceptance passed: upgrade, cursor resume/wraparound, atomic batch rollback, generation replay guard, version isolation, visibility coverage, candidate bounds/order, edits, concurrent stale batch/classification writes, explanations, cascade deletion")
 finally:
     run(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")

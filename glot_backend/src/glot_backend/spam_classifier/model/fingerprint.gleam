@@ -1,5 +1,6 @@
 import gleam/time/timestamp.{type Timestamp}
 import glot_backend/spam_classifier/domain/similarity.{type Fingerprint}
+import glot_core/snippet/snippet_model.{type Snippet}
 import youid/uuid.{type Uuid}
 
 pub type StoredFingerprint {
@@ -26,4 +27,8 @@ pub type Candidate {
 
 pub type IndexReport {
   IndexReport(scanned: Int, stored: Int, stale: Int)
+}
+
+pub type IndexBatch {
+  IndexBatch(generation: Int, snippets: List(Snippet))
 }

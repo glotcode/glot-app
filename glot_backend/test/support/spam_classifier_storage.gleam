@@ -4,6 +4,9 @@ pub fn defaults() -> storage.Storage {
   storage.Storage(
     store: fn(_) { panic as "unexpected fingerprint store" },
     candidates: fn(_, _, _) { panic as "unexpected fingerprint candidates" },
+    commit_index_batch: fn(_, _, _, _) {
+      panic as "unexpected fingerprint batch commit"
+    },
     index_batch: fn(_) { panic as "unexpected fingerprint index batch" },
   )
 }
