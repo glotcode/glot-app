@@ -14,6 +14,8 @@ pub fn route_reads_are_navigation_owned_test() {
   assert ownership.public(public_action.RunAction) == transport.Run
   assert ownership.admin(admin_action.GetAdminUsersAction)
     == transport.Navigation
+  assert ownership.admin(admin_action.GetAdminSpamReviewAction)
+    == transport.Navigation
 }
 
 pub fn mutations_and_runtime_requests_are_persistent_test() {
@@ -22,5 +24,7 @@ pub fn mutations_and_runtime_requests_are_persistent_test() {
   assert ownership.public(public_action.GetSessionAction)
     == transport.Persistent
   assert ownership.admin(admin_action.UpdateAdminUserAction)
+    == transport.Persistent
+  assert ownership.admin(admin_action.SaveAdminManualReviewAction)
     == transport.Persistent
 }

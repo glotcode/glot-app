@@ -54,6 +54,7 @@ pub fn admin(action: AdminAction) -> transport.Ownership {
     | admin_action.GetAdminEmailTemplatesAction
     | admin_action.GetAdminEmailTemplateAction
     | admin_action.GetAdminSnippetsAction
+    | admin_action.GetAdminSpamReviewAction
     | admin_action.GetAdminSnippetAction
     | admin_action.GetAdminUsersAction
     | admin_action.GetAdminUserAction
@@ -81,6 +82,7 @@ pub fn admin(action: AdminAction) -> transport.Ownership {
     | admin_action.CreateAdminJobAction
     | admin_action.UpdateAdminEmailTemplateAction
     | admin_action.ClassifyAdminSnippetAction
+    | admin_action.SaveAdminManualReviewAction
     | admin_action.DeleteAdminSnippetAction
     | admin_action.UpdateAdminUserAction
     | admin_action.DeleteAdminAccountAction
