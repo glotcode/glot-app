@@ -18,6 +18,22 @@ pub fn changing_range_keeps_loaded_dashboard_visible_test() {
     load_command
   let loaded_response =
     analytics_dto.AnalyticsResponse(
+      runnability: option.Some(analytics_dto.RunnabilityOperationalMetrics(
+        total: 100,
+        checked: 60,
+        runnable: 45,
+        not_runnable: 15,
+        backlog: 35,
+        failed: 5,
+        attempts: 80,
+        attempted_backlog: 7,
+        pending_jobs: 1,
+        running_jobs: 1,
+        oldest_unchecked_at: option.None,
+        latest_checked_at: option.None,
+        latest_failed_at: option.None,
+        enabled: option.Some(True),
+      )),
       fingerprint_index: option.Some(analytics_dto.FingerprintIndexMetrics(
         "local-v1",
         600_000,
@@ -29,6 +45,14 @@ pub fn changing_range_keeps_loaded_dashboard_visible_test() {
       product_events: [],
       runs: [],
       reliability: [
+        analytics_dto.ReliabilityMetric(
+          "2026-08-08",
+          "job",
+          "check_snippet_runnability",
+          120,
+          3,
+          2_000_000_000,
+        ),
         analytics_dto.ReliabilityMetric(
           day: "2026-08-08",
           surface: "job",
@@ -64,6 +88,84 @@ pub fn changing_range_keeps_loaded_dashboard_visible_test() {
   assert refreshing.refreshing
   assert refreshing.analytics == loadable.Loaded(loaded_response)
   let rendered = view.view(loaded) |> element.to_document_string
+  assert string.contains(rendered, "Snippet runnability")
+  assert string.contains(rendered, "60 / 100")
+  assert string.contains(rendered, "60%")
+  assert string.contains(rendered, "Terminal check failures")
+  assert string.contains(rendered, "Daily runnability jobs")
+  assert string.contains(rendered, "2000 ms")
+  assert string.contains(rendered, "Running")
+  let assert option.Some(metrics) = loaded_response.runnability
+  let render_runnability = fn(metrics) {
+    view.view(
+      model.Model(
+        ..loaded,
+        analytics: loadable.Loaded(
+          analytics_dto.AnalyticsResponse(
+            ..loaded_response,
+            runnability: metrics,
+          ),
+        ),
+      ),
+    )
+    |> element.to_document_string
+  }
+  let paused =
+    analytics_dto.RunnabilityOperationalMetrics(
+      ..metrics,
+      running_jobs: 0,
+      pending_jobs: 0,
+      enabled: option.Some(False),
+    )
+  assert string.contains(render_runnability(option.Some(paused)), "Paused")
+  assert string.contains(
+    render_runnability(option.Some(
+      analytics_dto.RunnabilityOperationalMetrics(
+        ..paused,
+        enabled: option.None,
+      ),
+    )),
+    "Not scheduled",
+  )
+  assert string.contains(
+    render_runnability(option.Some(
+      analytics_dto.RunnabilityOperationalMetrics(..paused, pending_jobs: 1),
+    )),
+    "Queued",
+  )
+  assert string.contains(
+    render_runnability(option.Some(
+      analytics_dto.RunnabilityOperationalMetrics(..paused, backlog: 0),
+    )),
+    "Needs attention",
+  )
+  assert string.contains(
+    render_runnability(option.Some(
+      analytics_dto.RunnabilityOperationalMetrics(
+        ..paused,
+        total: 0,
+        checked: 0,
+        backlog: 0,
+        failed: 0,
+      ),
+    )),
+    "No snippets to check",
+  )
+  assert string.contains(
+    render_runnability(option.Some(
+      analytics_dto.RunnabilityOperationalMetrics(
+        ..paused,
+        total: 60,
+        backlog: 0,
+        failed: 0,
+      ),
+    )),
+    "Checks up to date",
+  )
+  assert string.contains(
+    render_runnability(option.None),
+    "Runnability statistics are unavailable",
+  )
   assert string.contains(rendered, "Snippet similarity index")
   assert string.contains(rendered, "150000 / 600000")
   assert string.contains(rendered, "450000")

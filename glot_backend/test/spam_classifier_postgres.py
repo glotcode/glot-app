@@ -299,6 +299,32 @@ try:
     assert cursor(race_version)["after_snippet_id"] == saved_position
     retry_state, retry = index_batch(race_version)
     assert run(batch_commit_sql(retry_state, retry, race_version)) == f"t|{len(retry)}"
+    # Runnability metrics distinguish completed negative results from failures,
+    # retries and untouched candidates, across all existing visibility categories.
+    run(f"UPDATE snippets SET is_runnable=true, runnability_checked_at='{REVISION}', runnability_check_attempts=1, runnability_check_failed_at=NULL")
+    run(f"UPDATE snippets SET is_runnable=false WHERE id IN ('{identifier(1)}','{identifier(6)}')")
+    run(f"UPDATE snippets SET is_runnable=NULL, runnability_checked_at=NULL, runnability_check_attempts=2 WHERE id='{identifier(3)}'")
+    run(f"UPDATE snippets SET is_runnable=NULL, runnability_checked_at=NULL, runnability_check_attempts=3, runnability_check_failed_at='{REVISION}' WHERE id='{identifier(4)}'")
+    run(f"UPDATE snippets SET is_runnable=NULL, runnability_checked_at=NULL, runnability_check_attempts=0 WHERE id='{identifier(5)}'")
+    total = int(run("SELECT count(*) FROM snippets"))
+    metrics = rows("GetRunnabilityOperationalMetrics", {})[0]
+    assert {key: metrics[key] for key in ["total", "checked", "runnable", "not_runnable", "backlog", "failed", "attempts", "attempted_backlog"]} == dict(total=total, checked=total-3, runnable=total-5, not_runnable=2, backlog=2, failed=1, attempts=total+2, attempted_backlog=1)
+    assert metrics["latest_checked_at"] is not None and metrics["latest_failed_at"] is not None
+    assert metrics["oldest_unchecked_at_seconds"] > 0
+    assert not metrics["scheduled"] and not metrics["enabled"]
+    run(f"INSERT INTO periodic_jobs(id,job_type,interval_seconds,enabled,next_run_at,created_at,updated_at) VALUES ('{identifier(2000)}','check_snippet_runnability',60,false,NOW(),NOW(),NOW())")
+    for number, job_type, status in [(2001, "check_snippet_runnability", "running"), (2002, "check_snippet_runnability", "pending"), (2003, "classify_snippet", "running")]:
+        run(f"INSERT INTO jobs(id,job_type,status,max_attempts,timeout_seconds,base_backoff_seconds,max_backoff_seconds,run_at,created_at,updated_at,queue_name) VALUES ('{identifier(number)}','{job_type}','{status}',10,600,30,900,NOW(),NOW(),NOW(),'snippet_runnability')")
+    metrics = rows("GetRunnabilityOperationalMetrics", {})[0]
+    assert metrics["scheduled"] and not metrics["enabled"]
+    assert metrics["pending_jobs"] == 1 and metrics["running_jobs"] == 1
+    run("UPDATE periodic_jobs SET enabled=true WHERE job_type='check_snippet_runnability'")
+    assert rows("GetRunnabilityOperationalMetrics", {})[0]["enabled"]
+    run("DELETE FROM snippets")
+    empty_metrics = rows("GetRunnabilityOperationalMetrics", {})[0]
+    assert empty_metrics["total"] == 0 and empty_metrics["checked"] == 0 and empty_metrics["attempts"] == 0
+    assert empty_metrics["latest_checked_at"] is None and empty_metrics["latest_failed_at"] is None
+    assert empty_metrics["oldest_unchecked_at_seconds"] == 0
     print("PostgreSQL acceptance passed: upgrade, cursor resume/wraparound, atomic batch rollback, generation replay guard, version isolation, visibility coverage, candidate bounds/order, edits, concurrent stale batch/classification writes, explanations, cascade deletion")
 finally:
     run(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")

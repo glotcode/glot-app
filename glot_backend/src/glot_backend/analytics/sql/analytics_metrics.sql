@@ -331,3 +331,28 @@ FROM snippets s
 LEFT JOIN spam_classifier_fingerprints f
   ON f.snippet_id = s.id AND f.content_revision = s.updated_at
   AND f.algorithm_version = sqlc.arg(algorithm_version)::text;
+
+-- name: GetRunnabilityOperationalMetrics :one
+SELECT
+  count(*) AS total,
+  count(*) FILTER (WHERE is_runnable IS NOT NULL) AS checked,
+  count(*) FILTER (WHERE is_runnable = true) AS runnable,
+  count(*) FILTER (WHERE is_runnable = false) AS not_runnable,
+  count(*) FILTER (WHERE is_runnable IS NULL AND runnability_check_failed_at IS NULL) AS backlog,
+  count(*) FILTER (WHERE is_runnable IS NULL AND runnability_check_failed_at IS NOT NULL) AS failed,
+  coalesce(sum(runnability_check_attempts), 0)::bigint AS attempts,
+  count(*) FILTER (WHERE is_runnable IS NULL AND runnability_check_failed_at IS NULL AND runnability_check_attempts > 0) AS attempted_backlog,
+  (SELECT count(*) FROM jobs WHERE job_type = 'check_snippet_runnability' AND status = 'pending') AS pending_jobs,
+  (SELECT count(*) FROM jobs WHERE job_type = 'check_snippet_runnability' AND status = 'running') AS running_jobs,
+  coalesce((SELECT extract(epoch FROM candidate.updated_at)::bigint FROM snippets candidate
+    WHERE candidate.is_runnable IS NULL AND candidate.runnability_check_failed_at IS NULL
+    ORDER BY candidate.updated_at ASC LIMIT 1), 0)::bigint AS oldest_unchecked_at_seconds,
+  (SELECT checked_snippet.runnability_checked_at FROM snippets checked_snippet
+    WHERE checked_snippet.runnability_checked_at IS NOT NULL
+    ORDER BY checked_snippet.runnability_checked_at DESC LIMIT 1) AS latest_checked_at,
+  (SELECT failed_snippet.runnability_check_failed_at FROM snippets failed_snippet
+    WHERE failed_snippet.runnability_check_failed_at IS NOT NULL
+    ORDER BY failed_snippet.runnability_check_failed_at DESC LIMIT 1) AS latest_failed_at,
+  EXISTS(SELECT 1 FROM periodic_jobs WHERE job_type = 'check_snippet_runnability') AS scheduled,
+  coalesce((SELECT enabled FROM periodic_jobs WHERE job_type = 'check_snippet_runnability'), false)::boolean AS enabled
+FROM snippets;

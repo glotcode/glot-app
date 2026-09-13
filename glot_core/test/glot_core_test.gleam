@@ -106,6 +106,22 @@ pub fn analytics_spam_classifier_metrics_round_trip_test() {
   let oldest = timestamp.from_unix_seconds(100)
   let response =
     analytics_dto.AnalyticsResponse(
+      runnability: option.Some(analytics_dto.RunnabilityOperationalMetrics(
+        total: 100,
+        checked: 60,
+        runnable: 45,
+        not_runnable: 15,
+        backlog: 35,
+        failed: 5,
+        attempts: 80,
+        attempted_backlog: 7,
+        pending_jobs: 1,
+        running_jobs: 1,
+        oldest_unchecked_at: option.None,
+        latest_checked_at: option.None,
+        latest_failed_at: option.None,
+        enabled: option.Some(True),
+      )),
       fingerprint_index: option.Some(analytics_dto.FingerprintIndexMetrics(
         "local-v1",
         600_000,
@@ -141,11 +157,17 @@ pub fn analytics_spam_classifier_metrics_round_trip_test() {
 
   assert decoded == response
   let historical =
-    analytics_dto.AnalyticsResponse(..response, fingerprint_index: option.None)
+    analytics_dto.AnalyticsResponse(
+      ..response,
+      fingerprint_index: option.None,
+      runnability: option.None,
+    )
   let historical_json =
     historical |> analytics_dto.encode_response |> json.to_string
   let assert Ok(pattern) =
-    regexp.from_string(",\"fingerprintIndex\":null|\"fingerprintIndex\":null,")
+    regexp.from_string(
+      ",\"(?:fingerprintIndex|runnability)\":null|\"(?:fingerprintIndex|runnability)\":null,",
+    )
   let assert Ok(decoded_historical) =
     regexp.replace(pattern, historical_json, "")
     |> json.parse(analytics_dto.response_decoder())

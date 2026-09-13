@@ -1414,6 +1414,97 @@ pub fn get_fingerprint_index_metrics_decoder() -> decode.Decoder(
   decode.success(GetFingerprintIndexMetrics(total:, indexed:))
 }
 
+pub type GetRunnabilityOperationalMetrics {
+  GetRunnabilityOperationalMetrics(
+    total: Int,
+    checked: Int,
+    runnable: Int,
+    not_runnable: Int,
+    backlog: Int,
+    failed: Int,
+    attempts: Int,
+    attempted_backlog: Int,
+    pending_jobs: Int,
+    running_jobs: Int,
+    oldest_unchecked_at_seconds: Int,
+    latest_checked_at: Option(Timestamp),
+    latest_failed_at: Option(Timestamp),
+    scheduled: Bool,
+    enabled: Bool,
+  )
+}
+
+pub fn get_runnability_operational_metrics() {
+  let sql =
+    "SELECT
+  count(*) AS total,
+  count(*) FILTER (WHERE is_runnable IS NOT NULL) AS checked,
+  count(*) FILTER (WHERE is_runnable = true) AS runnable,
+  count(*) FILTER (WHERE is_runnable = false) AS not_runnable,
+  count(*) FILTER (WHERE is_runnable IS NULL AND runnability_check_failed_at IS NULL) AS backlog,
+  count(*) FILTER (WHERE is_runnable IS NULL AND runnability_check_failed_at IS NOT NULL) AS failed,
+  coalesce(sum(runnability_check_attempts), 0)::bigint AS attempts,
+  count(*) FILTER (WHERE is_runnable IS NULL AND runnability_check_failed_at IS NULL AND runnability_check_attempts > 0) AS attempted_backlog,
+  (SELECT count(*) FROM jobs WHERE job_type = 'check_snippet_runnability' AND status = 'pending') AS pending_jobs,
+  (SELECT count(*) FROM jobs WHERE job_type = 'check_snippet_runnability' AND status = 'running') AS running_jobs,
+  coalesce((SELECT extract(epoch FROM candidate.updated_at)::bigint FROM snippets candidate
+    WHERE candidate.is_runnable IS NULL AND candidate.runnability_check_failed_at IS NULL
+    ORDER BY candidate.updated_at ASC LIMIT 1), 0)::bigint AS oldest_unchecked_at_seconds,
+  (SELECT checked_snippet.runnability_checked_at FROM snippets checked_snippet
+    WHERE checked_snippet.runnability_checked_at IS NOT NULL
+    ORDER BY checked_snippet.runnability_checked_at DESC LIMIT 1) AS latest_checked_at,
+  (SELECT failed_snippet.runnability_check_failed_at FROM snippets failed_snippet
+    WHERE failed_snippet.runnability_check_failed_at IS NOT NULL
+    ORDER BY failed_snippet.runnability_check_failed_at DESC LIMIT 1) AS latest_failed_at,
+  EXISTS(SELECT 1 FROM periodic_jobs WHERE job_type = 'check_snippet_runnability') AS scheduled,
+  coalesce((SELECT enabled FROM periodic_jobs WHERE job_type = 'check_snippet_runnability'), false)::boolean AS enabled
+FROM snippets"
+  #(sql, [], get_runnability_operational_metrics_decoder())
+}
+
+pub fn get_runnability_operational_metrics_decoder() -> decode.Decoder(
+  GetRunnabilityOperationalMetrics,
+) {
+  use total <- decode.field(0, decode.int)
+  use checked <- decode.field(1, decode.int)
+  use runnable <- decode.field(2, decode.int)
+  use not_runnable <- decode.field(3, decode.int)
+  use backlog <- decode.field(4, decode.int)
+  use failed <- decode.field(5, decode.int)
+  use attempts <- decode.field(6, decode.int)
+  use attempted_backlog <- decode.field(7, decode.int)
+  use pending_jobs <- decode.field(8, decode.int)
+  use running_jobs <- decode.field(9, decode.int)
+  use oldest_unchecked_at_seconds <- decode.field(10, decode.int)
+  use latest_checked_at <- decode.field(
+    11,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use latest_failed_at <- decode.field(
+    12,
+    decode.optional(dev.datetime_decoder()),
+  )
+  use scheduled <- decode.field(13, dev.bool_decoder())
+  use enabled <- decode.field(14, dev.bool_decoder())
+  decode.success(GetRunnabilityOperationalMetrics(
+    total:,
+    checked:,
+    runnable:,
+    not_runnable:,
+    backlog:,
+    failed:,
+    attempts:,
+    attempted_backlog:,
+    pending_jobs:,
+    running_jobs:,
+    oldest_unchecked_at_seconds:,
+    latest_checked_at:,
+    latest_failed_at:,
+    scheduled:,
+    enabled:,
+  ))
+}
+
 pub type ListAppConfig {
   ListAppConfig(namespace: String, key: String, value: String)
 }

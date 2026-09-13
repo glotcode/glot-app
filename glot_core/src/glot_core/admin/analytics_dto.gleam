@@ -18,6 +18,26 @@ pub type AnalyticsResponse {
     reliability: List(ReliabilityMetric),
     spam_classifier: SpamClassifierOperationalMetrics,
     fingerprint_index: Option(FingerprintIndexMetrics),
+    runnability: Option(RunnabilityOperationalMetrics),
+  )
+}
+
+pub type RunnabilityOperationalMetrics {
+  RunnabilityOperationalMetrics(
+    total: Int,
+    checked: Int,
+    runnable: Int,
+    not_runnable: Int,
+    backlog: Int,
+    failed: Int,
+    attempts: Int,
+    attempted_backlog: Int,
+    pending_jobs: Int,
+    running_jobs: Int,
+    oldest_unchecked_at: Option(Timestamp),
+    latest_checked_at: Option(Timestamp),
+    latest_failed_at: Option(Timestamp),
+    enabled: Option(Bool),
   )
 }
 
@@ -120,6 +140,11 @@ pub fn response_decoder() -> decode.Decoder(AnalyticsResponse) {
     option.None,
     decode.optional(fingerprint_index_decoder()),
   )
+  use runnability <- decode.optional_field(
+    "runnability",
+    option.None,
+    decode.optional(runnability_decoder()),
+  )
   decode.success(AnalyticsResponse(
     days: days,
     completed_through: completed_through,
@@ -129,6 +154,7 @@ pub fn response_decoder() -> decode.Decoder(AnalyticsResponse) {
     reliability: reliability,
     spam_classifier: spam_classifier,
     fingerprint_index:,
+    runnability:,
   ))
 }
 
@@ -146,6 +172,7 @@ pub fn encode_response(response: AnalyticsResponse) -> json.Json {
     ),
     #("runs", json.array(response.runs, encode_run)),
     #("reliability", json.array(response.reliability, encode_reliability)),
+    #("runnability", json.nullable(response.runnability, encode_runnability)),
     #("spamClassifier", encode_spam_classifier(response.spam_classifier)),
     #(
       "fingerprintIndex",
@@ -344,5 +371,75 @@ fn encode_fingerprint_index(metrics: FingerprintIndexMetrics) -> json.Json {
     #("algorithmVersion", json.string(metrics.algorithm_version)),
     #("total", json.int(metrics.total)),
     #("indexed", json.int(metrics.indexed)),
+  ])
+}
+
+fn runnability_decoder() -> decode.Decoder(RunnabilityOperationalMetrics) {
+  use total <- decode.field("total", decode.int)
+  use checked <- decode.field("checked", decode.int)
+  use runnable <- decode.field("runnable", decode.int)
+  use not_runnable <- decode.field("notRunnable", decode.int)
+  use backlog <- decode.field("backlog", decode.int)
+  use failed <- decode.field("failed", decode.int)
+  use attempts <- decode.field("attempts", decode.int)
+  use attempted_backlog <- decode.field("attemptedBacklog", decode.int)
+  use pending_jobs <- decode.field("pendingJobs", decode.int)
+  use running_jobs <- decode.field("runningJobs", decode.int)
+  use oldest_unchecked_at <- decode.field(
+    "oldestUncheckedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  use latest_checked_at <- decode.field(
+    "latestCheckedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  use latest_failed_at <- decode.field(
+    "latestFailedAt",
+    decode.optional(timestamp_helpers.decoder()),
+  )
+  use enabled <- decode.field("enabled", decode.optional(decode.bool))
+  decode.success(RunnabilityOperationalMetrics(
+    total:,
+    checked:,
+    runnable:,
+    not_runnable:,
+    backlog:,
+    failed:,
+    attempts:,
+    attempted_backlog:,
+    pending_jobs:,
+    running_jobs:,
+    oldest_unchecked_at:,
+    latest_checked_at:,
+    latest_failed_at:,
+    enabled:,
+  ))
+}
+
+fn encode_runnability(metrics: RunnabilityOperationalMetrics) -> json.Json {
+  json.object([
+    #("total", json.int(metrics.total)),
+    #("checked", json.int(metrics.checked)),
+    #("runnable", json.int(metrics.runnable)),
+    #("notRunnable", json.int(metrics.not_runnable)),
+    #("backlog", json.int(metrics.backlog)),
+    #("failed", json.int(metrics.failed)),
+    #("attempts", json.int(metrics.attempts)),
+    #("attemptedBacklog", json.int(metrics.attempted_backlog)),
+    #("pendingJobs", json.int(metrics.pending_jobs)),
+    #("runningJobs", json.int(metrics.running_jobs)),
+    #(
+      "oldestUncheckedAt",
+      json.nullable(metrics.oldest_unchecked_at, timestamp_helpers.encode),
+    ),
+    #(
+      "latestCheckedAt",
+      json.nullable(metrics.latest_checked_at, timestamp_helpers.encode),
+    ),
+    #(
+      "latestFailedAt",
+      json.nullable(metrics.latest_failed_at, timestamp_helpers.encode),
+    ),
+    #("enabled", json.nullable(metrics.enabled, json.bool)),
   ])
 }

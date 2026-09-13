@@ -91,7 +91,44 @@ pub fn get_analytics(
       Error(db_error.DbQueryError("Expected one fingerprint index metrics row"))
   })
 
+  use runnability_rows <- result.try(db_helpers.query(
+    db,
+    sql.get_runnability_operational_metrics(),
+    to_error,
+  ))
+  use runnability <- result.try(case runnability_rows.rows {
+    [row] -> Ok(row)
+    _ -> Error(db_error.DbQueryError("Expected one runnability metrics row"))
+  })
+
   Ok(analytics_dto.AnalyticsResponse(
+    runnability: option.Some(
+      analytics_dto.RunnabilityOperationalMetrics(
+        total: runnability.total,
+        checked: runnability.checked,
+        runnable: runnability.runnable,
+        not_runnable: runnability.not_runnable,
+        backlog: runnability.backlog,
+        failed: runnability.failed,
+        attempts: runnability.attempts,
+        attempted_backlog: runnability.attempted_backlog,
+        pending_jobs: runnability.pending_jobs,
+        running_jobs: runnability.running_jobs,
+        oldest_unchecked_at: case runnability.backlog > 0 {
+          True ->
+            option.Some(timestamp.from_unix_seconds(
+              runnability.oldest_unchecked_at_seconds,
+            ))
+          False -> option.None
+        },
+        latest_checked_at: runnability.latest_checked_at,
+        latest_failed_at: runnability.latest_failed_at,
+        enabled: case runnability.scheduled {
+          True -> option.Some(runnability.enabled)
+          False -> option.None
+        },
+      ),
+    ),
     fingerprint_index: option.Some(analytics_dto.FingerprintIndexMetrics(
       scoring.version,
       index.total,

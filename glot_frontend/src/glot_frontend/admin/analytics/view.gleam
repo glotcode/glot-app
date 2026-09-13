@@ -94,6 +94,7 @@ fn dashboard(data: analytics_dto.AnalyticsResponse) -> Element(Msg) {
         format_int(errors) <> " / " <> format_int(requests),
       ),
     ]),
+    runnability_metrics(data.runnability, data.reliability),
     fingerprint_index_metrics(data.fingerprint_index),
     spam_classifier_metrics(data.spam_classifier, data.reliability),
     completion_notice(data.completed_through),
@@ -118,6 +119,111 @@ fn dashboard(data: analytics_dto.AnalyticsResponse) -> Element(Msg) {
       reliability_table(data.reliability),
     ),
   ])
+}
+
+fn runnability_metrics(
+  metrics: option.Option(analytics_dto.RunnabilityOperationalMetrics),
+  reliability: List(analytics_dto.ReliabilityMetric),
+) -> Element(Msg) {
+  case metrics {
+    option.None ->
+      metric_group(
+        "Snippet runnability",
+        "Runnability statistics are unavailable from this server.",
+        html.div([], []),
+      )
+    option.Some(metrics) -> {
+      let percent = case metrics.total {
+        0 -> 100
+        _ -> metrics.checked * 100 / metrics.total
+      }
+      let status = case
+        metrics.running_jobs,
+        metrics.pending_jobs,
+        metrics.total,
+        metrics.backlog,
+        metrics.failed,
+        metrics.enabled
+      {
+        running, _, _, _, _, _ if running > 0 -> "Running"
+        _, pending, _, _, _, _ if pending > 0 -> "Queued"
+        _, _, 0, _, _, _ -> "No snippets to check"
+        _, _, _, 0, failed, _ if failed > 0 -> "Needs attention"
+        _, _, _, 0, _, _ -> "Checks up to date"
+        _, _, _, _, _, option.Some(False) -> "Paused"
+        _, _, _, _, _, option.None -> "Not scheduled"
+        _, _, _, _, _, option.Some(True) -> "Waiting"
+      }
+      let history =
+        list.filter(reliability, fn(metric) {
+          metric.surface == "job" && metric.name == "check_snippet_runnability"
+        })
+      metric_group(
+        "Snippet runnability",
+        "Live check progress across all snippet visibilities. Non-runnable is a completed result; terminal failures are checks that could not finish. Use Refresh to update.",
+        html.div([attribute.class("admin-page__group")], [
+          html.div([attribute.class(admin_layout.summary_grid_class())], [
+            admin_layout.summary_card(
+              "Checked / total snippets",
+              format_int(metrics.checked) <> " / " <> format_int(metrics.total),
+            ),
+            admin_layout.summary_card(
+              "Check completion",
+              int.to_string(percent) <> "%",
+            ),
+            admin_layout.summary_card(
+              "Awaiting check",
+              format_int(metrics.backlog),
+            ),
+            admin_layout.summary_card("Runnable", format_int(metrics.runnable)),
+            admin_layout.summary_card(
+              "Non-runnable",
+              format_int(metrics.not_runnable),
+            ),
+            admin_layout.summary_card(
+              "Terminal check failures",
+              format_int(metrics.failed),
+            ),
+            admin_layout.summary_card(
+              "Check attempts",
+              format_int(metrics.attempts),
+            ),
+            admin_layout.summary_card(
+              "Attempted check backlog",
+              format_int(metrics.attempted_backlog),
+            ),
+          ]),
+          html.div([attribute.class(admin_layout.detail_grid_class())], [
+            admin_layout.detail_item("Runnability job status", status),
+            admin_layout.detail_item(
+              "Pending check jobs",
+              format_int(metrics.pending_jobs),
+            ),
+            admin_layout.detail_item(
+              "Running check jobs",
+              format_int(metrics.running_jobs),
+            ),
+            admin_layout.detail_item(
+              "Oldest awaiting check",
+              admin_format.optional_timestamp(metrics.oldest_unchecked_at),
+            ),
+            admin_layout.detail_item(
+              "Latest completed check",
+              admin_format.optional_timestamp(metrics.latest_checked_at),
+            ),
+            admin_layout.detail_item(
+              "Latest check failure",
+              admin_format.optional_timestamp(metrics.latest_failed_at),
+            ),
+          ]),
+          html.h3([attribute.class("admin-page__group-title")], [
+            html.text("Daily runnability jobs"),
+          ]),
+          worker_reliability_table(history),
+        ]),
+      )
+    }
+  }
 }
 
 fn fingerprint_index_metrics(
@@ -222,12 +328,12 @@ fn spam_classifier_metrics(
       html.h3([attribute.class("admin-page__group-title")], [
         html.text("Daily classifier jobs"),
       ]),
-      classifier_reliability_table(history),
+      worker_reliability_table(history),
     ]),
   )
 }
 
-fn classifier_reliability_table(
+fn worker_reliability_table(
   metrics: List(analytics_dto.ReliabilityMetric),
 ) -> Element(Msg) {
   let day = admin_table.fit_column("Day")
