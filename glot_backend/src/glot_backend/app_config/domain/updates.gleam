@@ -16,6 +16,7 @@ import glot_backend/run_code/model/config.{
 import glot_backend/spam_classifier/model/config as spam_classifier_config
 import glot_core/availability_mode
 import glot_core/public_action.{type PublicAction}
+import glot_core/snippet/classifier_provider
 
 pub fn debug(value: DebugConfig) -> List(AppConfigEntry) {
   [entry("debug", "enabled", json.bool(value.enabled))]
@@ -206,6 +207,11 @@ pub fn spam_classifier(
   value: spam_classifier_config.Config,
 ) -> List(AppConfigEntry) {
   [
+    entry(
+      "spam_classifier",
+      "provider",
+      json.string(classifier_provider.to_string(value.provider)),
+    ),
     entry("spam_classifier", "base_url", json.string(value.base_url)),
     entry("spam_classifier", "auth_token", json.string(value.auth_token)),
   ]

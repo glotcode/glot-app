@@ -16,6 +16,7 @@ import glot_backend/logging/pageview/domain/cleanup as clean_pageview_log_domain
 import glot_backend/logging/run_log/domain/cleanup as clean_run_log_domain
 import glot_backend/snippet_runnability/domain/check_next as check_runnability_domain
 import glot_backend/spam_classifier/domain/classify_next as classify_snippet_domain
+import glot_backend/spam_classifier/domain/index_next
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error.{type Error}
 import glot_backend/system/effect/error/infra_error
@@ -167,6 +168,15 @@ fn delegate_job(ctx: Context, job: Job) -> Program(HandlerOutcome) {
       complete_after(clean_user_actions_domain.clean_user_actions(ctx))
     job_model.AggregateMetricsJob ->
       complete_after(aggregate_metrics_domain.aggregate_metrics(ctx))
+    job_model.IndexSnippetFingerprintsJob ->
+      index_next.run()
+      |> program.map(fn(more) {
+        let finalize = transaction_program.succeed(finalization.Applied)
+        case more {
+          True -> ContinueImmediately(finalize)
+          False -> CompleteJob(finalize)
+        }
+      })
     job_model.ClassifySnippetJob ->
       classify_snippet_domain.classify_next(ctx, job.max_attempts)
       |> program.map(fn(outcome) {

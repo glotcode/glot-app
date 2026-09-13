@@ -9,6 +9,7 @@ import glot_core/helpers/uuid_helpers
 import glot_core/language
 import glot_core/pagination_model
 import glot_core/snippet/admin_snippet.{type AdminSnippet}
+import glot_core/snippet/classification_explanation
 import glot_core/snippet/runnability.{type RunnabilityMetadata}
 import glot_core/snippet/snippet_model
 import glot_core/snippet/spam_classification.{
@@ -330,6 +331,11 @@ fn encode_runnability(metadata: RunnabilityMetadata) -> json.Json {
 }
 
 fn spam_classification_decoder() -> decode.Decoder(ClassificationMetadata) {
+  use explanation <- decode.optional_field(
+    "explanation",
+    option.None,
+    decode.optional(classification_explanation.decoder()),
+  )
   use decision <- decode.field(
     "decision",
     decode.optional(spam_classification.decision_decoder()),
@@ -368,6 +374,7 @@ fn spam_classification_decoder() -> decode.Decoder(ClassificationMetadata) {
     attempts: attempts,
     last_error: last_error,
     failed_at: failed_at,
+    explanation: explanation,
   ))
 }
 
@@ -382,6 +389,13 @@ fn encode_spam_classification(
       }),
     ),
     #("confidence", json.nullable(classification.confidence, json.int)),
+    #(
+      "explanation",
+      json.nullable(
+        classification.explanation,
+        classification_explanation.encode,
+      ),
+    ),
     #(
       "reasonCode",
       json.nullable(classification.reason_code, fn(value) {

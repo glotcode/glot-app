@@ -54,7 +54,7 @@ pub fn classify_snippet(
     classifier_config,
     spam_classification.ServiceRequest(snippet: identity, is_runnable:),
   ))
-  let #(service_response, _) = response
+  let service_response = response.response
   use classified_at <- program.and_then(basic_effect.system_time())
   let classification =
     spam_classification.ClassificationResult(
@@ -62,6 +62,7 @@ pub fn classify_snippet(
       confidence: service_response.confidence,
       reason_code: service_response.reason_code,
       classified_at: classified_at,
+      explanation: response.explanation,
     )
 
   use _ <- program.and_then(

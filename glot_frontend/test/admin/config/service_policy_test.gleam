@@ -5,27 +5,64 @@ import glot_core/admin/docker_run_config_dto
 import glot_core/admin/email_config_dto
 import glot_core/admin/passkey_config_dto
 import glot_core/admin/spam_classifier_config_dto
+import glot_core/snippet/classifier_provider
 import glot_frontend/admin/config/cloudflare_policy
 import glot_frontend/admin/config/docker_run_policy
 import glot_frontend/admin/config/email_policy
 import glot_frontend/admin/config/passkey_policy
 import glot_frontend/admin/config/spam_classifier_policy
 
+pub fn local_classifier_preserves_external_credentials_test() {
+  let fields =
+    spam_classifier_policy.Fields(
+      "https://classifier",
+      "secret",
+      classifier_provider.External,
+    )
+  let local =
+    spam_classifier_policy.set(fields, spam_classifier_policy.Provider, "local")
+  assert local.base_url == fields.base_url
+  assert local.auth_token == fields.auth_token
+  assert spam_classifier_policy.set(
+      local,
+      spam_classifier_policy.Provider,
+      "external",
+    )
+    == fields
+  let local_empty =
+    spam_classifier_policy.set(
+      spam_classifier_policy.empty(),
+      spam_classifier_policy.Provider,
+      "local",
+    )
+  let assert Ok(request) = spam_classifier_policy.request(local_empty)
+  assert request.provider == classifier_provider.Local
+  assert !spam_classifier_policy.is_empty(local_empty)
+}
+
 pub fn spam_classifier_policy_requires_both_values_test() {
-  let fields = spam_classifier_policy.Fields("http://classifier:8081", "secret")
+  let fields =
+    spam_classifier_policy.Fields(
+      "http://classifier:8081",
+      "secret",
+      classifier_provider.External,
+    )
   assert spam_classifier_policy.request(fields)
     == Ok(spam_classifier_config_dto.UpsertSpamClassifierConfigRequest(
       "http://classifier:8081",
       "secret",
+      classifier_provider.External,
     ))
   assert spam_classifier_policy.request(spam_classifier_policy.Fields(
       "",
       "secret",
+      classifier_provider.External,
     ))
     == Error("Base URL must not be empty.")
   assert spam_classifier_policy.request(spam_classifier_policy.Fields(
       "http://classifier:8081",
       "",
+      classifier_provider.External,
     ))
     == Error("Auth token must not be empty.")
 }

@@ -7,6 +7,25 @@ import glot_backend/auth/model/config as auth_feature_config
 import glot_backend/email/model/config as email_feature_config
 import glot_backend/run_code/model/config as run_code_config
 import glot_backend/spam_classifier/model/config as spam_classifier_config
+import glot_core/snippet/classifier_provider
+
+pub fn absent_classifier_stays_unconfigured_test() {
+  let assert Ok(config) = config_decoder.from_entries([])
+  assert dynamic_config.spam_classifier_config(config) == option.None
+}
+
+pub fn local_classifier_can_be_configured_without_external_credentials_test() {
+  let assert Ok(config) =
+    config_decoder.from_entries([
+      app_config.AppConfigEntry("spam_classifier", "provider", "\"local\""),
+    ])
+  assert dynamic_config.spam_classifier_config(config)
+    == option.Some(spam_classifier_config.Config(
+      "",
+      "",
+      classifier_provider.Local,
+    ))
+}
 
 pub fn app_config_decodes_spam_classifier_config_test() {
   let assert Ok(config) =
@@ -24,6 +43,7 @@ pub fn app_config_decodes_spam_classifier_config_test() {
     ])
   assert dynamic_config.spam_classifier_config(config)
     == option.Some(spam_classifier_config.Config(
+      provider: classifier_provider.External,
       base_url: "http://classifier:8081",
       auth_token: "secret",
     ))

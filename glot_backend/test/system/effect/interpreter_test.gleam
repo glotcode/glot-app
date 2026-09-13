@@ -26,6 +26,7 @@ import glot_backend/logging/ports as logging_ports
 import glot_backend/logging/run_log/ports/store as run_log_store
 import glot_backend/run_code/ports/runner
 import glot_backend/snippet/ports/store as snippet_store
+import glot_backend/spam_classifier/ports as classifier_ports
 import glot_backend/spam_classifier/ports/client as spam_classifier_client
 import glot_backend/system/crypto/token
 import glot_backend/system/effect/basic/basic_algebra
@@ -53,6 +54,7 @@ import glot_core/job/job_model
 import glot_core/snippet/runnability
 import glot_core/snippet/spam_classification
 import glot_core/validation_error
+import support/spam_classifier_storage as test_classifier_storage
 import youid/uuid
 
 pub fn measurement_aggregation_test() {
@@ -401,19 +403,22 @@ fn test_service_ports() -> service_ports.ServicePorts {
       run_code: runner.Runner(run: fn(_, _, _) {
         Error(run_request_error.ServerRunRequestError)
       }),
-      spam_classifier: spam_classifier_client.Client(classify: fn(_, _, _) {
-        Error(
-          error.infra(
-            infra_error.SpamClassifierError(
-              infra_error.SpamClassifierRequestFailed(
-                "not implemented",
-                infra_error.PermanentFailure,
-                infra_error.ServiceFailure,
+      spam_classifier: classifier_ports.Ports(
+        storage: test_classifier_storage.empty_index(),
+        external: spam_classifier_client.Client(classify: fn(_, _, _) {
+          Error(
+            error.infra(
+              infra_error.SpamClassifierError(
+                infra_error.SpamClassifierRequestFailed(
+                  "not implemented",
+                  infra_error.PermanentFailure,
+                  infra_error.ServiceFailure,
+                ),
               ),
             ),
-          ),
-        )
-      }),
+          )
+        }),
+      ),
     ),
     caches: cache_ports.without_caches(),
     transaction: transaction_port.none(),

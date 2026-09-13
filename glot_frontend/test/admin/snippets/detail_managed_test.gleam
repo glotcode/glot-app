@@ -37,6 +37,7 @@ pub fn classification_completion_replaces_existing_classification_test() {
     snippet_dto.SnippetDetailResponse(
       ..snippet,
       spam_classification: spam_classification.ClassificationMetadata(
+        explanation: option.None,
         decision: option.Some(spam_classification.Block),
         confidence: option.Some(98),
         reason_code: option.Some(spam_classification.LinkSpam),
@@ -75,6 +76,7 @@ fn fixture_snippet() -> snippet_dto.SnippetDetailResponse {
     run_instructions: option.None,
     files: [],
     spam_classification: spam_classification.ClassificationMetadata(
+      explanation: option.None,
       decision: option.Some(spam_classification.Allow),
       confidence: option.Some(70),
       reason_code: option.Some(spam_classification.None),

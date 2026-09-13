@@ -5,6 +5,7 @@ import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/job/domain/finalization.{type Finalization}
 import glot_backend/snippet/effect/effect as snippet_effect
 import glot_backend/spam_classifier/effect/effect as classifier_effect
+import glot_backend/spam_classifier/model/classification.{type Classification}
 import glot_backend/system/effect/basic/basic_effect
 import glot_backend/system/effect/error
 import glot_backend/system/effect/error/infra_error
@@ -25,7 +26,7 @@ pub type Outcome {
 }
 
 type ClassificationAttempt {
-  Classified(#(spam_classification.ServiceResponse, String))
+  Classified(Classification)
   SnippetRejected(error_code: String)
 }
 
@@ -132,9 +133,10 @@ fn classify_recorded_candidate(
 fn store_classification(
   snippet: Snippet,
   expected_updated_at: Timestamp,
-  response: #(spam_classification.ServiceResponse, String),
+  response: Classification,
 ) -> Program(Outcome) {
-  let #(service_response, request_id) = response
+  let service_response = response.response
+  let request_id = response.request_id
   use _ <- program.and_then(
     basic_effect.info(
       log.from_list([
@@ -153,6 +155,7 @@ fn store_classification(
         confidence: service_response.confidence,
         reason_code: service_response.reason_code,
         classified_at: classified_at,
+        explanation: response.explanation,
       ),
     )
     |> transaction_program.map(fn(result) {

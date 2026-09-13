@@ -23,6 +23,7 @@ pub type JobType {
   CleanUserActionsJob
   AggregateMetricsJob
   ClassifySnippetJob
+  IndexSnippetFingerprintsJob
   CheckSnippetRunnabilityJob
 }
 
@@ -63,6 +64,7 @@ pub fn job_type_to_string(job_type: JobType) -> String {
     CleanVerificationTokensJob -> "clean_login_tokens"
     CleanUserActionsJob -> "clean_user_actions"
     AggregateMetricsJob -> "aggregate_metrics"
+    IndexSnippetFingerprintsJob -> "index_snippet_fingerprints"
     ClassifySnippetJob -> "classify_snippet"
     CheckSnippetRunnabilityJob -> "check_snippet_runnability"
   }
@@ -84,6 +86,7 @@ pub fn job_type_from_string(
     "clean_login_tokens" -> Ok(CleanVerificationTokensJob)
     "clean_user_actions" -> Ok(CleanUserActionsJob)
     "aggregate_metrics" -> Ok(AggregateMetricsJob)
+    "index_snippet_fingerprints" -> Ok(IndexSnippetFingerprintsJob)
     "classify_snippet" -> Ok(ClassifySnippetJob)
     "check_snippet_runnability" -> Ok(CheckSnippetRunnabilityJob)
     _ -> Error(validation_error.InvalidJobType(value))

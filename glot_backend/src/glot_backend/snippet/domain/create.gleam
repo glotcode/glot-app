@@ -55,7 +55,6 @@ pub fn create_snippet(
   use _ <- program.and_then(snippet_validation.require_valid_fields(
     request.data,
   ))
-  use _ <- program.and_then(snippet_validation.require_clean(request.data))
 
   use snippet_id <- program.and_then(basic_effect.uuid_v7())
   let new_snippet =

@@ -114,6 +114,7 @@ fn admin_snippet_without_classification(snippet) {
   admin_snippet.AdminSnippet(
     snippet: snippet,
     spam_classification: spam_classification.ClassificationMetadata(
+      explanation: option.None,
       decision: option.None,
       confidence: option.None,
       reason_code: option.None,

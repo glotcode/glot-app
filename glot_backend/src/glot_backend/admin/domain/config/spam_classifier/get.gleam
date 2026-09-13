@@ -29,5 +29,6 @@ pub fn get_spam_classifier_config(
   program.succeed(spam_classifier_config_dto.SpamClassifierConfigResponse(
     base_url: config.base_url,
     auth_token: config.auth_token,
+    provider: config.provider,
   ))
 }

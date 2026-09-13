@@ -13,6 +13,7 @@ import glot_backend/user_action/effect/effect as user_action_effect
 import glot_core/admin/spam_classifier_config_dto
 import glot_core/admin_action
 import glot_core/api_action
+import glot_core/snippet/classifier_provider
 import glot_core/validation_error
 
 pub fn upsert_spam_classifier_config(
@@ -27,13 +28,18 @@ pub fn upsert_spam_classifier_config(
   ))
   use _ <- program.and_then(validate_request(request))
   use _ <- program.and_then(app_config_effect.upsert_spam_classifier_config(
-    config.Config(base_url: request.base_url, auth_token: request.auth_token),
+    config.Config(
+      base_url: request.base_url,
+      auth_token: request.auth_token,
+      provider: request.provider,
+    ),
     request_ctx.context.timestamp,
   ))
   use _ <- program.and_then(user_action_effect.create_user_action(user_action))
   program.succeed(spam_classifier_config_dto.SpamClassifierConfigResponse(
     base_url: request.base_url,
     auth_token: request.auth_token,
+    provider: request.provider,
   ))
 }
 
@@ -46,11 +52,16 @@ pub fn request_from_dynamic(
 fn validate_request(
   request: spam_classifier_config_dto.UpsertSpamClassifierConfigRequest,
 ) -> Program(Nil) {
-  case string.trim(request.base_url), string.trim(request.auth_token) {
-    "", _ ->
+  case
+    request.provider,
+    string.trim(request.base_url),
+    string.trim(request.auth_token)
+  {
+    classifier_provider.Local, _, _ -> program.succeed(Nil)
+    _, "", _ ->
       program.fail(error.validation(validation_error.EmptyField("baseUrl")))
-    _, "" ->
+    _, _, "" ->
       program.fail(error.validation(validation_error.EmptyField("authToken")))
-    _, _ -> program.succeed(Nil)
+    _, _, _ -> program.succeed(Nil)
   }
 }

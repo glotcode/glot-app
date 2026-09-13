@@ -12,6 +12,7 @@ pub fn updating_classification_does_not_update_snippet_timestamp_test() {
       option.None,
       <<>>,
       timestamp.from_unix_seconds(0),
+      option.None,
     )
   let assert [set_clause, _] = string.split(statement, on: "WHERE")
 

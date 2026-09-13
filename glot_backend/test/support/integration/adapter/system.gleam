@@ -1,9 +1,12 @@
 import glot_backend/auth/passkey/ports/ceremony as passkey_port
 import glot_backend/email/ports/sender as email_sender
 import glot_backend/run_code/ports/runner
+import glot_backend/spam_classifier/ports as classifier_ports
 import glot_backend/spam_classifier/ports/client as spam_classifier_client
+import glot_backend/spam_classifier/ports/storage as classifier_storage
 import glot_backend/system/effect/basic/basic_handlers
 import glot_backend/system/effect/error
+import glot_backend/system/effect/error/db_error
 import glot_backend/system/effect/error/infra_error
 import glot_backend/system/effect/error/run_request_error
 import glot_backend/system/effect/system_ports
@@ -48,19 +51,44 @@ pub fn defaults(test_state: state.State) -> system_ports.SystemPorts {
         "unexpected test port call: run_code.run",
       ))
     }),
-    spam_classifier: spam_classifier_client.Client(classify: fn(_, _, _) {
-      Error(
-        error.infra(
-          infra_error.SpamClassifierError(
-            infra_error.SpamClassifierRequestFailed(
-              "unexpected test port call: spam_classifier.classify",
-              infra_error.PermanentFailure,
-              infra_error.ServiceFailure,
+    spam_classifier: classifier_ports.Ports(
+      external: spam_classifier_client.Client(classify: fn(_, _, _) {
+        Error(
+          error.infra(
+            infra_error.SpamClassifierError(
+              infra_error.SpamClassifierRequestFailed(
+                "unexpected test port call: spam_classifier.classify",
+                infra_error.PermanentFailure,
+                infra_error.ServiceFailure,
+              ),
             ),
           ),
-        ),
-      )
-    }),
+        )
+      }),
+      storage: classifier_storage.Storage(
+        store: fn(_) {
+          Error(
+            error.database_query_error(db_error.DbQueryError(
+              "unexpected fingerprint store",
+            )),
+          )
+        },
+        candidates: fn(_, _, _) {
+          Error(
+            error.database_query_error(db_error.DbQueryError(
+              "unexpected fingerprint candidates",
+            )),
+          )
+        },
+        index_batch: fn(_) {
+          Error(
+            error.database_query_error(db_error.DbQueryError(
+              "unexpected fingerprint index batch",
+            )),
+          )
+        },
+      ),
+    ),
   )
 }
 

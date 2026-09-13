@@ -15,7 +15,7 @@ pub fn new(
   let db = db_helpers.new(connection)
   service_ports.ServicePorts(
     database: database_ports.new(db),
-    system: system_ports.new(http_pools),
+    system: system_ports.new(http_pools, db),
     caches: caches,
     transaction: transaction_port.new(db),
   )

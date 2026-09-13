@@ -7,6 +7,7 @@ import glot_core/admin/snippet_dto
 import glot_core/language
 import glot_core/loadable
 import glot_core/route
+import glot_core/snippet/classifier_provider
 import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model
 import glot_core/snippet/spam_classification.{
@@ -204,7 +205,7 @@ fn detail_view(model: Model) -> Element(Msg) {
             ]),
             html.p([attribute.class("admin-page__group-copy")], [
               html.text(
-                "The latest stored classifier result and terminal failure state. Classification does not change snippet visibility.",
+                "The latest stored classifier result and terminal failure state. Classification is advisory: even Likely spam never blocks saving, running or viewing, and does not change visibility.",
               ),
             ]),
           ]),
@@ -217,6 +218,7 @@ fn detail_view(model: Model) -> Element(Msg) {
               "Decision",
               optional_decision(snippet.spam_classification.decision),
             ),
+            explanation_view(snippet.spam_classification),
             admin_layout.detail_item(
               "Confidence",
               optional_confidence(snippet.spam_classification.confidence),
@@ -423,7 +425,7 @@ fn optional_decision(decision: option.Option(Decision)) -> String {
   case decision {
     option.Some(spam_classification.Allow) -> "Allow"
     option.Some(spam_classification.Review) -> "Review"
-    option.Some(spam_classification.Block) -> "Block"
+    option.Some(spam_classification.Block) -> "Likely spam"
     option.None -> "None"
   }
 }
@@ -446,5 +448,80 @@ fn empty_text(value: String) -> String {
   case value == "" {
     True -> "Empty"
     False -> value
+  }
+}
+
+fn explanation_view(metadata: ClassificationMetadata) -> Element(Msg) {
+  case metadata.explanation {
+    option.None ->
+      html.p([], [
+        html.text(
+          "Explanation unavailable for this historical or unclassified result.",
+        ),
+      ])
+    option.Some(value) ->
+      html.div([], [
+        admin_layout.detail_item(
+          "Provider",
+          classifier_provider.to_string(value.provider),
+        ),
+        admin_layout.detail_item(
+          "Algorithm version",
+          option.unwrap(value.version, "Unavailable"),
+        ),
+        admin_layout.detail_item("Risk score", case value.score {
+          option.None -> "Unavailable"
+          option.Some(score) -> int.to_string(score) <> " / 100"
+        }),
+        html.p([], [
+          html.text(case value.provider {
+            classifier_provider.Local ->
+              "Confidence is deterministic, uncalibrated rule confidence. It is not a measured probability of spam."
+            classifier_provider.External ->
+              "Confidence is supplied by the external service. Local scoring explanations are unavailable."
+          }),
+        ]),
+        html.p([], [
+          html.text(
+            "Contributing signals: "
+            <> case value.signals {
+              [] -> "None"
+              signals -> string.join(list.map(signals, signal_label), "; ")
+            },
+          ),
+        ]),
+        html.p([], [
+          html.text("Similar snippets (evidence at classification time):"),
+        ]),
+        html.ul(
+          [],
+          list.map(value.neighbors, fn(neighbor) {
+            html.li([], [
+              html.a(
+                [web_route.href(route.Admin(route.AdminSnippet(neighbor.slug)))],
+                [html.text(neighbor.slug)],
+              ),
+            ])
+          }),
+        ),
+      ])
+  }
+}
+
+fn signal_label(value: String) -> String {
+  case value {
+    "non_runnable_url" -> "Non-runnable snippet contains a URL (+40)"
+    "promotional_url" -> "Promotional phrase with a URL (+30)"
+    "contact_url" -> "Contact solicitation with a URL (+30)"
+    "non_runnable_link_content" ->
+      "Non-runnable content dominated by many distinct URLs (+50)"
+    "url_only_snippet" -> "All files contain only URLs (+100)"
+    "gambling_promotion" -> "Betting or casino recommendation with a URL (+50)"
+    "multiple_urls" -> "Multiple distinct URLs (+15)"
+    "obfuscated_url" -> "Deliberately obfuscated URL (+20)"
+    "keyword_stuffing" -> "Promotional keyword stuffing (+20)"
+    "similar_campaign" ->
+      "At least two independently suspicious similar snippets (+30)"
+    _ -> value
   }
 }

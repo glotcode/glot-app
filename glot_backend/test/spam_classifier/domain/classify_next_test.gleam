@@ -3,7 +3,9 @@ import gleam/option
 import glot_backend/app_config/model/config as dynamic_config
 import glot_backend/snippet/ports/store as snippet_store
 import glot_backend/spam_classifier/domain/classify_next
+import glot_backend/spam_classifier/effect/effect as classifier_effect
 import glot_backend/spam_classifier/model/config as classifier_config
+import glot_backend/spam_classifier/ports as classifier_ports
 import glot_backend/spam_classifier/ports/client as classifier_client
 import glot_backend/system/effect/database_ports
 import glot_backend/system/effect/error
@@ -12,6 +14,8 @@ import glot_backend/system/effect/program
 import glot_backend/system/effect/service_ports
 import glot_backend/system/effect/system_ports
 import glot_backend/system/effect/transaction/transaction_effect
+import glot_core/snippet/classifier_provider
+import glot_core/snippet/snippet_model
 import glot_core/snippet/spam_classification
 import support/integration/adapter/service_ports as test_service_ports
 import support/integration/adapter/snippet as test_snippet_adapter
@@ -19,6 +23,49 @@ import support/integration/adapter/transaction as test_transaction_adapter
 import support/integration/fixture
 import support/integration/model
 import support/integration/runner
+import support/spam_classifier_storage as test_classifier_storage
+
+pub fn local_provider_runs_without_calling_external_service_test() {
+  let test_fixture =
+    fixture.integration_fixture(
+      next_uuids: [],
+      jobs: [],
+      account_delete_job_id: option.None,
+    )
+  let snippet =
+    snippet_model.Snippet(
+      ..test_fixture.snippet,
+      title: "Buy now contact me https://example.com https://offer.org",
+    )
+  let #(result, _) =
+    runner.run_test_program_with(
+      classifier_effect.classify(
+        classifier_config.Config("", "", classifier_provider.Local),
+        spam_classification.ServiceRequest(snippet, True),
+      ),
+      test_fixture.ctx,
+      test_fixture.state,
+      // The default external client fails on any unexpected invocation.
+      fn(state) {
+        let services = test_service_ports.defaults(state)
+        service_ports.ServicePorts(
+          ..services,
+          system: system_ports.SystemPorts(
+            ..services.system,
+            spam_classifier: classifier_ports.Ports(
+              ..services.system.spam_classifier,
+              storage: test_classifier_storage.empty_index(),
+            ),
+          ),
+        )
+      },
+    )
+  let assert Ok(classification) = result
+  let response = classification.response
+  assert response.decision == spam_classification.Block
+  let assert option.Some(explanation) = classification.explanation
+  assert explanation.version == option.Some("local-v1")
+}
 
 pub fn invalid_snippet_is_quarantined_and_processing_continues_test() {
   let test_fixture =
@@ -96,6 +143,7 @@ fn with_classifier_config(state: model.TestState) -> model.TestState {
     dynamic_config.DynamicConfig(
       ..state.dynamic_config,
       spam_classifier: option.Some(classifier_config.Config(
+        provider: classifier_provider.External,
         base_url: "http://classifier:8081",
         auth_token: "secret",
       )),
@@ -227,14 +275,17 @@ fn services(
   let system =
     system_ports.SystemPorts(
       ..base_services.system,
-      spam_classifier: classifier_client.Client(classify: fn(_, request, _) {
-        let assert spam_classification.ServiceRequest(
-          snippet: requested_snippet,
-          is_runnable: False,
-        ) = request
-        assert requested_snippet == snippet
-        classifier_result
-      }),
+      spam_classifier: classifier_ports.Ports(
+        storage: test_classifier_storage.empty_index(),
+        external: classifier_client.Client(classify: fn(_, request, _) {
+          let assert spam_classification.ServiceRequest(
+            snippet: requested_snippet,
+            is_runnable: False,
+          ) = request
+          assert requested_snippet == snippet
+          classifier_result
+        }),
+      ),
     )
   service_ports.ServicePorts(
     ..base_services,

@@ -7,6 +7,7 @@ import glot_backend/job/ports as job_ports
 import glot_backend/job/ports/job_store
 import glot_backend/snippet/ports/store as snippet_store
 import glot_backend/spam_classifier/model/config as classifier_config
+import glot_backend/spam_classifier/ports as classifier_ports
 import glot_backend/spam_classifier/ports/client as classifier_client
 import glot_backend/system/effect/database_ports
 import glot_backend/system/effect/error
@@ -17,6 +18,7 @@ import glot_backend/system/effect/system_ports
 import glot_backend/system/request/context
 import glot_core/job/job_model
 import glot_core/periodic_job/periodic_job_model
+import glot_core/snippet/classifier_provider
 import glot_core/snippet/snippet_model.{type Snippet}
 import glot_core/snippet/spam_classification
 import support/integration/adapter/service_ports as test_service_ports
@@ -28,6 +30,7 @@ import support/integration/model as test_model
 import support/integration/profile/job as runner
 import support/integration/runner as integration_runner
 import support/integration/store/common
+import support/spam_classifier_storage as test_classifier_storage
 
 pub fn classifier_result_and_job_completion_commit_together_test() {
   let successor_id = fixture.must_uuid("00000000-0000-0000-0000-000000000421")
@@ -346,6 +349,7 @@ fn with_classifier_config(
     dynamic_config.DynamicConfig(
       ..db.dynamic_config,
       spam_classifier: option.Some(classifier_config.Config(
+        provider: classifier_provider.External,
         base_url: "http://classifier:8081",
         auth_token: "secret",
       )),
@@ -429,34 +433,40 @@ fn classifier_services(
   let system =
     system_ports.SystemPorts(
       ..services.system,
-      spam_classifier: classifier_client.Client(classify: fn(_, _, _) {
-        case disable_periodic_during_classification {
-          True ->
-            state.update(test_state, fn(db) {
-              let periodic_job_id =
-                fixture.must_uuid("00000000-0000-0000-0000-000000000419")
-              let assert Ok(periodic_job) =
-                dict.get(db.periodic_jobs, common.uuid_key(periodic_job_id))
-              test_model.TestState(
-                ..db,
-                periodic_jobs: dict.insert(
-                  db.periodic_jobs,
-                  common.uuid_key(periodic_job_id),
-                  periodic_job_model.PeriodicJob(..periodic_job, enabled: False),
-                ),
-              )
-            })
-          False -> Nil
-        }
-        Ok(#(
-          spam_classification.ServiceResponse(
-            decision: spam_classification.Allow,
-            confidence: 100,
-            reason_code: spam_classification.None,
-          ),
-          "classifier-request-id",
-        ))
-      }),
+      spam_classifier: classifier_ports.Ports(
+        storage: test_classifier_storage.empty_index(),
+        external: classifier_client.Client(classify: fn(_, _, _) {
+          case disable_periodic_during_classification {
+            True ->
+              state.update(test_state, fn(db) {
+                let periodic_job_id =
+                  fixture.must_uuid("00000000-0000-0000-0000-000000000419")
+                let assert Ok(periodic_job) =
+                  dict.get(db.periodic_jobs, common.uuid_key(periodic_job_id))
+                test_model.TestState(
+                  ..db,
+                  periodic_jobs: dict.insert(
+                    db.periodic_jobs,
+                    common.uuid_key(periodic_job_id),
+                    periodic_job_model.PeriodicJob(
+                      ..periodic_job,
+                      enabled: False,
+                    ),
+                  ),
+                )
+              })
+            False -> Nil
+          }
+          Ok(#(
+            spam_classification.ServiceResponse(
+              decision: spam_classification.Allow,
+              confidence: 100,
+              reason_code: spam_classification.None,
+            ),
+            "classifier-request-id",
+          ))
+        }),
+      ),
     )
 
   service_ports.ServicePorts(

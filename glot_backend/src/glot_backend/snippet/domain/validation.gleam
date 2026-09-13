@@ -8,7 +8,6 @@ import glot_backend/system/effect/transaction/transaction_program
 import glot_core/language
 import glot_core/snippet/snippet_dto.{type SnippetData}
 import glot_core/snippet/snippet_model.{type HydratedSnippet}
-import glot_core/snippet/snippet_spam
 import glot_core/validation_error
 
 pub fn require_valid_fields(data: SnippetData) -> Program(Nil) {
@@ -51,15 +50,4 @@ pub fn require_writable_snippet_tx(
 ) -> TransactionProgram(Nil) {
   require_writable_language(snippet.identity.language)
   |> transaction_program.from_result
-}
-
-pub fn require_clean(data: SnippetData) -> Program(Nil) {
-  ensure_clean(data)
-  |> program.from_result
-}
-
-fn ensure_clean(data: SnippetData) -> Result(Nil, error.Error) {
-  data
-  |> snippet_spam.ensure_clean
-  |> result.map_error(error.validation)
 }

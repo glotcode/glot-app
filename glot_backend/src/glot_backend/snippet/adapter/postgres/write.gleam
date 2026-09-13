@@ -7,6 +7,7 @@ import glot_backend/sql
 import glot_backend/system/database as db_helpers
 import glot_backend/system/effect/error/db_error
 import glot_core/language
+import glot_core/snippet/classification_explanation
 import glot_core/snippet/runnability
 import glot_core/snippet/snippet_model.{type Snippet}
 import glot_core/snippet/spam_classification
@@ -91,6 +92,10 @@ pub fn store_spam_classification(
       option.Some(classification.classified_at),
       uuid.to_bit_array(id),
       expected_updated_at,
+      classification.explanation
+        |> option.map(fn(value) {
+          classification_explanation.encode(value) |> json.to_string
+        }),
     ),
     command_error,
   ))
@@ -116,6 +121,10 @@ pub fn update_spam_classification(
       option.Some(classification.classified_at),
       uuid.to_bit_array(id),
       expected_updated_at,
+      classification.explanation
+        |> option.map(fn(value) {
+          classification_explanation.encode(value) |> json.to_string
+        }),
     ),
     command_error,
   ))

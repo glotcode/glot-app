@@ -5,6 +5,7 @@ import gleam/option
 import gleam/result
 import gleam/time/timestamp.{type Timestamp}
 import glot_core/language
+import glot_core/snippet/classification_explanation.{type Explanation}
 import glot_core/snippet/snippet_model.{type Snippet}
 
 pub type Decision {
@@ -36,6 +37,7 @@ pub type ClassificationResult {
     confidence: Int,
     reason_code: ReasonCode,
     classified_at: Timestamp,
+    explanation: option.Option(Explanation),
   )
 }
 
@@ -52,6 +54,7 @@ pub type ClassificationMetadata {
     attempts: Int,
     last_error: option.Option(String),
     failed_at: option.Option(Timestamp),
+    explanation: option.Option(Explanation),
   )
 }
 

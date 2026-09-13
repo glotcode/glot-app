@@ -63,7 +63,6 @@ pub fn update_snippet(
   use _ <- program.and_then(snippet_validation.require_valid_fields(
     request.data,
   ))
-  use _ <- program.and_then(snippet_validation.require_clean(request.data))
 
   use updated_snippet <- program.and_then(
     update_snippet_tx(

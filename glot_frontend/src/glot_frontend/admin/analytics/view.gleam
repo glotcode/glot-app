@@ -137,7 +137,7 @@ fn spam_classifier_metrics(
         admin_layout.summary_card("Failed", format_int(metrics.failed)),
         admin_layout.summary_card("Allow", format_int(metrics.allow)),
         admin_layout.summary_card("Review", format_int(metrics.review)),
-        admin_layout.summary_card("Block", format_int(metrics.block)),
+        admin_layout.summary_card("Likely spam", format_int(metrics.block)),
         admin_layout.summary_card("Attempts", format_int(metrics.attempts)),
         admin_layout.summary_card(
           "Attempted backlog",

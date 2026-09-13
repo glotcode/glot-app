@@ -64,7 +64,7 @@ pub fn view(model: Model, now: Timestamp) -> Element(Msg) {
                 on_input: SpamClassificationFilterChanged,
                 options: [
                   #("", "All classifications"),
-                  #("block", "Block"),
+                  #("block", "Likely spam"),
                   #("review", "Review"),
                   #("pass", "Pass"),
                   #("unclassified", "Unclassified"),

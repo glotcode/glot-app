@@ -29,7 +29,6 @@ pub type ValidationError {
   MustBeLessThanOrEqual(field: String, max: Int)
   MustBeGreaterThanOrEqualField(field: String, other_field: String)
   RulesMissing
-  SpamDetected(message: String)
 }
 
 pub fn code(err: ValidationError) -> String {
@@ -61,7 +60,6 @@ pub fn code(err: ValidationError) -> String {
     MustBeGreaterThanOrEqualField(field, _) ->
       "validation_" <> field_slug(field) <> "_too_small"
     RulesMissing -> "validation_rules_missing"
-    SpamDetected(_) -> "validation_spam_detected"
   }
 }
 
@@ -99,7 +97,6 @@ pub fn message(err: ValidationError) -> String {
     MustBeGreaterThanOrEqualField(field, other_field) ->
       field <> " must be greater than or equal to " <> other_field
     RulesMissing -> "rules must contain at least one rule"
-    SpamDetected(message) -> message
   }
 }
 

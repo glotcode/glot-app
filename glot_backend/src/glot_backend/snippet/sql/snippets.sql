@@ -91,6 +91,7 @@ SELECT
   snippets.spam_classification_attempts,
   snippets.spam_classification_last_error,
   snippets.spam_classification_failed_at,
+  snippets.spam_explanation,
   snippets.is_runnable,
   snippets.runnability_checked_at,
   snippets.runnability_check_attempts,
@@ -322,7 +323,7 @@ LIMIT sqlc.arg(page_limit);
 INSERT INTO snippets (id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
 
 -- name: UpdateSnippet :exec
-UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10, spam_decision = NULL, spam_confidence = NULL, spam_reason_code = NULL, spam_classified_at = NULL, spam_classification_attempts = 0, spam_classification_last_error = NULL, spam_classification_failed_at = NULL, is_runnable = NULL, runnability_checked_at = NULL, runnability_check_attempts = 0, runnability_check_last_error = NULL, runnability_check_failed_at = NULL WHERE id = $11;
+UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10, spam_explanation = NULL, spam_decision = NULL, spam_confidence = NULL, spam_reason_code = NULL, spam_classified_at = NULL, spam_classification_attempts = 0, spam_classification_last_error = NULL, spam_classification_failed_at = NULL, is_runnable = NULL, runnability_checked_at = NULL, runnability_check_attempts = 0, runnability_check_last_error = NULL, runnability_check_failed_at = NULL WHERE id = $11;
 
 -- name: GetNewestUnclassifiedSnippet :one
 SELECT id, slug, user_id, language, title, visibility, stdin, run_instructions, files, created_at, updated_at, is_runnable,
@@ -340,6 +341,7 @@ SET spam_decision = $1,
     spam_confidence = $2,
     spam_reason_code = $3,
     spam_classified_at = $4,
+    spam_explanation = $7,
     spam_classification_last_error = NULL,
     spam_classification_failed_at = NULL
 WHERE id = $5
@@ -354,6 +356,7 @@ SET spam_decision = $1,
     spam_confidence = $2,
     spam_reason_code = $3,
     spam_classified_at = $4,
+    spam_explanation = $7,
     spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1,
     spam_classification_last_error = NULL,
     spam_classification_failed_at = NULL

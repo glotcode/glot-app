@@ -147,3 +147,44 @@ pub fn create_snippet_rejects_plaintext_test() {
     == Error(error.validation(validation_error.ReadOnlyLanguage("plaintext")))
   assert db.write_steps == []
 }
+
+pub fn create_snippet_accepts_promotional_content_test() {
+  let snippet_id = fixture.must_uuid("00000000-0000-0000-0000-000000000700")
+  let user_action_id = fixture.must_uuid("00000000-0000-0000-0000-000000000699")
+  let fixture =
+    fixture.integration_fixture(
+      next_uuids: [user_action_id, snippet_id],
+      jobs: [],
+      account_delete_job_id: option.None,
+    )
+  let request =
+    snippet_dto.CreateSnippetRequest(
+      data: snippet_dto.SnippetData(
+        title: "Earn money fast buy now",
+        language: language.Python,
+        visibility: snippet_model.Public,
+        stdin: "",
+        run_instructions: option.None,
+        files: [
+          snippet_model.File(
+            name: "main.py",
+            content: "Contact me on Telegram https://t.me/spam_now click here",
+          ),
+        ],
+      ),
+    )
+
+  let #(run_result, db) =
+    runner.run_test_program(
+      create_snippet_domain.create_snippet(
+        request_context.new(fixture.ctx, fixture.state.dynamic_config),
+        request,
+      ),
+      fixture.ctx,
+      fixture.state,
+    )
+
+  let assert Ok(_) = run_result
+  assert dict.has_key(db.snippets, common.uuid_key(snippet_id))
+  assert db.next_uuids == []
+}

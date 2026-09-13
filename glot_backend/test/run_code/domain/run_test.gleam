@@ -147,3 +147,38 @@ fn test_setup(next_uuids: List(Uuid)) {
 
   #(ctx, config, state, request)
 }
+
+pub fn promotional_code_is_still_executed_test() {
+  let user_action_id = fixture.must_uuid("00000000-0000-0000-0000-000000000696")
+  let run_log_id = fixture.must_uuid("00000000-0000-0000-0000-000000000695")
+  let #(ctx, config, state, request) = test_setup([user_action_id, run_log_id])
+  let request =
+    run.RunRequest(
+      ..request,
+      payload: run.RunRequestPayload(..request.payload, files: [
+        snippet_model.File(
+          "main.py",
+          "# Buy now contact me https://example.com https://example.org\nprint('hello')",
+        ),
+      ]),
+    )
+  let execution =
+    run.SuccessfulRun(duration: 42, stdout: "hello\n", stderr: "", error: "")
+
+  let #(result, db) =
+    runner.run_execution_test_program(
+      run_domain.run(request_context.new(ctx, config), request),
+      ctx,
+      state,
+      Ok(execution),
+    )
+
+  assert result == Ok(Ok(execution))
+  let assert Ok(run_log) = dict.get(db.run_logs, common.uuid_key(run_log_id))
+  assert run_log.language == language.Python
+  assert run_log.outcome == run_log_model.RunSucceeded
+  assert run_log.duration_ns == option.Some(42)
+  assert run_log.failure_message == option.None
+  assert db.user_action_count == 1
+  assert db.write_steps == ["create_run_log", "create_user_action"]
+}

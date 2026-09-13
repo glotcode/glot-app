@@ -81,3 +81,25 @@ fn decode_run_instructions(
       })
   }
 }
+
+// Indexing does not depend on runnability or mutate classification metadata.
+pub fn from_index_batch(
+  row: sql.ListClassifierIndexBatch,
+) -> Result(snippet_model.Snippet, db_error.DbQueryError) {
+  from_unclassified(sql.GetNewestUnclassifiedSnippet(
+    id: row.id,
+    slug: row.slug,
+    user_id: row.user_id,
+    language: row.language,
+    title: row.title,
+    visibility: row.visibility,
+    stdin: row.stdin,
+    run_instructions: row.run_instructions,
+    files: row.files,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    is_runnable: option.Some(False),
+    spam_classification_attempts: 0,
+  ))
+  |> result.map(fn(candidate) { candidate.snippet })
+}

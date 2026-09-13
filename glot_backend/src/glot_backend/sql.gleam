@@ -5360,6 +5360,7 @@ pub type GetAdminSnippetBySlug {
     spam_classification_attempts: Option(Int),
     spam_classification_last_error: Option(String),
     spam_classification_failed_at: Option(Timestamp),
+    spam_explanation: Option(String),
     is_runnable: Option(Bool),
     runnability_checked_at: Option(Timestamp),
     runnability_check_attempts: Int,
@@ -5396,6 +5397,7 @@ pub fn get_admin_snippet_by_slug(slug slug: String) {
   snippets.spam_classification_attempts,
   snippets.spam_classification_last_error,
   snippets.spam_classification_failed_at,
+  snippets.spam_explanation,
   snippets.is_runnable,
   snippets.runnability_checked_at,
   snippets.runnability_check_attempts,
@@ -5447,28 +5449,29 @@ pub fn get_admin_snippet_by_slug_decoder() -> decode.Decoder(
     16,
     decode.optional(dev.datetime_decoder()),
   )
-  use is_runnable <- decode.field(17, decode.optional(dev.bool_decoder()))
+  use spam_explanation <- decode.field(17, decode.optional(decode.string))
+  use is_runnable <- decode.field(18, decode.optional(dev.bool_decoder()))
   use runnability_checked_at <- decode.field(
-    18,
+    19,
     decode.optional(dev.datetime_decoder()),
   )
-  use runnability_check_attempts <- decode.field(19, decode.int)
+  use runnability_check_attempts <- decode.field(20, decode.int)
   use runnability_check_last_error <- decode.field(
-    20,
+    21,
     decode.optional(decode.string),
   )
   use runnability_check_failed_at <- decode.field(
-    21,
+    22,
     decode.optional(dev.datetime_decoder()),
   )
-  use user_id <- decode.field(22, decode.bit_array)
-  use user_account_id <- decode.field(23, decode.bit_array)
-  use user_email <- decode.field(24, decode.string)
-  use user_username <- decode.field(25, decode.string)
-  use user_role <- decode.field(26, decode.string)
-  use user_last_login_at <- decode.field(27, dev.datetime_decoder())
-  use user_created_at <- decode.field(28, dev.datetime_decoder())
-  use user_updated_at <- decode.field(29, dev.datetime_decoder())
+  use user_id <- decode.field(23, decode.bit_array)
+  use user_account_id <- decode.field(24, decode.bit_array)
+  use user_email <- decode.field(25, decode.string)
+  use user_username <- decode.field(26, decode.string)
+  use user_role <- decode.field(27, decode.string)
+  use user_last_login_at <- decode.field(28, dev.datetime_decoder())
+  use user_created_at <- decode.field(29, dev.datetime_decoder())
+  use user_updated_at <- decode.field(30, dev.datetime_decoder())
   decode.success(GetAdminSnippetBySlug(
     id:,
     slug:,
@@ -5487,6 +5490,7 @@ pub fn get_admin_snippet_by_slug_decoder() -> decode.Decoder(
     spam_classification_attempts:,
     spam_classification_last_error:,
     spam_classification_failed_at:,
+    spam_explanation:,
     is_runnable:,
     runnability_checked_at:,
     runnability_check_attempts:,
@@ -6127,7 +6131,7 @@ pub fn update_snippet(
   id id: BitArray,
 ) {
   let sql =
-    "UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10, spam_decision = NULL, spam_confidence = NULL, spam_reason_code = NULL, spam_classified_at = NULL, spam_classification_attempts = 0, spam_classification_last_error = NULL, spam_classification_failed_at = NULL, is_runnable = NULL, runnability_checked_at = NULL, runnability_check_attempts = 0, runnability_check_last_error = NULL, runnability_check_failed_at = NULL WHERE id = $11"
+    "UPDATE snippets SET slug = $1, user_id = $2, language = $3, title = $4, visibility = $5, stdin = $6, run_instructions = $7, files = $8, created_at = $9, updated_at = $10, spam_explanation = NULL, spam_decision = NULL, spam_confidence = NULL, spam_reason_code = NULL, spam_classified_at = NULL, spam_classification_attempts = 0, spam_classification_last_error = NULL, spam_classification_failed_at = NULL, is_runnable = NULL, runnability_checked_at = NULL, runnability_check_attempts = 0, runnability_check_last_error = NULL, runnability_check_failed_at = NULL WHERE id = $11"
   #(sql, [
     dev.ParamString(slug),
     dev.ParamBitArray(user_id),
@@ -6216,6 +6220,7 @@ pub fn store_spam_classification(
   spam_classified_at spam_classified_at: Option(Timestamp),
   id id: BitArray,
   updated_at updated_at: Timestamp,
+  spam_explanation spam_explanation: Option(String),
 ) {
   let sql =
     "UPDATE snippets
@@ -6223,6 +6228,7 @@ SET spam_decision = $1,
     spam_confidence = $2,
     spam_reason_code = $3,
     spam_classified_at = $4,
+    spam_explanation = $7,
     spam_classification_last_error = NULL,
     spam_classification_failed_at = NULL
 WHERE id = $5
@@ -6240,6 +6246,9 @@ WHERE id = $5
     ),
     dev.ParamBitArray(id),
     dev.ParamTimestamp(updated_at),
+    dev.ParamNullable(
+      option.map(spam_explanation, fn(v) { dev.ParamString(v) }),
+    ),
   ])
 }
 
@@ -6250,6 +6259,7 @@ pub fn update_spam_classification(
   spam_classified_at spam_classified_at: Option(Timestamp),
   id id: BitArray,
   updated_at updated_at: Timestamp,
+  spam_explanation spam_explanation: Option(String),
 ) {
   let sql =
     "UPDATE snippets
@@ -6257,6 +6267,7 @@ SET spam_decision = $1,
     spam_confidence = $2,
     spam_reason_code = $3,
     spam_classified_at = $4,
+    spam_explanation = $7,
     spam_classification_attempts = COALESCE(spam_classification_attempts, 0) + 1,
     spam_classification_last_error = NULL,
     spam_classification_failed_at = NULL
@@ -6273,6 +6284,9 @@ WHERE id = $5
     ),
     dev.ParamBitArray(id),
     dev.ParamTimestamp(updated_at),
+    dev.ParamNullable(
+      option.map(spam_explanation, fn(v) { dev.ParamString(v) }),
+    ),
   ])
 }
 
@@ -6456,6 +6470,204 @@ WHERE user_id IN (
   WHERE account_id = $1
 )"
   #(sql, [dev.ParamBitArray(account_id)])
+}
+
+pub type StoreClassifierFingerprint {
+  StoreClassifierFingerprint(stored: Bool)
+}
+
+pub fn store_classifier_fingerprint(
+  snippet_id snippet_id: BitArray,
+  content_revision content_revision: Timestamp,
+  algorithm_version algorithm_version: String,
+  token_count token_count: Int,
+  trigram_hashes trigram_hashes: List(Int),
+  signature signature: List(Int),
+  independently_suspicious independently_suspicious: Bool,
+  urls urls: String,
+  bands bands: List(String),
+) {
+  let sql =
+    "WITH current_snippet AS (
+  SELECT id FROM snippets
+  WHERE id = $1::uuid AND updated_at = $2::timestamptz
+  FOR UPDATE
+), stored AS (
+  INSERT INTO spam_classifier_fingerprints
+    (snippet_id, content_revision, algorithm_version, token_count,
+     trigram_hashes, signature, independently_suspicious, urls)
+  SELECT id, $2, $3::text, $4::int, $5::int[], $6::int[], $7::boolean, $8::jsonb
+  FROM current_snippet
+  ON CONFLICT (snippet_id, content_revision, algorithm_version)
+  DO UPDATE SET token_count = EXCLUDED.token_count,
+    trigram_hashes = EXCLUDED.trigram_hashes, signature = EXCLUDED.signature,
+    independently_suspicious = EXCLUDED.independently_suspicious,
+    urls = EXCLUDED.urls, indexed_at = CURRENT_TIMESTAMP
+  RETURNING snippet_id, content_revision, algorithm_version
+), bands AS (
+  INSERT INTO spam_classifier_bands
+    (snippet_id, content_revision, algorithm_version, band_number, band_value)
+  SELECT stored.snippet_id, stored.content_revision, stored.algorithm_version,
+    (band.ordinality - 1)::int, band.value
+  FROM stored CROSS JOIN unnest($9::text[]) WITH ORDINALITY AS band(value, ordinality)
+  ON CONFLICT (snippet_id, content_revision, algorithm_version, band_number)
+  DO UPDATE SET band_value = EXCLUDED.band_value
+)
+SELECT EXISTS(SELECT 1 FROM stored)::boolean AS stored"
+  #(
+    sql,
+    [
+      dev.ParamBitArray(snippet_id),
+      dev.ParamTimestamp(content_revision),
+      dev.ParamString(algorithm_version),
+      dev.ParamInt(token_count),
+      dev.ParamList(list.map(trigram_hashes, dev.ParamInt)),
+      dev.ParamList(list.map(signature, dev.ParamInt)),
+      dev.ParamBool(independently_suspicious),
+      dev.ParamString(urls),
+      dev.ParamList(list.map(bands, dev.ParamString)),
+    ],
+    store_classifier_fingerprint_decoder(),
+  )
+}
+
+pub fn store_classifier_fingerprint_decoder() -> decode.Decoder(
+  StoreClassifierFingerprint,
+) {
+  use stored <- decode.field(0, dev.bool_decoder())
+  decode.success(StoreClassifierFingerprint(stored:))
+}
+
+pub type FindClassifierNeighbors {
+  FindClassifierNeighbors(
+    snippet_id: BitArray,
+    content_revision: Timestamp,
+    slug: String,
+    token_count: Int,
+    trigram_hashes: List(Int),
+    signature: List(Int),
+    independently_suspicious: Bool,
+    matching_bands: Int,
+  )
+}
+
+pub fn find_classifier_neighbors(
+  algorithm_version algorithm_version: String,
+  bands bands: List(String),
+  snippet_id snippet_id: BitArray,
+) {
+  let sql =
+    "SELECT f.snippet_id, f.content_revision, s.slug, f.token_count,
+  f.trigram_hashes, f.signature, f.independently_suspicious,
+  count(*)::int AS matching_bands
+FROM spam_classifier_bands b
+JOIN spam_classifier_fingerprints f USING (snippet_id, content_revision, algorithm_version)
+JOIN snippets s ON s.id = f.snippet_id AND s.updated_at = f.content_revision
+WHERE b.algorithm_version = $1::text
+  AND b.band_value = ANY($2::text[])
+  AND b.snippet_id <> $3::uuid
+  AND f.token_count >= 20
+GROUP BY f.snippet_id, f.content_revision, f.algorithm_version, s.slug
+ORDER BY matching_bands DESC, f.content_revision DESC, f.snippet_id DESC
+LIMIT 200"
+  #(
+    sql,
+    [
+      dev.ParamString(algorithm_version),
+      dev.ParamList(list.map(bands, dev.ParamString)),
+      dev.ParamBitArray(snippet_id),
+    ],
+    find_classifier_neighbors_decoder(),
+  )
+}
+
+pub fn find_classifier_neighbors_decoder() -> decode.Decoder(
+  FindClassifierNeighbors,
+) {
+  use snippet_id <- decode.field(0, decode.bit_array)
+  use content_revision <- decode.field(1, dev.datetime_decoder())
+  use slug <- decode.field(2, decode.string)
+  use token_count <- decode.field(3, decode.int)
+  use trigram_hashes <- decode.field(4, decode.list(of: decode.int))
+  use signature <- decode.field(5, decode.list(of: decode.int))
+  use independently_suspicious <- decode.field(6, dev.bool_decoder())
+  use matching_bands <- decode.field(7, decode.int)
+  decode.success(FindClassifierNeighbors(
+    snippet_id:,
+    content_revision:,
+    slug:,
+    token_count:,
+    trigram_hashes:,
+    signature:,
+    independently_suspicious:,
+    matching_bands:,
+  ))
+}
+
+pub type ListClassifierIndexBatch {
+  ListClassifierIndexBatch(
+    id: BitArray,
+    slug: String,
+    user_id: BitArray,
+    language: String,
+    title: String,
+    visibility: String,
+    stdin: String,
+    run_instructions: Option(String),
+    files: String,
+    created_at: Timestamp,
+    updated_at: Timestamp,
+  )
+}
+
+pub fn list_classifier_index_batch(
+  algorithm_version algorithm_version: String,
+) {
+  let sql =
+    "SELECT s.id, s.slug, s.user_id, s.language, s.title, s.visibility, s.stdin,
+  s.run_instructions, s.files, s.created_at, s.updated_at
+FROM snippets s
+WHERE NOT EXISTS (
+  SELECT 1 FROM spam_classifier_fingerprints f
+  WHERE f.snippet_id = s.id AND f.content_revision = s.updated_at
+    AND f.algorithm_version = $1::text
+)
+ORDER BY s.id
+LIMIT 100"
+  #(
+    sql,
+    [dev.ParamString(algorithm_version)],
+    list_classifier_index_batch_decoder(),
+  )
+}
+
+pub fn list_classifier_index_batch_decoder() -> decode.Decoder(
+  ListClassifierIndexBatch,
+) {
+  use id <- decode.field(0, decode.bit_array)
+  use slug <- decode.field(1, decode.string)
+  use user_id <- decode.field(2, decode.bit_array)
+  use language <- decode.field(3, decode.string)
+  use title <- decode.field(4, decode.string)
+  use visibility <- decode.field(5, decode.string)
+  use stdin <- decode.field(6, decode.string)
+  use run_instructions <- decode.field(7, decode.optional(decode.string))
+  use files <- decode.field(8, decode.string)
+  use created_at <- decode.field(9, dev.datetime_decoder())
+  use updated_at <- decode.field(10, dev.datetime_decoder())
+  decode.success(ListClassifierIndexBatch(
+    id:,
+    slug:,
+    user_id:,
+    language:,
+    title:,
+    visibility:,
+    stdin:,
+    run_instructions:,
+    files:,
+    created_at:,
+    updated_at:,
+  ))
 }
 
 pub type CountUserActionsByIp {

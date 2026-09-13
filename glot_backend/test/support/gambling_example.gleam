@@ -1,0 +1,4 @@
+// Sanitized user-labeled promotion; both links intentionally share one destination.
+pub const title = "PSL 2026 Pakistan Super League Betting Tips"
+
+pub const text = "PSL 2026 Pakistan Super League Betting Tips\n\nMobile betting apps have revolutionized the industry. You can now place bets, watch live streams, and manage your account from anywhere in the world.\n\nIPL franchises like Mumbai Indians, Chennai Super Kings, and Royal Challengers Bangalore attract the highest betting volumes of any T20 tournament globally.\n\nRecommended: Example Casino - https://offers.example.org\n\nThe India-Pakistan rivalry is one of the most watched sporting events in the world. Whenever these two teams meet, betting markets see unprecedented activity.\n\nVisit https://offers.example.org for more information."
