@@ -1,23 +1,32 @@
+import glot_core/job/job_model.{type JobType}
 import glot_frontend/admin/ui/layout as admin_layout
 import lustre/element.{type Element}
 
-pub fn job_type_label(job_type: String) -> String {
+pub fn job_type_label(value: String) -> String {
+  case job_model.job_type_from_string(value) {
+    Ok(job_type) -> known_job_type_label(job_type)
+    Error(_) -> value
+  }
+}
+
+// Keep this match exhaustive so new job types require a display label.
+fn known_job_type_label(job_type: JobType) -> String {
   case job_type {
-    "clean_api_log" -> "Clean API log"
-    "clean_page_log" -> "Clean page log"
-    "clean_pageview_log" -> "Clean pageview log"
-    "clean_run_log" -> "Clean run log"
-    "clean_job_log" -> "Clean job log"
-    "clean_jobs" -> "Clean jobs"
-    "clean_sessions" -> "Clean sessions"
-    "clean_login_tokens" -> "Clean verification tokens"
-    "clean_user_actions" -> "Clean user actions"
-    "aggregate_metrics" -> "Aggregate metrics"
-    "classify_snippet" -> "Classify snippet"
-    "check_snippet_runnability" -> "Check snippet runnability"
-    "delete_account" -> "Delete account"
-    "send_email" -> "Send email"
-    _ -> job_type
+    job_model.CleanApiLogJob -> "Clean API log"
+    job_model.CleanPageLogJob -> "Clean page log"
+    job_model.CleanPageviewLogJob -> "Clean pageview log"
+    job_model.CleanRunLogJob -> "Clean run log"
+    job_model.CleanJobLogJob -> "Clean job log"
+    job_model.CleanJobsJob -> "Clean jobs"
+    job_model.CleanSessionsJob -> "Clean sessions"
+    job_model.CleanVerificationTokensJob -> "Clean verification tokens"
+    job_model.CleanUserActionsJob -> "Clean user actions"
+    job_model.AggregateMetricsJob -> "Aggregate metrics"
+    job_model.ClassifySnippetJob -> "Classify snippet"
+    job_model.IndexSnippetFingerprintsJob -> "Index snippet fingerprints"
+    job_model.CheckSnippetRunnabilityJob -> "Check snippet runnability"
+    job_model.DeleteAccountJob -> "Delete account"
+    job_model.SendEmailJob -> "Send email"
   }
 }
 

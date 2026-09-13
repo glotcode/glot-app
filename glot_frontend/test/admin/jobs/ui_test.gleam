@@ -12,3 +12,8 @@ pub fn runnability_job_type_has_a_human_readable_label_test() {
 pub fn unknown_job_type_label_preserves_the_identifier_test() {
   assert admin_job_ui.job_type_label("future_job") == "future_job"
 }
+
+pub fn index_snippet_fingerprints_has_a_display_label_test() {
+  assert admin_job_ui.job_type_label("index_snippet_fingerprints")
+    == "Index snippet fingerprints"
+}
