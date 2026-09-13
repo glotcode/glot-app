@@ -128,8 +128,13 @@ fn button(label: String, msg: Msg, disabled: Bool) -> Element(Msg) {
 
 fn filters(model: Model) -> Element(Msg) {
   let draft = model.draft
-  filter.filter_section(
-    "Combine filters to choose the review queue.",
+  html.details([attribute.class("admin-page__group")], [
+    html.summary([attribute.class("admin-page__group-title")], [
+      html.text("Filters"),
+    ]),
+    html.p([attribute.class("admin-page__group-copy")], [
+      html.text("Combine filters to choose the review queue."),
+    ]),
     filter.filter_surface([], [
       html.fieldset([attribute.disabled(model.saving)], [
         html.legend([], [html.text("Review filters")]),
@@ -226,7 +231,7 @@ fn filters(model: Model) -> Element(Msg) {
         ]),
       ]),
     ]),
-  )
+  ])
 }
 
 fn snippet(item: ReviewSnippet) -> Element(Msg) {
