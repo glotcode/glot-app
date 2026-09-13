@@ -323,3 +323,11 @@ ON CONFLICT (day, surface, name) DO NOTHING;
 INSERT INTO metrics_completed_day (day)
 VALUES (@day::date)
 ON CONFLICT (day) DO NOTHING;
+
+-- name: GetFingerprintIndexMetrics :one
+SELECT count(*)::bigint AS total,
+  count(f.snippet_id)::bigint AS indexed
+FROM snippets s
+LEFT JOIN spam_classifier_fingerprints f
+  ON f.snippet_id = s.id AND f.content_revision = s.updated_at
+  AND f.algorithm_version = sqlc.arg(algorithm_version)::text;

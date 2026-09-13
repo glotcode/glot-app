@@ -94,6 +94,7 @@ fn dashboard(data: analytics_dto.AnalyticsResponse) -> Element(Msg) {
         format_int(errors) <> " / " <> format_int(requests),
       ),
     ]),
+    fingerprint_index_metrics(data.fingerprint_index),
     spam_classifier_metrics(data.spam_classifier, data.reliability),
     completion_notice(data.completed_through),
     metric_group(
@@ -117,6 +118,58 @@ fn dashboard(data: analytics_dto.AnalyticsResponse) -> Element(Msg) {
       reliability_table(data.reliability),
     ),
   ])
+}
+
+fn fingerprint_index_metrics(
+  metrics: option.Option(analytics_dto.FingerprintIndexMetrics),
+) -> Element(Msg) {
+  case metrics {
+    option.None ->
+      metric_group(
+        "Snippet similarity index",
+        "Indexing progress is unavailable from this server.",
+        html.div([], []),
+      )
+    option.Some(metrics) -> {
+      let remaining = int.max(0, metrics.total - metrics.indexed)
+      let percent = case metrics.total {
+        0 -> 100
+        _ -> metrics.indexed * 100 / metrics.total
+      }
+      let status = case metrics.total, remaining {
+        0, _ -> "No snippets to index"
+        _, 0 -> "Index up to date"
+        _, _ -> "Index incomplete"
+      }
+      metric_group(
+        "Snippet similarity index",
+        "Current fingerprints across all snippet visibilities, independent of the selected date range. Use Refresh to update these counts.",
+        html.div([attribute.class("admin-page__group")], [
+          html.div([attribute.class(admin_layout.summary_grid_class())], [
+            admin_layout.summary_card(
+              "Indexed / total snippets",
+              format_int(metrics.indexed) <> " / " <> format_int(metrics.total),
+            ),
+            admin_layout.summary_card(
+              "Remaining to index",
+              format_int(remaining),
+            ),
+            admin_layout.summary_card(
+              "Index completion",
+              int.to_string(percent) <> "%",
+            ),
+          ]),
+          html.div([attribute.class(admin_layout.detail_grid_class())], [
+            admin_layout.detail_item("Index status", status),
+            admin_layout.detail_item(
+              "Algorithm version",
+              metrics.algorithm_version,
+            ),
+          ]),
+        ]),
+      )
+    }
+  }
 }
 
 fn spam_classifier_metrics(

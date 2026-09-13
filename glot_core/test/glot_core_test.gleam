@@ -57,9 +57,9 @@ pub fn spam_classifier_request_matches_contract_test() {
       updated_at: now,
     )
   assert spam_classification.encode_request(spam_classification.ServiceRequest(
-    snippet:,
-    is_runnable: False,
-  ))
+      snippet:,
+      is_runnable: False,
+    ))
     |> json.to_string
     == "{\"snippet\":{\"title\":\"Example\",\"language\":\"python\",\"is_runnable\":false,\"stdin\":\"\",\"runInstructions\":{\"buildCommands\":[],\"runCommand\":\"python main.py\"},\"files\":[{\"name\":\"main.py\",\"content\":\"print('hello')\"}]}}"
 }
@@ -106,6 +106,11 @@ pub fn analytics_spam_classifier_metrics_round_trip_test() {
   let oldest = timestamp.from_unix_seconds(100)
   let response =
     analytics_dto.AnalyticsResponse(
+      fingerprint_index: option.Some(analytics_dto.FingerprintIndexMetrics(
+        "local-v1",
+        600_000,
+        150_000,
+      )),
       days: 7,
       completed_through: option.None,
       pageviews: [],
@@ -135,6 +140,16 @@ pub fn analytics_spam_classifier_metrics_round_trip_test() {
     |> json.parse(analytics_dto.response_decoder())
 
   assert decoded == response
+  let historical =
+    analytics_dto.AnalyticsResponse(..response, fingerprint_index: option.None)
+  let historical_json =
+    historical |> analytics_dto.encode_response |> json.to_string
+  let assert Ok(pattern) =
+    regexp.from_string(",\"fingerprintIndex\":null|\"fingerprintIndex\":null,")
+  let assert Ok(decoded_historical) =
+    regexp.replace(pattern, historical_json, "")
+    |> json.parse(analytics_dto.response_decoder())
+  assert decoded_historical == historical
 }
 
 pub fn successor_job_resets_attempt_state_and_runs_immediately_test() {

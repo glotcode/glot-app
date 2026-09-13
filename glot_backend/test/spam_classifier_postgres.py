@@ -17,7 +17,7 @@ SCHEMA = "spam_test_" + uuid.uuid4().hex
 VERSION = "local-v1"
 REVISION = "2026-01-01 00:00:00+00"
 QUERIES = {}
-for path in [ROOT / "src/glot_backend/spam_classifier/sql/fingerprints.sql", ROOT / "src/glot_backend/snippet/sql/snippets.sql"]:
+for path in [ROOT / "src/glot_backend/spam_classifier/sql/fingerprints.sql", ROOT / "src/glot_backend/snippet/sql/snippets.sql", ROOT / "src/glot_backend/analytics/sql/analytics_metrics.sql"]:
     for name, body in re.findall(r"-- name: (\w+) :\w+\n(.*?)(?=\n-- name:|\Z)", path.read_text(), re.S):
         QUERIES[name] = body.strip().rstrip(";")
 
@@ -88,6 +88,10 @@ def cursor(version=VERSION):
     output = run(query("GetClassifierIndexCursor", dict(algorithm_version=version)))
     after_id, generation = output.split("|")
     return dict(after_snippet_id=after_id or None, generation=int(generation))
+
+
+def index_metrics(version=VERSION):
+    return rows("GetFingerprintIndexMetrics", dict(algorithm_version=version))[0]
 
 
 def index_batch(version=VERSION):
@@ -171,6 +175,8 @@ try:
     run((ROOT / "priv/db/migrations/0009_spam_classifier_index_cursor.sql").read_text())
     assert run("SELECT count(*) FROM snippets WHERE spam_decision='block' AND spam_confidence=75 AND spam_explanation IS NULL") == "205"
 
+    assert index_metrics() == dict(total=205, indexed=0)
+
     # Reading/computing without committing cannot skip any snippets after restart.
     state, first = index_batch()
     assert len(first) == 100
@@ -186,6 +192,7 @@ try:
     assert cursor() == state
     assert run("SELECT count(*) FROM spam_classifier_fingerprints") == "0"
     assert run(batch_commit_sql(state, first)) == "t|100"
+    assert index_metrics() == dict(total=205, indexed=100)
     resumed_state, resumed = index_batch()
     assert resumed_state["generation"] == state["generation"] + 1
     assert resumed[0]["id"] == identifier(101)
@@ -197,6 +204,8 @@ try:
     assert len(final) == 5
     assert run(batch_commit_sql(final_state, final)) == "t|5"
     assert cursor()["after_snippet_id"] is None
+    assert index_metrics() == dict(total=205, indexed=205)
+    assert index_metrics("unbuilt-version") == dict(total=205, indexed=0)
     empty_state, empty = index_batch()
     assert empty == []
     assert run(batch_commit_sql(empty_state, empty)) == "t|0"
@@ -236,8 +245,10 @@ try:
     assert candidates()[0]["snippet_id"] == identifier(204)
     run(f"UPDATE snippets SET updated_at=updated_at+interval '1 second' WHERE id='{identifier(1)}'")
     assert run(fingerprint(1)) == "f"
+    assert index_metrics() == dict(total=205, indexed=204)
     assert rows("ListClassifierIndexBatch", {"algorithm_version": VERSION})[0]["id"] == identifier(1)
     assert run(fingerprint(1, "2026-01-01 00:00:01+00")) == "t"
+    assert index_metrics() == dict(total=205, indexed=205)
     assert candidates()[0]["snippet_id"] == identifier(1)
 
     # Concurrent edits invalidate both fingerprint and classification writes.
@@ -265,6 +276,8 @@ try:
     run(f"DELETE FROM snippets WHERE id='{identifier(2)}'")
     assert run(f"SELECT count(*) FROM spam_classifier_fingerprints WHERE snippet_id='{identifier(2)}'") == "0"
     assert run(f"SELECT count(*) FROM spam_classifier_bands WHERE snippet_id='{identifier(2)}'") == "0"
+    assert index_metrics() == dict(total=204, indexed=204)
+
     # Mixed current/stale entries commit the other 99 fingerprints and bands.
     race_version = "batch-race-test"
     race_state, race_batch = index_batch(race_version)

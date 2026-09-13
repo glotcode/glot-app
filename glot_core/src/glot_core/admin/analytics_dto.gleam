@@ -17,7 +17,12 @@ pub type AnalyticsResponse {
     runs: List(RunMetric),
     reliability: List(ReliabilityMetric),
     spam_classifier: SpamClassifierOperationalMetrics,
+    fingerprint_index: Option(FingerprintIndexMetrics),
   )
+}
+
+pub type FingerprintIndexMetrics {
+  FingerprintIndexMetrics(algorithm_version: String, total: Int, indexed: Int)
 }
 
 pub type SpamClassifierOperationalMetrics {
@@ -110,6 +115,11 @@ pub fn response_decoder() -> decode.Decoder(AnalyticsResponse) {
     "spamClassifier",
     spam_classifier_decoder(),
   )
+  use fingerprint_index <- decode.optional_field(
+    "fingerprintIndex",
+    option.None,
+    decode.optional(fingerprint_index_decoder()),
+  )
   decode.success(AnalyticsResponse(
     days: days,
     completed_through: completed_through,
@@ -118,6 +128,7 @@ pub fn response_decoder() -> decode.Decoder(AnalyticsResponse) {
     runs: runs,
     reliability: reliability,
     spam_classifier: spam_classifier,
+    fingerprint_index:,
   ))
 }
 
@@ -136,6 +147,10 @@ pub fn encode_response(response: AnalyticsResponse) -> json.Json {
     #("runs", json.array(response.runs, encode_run)),
     #("reliability", json.array(response.reliability, encode_reliability)),
     #("spamClassifier", encode_spam_classifier(response.spam_classifier)),
+    #(
+      "fingerprintIndex",
+      json.nullable(response.fingerprint_index, encode_fingerprint_index),
+    ),
   ])
 }
 
@@ -314,5 +329,20 @@ fn encode_reliability(metric: ReliabilityMetric) -> json.Json {
     #("requestCount", json.int(metric.request_count)),
     #("errorCount", json.int(metric.error_count)),
     #("avgDurationNs", json.int(metric.avg_duration_ns)),
+  ])
+}
+
+fn fingerprint_index_decoder() -> decode.Decoder(FingerprintIndexMetrics) {
+  use algorithm_version <- decode.field("algorithmVersion", decode.string)
+  use total <- decode.field("total", decode.int)
+  use indexed <- decode.field("indexed", decode.int)
+  decode.success(FingerprintIndexMetrics(algorithm_version:, total:, indexed:))
+}
+
+fn encode_fingerprint_index(metrics: FingerprintIndexMetrics) -> json.Json {
+  json.object([
+    #("algorithmVersion", json.string(metrics.algorithm_version)),
+    #("total", json.int(metrics.total)),
+    #("indexed", json.int(metrics.indexed)),
   ])
 }

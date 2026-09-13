@@ -1385,6 +1385,35 @@ ON CONFLICT (day) DO NOTHING"
   #(sql, [dev.ParamDate(day)])
 }
 
+pub type GetFingerprintIndexMetrics {
+  GetFingerprintIndexMetrics(total: Int, indexed: Int)
+}
+
+pub fn get_fingerprint_index_metrics(
+  algorithm_version algorithm_version: String,
+) {
+  let sql =
+    "SELECT count(*)::bigint AS total,
+  count(f.snippet_id)::bigint AS indexed
+FROM snippets s
+LEFT JOIN spam_classifier_fingerprints f
+  ON f.snippet_id = s.id AND f.content_revision = s.updated_at
+  AND f.algorithm_version = $1::text"
+  #(
+    sql,
+    [dev.ParamString(algorithm_version)],
+    get_fingerprint_index_metrics_decoder(),
+  )
+}
+
+pub fn get_fingerprint_index_metrics_decoder() -> decode.Decoder(
+  GetFingerprintIndexMetrics,
+) {
+  use total <- decode.field(0, decode.int)
+  use indexed <- decode.field(1, decode.int)
+  decode.success(GetFingerprintIndexMetrics(total:, indexed:))
+}
+
 pub type ListAppConfig {
   ListAppConfig(namespace: String, key: String, value: String)
 }

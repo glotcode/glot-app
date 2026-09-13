@@ -6,6 +6,7 @@ import gleam/string
 import gleam/time/calendar
 import gleam/time/timestamp
 import glot_backend/analytics/ports/store as analytics_store
+import glot_backend/spam_classifier/domain/scoring
 import glot_backend/sql
 import glot_backend/system/database as db_helpers
 import glot_backend/system/effect/error/db_error
@@ -79,7 +80,23 @@ pub fn get_analytics(
     spam_classifier.rows,
   ))
 
+  use index_rows <- result.try(db_helpers.query(
+    db,
+    sql.get_fingerprint_index_metrics(scoring.version),
+    to_error,
+  ))
+  use index <- result.try(case index_rows.rows {
+    [row] -> Ok(row)
+    _ ->
+      Error(db_error.DbQueryError("Expected one fingerprint index metrics row"))
+  })
+
   Ok(analytics_dto.AnalyticsResponse(
+    fingerprint_index: option.Some(analytics_dto.FingerprintIndexMetrics(
+      scoring.version,
+      index.total,
+      index.indexed,
+    )),
     days: days,
     completed_through: option.map(completed_through, date_to_string),
     pageviews: list.map(pageviews.rows, fn(row) {
