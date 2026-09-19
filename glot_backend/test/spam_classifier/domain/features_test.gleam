@@ -67,6 +67,12 @@ pub fn url_substitutions_have_identical_fingerprints_test() {
 pub fn short_snippets_never_qualify_test() {
   let short = similarity.fingerprint(["hello", "world", "example"])
   assert similarity.is_neighbor(short, short) == False
+  assert similarity.can_have_neighbors(short) == False
+  assert similarity.candidate_bands(short) == []
+  let long =
+    similarity.fingerprint(list.repeat("word", 19) |> list.append(["end"]))
+  assert similarity.can_have_neighbors(long)
+  assert similarity.candidate_bands(long) == long.bands
 }
 
 pub fn defanged_protocol_and_hidden_bare_domain_are_obfuscation_test() {

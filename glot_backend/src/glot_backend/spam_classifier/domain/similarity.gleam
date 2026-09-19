@@ -81,7 +81,24 @@ pub fn jaccard(left: Fingerprint, right: Fingerprint) -> Float {
 }
 
 pub fn is_neighbor(left: Fingerprint, right: Fingerprint) -> Bool {
-  left.token_count >= 20
-  && right.token_count >= 20
+  can_have_neighbors(left)
+  && can_have_neighbors(right)
   && jaccard(left, right) >=. 0.8
+}
+
+const neighbor_token_threshold = 20
+
+/// Only fingerprints at or above the token threshold take part in neighbor
+/// matching. Shorter snippets have too little content to compare, and the
+/// near-empty ones share a degenerate signature that would form hot bands.
+pub fn can_have_neighbors(fingerprint: Fingerprint) -> Bool {
+  fingerprint.token_count >= neighbor_token_threshold
+}
+
+/// Bands to look up when searching for neighbors: none for short snippets.
+pub fn candidate_bands(fingerprint: Fingerprint) -> List(String) {
+  case can_have_neighbors(fingerprint) {
+    True -> fingerprint.bands
+    False -> []
+  }
 }

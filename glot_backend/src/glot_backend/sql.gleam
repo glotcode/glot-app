@@ -6918,13 +6918,16 @@ pub fn store_classifier_fingerprint(
     trigram_hashes = EXCLUDED.trigram_hashes, signature = EXCLUDED.signature,
     independently_suspicious = EXCLUDED.independently_suspicious,
     urls = EXCLUDED.urls, indexed_at = CURRENT_TIMESTAMP
-  RETURNING snippet_id, content_revision, algorithm_version
+  RETURNING snippet_id, content_revision, algorithm_version, token_count
 ), bands AS (
+  -- Only neighbor-eligible snippets get band rows: shorter ones never pass
+  -- the token threshold, and their degenerate signatures would form hot bands.
   INSERT INTO spam_classifier_bands
     (snippet_id, content_revision, algorithm_version, band_number, band_value)
   SELECT stored.snippet_id, stored.content_revision, stored.algorithm_version,
     (band.ordinality - 1)::int, band.value
   FROM stored CROSS JOIN unnest($9::text[]) WITH ORDINALITY AS band(value, ordinality)
+  WHERE stored.token_count >= 20
   ON CONFLICT (snippet_id, content_revision, algorithm_version, band_number)
   DO UPDATE SET band_value = EXCLUDED.band_value
 )
@@ -6972,19 +6975,24 @@ pub fn find_classifier_neighbors(
   snippet_id snippet_id: BitArray,
 ) {
   let sql =
-    "SELECT f.snippet_id, f.content_revision, s.slug, f.token_count,
-  f.trigram_hashes, f.signature, f.independently_suspicious,
-  count(*)::int AS matching_bands
-FROM spam_classifier_bands b
+    "WITH ranked AS (
+  SELECT b.snippet_id, b.content_revision, b.algorithm_version,
+    count(*)::int AS matching_bands
+  FROM spam_classifier_bands b
+  WHERE b.algorithm_version = $1::text
+    AND b.band_value = ANY($2::text[])
+    AND b.snippet_id <> $3::uuid
+  GROUP BY b.snippet_id, b.content_revision, b.algorithm_version
+  ORDER BY matching_bands DESC, b.content_revision DESC, b.snippet_id DESC
+  LIMIT 200
+)
+SELECT f.snippet_id, f.content_revision, s.slug, f.token_count,
+  f.trigram_hashes, f.signature, f.independently_suspicious, r.matching_bands
+FROM ranked r
 JOIN spam_classifier_fingerprints f USING (snippet_id, content_revision, algorithm_version)
 JOIN snippets s ON s.id = f.snippet_id AND s.updated_at = f.content_revision
-WHERE b.algorithm_version = $1::text
-  AND b.band_value = ANY($2::text[])
-  AND b.snippet_id <> $3::uuid
-  AND f.token_count >= 20
-GROUP BY f.snippet_id, f.content_revision, f.algorithm_version, s.slug
-ORDER BY matching_bands DESC, f.content_revision DESC, f.snippet_id DESC
-LIMIT 200"
+WHERE f.token_count >= 20
+ORDER BY r.matching_bands DESC, f.content_revision DESC, f.snippet_id DESC"
   #(
     sql,
     [
@@ -7175,6 +7183,7 @@ pub fn commit_classifier_index_batch(
     (band.ordinality - 1)::int, band.value
   FROM stored JOIN input i ON i.snippet_id = stored.snippet_id
   CROSS JOIN unnest(i.bands) WITH ORDINALITY AS band(value, ordinality)
+  WHERE i.token_count >= 20
   ON CONFLICT (snippet_id, content_revision, algorithm_version, band_number)
   DO UPDATE SET band_value = EXCLUDED.band_value
 ), advanced AS (

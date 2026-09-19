@@ -71,7 +71,7 @@ pub fn run(
     classifier_provider.Local -> {
       use candidates <- result.try(ports.storage.candidates(
         scoring.version,
-        signature.bands,
+        similarity.candidate_bands(signature),
         request.snippet.id,
       ))
       let verified =
