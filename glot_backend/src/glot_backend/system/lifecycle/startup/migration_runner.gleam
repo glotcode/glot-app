@@ -6,6 +6,7 @@ import gleam/string
 import glot_backend/system/database as db_helpers
 import glot_backend/system/file_system
 import glot_backend/system/lifecycle/startup/sql_file
+import glot_backend/system/lifecycle/startup/startup_transaction
 import parrot/dev
 import pog
 
@@ -195,46 +196,44 @@ fn apply_migration(
   db: pog.Connection,
   migration: Migration,
 ) -> Result(Nil, String) {
-  pog.transaction(db, fn(tx) {
-    let tx_db = db_helpers.new(tx)
-    let statements = statements_from_sql(migration.sql)
-
-    use _ <- result.try(
-      result.map_error(configure_statement_timeout(tx), fn(err) {
-        "Failed to configure statement timeout for "
-        <> migration.filename
-        <> ": "
-        <> string.inspect(err)
-      }),
-    )
-    use _ <- result.try(execute_statements(
-      tx_db,
-      migration.filename,
-      statements,
-    ))
-    db_helpers.execute(
-      tx_db,
-      #("INSERT INTO schema_migrations (version, name) VALUES ($1, $2)", [
-        dev.ParamString(migration.version),
-        dev.ParamString(migration.name),
-      ]),
-      fn(err) {
-        "Failed to record applied migration "
-        <> migration.version
-        <> "_"
-        <> migration.name
-        <> ": "
-        <> string.inspect(err)
-      },
-    )
-    |> result.map(fn(_) { Nil })
-  })
+  startup_transaction.run(db, fn() { run_migration(db, migration) })
   |> result.map_error(fn(err) {
-    "Migration transaction failed for "
-    <> migration.filename
-    <> ": "
-    <> string.inspect(err)
+    "Migration transaction failed for " <> migration.filename <> ": " <> err
   })
+}
+
+fn run_migration(
+  db: pog.Connection,
+  migration: Migration,
+) -> Result(Nil, String) {
+  let tx_db = db_helpers.new(db)
+  let statements = statements_from_sql(migration.sql)
+
+  use _ <- result.try(
+    result.map_error(configure_statement_timeout(db), fn(err) {
+      "Failed to configure statement timeout for "
+      <> migration.filename
+      <> ": "
+      <> string.inspect(err)
+    }),
+  )
+  use _ <- result.try(execute_statements(tx_db, migration.filename, statements))
+  db_helpers.execute(
+    tx_db,
+    #("INSERT INTO schema_migrations (version, name) VALUES ($1, $2)", [
+      dev.ParamString(migration.version),
+      dev.ParamString(migration.name),
+    ]),
+    fn(err) {
+      "Failed to record applied migration "
+      <> migration.version
+      <> "_"
+      <> migration.name
+      <> ": "
+      <> string.inspect(err)
+    },
+  )
+  |> result.map(fn(_) { Nil })
 }
 
 fn apply_seeds(
@@ -252,42 +251,41 @@ fn apply_seeds(
 }
 
 fn apply_seed(db: pog.Connection, seed: Migration) -> Result(Nil, String) {
-  pog.transaction(db, fn(tx) {
-    let tx_db = db_helpers.new(tx)
-    let statements = statements_from_sql(seed.sql)
-
-    use _ <- result.try(
-      result.map_error(configure_statement_timeout(tx), fn(err) {
-        "Failed to configure statement timeout for seed "
-        <> seed.filename
-        <> ": "
-        <> string.inspect(err)
-      }),
-    )
-    use _ <- result.try(execute_statements(tx_db, seed.filename, statements))
-    db_helpers.execute(
-      tx_db,
-      #("INSERT INTO schema_seeds (version, name) VALUES ($1, $2)", [
-        dev.ParamString(seed.version),
-        dev.ParamString(seed.name),
-      ]),
-      fn(err) {
-        "Failed to record applied seed "
-        <> seed.version
-        <> "_"
-        <> seed.name
-        <> ": "
-        <> string.inspect(err)
-      },
-    )
-    |> result.map(fn(_) { Nil })
-  })
+  startup_transaction.run(db, fn() { run_seed(db, seed) })
   |> result.map_error(fn(err) {
-    "Seed transaction failed for "
-    <> seed.filename
-    <> ": "
-    <> string.inspect(err)
+    "Seed transaction failed for " <> seed.filename <> ": " <> err
   })
+}
+
+fn run_seed(db: pog.Connection, seed: Migration) -> Result(Nil, String) {
+  let tx_db = db_helpers.new(db)
+  let statements = statements_from_sql(seed.sql)
+
+  use _ <- result.try(
+    result.map_error(configure_statement_timeout(db), fn(err) {
+      "Failed to configure statement timeout for seed "
+      <> seed.filename
+      <> ": "
+      <> string.inspect(err)
+    }),
+  )
+  use _ <- result.try(execute_statements(tx_db, seed.filename, statements))
+  db_helpers.execute(
+    tx_db,
+    #("INSERT INTO schema_seeds (version, name) VALUES ($1, $2)", [
+      dev.ParamString(seed.version),
+      dev.ParamString(seed.name),
+    ]),
+    fn(err) {
+      "Failed to record applied seed "
+      <> seed.version
+      <> "_"
+      <> seed.name
+      <> ": "
+      <> string.inspect(err)
+    },
+  )
+  |> result.map(fn(_) { Nil })
 }
 
 fn execute_statements(
