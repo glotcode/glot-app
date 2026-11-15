@@ -1,34 +1,35 @@
 :root {
   color-scheme: light dark;
 
-  --theme-page: light-dark(#fdf6e3, #002b36);
-  --theme-surface: light-dark(#fdf6e3, #073642);
-  --theme-surface-muted: light-dark(#eee8d5, #002b36);
-  --theme-text-strong: light-dark(#002b36, #fdf6e3);
-  --theme-text: light-dark(#073642, #eee8d5);
-  --theme-text-muted: light-dark(#586e75, #93a1a1);
-  /* Secondary copy still meets 4.5:1 against its page and surface. The light
-     tone is darkened past that floor so comments and operators keep 4.5:1 even
+  /* The default light side is the neutral White theme; the dark side is
+     Solarized Dark. Solarized Light is an explicit override below. Every light
+     foreground keeps 4.5:1 against both white and the muted surface, also
      under the editor's selection and search-match washes. */
-  --theme-text-subtle: light-dark(#4a5f66, #93a1a1);
-  --theme-text-disabled: light-dark(#586e75, #93a1a1);
-  --theme-border: light-dark(#d8d1bd, #34505a);
-  --theme-screen-line: light-dark(rgba(255, 255, 255, 0.12), rgba(147, 161, 161, 0.04));
-  --theme-code-shadow: light-dark(rgba(255, 255, 255, 0.35), rgba(0, 43, 54, 0.35));
+  --theme-page: light-dark(#ffffff, #002b36);
+  --theme-surface: light-dark(#ffffff, #073642);
+  --theme-surface-muted: light-dark(#f6f8fa, #002b36);
+  --theme-text-strong: light-dark(#1f2328, #fdf6e3);
+  --theme-text: light-dark(#1f2328, #eee8d5);
+  --theme-text-muted: light-dark(#59636e, #93a1a1);
+  --theme-text-subtle: light-dark(#59636e, #93a1a1);
+  --theme-text-disabled: light-dark(#59636e, #93a1a1);
+  --theme-border: light-dark(#d1d9e0, #34505a);
+  --theme-screen-line: light-dark(transparent, rgba(147, 161, 161, 0.04));
+  --theme-code-shadow: light-dark(transparent, rgba(0, 43, 54, 0.35));
 
   /* Functional colors are theme-aware so text never relies on a mid-tone. */
-  --color-accent: light-dark(#006eb3, #4cb3f2);
-  --color-accent-hover: light-dark(#005b96, #66c3fa);
-  --color-focus: light-dark(#006f67, #42c7bd);
+  --color-accent: light-dark(#0558c4, #4cb3f2);
+  --color-accent-hover: light-dark(#04449a, #66c3fa);
+  --color-focus: light-dark(#00706a, #42c7bd);
   --color-info: var(--color-accent);
   --color-info-soft: var(--color-accent-soft);
   --color-stdout: var(--color-info);
-  --color-stderr: light-dark(#594fa6, #aaa5ef);
-  --color-error: light-dark(#b51d1a, #ff716e);
+  --color-stderr: light-dark(#6639ba, #aaa5ef);
+  --color-error: light-dark(#b3121f, #ff716e);
   --color-danger: var(--color-error);
-  --color-warning: light-dark(#765d00, #d9b82c);
-  --color-success: light-dark(#526700, #aac22c);
-  --color-diagnostic: light-dark(#9e3510, #f07a4f);
+  --color-warning: light-dark(#7d5300, #d9b82c);
+  --color-success: light-dark(#146c2e, #aac22c);
+  --color-diagnostic: light-dark(#9c3d00, #f07a4f);
   --color-on-accent: light-dark(#ffffff, #002b36);
   --color-on-image: #ffffff;
 
@@ -56,6 +57,55 @@
   --control-min-size: 2.75rem;
   --motion-reduced-duration: 0.01ms;
 
+  --syntax-keyword: light-dark(#b3121f, var(--color-success));
+  --syntax-string: light-dark(#0a3069, var(--color-focus));
+  --syntax-number: light-dark(#04449a, var(--color-accent-hover));
+  --syntax-function: light-dark(#6639ba, var(--color-accent));
+  --syntax-type: light-dark(#8a3300, var(--color-warning));
+
+  --theme-page-glow: light-dark(transparent, color-mix(in srgb, var(--color-warning) 10%, transparent));
+  --theme-screen-glow: light-dark(transparent, color-mix(in srgb, var(--color-warning) 6%, transparent));
+  /* Keeps white hero copy above 4.5:1 even over the image's lightest pixels. */
+  --overlay-image: rgba(0, 43, 54, 0.66);
+  --overlay-backdrop: rgba(16, 24, 40, 0.42);
+  --shadow-soft: light-dark(rgba(31, 35, 40, 0.06), rgba(0, 43, 54, 0.08));
+  --shadow-panel: light-dark(rgba(31, 35, 40, 0.1), rgba(0, 43, 54, 0.12));
+  --shadow-panel-strong: light-dark(rgba(31, 35, 40, 0.14), rgba(0, 43, 54, 0.16));
+  --shadow-dialog: light-dark(rgba(31, 35, 40, 0.2), rgba(0, 43, 54, 0.22));
+  --shadow-floating: light-dark(rgba(31, 35, 40, 0.16), rgba(12, 26, 54, 0.18));
+}
+
+:root[data-theme="white"] {
+  color-scheme: only light;
+}
+
+/* Solarized Light. Secondary copy is darkened past the 4.5:1 floor so
+   comments and operators keep 4.5:1 under the selection and search washes.
+   Derived tokens are recomputed from these on the same element. */
+:root[data-theme="light"] {
+  color-scheme: only light;
+
+  --theme-page: #fdf6e3;
+  --theme-surface: #fdf6e3;
+  --theme-surface-muted: #eee8d5;
+  --theme-text-strong: #002b36;
+  --theme-text: #073642;
+  --theme-text-muted: #586e75;
+  --theme-text-subtle: #4a5f66;
+  --theme-text-disabled: #586e75;
+  --theme-border: #d8d1bd;
+  --theme-screen-line: rgba(255, 255, 255, 0.12);
+  --theme-code-shadow: rgba(255, 255, 255, 0.35);
+
+  --color-accent: #006eb3;
+  --color-accent-hover: #005b96;
+  --color-focus: #006f67;
+  --color-stderr: #594fa6;
+  --color-error: #b51d1a;
+  --color-warning: #765d00;
+  --color-success: #526700;
+  --color-diagnostic: #9e3510;
+
   --syntax-keyword: var(--color-success);
   --syntax-string: var(--color-focus);
   --syntax-number: var(--color-accent-hover);
@@ -64,18 +114,11 @@
 
   --theme-page-glow: color-mix(in srgb, var(--color-warning) 10%, transparent);
   --theme-screen-glow: color-mix(in srgb, var(--color-warning) 6%, transparent);
-  /* Keeps white hero copy above 4.5:1 even over the image's lightest pixels. */
-  --overlay-image: rgba(0, 43, 54, 0.66);
-  --overlay-backdrop: rgba(16, 24, 40, 0.42);
   --shadow-soft: rgba(0, 43, 54, 0.08);
   --shadow-panel: rgba(0, 43, 54, 0.12);
   --shadow-panel-strong: rgba(0, 43, 54, 0.16);
   --shadow-dialog: rgba(0, 43, 54, 0.22);
   --shadow-floating: rgba(12, 26, 54, 0.18);
-}
-
-:root[data-theme="light"] {
-  color-scheme: only light;
 }
 
 :root[data-theme="dark"] {

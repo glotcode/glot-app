@@ -6,8 +6,9 @@ import {
   serializeThemeCookie,
 } from "./glot-theme-preference.mjs";
 
-test("reads light and dark preferences from the theme cookie", () => {
+test("reads light, white and dark preferences from the theme cookie", () => {
   assert.equal(readThemeCookie("session=abc; glot_theme=light"), "light");
+  assert.equal(readThemeCookie("glot_theme=white"), "white");
   assert.equal(readThemeCookie("glot_theme=dark; session=abc"), "dark");
 });
 

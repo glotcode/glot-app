@@ -1,4 +1,4 @@
-export type ThemePreference = "system" | "light" | "dark";
+export type ThemePreference = "system" | "light" | "white" | "dark";
 
 export const themeCookieName: "glot_theme";
 

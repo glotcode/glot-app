@@ -108,9 +108,11 @@ pub fn private_pages_are_not_indexable_test() {
 
 pub fn page_renders_valid_theme_cookie_test() {
   let light_body = http_support.page_body_with_theme("/login", "light")
+  let white_body = http_support.page_body_with_theme("/login", "white")
   let dark_body = http_support.page_body_with_theme("/login", "dark")
 
   assert string.contains(light_body, "data-theme=\"light\"")
+  assert string.contains(white_body, "data-theme=\"white\"")
   assert string.contains(dark_body, "data-theme=\"dark\"")
 }
 

@@ -99,8 +99,9 @@ class GlotThemePicker extends HTMLElement {
     this.select.setAttribute("aria-label", "Color theme");
     for (const [value, text] of [
       ["system", "System"],
-      ["light", "Light"],
-      ["dark", "Dark"],
+      ["white", "White"],
+      ["light", "Solarized Light"],
+      ["dark", "Solarized Dark"],
     ] as const) {
       const option = document.createElement("option");
       option.value = value;

@@ -40,7 +40,7 @@ pub fn view() -> Element(msg) {
         ]),
         section("Cookies and browser storage", [
           paragraph(
-            "glot.io uses a necessary session cookie when you sign in. A theme preference cookie may be stored when you choose light or dark mode. The editor may use local browser storage for settings and draft recovery. These first-party features do not track you across websites.",
+            "glot.io uses a necessary session cookie when you sign in. A theme preference cookie may be stored when you choose a color theme. The editor may use local browser storage for settings and draft recovery. These first-party features do not track you across websites.",
           ),
           paragraph(
             "Dismissal of the cookie notice is saved in local browser storage so it does not keep reappearing. This is only a display preference: Carbon Ads loads automatically on pages with an ad placement.",

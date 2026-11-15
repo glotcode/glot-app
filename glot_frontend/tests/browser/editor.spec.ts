@@ -220,16 +220,18 @@ test.describe("code editor", () => {
 
   test("the editor follows the page theme", async ({ page }) => {
     await open(page);
-    const light = await page.locator(".code-editor").evaluate((node) =>
-      getComputedStyle(node).backgroundColor,
-    );
+    const background = () =>
+      page.locator(".code-editor").evaluate((node) => getComputedStyle(node).backgroundColor);
+    const withTheme = async (theme: string) => {
+      await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+      return background();
+    };
 
-    await page.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
-    const dark = await page.locator(".code-editor").evaluate((node) =>
-      getComputedStyle(node).backgroundColor,
-    );
-
-    expect(dark).not.toBe(light);
+    // Without a preference, a light system gets the White theme.
+    expect(await background()).toBe("rgb(255, 255, 255)");
+    expect(await withTheme("white")).toBe("rgb(255, 255, 255)");
+    expect(await withTheme("light")).toBe("rgb(253, 246, 227)");
+    expect(await withTheme("dark")).not.toBe("rgb(255, 255, 255)");
   });
 
   test("focus is on a labelled multiline text box", async ({ page }) => {

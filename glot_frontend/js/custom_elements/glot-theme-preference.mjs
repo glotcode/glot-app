@@ -11,7 +11,7 @@ export function readThemeCookie(cookieHeader) {
 
     try {
       const value = decodeURIComponent(cookie.slice(prefix.length));
-      if (value === "light" || value === "dark") return value;
+      if (value === "light" || value === "white" || value === "dark") return value;
     } catch {
       // Malformed cookie values are treated as the system preference.
     }
